@@ -169,7 +169,7 @@ export const TravelApplicationForm: React.FC = () => {
         const [citiesData, glCodesData, travelModesData, guestHousesData, arcHotelsData] = await Promise.all([
           locationAPI.getAllCities(),
           travelAPI.getGLCodes(),
-          travelAPI.getTravelModes(),
+          travelAPI.getAllowedTravelModes(),
           travelAPI.getGuestHouses(),
           travelAPI.getARCHotels(),
         ]);
@@ -786,6 +786,7 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.accommodation}
                 guestHouses={guestHouses}
                 arcHotels={arcHotels}
+                cities={cities}
                 bookingErrors={accommodationErrors}
               />
             )}

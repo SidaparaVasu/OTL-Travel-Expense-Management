@@ -91,11 +91,38 @@ export const travelAPI = {
         }
         groupedSubOptions[modeId].push(sub);
       });
-      
+
       // console.log('groupedSubOptions: ', groupedSubOptions);
       return { modes, subOptions: groupedSubOptions };
     } catch (error) {
       console.error('Failed to fetch travel modes:', error);
+      return { modes: [], subOptions: {} };
+    }
+  },
+
+  // Allowed modes based on grade entitlements
+  getAllowedTravelModes: async (): Promise<{
+    modes: TravelMode[];
+    subOptions: Record<string, TravelSubOption[]>;
+  }> => {
+    try {
+      const { data } = await apiClient.get('/master/allowed-travel-modes/');
+
+      const modes = data.data || [];
+
+      // Normalize into the SAME shape expected by UI
+      const groupedSubOptions: Record<string, TravelSubOption[]> = {};
+
+      modes.forEach((mode: any) => {
+        groupedSubOptions[String(mode.id)] = mode.sub_options || [];
+      });
+
+      return {
+        modes,
+        subOptions: groupedSubOptions,
+      };
+    } catch (error) {
+      console.error('Failed to fetch allowed travel modes:', error);
       return { modes: [], subOptions: {} };
     }
   },

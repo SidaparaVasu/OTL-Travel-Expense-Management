@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Home, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
@@ -10,6 +10,7 @@ import { GuestHouseSelector } from "./GuestHouseSelector";
 import { ARCHotelSelector } from "./ARCHotelSelector";
 import { Button } from "@/components/ui/button";
 import { TimePickerField } from "./TimePickerField";
+import { CityCombobox } from "./CityCombobox";
 import {
   getEmptyAccommodation,
 } from "../lib/travel-constants";
@@ -17,6 +18,7 @@ import {
   isDateInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
+  isAmountWithinLimit
 } from "../lib/travel-validation";
 
 interface AccommodationFormData {
@@ -27,6 +29,7 @@ interface AccommodationFormData {
   guest_house_preferences: number[];
   arc_hotel_preferences: number[];
   place: string;
+  place_label: string;
   check_in_date: string;
   check_in_time: string;
   check_out_date: string;
@@ -46,6 +49,7 @@ interface AccommodationSectionProps {
   travelSubOptions: Record<string, any>;
   guestHouses: any[];
   arcHotels: any[];
+  cities: any[],
   bookingErrors?: Record<number, string>;
 }
 
@@ -60,6 +64,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   travelSubOptions,
   guestHouses,
   arcHotels,
+  cities,
   bookingErrors = {},
 }) => {
   const [form, setForm] = useState<AccommodationFormData>(getEmptyAccommodation());
@@ -74,6 +79,36 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   const isGuestHouseSelected = mode.includes("guest house") || mode.includes("guest");
   const isARCHotelSelected = mode.includes("company arranged") || mode.includes("company") || mode.includes("company-tied") || mode.includes("ARC") || mode.includes("arc");
   const isSelfArranged = mode.includes("self arranged") || mode.includes("self");
+
+  const selectedSubOption = form.accommodation_sub_option
+    ? currentSubOptions.find(
+      s => String(s.id) === form.accommodation_sub_option
+    )
+    : undefined;
+
+  const selectedCity = cities.find((c) => String(c.id) === form.place);
+
+  let derivedCityCategory: string | undefined;
+
+  if (isSelfArranged) {
+    const selectedCity = cities.find(c => String(c.id) === form.place);
+    derivedCityCategory = selectedCity?.category_name;
+  } else if (isGuestHouseSelected && form.guest_house_preferences.length > 0) {
+    const gh = guestHouses.find(g => g.id === form.guest_house_preferences[0]);
+    console.log(gh, gh?.city, gh?.city_category);
+    derivedCityCategory = gh?.city_category;
+  } else if (isARCHotelSelected && form.arc_hotel_preferences.length > 0) {
+    const hotel = arcHotels.find(h => h.id === form.arc_hotel_preferences[0]);
+    derivedCityCategory = hotel?.city_category;
+  }
+
+  const selectedLimit = selectedSubOption?.limits?.find(l => l.city_category === derivedCityCategory);
+  const maxAllowed = selectedLimit?.max_amount;
+  console.log('selectedSubOption: ', selectedSubOption);
+  console.log('selectedSubOption.limits: ', selectedSubOption?.limits);
+  console.log('selectedCity: ', selectedCity);
+  console.log('derivedCityCategory: ', derivedCityCategory);
+  console.log('selectedLimit: ', selectedLimit, ' maxAllowed: ', maxAllowed);
 
   // Auto-select sub-option based on accommodation type change
   useEffect(() => {
@@ -182,6 +217,16 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       newErrors.check_out_date = "Check-out date cannot be before check-in date";
     }
 
+    // Validate estimated cost against entitlement
+    if (selectedLimit?.max_amount && form.estimated_cost) {
+      const cost = Number(form.estimated_cost);
+
+      if (cost > selectedLimit.max_amount) {
+        newErrors.estimated_cost =
+          `Maximum allowed is ₹${selectedLimit.max_amount} for ${selectedCity?.name}`;
+      }
+    }
+
     // Cost validation
     if (form.estimated_cost.trim() !== "") {
       const costError = validateEstimatedCost(form.estimated_cost);
@@ -196,10 +241,66 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleCostBlur = () => {
+    if (maxAllowed && Number(form.estimated_cost) > maxAllowed) {
+      setForm({
+        ...form,
+        estimated_cost: String(maxAllowed),
+      });
+    }
+  };
+
+  const entitlement = useMemo(() => {
+    if (!form.accommodation_sub_option) return null;
+
+    const sub = currentSubOptions.find(
+      s => String(s.id) === form.accommodation_sub_option
+    );
+    if (!sub || !sub.limits?.length) return null;
+
+    // derive city category here
+    const category = derivedCityCategory;
+    if (!category) return null;
+
+    const limit = sub.limits.find(l => l.city_category === category);
+    return limit || null;
+  }, [
+    form.accommodation_sub_option,
+    derivedCityCategory,
+    currentSubOptions
+  ]);
+
+  const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cost = Number(value);
+
+    setForm({ ...form, estimated_cost: value });
+
+    if (maxAllowed && cost > maxAllowed) {
+      setErrors(prev => ({
+        ...prev,
+        estimated_cost: `Maximum allowed is ₹${maxAllowed}`,
+      }));
+    } else {
+      setErrors({
+        ...errors,
+        estimated_cost: "",
+      });
+    }
+  };
+
   const handleSubmit = () => {
     if (!validateForm()) {
       toast.error("Please fix validation errors before adding");
       return;
+    }
+
+    if (!isAmountWithinLimit(maxAllowed, form.estimated_cost)) {
+      setErrors(prev => ({
+        ...prev,
+        estimated_cost: `Maximum allowed is ₹${maxAllowed} for ${selectedCity?.city_name}`,
+      }));
+      return; // BLOCK ADD
     }
 
     if (editIndex !== null) {
@@ -279,7 +380,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
 
         // 3. Self-arranged Stay
         if (row.accommodation_sub_option_label?.toLowerCase().includes("self")) {
-          return row.place || "N/A";
+          return row.place_label || "N/A";
         }
 
         // 4. Default
@@ -393,11 +494,17 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   error={errors.arc_hotel_preferences}
                 />
               ) : (
-                <FormInput
+                <CityCombobox
                   label="Place/Location"
-                  value={form.place}
-                  onChange={(e) => setForm({ ...form, place: e.target.value })}
+                  required
+                  cities={cities}
+                  value={form.place ? parseInt(form.place) : null}
+                  displayValue={form.place_label}
+                  onChange={(id, label) =>
+                    setForm({ ...form, place: id ? String(id) : "", place_label: label })
+                  }
                   placeholder="Enter location"
+                  error={errors.from_location}
                 />
               )}
 
@@ -411,7 +518,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 max={tripEndDate}
                 error={errors.check_in_date}
               />
-              
+
               <TimePickerField
                 label="Check-in Time"
                 required
@@ -419,15 +526,6 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 onChange={(value) => setForm({ ...form, check_in_time: value })}
                 error={errors.check_in_time}
               />
-
-              {/* <FormInput
-                label="Check-in Time"
-                required
-                type="time"
-                value={form.check_in_time}
-                onChange={(e) => setForm({ ...form, check_in_time: e.target.value })}
-                error={errors.check_in_time}
-              /> */}
 
               <FormInput
                 label="Check-out Date"
@@ -448,23 +546,19 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.check_out_time}
               />
 
-              {/* <FormInput
-                label="Check-out Time"
-                required
-                type="time"
-                value={form.check_out_time}
-                onChange={(e) => setForm({ ...form, check_out_time: e.target.value })}
-                error={errors.check_out_time}
-              /> */}
-
               <FormInput
                 label="Estimated Cost (₹)"
-                // required
                 type="number"
                 min="0"
                 value={form.estimated_cost}
-                onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })}
-                placeholder="0.00"
+                // onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })}
+                onChange={handleCostChange}
+                onBlur={handleCostBlur}
+                placeholder={
+                  maxAllowed
+                    ? `Max allowed ₹${maxAllowed}`
+                    : "Enter estimated cost"
+                }
                 error={errors.estimated_cost}
               />
 

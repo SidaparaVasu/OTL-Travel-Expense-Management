@@ -430,7 +430,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                     }}
                     placeholder="Enter distance in km"
                     error={errors.distance_km}
-                    hint="Max 150 km without CHRO approval"
+                    // hint="Max 150 km without CHRO approval"
                   />
 
                   <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/30">

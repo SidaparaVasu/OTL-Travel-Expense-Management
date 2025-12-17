@@ -84,7 +84,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
               <TableHead>Type</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Estimated Cost</TableHead>
-              <TableHead>Created</TableHead>
+              {/* <TableHead>Created</TableHead> */}
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -140,11 +140,11 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                   </TableCell>
 
                   {/* Created Date */}
-                  <TableCell>
+                  {/* <TableCell>
                     <span className="text-sm">
                       {formatDateTime(booking.created_at)}
                     </span>
-                  </TableCell>
+                  </TableCell> */}
 
                   {/* Actions */}
                   <TableCell>

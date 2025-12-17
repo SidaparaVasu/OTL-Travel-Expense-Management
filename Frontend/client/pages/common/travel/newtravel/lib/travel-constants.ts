@@ -136,6 +136,7 @@ export const getEmptyAccommodation = () => ({
   guest_house_preferences: [] as number[],
   arc_hotel_preferences: [] as number[],
   place: "",
+  place_label: "",
   check_in_date: "",
   check_in_time: "",
   check_out_date: "",

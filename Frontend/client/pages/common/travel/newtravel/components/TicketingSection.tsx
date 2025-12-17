@@ -73,7 +73,8 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   const cities = propCities && propCities.length > 0 ? propCities : [];
   const travelModes = propModes && propModes.length > 0 ? propModes : [];
   console.log('travel modes in ticketing section: ', travelModes);
-  const travelSubOptions = propSubOptions && Object.keys(propSubOptions).length > 0 ? propSubOptions : [];
+  // const travelSubOptions = propSubOptions && Object.keys(propSubOptions).length > 0 ? propSubOptions : [];
+  const travelSubOptions = propSubOptions && Object.keys(propSubOptions).length > 0 ? propSubOptions : {};
   console.log('travel sub modes in ticketing section: ', travelSubOptions);
   const currentSubOptions = form.booking_type
     ? travelSubOptions[form.booking_type] || []

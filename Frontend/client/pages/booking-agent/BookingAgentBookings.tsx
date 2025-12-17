@@ -39,7 +39,7 @@ const BookingAgentBookings: React.FC = () => {
     queryKey: ['booking-agent-bookings', filters],
     queryFn: async () => {
       const response = await bookingAgentAPI.bookings.list(filters);
-
+      console.log(response.data);
       return {
         bookings: response.data,                 // Booking[]
         pagination: response.meta?.pagination ?? null,
@@ -130,7 +130,7 @@ const BookingAgentBookings: React.FC = () => {
           <CardTitle className="text-lg font-semibold">
             Bookings
             {bookingsData?.pagination?.count !== undefined && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
+              <span className="ml-2 text-sm font-semibold text-blue-800">
                 ({bookingsData.pagination.count} total)
               </span>
             )}

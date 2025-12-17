@@ -135,6 +135,13 @@ export const validateEstimatedCost = (cost: string): string | null => {
   return null;
 };
 
+export const isAmountWithinLimit = (maxAllowed, estimated_cost) => {
+  if (!maxAllowed) return true; // no limit defined → allow
+  if (!estimated_cost) return true;
+
+  return Number(estimated_cost) <= maxAllowed;
+};
+
 export const validateSpecialInstructions = (text: string): string | null => {
   if (text && text.length > 200) {
     return "Special instructions cannot exceed 200 characters";
