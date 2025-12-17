@@ -58,7 +58,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, valueKey = 'i
                 <span className="text-sm text-slate-700">{getDisplayText()}</span>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
@@ -158,7 +158,13 @@ export default function GradeEntitlementMaster() {
 
     const validateForm = () => {
         const errors = {};
-        
+
+        const hasAccommodation = form.sub_options.some(isAccommodationSubOption);
+
+        if (hasAccommodation && form.city_categories.length === 0) {
+            errors.city_categories = "City category is required for accommodation";
+        }
+
         if (selectedItem) {
             // Edit mode - single record validation
             if (!form.grade) errors.grade = "Grade is required";
@@ -168,7 +174,7 @@ export default function GradeEntitlementMaster() {
             if (form.grades.length === 0) errors.grades = "At least one grade is required";
             if (form.sub_options.length === 0) errors.sub_options = "At least one travel sub-option is required";
         }
-        
+
         if (form.max_amount && isNaN(parseFloat(form.max_amount))) {
             errors.max_amount = "Max amount must be a valid number";
         }
@@ -243,19 +249,30 @@ export default function GradeEntitlementMaster() {
             } else {
                 // Create mode - bulk creation
                 const recordsToCreate = [];
-                
+
                 form.grades.forEach(gradeId => {
                     form.sub_options.forEach(subOptionId => {
-                        const citiesToUse = form.city_categories.length > 0 ? form.city_categories : [null];
-                        citiesToUse.forEach(cityId => {
+                        const isAccommodation = isAccommodationSubOption(subOptionId);
+
+                        if (isAccommodation) {
+                            form.city_categories.forEach(cityId => {
+                                recordsToCreate.push({
+                                    grade: gradeId,
+                                    sub_option: subOptionId,
+                                    city_category: cityId,
+                                    max_amount: form.max_amount ? parseFloat(form.max_amount) : null,
+                                    is_allowed: form.is_allowed,
+                                });
+                            });
+                        } else {
                             recordsToCreate.push({
                                 grade: gradeId,
                                 sub_option: subOptionId,
-                                city_category: cityId,
+                                city_category: null,
                                 max_amount: form.max_amount ? parseFloat(form.max_amount) : null,
                                 is_allowed: form.is_allowed,
                             });
-                        });
+                        }
                     });
                 });
 
@@ -265,7 +282,7 @@ export default function GradeEntitlementMaster() {
                     description: `Successfully created ${recordsToCreate.length} entitlement record(s)`
                 });
             }
-            
+
             setIsDialogOpen(false);
             resetForm();
             fetchAll();
@@ -384,366 +401,379 @@ export default function GradeEntitlementMaster() {
         return form.grades.length * form.sub_options.length * cityCount;
     };
 
+    const isAccommodationSubOption = (subOptionId) => {
+        const sub = travelSubOptions.find(s => s.id === subOptionId);
+        return sub?.mode_name === "Accommodation";
+    };
+
+    const isAccommodationEdit =
+        travelSubOptions.find(t => t.id === Number(form.sub_option))?.mode_name === "Accommodation";
+
     if (loading) {
         return (
             // <Layout>
-                <div className="p-6 flex items-center justify-center min-h-screen">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-slate-600">Loading entitlements...</p>
-                    </div>
+            <div className="p-6 flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-slate-600">Loading entitlements...</p>
                 </div>
+            </div>
             // </Layout>
         );
     }
 
     return (
         // <Layout>
-            <div className="p-6 bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen">
-                <div className="max-w-7xl mx-auto">
-                    {/* Header */}
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 className="text-3xl font-bold text-slate-800">Grade Entitlement Master</h2>
-                            <p className="text-sm text-slate-600 mt-1">Manage travel entitlements for different grades</p>
-                        </div>
-                        <Button onClick={() => handleOpen()} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-                            <Plus size={16} /> Add Entitlement
-                        </Button>
+        <div className="p-6 bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-800">Grade Entitlement Master</h2>
+                        <p className="text-sm text-slate-600 mt-1">Manage travel entitlements for different grades</p>
                     </div>
+                    <Button onClick={() => handleOpen()} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+                        <Plus size={16} /> Add Entitlement
+                    </Button>
+                </div>
 
-                    {/* Filters */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-                        <div className="flex flex-wrap gap-4">
-                            <div className="flex-1 min-w-[250px]">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <Input
-                                        placeholder="Search by grade, option, or city..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-                            <Select value={filterGrade} onValueChange={setFilterGrade}>
-                                <SelectTrigger className="w-[180px]">
-                                    <Filter className="w-4 h-4 mr-2" />
-                                    <SelectValue placeholder="Filter by Grade" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Grades</SelectItem>
-                                    {grades.map((g) => (
-                                        <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select value={filterMode} onValueChange={setFilterMode}>
-                                <SelectTrigger className="w-[180px]">
-                                    <Filter className="w-4 h-4 mr-2" />
-                                    <SelectValue placeholder="Filter by Mode" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Modes</SelectItem>
-                                    {uniqueModes.map((mode) => (
-                                        <SelectItem key={mode} value={mode}>{mode}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Data Display */}
-                    {filteredData.length === 0 ? (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="p-6 bg-slate-100 rounded-full">
-                                    <Plane className="w-12 h-12 text-slate-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-semibold text-slate-800 mb-2">No entitlements found</h3>
-                                    <p className="text-slate-500 mb-4">
-                                        {searchTerm || filterGrade !== "all" || filterMode !== "all"
-                                            ? "Try adjusting your filters"
-                                            : "Get started by adding your first entitlement"}
-                                    </p>
-                                </div>
-                                {!searchTerm && filterGrade === "all" && filterMode === "all" && (
-                                    <Button onClick={() => handleOpen()} className="flex items-center gap-2">
-                                        <Plus size={16} /> Add Entitlement
-                                    </Button>
-                                )}
+                {/* Filters */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex-1 min-w-[250px]">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <Input
+                                    placeholder="Search by grade, option, or city..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                />
                             </div>
                         </div>
-                    ) : (
-                        <div className="space-y-6">
-                            {Object.entries(groupedData).map(([gradeName, items]) => {
-                                const isExpanded = expandedGrades[gradeName] || false;
+                        <Select value={filterGrade} onValueChange={setFilterGrade}>
+                            <SelectTrigger className="w-[180px]">
+                                <Filter className="w-4 h-4 mr-2" />
+                                <SelectValue placeholder="Filter by Grade" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Grades</SelectItem>
+                                {grades.map((g) => (
+                                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={filterMode} onValueChange={setFilterMode}>
+                            <SelectTrigger className="w-[180px]">
+                                <Filter className="w-4 h-4 mr-2" />
+                                <SelectValue placeholder="Filter by Mode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Modes</SelectItem>
+                                {uniqueModes.map((mode) => (
+                                    <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
 
-                                return (
-                                    <div key={gradeName} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                                        {/* Header - make it clickable */}
-                                        <button
-                                            onClick={() => setExpandedGrades(prev => ({ ...prev, [gradeName]: !prev[gradeName] }))}
-                                            className="w-full bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                                <div className="text-left">
-                                                    <h3 className="text-lg font-semibold text-slate-800">{gradeName}</h3>
-                                                    <p className="text-sm text-slate-600">{items.length} entitlement{items.length !== 1 ? 's' : ''}</p>
-                                                </div>
+                {/* Data Display */}
+                {filteredData.length === 0 ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="p-6 bg-slate-100 rounded-full">
+                                <Plane className="w-12 h-12 text-slate-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-semibold text-slate-800 mb-2">No entitlements found</h3>
+                                <p className="text-slate-500 mb-4">
+                                    {searchTerm || filterGrade !== "all" || filterMode !== "all"
+                                        ? "Try adjusting your filters"
+                                        : "Get started by adding your first entitlement"}
+                                </p>
+                            </div>
+                            {!searchTerm && filterGrade === "all" && filterMode === "all" && (
+                                <Button onClick={() => handleOpen()} className="flex items-center gap-2">
+                                    <Plus size={16} /> Add Entitlement
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {Object.entries(groupedData).map(([gradeName, items]) => {
+                            const isExpanded = expandedGrades[gradeName] || false;
+
+                            return (
+                                <div key={gradeName} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                    {/* Header - make it clickable */}
+                                    <button
+                                        onClick={() => setExpandedGrades(prev => ({ ...prev, [gradeName]: !prev[gradeName] }))}
+                                        className="w-full bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                            <div className="text-left">
+                                                <h3 className="text-lg font-semibold text-slate-800">{gradeName}</h3>
+                                                <p className="text-sm text-slate-600">{items.length} entitlement{items.length !== 1 ? 's' : ''}</p>
                                             </div>
-                                        </button>
-                                        {/* Table - only show when expanded */} 
-                                        {isExpanded && (
-                                            <div className="overflow-x-auto">
-                                                <table className="min-w-full">
-                                                    <thead className="bg-gray-50">
-                                                        <tr>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mode</th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Travel Option</th>
-                                                            <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">City Category</th>
-                                                            <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">Max Amount</th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
-                                                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-200">
-                                                        {items.map((item) => {
-                                                            const ModeIcon = MODE_ICONS[item.mode_name] || Plane;
-                                                            return (
-                                                                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                                                    <td className="px-6 py-4">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <ModeIcon className="w-4 h-4 text-blue-600" />
-                                                                            <span className="font-medium text-slate-700">{item.mode_name}</span>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 text-slate-700">{item.sub_option_name}</td>
-                                                                    <td className="px-6 py-4 text-center">
-                                                                        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-sm">
-                                                                            {item.city_category_name || "All Cities"}
+                                        </div>
+                                    </button>
+                                    {/* Table - only show when expanded */}
+                                    {isExpanded && (
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mode</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Travel Option</th>
+                                                        <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">City Category</th>
+                                                        <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase">Max Amount</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Status</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-200">
+                                                    {items.map((item) => {
+                                                        const ModeIcon = MODE_ICONS[item.mode_name] || Plane;
+                                                        return (
+                                                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                                                <td className="px-6 py-4">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <ModeIcon className="w-4 h-4 text-blue-600" />
+                                                                        <span className="font-medium text-slate-700">{item.mode_name}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-slate-700">{item.sub_option_name}</td>
+                                                                <td className="px-6 py-4 text-center">
+                                                                    <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-sm">
+                                                                        {item.city_category_name || "All Cities"}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-6 py-4 font-medium text-slate-700 text-center">
+                                                                    {item.max_amount ? `₹${parseFloat(item.max_amount).toLocaleString()}` : "—"}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    {item.is_allowed ? (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                                                            <CheckCircle className="w-3 h-3" />
+                                                                            Allowed
                                                                         </span>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 font-medium text-slate-700 text-center">
-                                                                        {item.max_amount ? `₹${parseFloat(item.max_amount).toLocaleString()}` : "—"}
-                                                                    </td>
-                                                                    <td className="px-6 py-4">
-                                                                        {item.is_allowed ? (
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                                                                <CheckCircle className="w-3 h-3" />
-                                                                                Allowed
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                                                                                <XCircle className="w-3 h-3" />
-                                                                                Not Allowed
-                                                                            </span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="px-6 py-4">
-                                                                        <div className="flex gap-2">
-                                                                            <Button variant="ghost" size="sm" onClick={() => handleOpen(item)} className="hover:bg-blue-50 hover:text-blue-600">
-                                                                                <Edit2 size={16} />
-                                                                            </Button>
-                                                                            <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setIsDeleteOpen(true); }} className="hover:bg-red-50 hover:text-red-600">
-                                                                                <Trash2 size={16} />
-                                                                            </Button>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                                                                            <XCircle className="w-3 h-3" />
+                                                                            Not Allowed
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-6 py-4">
+                                                                    <div className="flex gap-2">
+                                                                        <Button variant="ghost" size="sm" onClick={() => handleOpen(item)} className="hover:bg-blue-50 hover:text-blue-600">
+                                                                            <Edit2 size={16} />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setIsDeleteOpen(true); }} className="hover:bg-red-50 hover:text-red-600">
+                                                                            <Trash2 size={16} />
+                                                                        </Button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Add/Edit Dialog */}
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-semibold">
+                                {selectedItem ? "Edit Entitlement" : "Add Entitlement (Bulk Create)"}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            {selectedItem ? (
+                                // Edit Mode - Single Selection
+                                <>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700 mb-1.5 block">
+                                            Grade <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select value={form.grade} onValueChange={(v) => handleChange("grade", v)}>
+                                            <SelectTrigger className={formErrors.grade ? "border-red-500" : ""}>
+                                                <SelectValue placeholder="Select Grade" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {grades.map((g) => (
+                                                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {formErrors.grade && <p className="text-red-500 text-xs mt-1">{formErrors.grade}</p>}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
 
-                    {/* Add/Edit Dialog */}
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle className="text-xl font-semibold">
-                                    {selectedItem ? "Edit Entitlement" : "Add Entitlement (Bulk Create)"}
-                                </DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                {selectedItem ? (
-                                    // Edit Mode - Single Selection
-                                    <>
-                                        <div>
-                                            <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                                Grade <span className="text-red-500">*</span>
-                                            </label>
-                                            <Select value={form.grade} onValueChange={(v) => handleChange("grade", v)}>
-                                                <SelectTrigger className={formErrors.grade ? "border-red-500" : ""}>
-                                                    <SelectValue placeholder="Select Grade" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {grades.map((g) => (
-                                                        <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {formErrors.grade && <p className="text-red-500 text-xs mt-1">{formErrors.grade}</p>}
-                                        </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700 mb-1.5 block">
+                                            Travel Sub-Option <span className="text-red-500">*</span>
+                                        </label>
+                                        <Select value={form.sub_option} onValueChange={(v) => handleChange("sub_option", v)}>
+                                            <SelectTrigger className={formErrors.sub_option ? "border-red-500" : ""}>
+                                                <SelectValue placeholder="Select Sub Option" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {travelSubOptions.map((t) => (
+                                                    <SelectItem key={t.id} value={String(t.id)}>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-slate-500">{t.mode_name}</span>
+                                                            <span>→</span>
+                                                            <span>{t.name}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {formErrors.sub_option && <p className="text-red-500 text-xs mt-1">{formErrors.sub_option}</p>}
+                                    </div>
+                                                
+                                    {isAccommodationEdit && (
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700 mb-1.5 block">
+                                            City Category
+                                        </label>
+                                        <Select value={form.city_category} onValueChange={(v) => handleChange("city_category", v)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="All cities" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="">All cities</SelectItem>
+                                                {cityCategories.map((c) => (
+                                                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    )}
+                                </>
+                            ) : (
+                                // Create Mode - Multi-Selection
+                                <>
+                                    <MultiSelectDropdown
+                                        label="Grades"
+                                        options={grades}
+                                        selected={form.grades}
+                                        onChange={(selected) => handleChange("grades", selected)}
+                                        placeholder="Select grades"
+                                        error={formErrors.grades}
+                                        required
+                                    />
 
-                                        <div>
-                                            <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                                Travel Sub-Option <span className="text-red-500">*</span>
-                                            </label>
-                                            <Select value={form.sub_option} onValueChange={(v) => handleChange("sub_option", v)}>
-                                                <SelectTrigger className={formErrors.sub_option ? "border-red-500" : ""}>
-                                                    <SelectValue placeholder="Select Sub Option" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {travelSubOptions.map((t) => (
-                                                        <SelectItem key={t.id} value={String(t.id)}>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-xs text-slate-500">{t.mode_name}</span>
-                                                                <span>→</span>
-                                                                <span>{t.name}</span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {formErrors.sub_option && <p className="text-red-500 text-xs mt-1">{formErrors.sub_option}</p>}
-                                        </div>
+                                    <MultiSelectDropdown
+                                        label="Travel Sub-Options"
+                                        options={travelSubOptions.map(t => ({
+                                            ...t,
+                                            name: `${t.mode_name} → ${t.name}`
+                                        }))}
+                                        selected={form.sub_options}
+                                        onChange={(selected) => handleChange("sub_options", selected)}
+                                        placeholder="Select sub-options"
+                                        error={formErrors.sub_options}
+                                        required
+                                    />
 
-                                        <div>
-                                            <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                                City Category
-                                            </label>
-                                            <Select value={form.city_category} onValueChange={(v) => handleChange("city_category", v)}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="All cities" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="">All cities</SelectItem>
-                                                    {cityCategories.map((c) => (
-                                                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </>
-                                ) : (
-                                    // Create Mode - Multi-Selection
-                                    <>
+                                    {form.sub_options.some(isAccommodationSubOption) && (
                                         <MultiSelectDropdown
-                                            label="Grades"
-                                            options={grades}
-                                            selected={form.grades}
-                                            onChange={(selected) => handleChange("grades", selected)}
-                                            placeholder="Select grades"
-                                            error={formErrors.grades}
-                                            required
-                                        />
-
-                                        <MultiSelectDropdown
-                                            label="Travel Sub-Options"
-                                            options={travelSubOptions.map(t => ({
-                                                ...t,
-                                                name: `${t.mode_name} → ${t.name}`
-                                            }))}
-                                            selected={form.sub_options}
-                                            onChange={(selected) => handleChange("sub_options", selected)}
-                                            placeholder="Select sub-options"
-                                            error={formErrors.sub_options}
-                                            required
-                                        />
-
-                                        <MultiSelectDropdown
-                                            label="City Categories (Optional)"
+                                            label="City Categories (Required for Accommodation)"
                                             options={cityCategories}
                                             selected={form.city_categories}
                                             onChange={(selected) => handleChange("city_categories", selected)}
-                                            placeholder="All cities"
+                                            placeholder="Select city categories"
+                                            required
                                         />
-                                    </>
-                                )}
+                                    )}
+                                </>
+                            )}
 
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 mb-1.5 block">
+                                    Max Amount (₹)
+                                </label>
+                                <Input
+                                    type="number"
+                                    placeholder="Enter maximum amount"
+                                    value={form.max_amount}
+                                    onChange={(e) => handleChange("max_amount", e.target.value)}
+                                    className={formErrors.max_amount ? "border-red-500" : ""}
+                                    min="0"
+                                    step="0.01"
+                                />
+                                {formErrors.max_amount && <p className="text-red-500 text-xs mt-1">{formErrors.max_amount}</p>}
+                            </div>
+
+                            <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
+                                <Switch
+                                    checked={form.is_allowed}
+                                    onCheckedChange={(v) => handleChange("is_allowed", v)}
+                                />
                                 <div>
-                                    <label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                                        Max Amount (₹)
-                                    </label>
-                                    <Input
-                                        type="number"
-                                        placeholder="Enter maximum amount"
-                                        value={form.max_amount}
-                                        onChange={(e) => handleChange("max_amount", e.target.value)}
-                                        className={formErrors.max_amount ? "border-red-500" : ""}
-                                        min="0"
-                                        step="0.01"
-                                    />
-                                    {formErrors.max_amount && <p className="text-red-500 text-xs mt-1">{formErrors.max_amount}</p>}
+                                    <span className="font-medium text-slate-700">Is Allowed</span>
+                                    <p className="text-xs text-slate-500">Enable this entitlement for the selected grade</p>
                                 </div>
-
-                                <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg">
-                                    <Switch
-                                        checked={form.is_allowed}
-                                        onCheckedChange={(v) => handleChange("is_allowed", v)}
-                                    />
-                                    <div>
-                                        <span className="font-medium text-slate-700">Is Allowed</span>
-                                        <p className="text-xs text-slate-500">Enable this entitlement for the selected grade</p>
-                                    </div>
-                                </div>
-
-                                {/* Info Box for Bulk Creation */}
-                                {!selectedItem && form.grades.length > 0 && form.sub_options.length > 0 && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                                        <p className="text-sm text-blue-800 font-medium mb-2">Records to be created:</p>
-                                        <p className="text-sm text-blue-700">
-                                            {form.grades.length} grade(s) × {form.sub_options.length} option(s) × {form.city_categories.length || 1} city/cities = 
-                                            <strong className="ml-1 text-blue-900">{calculateRecordsCount()} records</strong>
-                                        </p>
-                                    </div>
-                                )}
                             </div>
 
-                            <DialogFooter className="gap-2">
-                                <Button variant="outline" onClick={() => { setIsDialogOpen(false); resetForm(); }}>Cancel</Button>
-                                <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
-                                    {selectedItem ? "Update" : `Create ${!selectedItem && calculateRecordsCount() > 1 ? `(${calculateRecordsCount()} records)` : ""}`}
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                            {/* Info Box for Bulk Creation */}
+                            {!selectedItem && form.grades.length > 0 && form.sub_options.length > 0 && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                                    <p className="text-sm text-blue-800 font-medium mb-2">Records to be created:</p>
+                                    <p className="text-sm text-blue-700">
+                                        {form.grades.length} grade(s) × {form.sub_options.length} option(s) × {form.city_categories.length || 1} city/cities =
+                                        <strong className="ml-1 text-blue-900">{calculateRecordsCount()} records</strong>
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Delete Dialog */}
-                    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Confirm Deletion</DialogTitle>
-                            </DialogHeader>
-                            <div className="py-4">
-                                <p className="text-slate-600">
-                                    Are you sure you want to delete this entitlement? This action cannot be undone.
-                                </p>
-                                {selectedItem && (
-                                    <div className="mt-4 p-4 bg-slate-50 rounded-lg">
-                                        <p className="text-sm"><span className="font-medium">Grade:</span> {selectedItem.grade_name}</p>
-                                        <p className="text-sm"><span className="font-medium">Option:</span> {selectedItem.sub_option_name}</p>
-                                        <p className="text-sm"><span className="font-medium">City:</span> {selectedItem.city_category_name || "All Cities"}</p>
-                                    </div>
-                                )}
-                            </div>
-                            <DialogFooter className="gap-2">
-                                <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-                                <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                        <DialogFooter className="gap-2">
+                            <Button variant="outline" onClick={() => { setIsDialogOpen(false); resetForm(); }}>Cancel</Button>
+                            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700">
+                                {selectedItem ? "Update" : `Create ${!selectedItem && calculateRecordsCount() > 1 ? `(${calculateRecordsCount()} records)` : ""}`}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Delete Dialog */}
+                <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Confirm Deletion</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <p className="text-slate-600">
+                                Are you sure you want to delete this entitlement? This action cannot be undone.
+                            </p>
+                            {selectedItem && (
+                                <div className="mt-4 p-4 bg-slate-50 rounded-lg">
+                                    <p className="text-sm"><span className="font-medium">Grade:</span> {selectedItem.grade_name}</p>
+                                    <p className="text-sm"><span className="font-medium">Option:</span> {selectedItem.sub_option_name}</p>
+                                    <p className="text-sm"><span className="font-medium">City:</span> {selectedItem.city_category_name || "All Cities"}</p>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter className="gap-2">
+                            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
+                            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
+        </div>
         // </Layout>
     );
 }

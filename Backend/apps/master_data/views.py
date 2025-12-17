@@ -309,30 +309,52 @@ class AllowedTravelModesView(APIView):
 
         grade = profile.grade
 
-        # Fetch only allowed entitlements for this grade
         entitlements = GradeEntitlementMaster.objects.filter(
             grade=grade,
             is_allowed=True
-        ).select_related("sub_option", "sub_option__mode")
+        ).select_related(
+            "sub_option",
+            "sub_option__mode",
+            "city_category"
+        )
 
         response = {}
 
         for ent in entitlements:
-            mode = ent.sub_option.mode   # TravelModeMaster FK
-            sub = ent.sub_option         # TravelSubOptionMaster
+            mode = ent.sub_option.mode
+            sub = ent.sub_option
+            is_accommodation = (mode.name == "Accommodation")
 
             if mode.id not in response:
                 response[mode.id] = {
                     "id": mode.id,
                     "name": mode.name,
-                    "sub_options": []
+                    "sub_options": {} if is_accommodation else []
                 }
 
-            response[mode.id]["sub_options"].append({
-                "id": sub.id,
-                "name": sub.name,
-                "max_amount": ent.max_amount
-            })
+            if is_accommodation:
+                if sub.id not in response[mode.id]["sub_options"]:
+                    response[mode.id]["sub_options"][sub.id] = {
+                        "id": sub.id,
+                        "name": sub.name,
+                        "limits": []
+                    }
+
+                response[mode.id]["sub_options"][sub.id]["limits"].append({
+                    "city_category": ent.city_category.name if ent.city_category else None,
+                    "max_amount": ent.max_amount
+                })
+            else:
+                response[mode.id]["sub_options"].append({
+                    "id": sub.id,
+                    "name": sub.name,
+                    "max_amount": ent.max_amount
+                })
+
+        # Normalize accommodation sub_options dict → list
+        for mode_data in response.values():
+            if isinstance(mode_data["sub_options"], dict):
+                mode_data["sub_options"] = list(mode_data["sub_options"].values())
 
         return Response({
             "success": True,
