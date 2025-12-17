@@ -85,8 +85,8 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
 
   const getTicketLabel = () => {
     const modeName = getModeNameById(form.booking_type);
-    if (modeName === "Flight") return "Ticket No. / Flight Name";
-    if (modeName === "Train") return "Ticket No. / Train Name";
+    if (modeName === "Flight") return "Flight No. / Flight Name";
+    if (modeName === "Train") return "Train No. / Train Name";
     return "Ticket No. / Name";
   };
 
@@ -289,7 +289,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
               />
 
               <FormSelect
-                label="Travel Sub-Option"
+                label="Class"
                 required
                 value={form.sub_option}
                 onChange={(value) => setForm({ ...form, sub_option: value })}
@@ -407,7 +407,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                   label="Special Instructions"
                   value={form.special_instruction}
                   onChange={(e) => setForm({ ...form, special_instruction: e.target.value })}
-                  placeholder="Any special requirements..."
+                  placeholder="Write any special request for your ticket (example: window seat, lower berth, meal preference)"
                   rows={2}
                   error={errors.special_instruction}
                 />

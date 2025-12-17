@@ -1,5 +1,6 @@
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib import admin
+from django import forms
 from .models import *
 
 
@@ -116,12 +117,59 @@ class OrganizationalProfileAdmin(admin.ModelAdmin):
     get_user_name.short_description = 'User Name'
 
 
+class ExternalProfileAdminForm(forms.ModelForm):
+    class Meta:
+        model = ExternalProfile
+        fields = "__all__"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        serves_all = cleaned_data.get("serves_all_cities")
+        cities = cleaned_data.get("service_cities")
+
+        if not serves_all and (not cities or not cities.exists()):
+            raise forms.ValidationError(
+                "Select at least one service city OR enable 'Serves all cities'."
+            )
+
+        return cleaned_data
+    
 @admin.register(ExternalProfile)
 class ExternalProfileAdmin(admin.ModelAdmin):
     list_display = ('organization_name', 'profile_type', 'contact_person', 'is_verified', 'is_active')
     list_filter = ('profile_type', 'is_verified', 'is_active')
     search_fields = ('organization_name', 'contact_person', 'user__username')
     raw_id_fields = ('user',)
+    filter_horizontal = ('service_cities',)
+    fieldsets = (
+        ('Basic Information', {
+            'fields': (
+                'user',
+                'profile_type',
+                'organization_name',
+                'contact_person',
+                'phone',
+                'email',
+                'address',
+            )
+        }),
+        ('Service Coverage', {
+            'fields': (
+                'service_categories',
+                'serves_all_cities',
+                'service_cities',
+            ),
+            'description': (
+                "Enable <b>Serves all cities</b> OR select specific cities below."
+            )
+        }),
+        ('Status & Verification', {
+            'fields': (
+                'is_verified',
+                'is_active',
+            )
+        }),
+    )
 
 
 @admin.register(Role)

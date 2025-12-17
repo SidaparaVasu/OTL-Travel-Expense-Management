@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, DollarSign, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, IndianRupee, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -111,7 +111,7 @@ export default function ClaimDetailPage() {
                     <TableRow className="border-slate-200">
                       <TableHead className="text-xs font-semibold">Type</TableHead>
                       <TableHead className="text-xs font-semibold">Date</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">Amount</TableHead>
+                      <TableHead className="text-xs font-semibold text-right">Actual Cost</TableHead>
                       <TableHead className="text-xs font-semibold">Receipt</TableHead>
                       <TableHead className="text-xs font-semibold">Remarks</TableHead>
                     </TableRow>
@@ -152,7 +152,7 @@ export default function ClaimDetailPage() {
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-blue-600" />
+                  <IndianRupee className="w-4 h-4 text-blue-600" />
                   Daily Allowance Breakdown
                 </CardTitle>
               </CardHeader>
@@ -192,7 +192,7 @@ export default function ClaimDetailPage() {
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-blue-600" />
+                  <IndianRupee className="w-4 h-4 text-blue-600" />
                   Financial Summary
                 </CardTitle>
               </CardHeader>

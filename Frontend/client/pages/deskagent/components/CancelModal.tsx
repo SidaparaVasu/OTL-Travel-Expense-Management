@@ -10,6 +10,7 @@ interface CancelModalProps {
   onConfirm: (reason: string) => void;
   applicationId: number | null;
   isLoading?: boolean;
+  isApplicationCompleted?: boolean;
 }
 
 export const CancelModal: React.FC<CancelModalProps> = ({
@@ -18,6 +19,7 @@ export const CancelModal: React.FC<CancelModalProps> = ({
   onConfirm,
   applicationId,
   isLoading,
+  isApplicationCompleted,
 }) => {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,11 @@ export const CancelModal: React.FC<CancelModalProps> = ({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
+    if (isApplicationCompleted) {
+      setError('Completed applications cannot be cancelled');
+      return;
+    }
+
     if (!reason.trim()) {
       setError('Please provide a reason for cancellation');
       return;
@@ -51,7 +58,7 @@ export const CancelModal: React.FC<CancelModalProps> = ({
             <X className="w-4 h-4" />
           </Button>
         </div>
-        
+
         <div className="p-4 space-y-4">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <p className="text-sm text-destructive font-medium">
@@ -61,7 +68,7 @@ export const CancelModal: React.FC<CancelModalProps> = ({
               This action cannot be undone. All associated bookings will also be cancelled.
             </p>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="reason">Cancellation Reason *</Label>
             <Textarea
@@ -77,17 +84,18 @@ export const CancelModal: React.FC<CancelModalProps> = ({
             )}
           </div>
         </div>
-        
+
         <div className="flex justify-end gap-3 p-4 border-t">
           <Button variant="outline" className="hover:bg-slate-100 hover:text-black" onClick={handleClose} disabled={isLoading}>
             Keep Application
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={handleConfirm} 
-            disabled={isLoading}
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={isLoading || isApplicationCompleted}
           >
-            {isLoading ? 'Cancelling...' : 'Cancel Application'}
+            {isApplicationCompleted ? 'Cancellation Disabled' 
+              : isLoading ? 'Cancelling...' : 'Cancel Application'}
           </Button>
         </div>
       </div>

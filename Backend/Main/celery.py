@@ -1,6 +1,7 @@
 import os
 from celery import Celery
 from django.conf import settings
+from kombu import Queue
 
 # Set the default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Main.settings')
@@ -10,6 +11,12 @@ app = Celery('Main')
 
 # Load config from Django settings with CELERY namespace
 app.config_from_object('django.conf:settings', namespace='CELERY')
+
+app.conf.task_queues = (
+    Queue("celery"),
+    Queue("notifications"),
+)
+app.conf.task_default_queue = "celery"
 
 # Auto-discover tasks from all registered Django apps
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)

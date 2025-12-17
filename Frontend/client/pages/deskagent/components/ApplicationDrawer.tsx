@@ -8,7 +8,7 @@ import {
   Eye,
   Send,
   MessageSquarePlus,
-  RefreshCcw,
+  FileUp,
   Plane,
   Train,
   Car,
@@ -35,7 +35,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import {
-  // StatusBadge,
   ForwardModal,
   AddNoteModal,
   ViewBookingModal,
@@ -47,7 +46,7 @@ import {
 } from '../utils/format';
 import { travelDeskAPI } from '@/src/api/travel-desk';
 import { toast } from 'sonner';
-import type { Application, Booking, BookingAgent } from '@/src/types/travel-desk.types';
+import type { Application, Booking, BookingAgent, RecommendedAgentsResponse } from '@/src/types/travel-desk.types';
 
 interface ApplicationDrawerProps {
   isOpen: boolean;
@@ -77,6 +76,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const [selectedBookings, setSelectedBookings] = useState<number[]>([]);
   const [agents, setAgents] = useState<BookingAgent[]>([]);
+  const [recommendedAgents, setRecommendedAgents] = useState<RecommendedAgentsResponse | null>(null);
 
   const [forwardModalOpen, setForwardModalOpen] = useState(false);
   const [forwardType, setForwardType] = useState<'forward' | 'reassign'>('forward');
@@ -110,6 +110,21 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     }
   };
 
+  const fetchRecommendedAgents = async () => {
+    if (!applicationId) return;
+
+    try {
+      const res =
+        await travelDeskAPI.agents.getRecommendedAgents(applicationId);
+
+      console.log("Recommended Agents (Drawer):", res.data);
+      setRecommendedAgents(res.data);
+    } catch (e) {
+      setAgents([]);
+      toast.error("Failed to load recommended agents");
+    }
+  };
+
   const fetchAgents = async () => {
     try {
       const res = await travelDeskAPI.agents.list();
@@ -121,6 +136,16 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const getAllBookings = (): Booking[] => {
     return application?.trips?.flatMap((trip) => trip.bookings) ?? [];
+  };
+
+  const getSelectedBookingTypes = (): Set<string> => {
+    const bookings = selectedBookingForAction
+      ? [selectedBookingForAction]
+      : getAllBookings().filter(b => selectedBookings.includes(b.id));
+
+    return new Set(
+      bookings.map(b => b.booking_type_name.toLowerCase())
+    );
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -142,9 +167,10 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     setViewBookingModalOpen(true);
   };
 
-  const handleForwardBooking = (booking: Booking) => {
+  const handleForwardBooking = async (booking: Booking) => {
     setSelectedBookingForAction(booking);
     setForwardType(booking.status === 'pending' ? 'forward' : 'reassign');
+    await fetchRecommendedAgents();
     setForwardModalOpen(true);
   };
 
@@ -158,20 +184,24 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     setCancelModalOpen(true);
   };
 
-  const handleBulkForward = () => {
+  const handleBulkForward = async () => {
     if (selectedBookings.length === 0) {
       toast.error('Please select at least one booking');
       return;
     }
     setSelectedBookingForAction(null);
     setForwardType('forward');
+    await fetchRecommendedAgents();
     setForwardModalOpen(true);
   };
 
   const confirmForward = async (agentId: number, note: string) => {
     setActionLoading(true);
+
     try {
-      const ids = selectedBookingForAction ? [selectedBookingForAction.id] : selectedBookings;
+      const ids = selectedBookingForAction
+        ? [selectedBookingForAction.id]
+        : selectedBookings;
 
       if (forwardType === 'reassign' && selectedBookingForAction) {
         await travelDeskAPI.bookings.reassign(selectedBookingForAction.id, {
@@ -180,23 +210,54 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
       } else {
         await travelDeskAPI.bookings.assign({
           booking_ids: ids,
-          scope: ids.length === 1 ? 'single_booking' : 'full_application',
           booking_agent_id: agentId,
+          scope: ids.length === 1 ? 'single_booking' : 'full_application',
           note: note || undefined,
         });
       }
 
+      toast.success('Booking forwarded successfully');
       setForwardModalOpen(false);
       setSelectedBookings([]);
-      fetchApplicationDetails();
+      setSelectedBookingForAction(null);
+      await fetchApplicationDetails();
       onRefresh?.();
-      toast.success('Booking updated');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to process booking');
+      toast.error(err.message || 'Failed to forward booking');
     } finally {
       setActionLoading(false);
     }
   };
+
+  // const confirmForward = async (agentId: number, note: string) => {
+  //   setActionLoading(true);
+  //   try {
+  //     const ids = selectedBookingForAction ? [selectedBookingForAction.id] : selectedBookings;
+
+  //     if (forwardType === 'reassign' && selectedBookingForAction) {
+  //       await travelDeskAPI.bookings.reassign(selectedBookingForAction.id, {
+  //         new_agent_id: agentId,
+  //       });
+  //     } else {
+  //       await travelDeskAPI.bookings.assign({
+  //         booking_ids: ids,
+  //         scope: ids.length === 1 ? 'single_booking' : 'full_application',
+  //         booking_agent_id: agentId,
+  //         note: note || undefined,
+  //       });
+  //     }
+
+  //     setForwardModalOpen(false);
+  //     setSelectedBookings([]);
+  //     fetchApplicationDetails();
+  //     onRefresh?.();
+  //     toast.success('Booking updated');
+  //   } catch (err: any) {
+  //     toast.error(err.message || 'Failed to process booking');
+  //   } finally {
+  //     setActionLoading(false);
+  //   }
+  // };
 
   const confirmAddNote = async (note: string) => {
     if (!selectedBookingForAction) return;
@@ -240,8 +301,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   if (!isOpen) return null;
 
   const allBookings = getAllBookings();
+  const totalBookings = allBookings.length;
   const allSelected = allBookings.length > 0 && selectedBookings.length === allBookings.length;
   const someSelected = selectedBookings.length > 0 && selectedBookings.length < allBookings.length;
+  const completedBookings = allBookings.filter((b) => b.status === 'completed').length;
+  const isAllCompleted = totalBookings > 0 && completedBookings === totalBookings;
 
   return (
     <>
@@ -257,15 +321,19 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-blue-600" />
-            <div>
+            <div className="flex items-center gap-3">
               <h2 className="text-xl font-semibold">
                 {application?.travel_request_id || 'Loading...'}
               </h2>
-              {application && (
-                <p className="text-sm text-muted-foreground">
-                  {application.employee_name}
-                  {application.employee_grade ? ` • ${application.employee_grade}` : ''}
-                </p>
+
+              <Badge variant="outline">
+                Bookings: {completedBookings} / {totalBookings} completed
+              </Badge>
+
+              {isAllCompleted && (
+                <Badge className="bg-green-100 text-green-700 border-green-300">
+                  Completed
+                </Badge>
               )}
             </div>
           </div>
@@ -369,7 +437,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                   </CardHeader>
 
                   <CardContent className="pt-4">
-                    {selectedBookings.length > 0 && (
+                    {selectedBookings.length > 0 && !isAllCompleted && (
                       <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded-lg flex justify-between items-center">
                         <span className="text-sm font-medium">
                           {selectedBookings.length} booking(s) selected
@@ -388,6 +456,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                             <TableHead className="w-[50px]">
                               <Checkbox
                                 checked={allSelected}
+                                disabled={isAllCompleted}
                                 onCheckedChange={handleSelectAll}
                                 aria-label="select all"
                                 className={
@@ -428,6 +497,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                   <TableCell>
                                     <Checkbox
                                       checked={selectedBookings.includes(booking.id)}
+                                      disabled={isAllCompleted}
                                       onCheckedChange={(checked) =>
                                         handleSelectBooking(booking.id, checked as boolean)
                                       }
@@ -585,13 +655,13 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                   <TableCell className="text-center">
                                     <div className="flex justify-center gap-1">
+                                      {/* View is always allowed */}
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="bg-blue-100 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
-
+                                            className="bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800"
                                             onClick={() => handleViewBooking(booking)}
                                           >
                                             <Eye className="w-4 h-4" />
@@ -600,58 +670,60 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         <TooltipContent>View</TooltipContent>
                                       </Tooltip>
 
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="bg-green-100 hover:bg-green-100 text-green-600 hover:text-green-600"
+                                      {/* Actions disabled if fully completed */}
+                                      {!isAllCompleted && (
+                                        <>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800"
+                                                onClick={() => handleForwardBooking(booking)}
+                                              >
+                                                {booking.status === 'pending' ? (
+                                                  <Send className="w-4 h-4" />
+                                                ) : (
+                                                  <FileUp className="w-4 h-4" />
+                                                )}
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              {booking.status === 'pending' ? 'Forward' : 'Reassign'}
+                                            </TooltipContent>
+                                          </Tooltip>
 
-                                            onClick={() => handleForwardBooking(booking)}
-                                          >
-                                            {booking.status === 'pending' ? (
-                                              <Send className="w-4 h-4" />
-                                            ) : (
-                                              <RefreshCcw className="w-4 h-4" />
-                                            )}
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          {booking.status === 'pending'
-                                            ? 'Forward'
-                                            : 'Reassign'}
-                                        </TooltipContent>
-                                      </Tooltip>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
+                                                onClick={() => handleAddNote(booking)}
+                                              >
+                                                <MessageSquarePlus className="w-4 h-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Add Note</TooltipContent>
+                                          </Tooltip>
 
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="bg-yellow-100 hover:bg-yellow-100 text-yellow-600 hover:text-yellow-600"
-                                            onClick={() => handleAddNote(booking)}
-                                          >
-                                            <MessageSquarePlus className="w-4 h-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>Add Note</TooltipContent>
-                                      </Tooltip>
-
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="bg-orange-100 hover:bg-orange-100 text-orange-600 hover:text-orange-600"
-
-                                            onClick={() => handleCancelBooking(booking)}
-                                          >
-                                            <XCircle className="w-4 h-4 text-red-500" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>Cancel Booking</TooltipContent>
-                                      </Tooltip>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
+                                                onClick={() => handleCancelBooking(booking)}
+                                              >
+                                                <XCircle className="w-4 h-4" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Cancel Booking</TooltipContent>
+                                          </Tooltip>
+                                        </>
+                                      )}
                                     </div>
+
                                   </TableCell>
                                 </TableRow>
                               );
@@ -670,7 +742,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
       <ForwardModal
         isOpen={forwardModalOpen}
-        onClose={() => setForwardModalOpen(false)}
+        onClose={() => { setForwardModalOpen(false); setRecommendedAgents(null) }}
         onConfirm={confirmForward}
         title={
           selectedBookingForAction
@@ -679,7 +751,9 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
               : `Reassign Booking #${selectedBookingForAction.id}`
             : `Forward ${selectedBookings.length} Booking(s)`
         }
+        bookingTypes={getSelectedBookingTypes()}
         agents={agents}
+        recommendations={recommendedAgents}
         isLoading={actionLoading}
         type={forwardType}
       />

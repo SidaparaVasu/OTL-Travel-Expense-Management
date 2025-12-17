@@ -9,12 +9,12 @@ from rest_framework.pagination import PageNumberPagination
 from apps.authentication.permissions import IsTravelDesk, IsAdminUser
 from apps.travel.models import Booking, BookingAssignment, BookingNote, TravelApplication
 from apps.travel.serializers.booking_agent_serializers import *
-from apps.travel.services import refresh_application_booking_status
+from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
 from apps.authentication.permissions import IsBookingAgent
 from apps.travel.models.audit import AuditLog
-from utils.response_formatter import success_response, error_response
+from utils.response_formatter import success_response, error_response, paginated_response
 from utils.pagination import StandardResultsSetPagination
-
+from apps.notifications.center import NotificationCenter
 
 class BookingAgentsListView(APIView):
     """
@@ -189,8 +189,14 @@ class BookingAgentBookingsListView(APIView):
 
         paginator = StandardResultsSetPagination()
         page = paginator.paginate_queryset(qs, request)
+
         serializer = AgentBookingListSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+
+        return paginated_response(
+            serializer_data=serializer.data,
+            paginator=paginator,
+            message="Success",
+        )
 
 
 class BookingAgentBookingDetailView(APIView):
@@ -301,6 +307,20 @@ class BookingAgentUpdateStatusView(APIView):
         if all_bookings.count() > 0 and all_bookings.filter(status="confirmed").count() == all_bookings.count():
             application.status = "booked"
             application.save(update_fields=["status"])
+        
+
+        # Notification for confirmed booking to applicant
+        NotificationCenter.notify(
+            event_name="travel.booking.confirmed",
+            reference={"type": "Booking", "id": booking.id},
+            payload={
+                "request_id": application.get_travel_request_id(),
+                "employee_id": application.employee.id,
+                "employee_name": application.employee.get_full_name(),
+                "booking_agent_name": request.user.get_full_name(),
+                "ticket_number": booking.booking_reference or booking.vendor_reference,
+            },
+        )
 
         # ----------------------------
         # 5. Audit Log
@@ -566,7 +586,30 @@ class BookingAgentCompleteBookingView(APIView):
                 note=remarks,
             )
 
+        
+        from apps.travel.services.cost_escalation import (requires_ceo_escalation, escalate_application_to_ceo)
+
         application = booking.trip_details.travel_application
+
+        needs_ceo, reason = requires_ceo_escalation(application, booking)
+
+        if needs_ceo:
+            escalate_application_to_ceo(
+                application=application,
+                booking=booking,
+                triggered_by=request.user,
+                reason=reason,
+            )
+
+            return error_response(
+                message="CEO approval required due to booking cost escalation",
+                data={
+                    "application_status": application.status,
+                    "reason": reason,
+                    "action_required": "CEO approval",
+                },
+                status_code=409
+            )
 
         # 5) If all bookings for this application are completed -> mark app as completed
         all_bookings_qs = Booking.objects.filter(

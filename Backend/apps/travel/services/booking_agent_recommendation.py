@@ -1,0 +1,134 @@
+from collections import defaultdict
+from django.db.models import Q
+
+from apps.travel.models import Booking, TravelApplication
+from apps.authentication.models import User
+
+
+def get_recommended_booking_agents(application: TravelApplication):
+    """
+    Recommendation rules:
+
+    - Flight / Train:
+        Single central booking agent (auto-forwarded).
+
+    - Accommodation:
+        1) Prefer hotel agents serving the booking city.
+        2) If none found, return all hotel agents (non-recommended).
+
+    - Conveyance / others:
+        Currently ignored.
+    """
+
+    bookings = (
+        Booking.objects
+        .filter(trip_details__travel_application=application)
+        .select_related(
+            "trip_details__to_location",
+            "booking_type",
+        )
+    )
+
+    response = {
+        "flight_train": None,
+        "accommodation": [],
+    }
+
+    # --------------------------------------------------
+    # Central flight/train agent (used only for flight/train)
+    # --------------------------------------------------
+    central_agent = (
+        User.objects
+        .filter(
+            external_profile__profile_type="booking_agent",
+            external_profile__service_categories__contains=["flight_booking"],
+            is_active=True,
+        )
+        .select_related("external_profile")
+        .first()
+    )
+
+    # --------------------------------------------------
+    # Flight / Train bookings
+    # --------------------------------------------------
+    flight_train_bookings = [
+        b for b in bookings
+        if "flight" in b.booking_type.name.lower()
+        or "train" in b.booking_type.name.lower()
+    ]
+
+    if flight_train_bookings and central_agent:
+        response["flight_train"] = {
+            "agent": {
+                "id": central_agent.id,
+                "name": central_agent.get_full_name() or central_agent.username,
+                "organization": central_agent.external_profile.organization_name,
+            },
+            "booking_ids": [b.id for b in flight_train_bookings],
+        }
+
+    # --------------------------------------------------
+    # Accommodation bookings (city-wise)
+    # --------------------------------------------------
+    city_booking_map = defaultdict(list)
+
+    for booking in bookings:
+        booking_type = booking.booking_type.name.lower()
+
+        if "accommodation" in booking_type or "guest" in booking_type:
+            city_booking_map[booking.trip_details.to_location].append(booking)
+
+    for city, city_bookings in city_booking_map.items():
+
+        # Preferred: hotel agents serving the city
+        city_hotel_agents = (
+            User.objects
+            .filter(
+                external_profile__profile_type="booking_agent",
+                external_profile__service_categories__contains=["hotel_booking"],
+                is_active=True,
+            )
+            .filter(
+                Q(external_profile__serves_all_cities=True) |
+                Q(external_profile__service_cities=city)
+            )
+            .select_related("external_profile")
+            .distinct()
+        )
+
+        agents = city_hotel_agents
+        is_recommended = True
+
+        # Fallback: all hotel agents (no city match)
+        if not city_hotel_agents.exists():
+            agents = (
+                User.objects
+                .filter(
+                    external_profile__profile_type="booking_agent",
+                    external_profile__service_categories__contains=["hotel_booking"],
+                    is_active=True,
+                )
+                .select_related("external_profile")
+                .distinct()
+            )
+            is_recommended = False
+
+        if agents.exists():
+            response["accommodation"].append({
+                "city": {
+                    "id": city.id,
+                    "name": city.city_name,
+                },
+                "agents": [
+                    {
+                        "id": agent.id,
+                        "name": agent.get_full_name() or agent.username,
+                        "organization": agent.external_profile.organization_name,
+                        "is_recommended": is_recommended,
+                    }
+                    for agent in agents
+                ],
+                "booking_ids": [b.id for b in city_bookings],
+            })
+
+    return response

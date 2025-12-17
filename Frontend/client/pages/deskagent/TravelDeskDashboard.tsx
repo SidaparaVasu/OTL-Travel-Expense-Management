@@ -10,11 +10,12 @@ import {
   ForwardModal,
 } from './components/';
 import { travelDeskAPI } from '@/src/api/travel-desk';
-import type { 
-  DashboardStats, 
-  DashboardApplication, 
+import type {
+  DashboardStats,
+  DashboardApplication,
   Pagination,
   BookingAgent,
+  RecommendedAgentsResponse,
 } from '@/src/types/travel-desk.types';
 
 const TravelDeskDashboard: React.FC = () => {
@@ -23,14 +24,14 @@ const TravelDeskDashboard: React.FC = () => {
   const [applications, setApplications] = useState<DashboardApplication[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [agents, setAgents] = useState<BookingAgent[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('urgency');
   const [statusFilter, setStatusFilter] = useState('pending_travel_desk');
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
-  
+
   // Modal/Drawer states
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
@@ -44,7 +45,7 @@ const TravelDeskDashboard: React.FC = () => {
     try {
       setLoading(true);
       const response = await travelDeskAPI.dashboard.get();
-      
+
       if (response.success) {
         setStats(response.data.stats);
         // setApplications(response.data.recent_applications);
@@ -58,21 +59,27 @@ const TravelDeskDashboard: React.FC = () => {
   }, []);
 
   // Fetch applications
-    const fetchApplications = useCallback(async () => {
+  const fetchApplications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await travelDeskAPI.applications.list();
-      
+
+      const response = await travelDeskAPI.applications.list({
+        page: currentPage,
+        status: statusFilter,
+        search: searchQuery,
+      });
+
       if (response.success) {
-        setApplications(response.data.results);
+        setApplications(response.data);
+        setPagination(response.meta?.pagination || null);
       }
-    } catch (err: any) {
-      console.error('Failed to fetch dashboard:', err);
-      toast.error('Failed to load dashboard data');
+    } catch (err) {
+      console.error('Failed to fetch applications:', err);
+      toast.error('Failed to load applications');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, statusFilter, searchQuery]);
 
   // Fetch agents for dropdowns
   const fetchAgents = useCallback(async () => {
@@ -90,26 +97,26 @@ const TravelDeskDashboard: React.FC = () => {
     fetchDashboard();
     fetchApplications();
     fetchAgents();
-  }, [fetchDashboard, fetchAgents]);
+  }, [fetchDashboard, fetchApplications, fetchAgents]);
 
   // Filter and sort applications
   const getFilteredApplications = useCallback(() => {
     let filtered = [...applications];
-    
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(app => 
+      filtered = filtered.filter(app =>
         app.employee_name.toLowerCase().includes(query) ||
         `TSF-TR-2025-${String(app.id).padStart(6, '0')}`.toLowerCase().includes(query)
       );
     }
-    
+
     // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(app => app.status === statusFilter);
     }
-    
+
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -128,7 +135,7 @@ const TravelDeskDashboard: React.FC = () => {
           return 0;
       }
     });
-    
+
     return filtered;
   }, [applications, searchQuery, statusFilter, sortBy]);
 
@@ -138,38 +145,63 @@ const TravelDeskDashboard: React.FC = () => {
     setDrawerOpen(true);
   };
 
-  const handleForward = (app: DashboardApplication) => {
-    setSelectedApplication(app);
-    setForwardModalOpen(true);
-  };
-
   const handleCancel = (app: DashboardApplication) => {
     setSelectedApplication(app);
     setCancelModalOpen(true);
+    fetchApplications();
   };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // In a real implementation, this would trigger a new API call with pagination
-    // For now, we're using client-side filtering of recent_applications
   };
 
-  const confirmForward = async (agentId: number, note: string) => {
+  // const confirmForward = async (agentId: number, note: string) => {
+  //   if (!selectedApplication) return;
+
+  //   setActionLoading(true);
+
+  //   try {
+  //     await travelDeskAPI.applications.forward(selectedApplication.id, {
+  //       agent_id: agentId,
+  //     });
+
+  //     toast.success('Application forwarded successfully');
+  //     setForwardModalOpen(false);
+  //     setSelectedApplication(null);
+  //     fetchDashboard();
+  //   } catch (err: any) {
+  //     toast.error(err.message || 'Failed to forward application');
+  //   } finally {
+  //     setActionLoading(false);
+  //   }
+  // };
+
+  const confirmForward = async (
+    assignments: { agent_id: number; booking_ids: number[] }[],
+    note: string
+  ) => {
     if (!selectedApplication) return;
-    
+
     setActionLoading(true);
-    
+
     try {
-      await travelDeskAPI.applications.forward(selectedApplication.id, {
-        agent_id: agentId,
-      });
-      
-      toast.success('Application forwarded successfully');
+      for (const item of assignments) {
+        await travelDeskAPI.bookings.assign({
+          booking_ids: item.booking_ids,
+          booking_agent_id: item.agent_id,
+          scope: "single_booking",
+          note,
+        });
+      }
+
+      toast.success("Bookings forwarded successfully");
       setForwardModalOpen(false);
       setSelectedApplication(null);
+      setRecommendations(null);
+      fetchApplications();
       fetchDashboard();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to forward application');
+      toast.error(err.message || "Failed to forward bookings");
     } finally {
       setActionLoading(false);
     }
@@ -177,12 +209,12 @@ const TravelDeskDashboard: React.FC = () => {
 
   const confirmCancel = async (reason: string) => {
     if (!selectedApplication) return;
-    
+
     setActionLoading(true);
-    
+
     try {
       await travelDeskAPI.applications.cancel(selectedApplication.id, { reason });
-      
+
       toast.success('Application cancelled successfully');
       setCancelModalOpen(false);
       setSelectedApplication(null);
@@ -198,10 +230,10 @@ const TravelDeskDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">        
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* KPI Cards */}
         <KPICards stats={stats} isLoading={loading} />
-        
+
         {/* Search & Filters */}
         <SearchFilterBar
           searchQuery={searchQuery}
@@ -211,7 +243,7 @@ const TravelDeskDashboard: React.FC = () => {
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
         />
-        
+
         {/* Applications Table */}
         <ApplicationsTable
           applications={filteredApplications}
@@ -219,10 +251,10 @@ const TravelDeskDashboard: React.FC = () => {
           expandedRow={expandedRow}
           onExpandRow={setExpandedRow}
           onView={handleView}
-          onForward={handleForward}
+          // onForward={handleForward}
           onCancel={handleCancel}
         />
-        
+
         {/* Pagination */}
         {pagination && (
           <PaginationControls
@@ -231,7 +263,7 @@ const TravelDeskDashboard: React.FC = () => {
           />
         )}
       </div>
-      
+
       {/* Application Drawer */}
       <ApplicationDrawer
         isOpen={drawerOpen}
@@ -242,23 +274,12 @@ const TravelDeskDashboard: React.FC = () => {
         applicationId={selectedApplicationId}
         onRefresh={fetchDashboard}
       />
-      
+
       {/* Forward Application Modal */}
-      <ForwardModal
-        isOpen={forwardModalOpen}
-        onClose={() => {
-          setForwardModalOpen(false);
-          setSelectedApplication(null);
-        }}
-        onConfirm={confirmForward}
-        title={`Forward Application ${selectedApplication ? `#${selectedApplication.id}` : ''}`}
-        agents={agents}
-        isLoading={actionLoading}
-        type="forward"
-      />
-      
+      {/* Removed */}
+
       {/* Cancel Application Modal */}
-      <CancelModal
+      {/* <CancelModal
         isOpen={cancelModalOpen}
         onClose={() => {
           setCancelModalOpen(false);
@@ -267,7 +288,7 @@ const TravelDeskDashboard: React.FC = () => {
         onConfirm={confirmCancel}
         applicationId={selectedApplication?.id || null}
         isLoading={actionLoading}
-      />
+      /> */}
     </div>
   );
 };

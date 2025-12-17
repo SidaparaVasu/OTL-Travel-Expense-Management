@@ -80,7 +80,8 @@ services:
       dockerfile: Dockerfile.prod
     container_name: prod_celery_worker
     restart: unless-stopped
-    command: celery -A Main worker -l info
+    # command: celery -A Main worker -l info
+    command: celery -A Main worker -l info -Q default,notifications
     volumes:
       - ./backend:/app
     env_file:

@@ -383,6 +383,18 @@ class TravelApplication(models.Model):
             self.booking_completed_at = timezone.now()
             self.save(update_fields=['status', 'booking_completed_at'])
 
+    def get_travel_start_date(self):
+        """Earliest departure date across all trips"""
+        return self.trip_details.aggregate(
+            min_date=models.Min('departure_date')
+        )['min_date']
+
+    def get_travel_end_date(self):
+        """Latest return date across all trips"""
+        return self.trip_details.aggregate(
+            max_date=models.Max('return_date')
+        )['max_date']
+
 
 class TripDetails(models.Model):
     """

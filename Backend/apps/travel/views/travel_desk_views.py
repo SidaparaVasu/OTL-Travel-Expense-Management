@@ -10,9 +10,11 @@ from apps.travel.serializers.travel_desk_serializers import *
 from apps.travel.models.audit import AuditLog
 from apps.authentication.permissions import IsTravelDesk
 from apps.authentication.models import User, ExternalProfile
-from utils.response_formatter import success_response, error_response
+from utils.response_formatter import success_response, error_response, paginated_response
 from utils.pagination import StandardResultsSetPagination
 from apps.notifications.notifications import *
+from apps.notifications.center import NotificationCenter
+from utils.get_travel_desk_users import get_travel_desk_users
 
 
 TRAVEL_DESK_VISIBLE_STATUSES = [
@@ -116,13 +118,6 @@ class TravelDeskDashboardView(APIView):
       
 
 class TravelDeskApplicationListView(APIView):
-    """
-    GET: List applications visible to Travel Desk
-    - filter[status]
-    - search (employee name / request id / purpose)
-    - date_from, date_to (on submitted_at)
-    """
-
     permission_classes = [IsAuthenticated, IsTravelDesk]
 
     def get(self, request):
@@ -157,7 +152,11 @@ class TravelDeskApplicationListView(APIView):
         page = paginator.paginate_queryset(qs, request)
         serializer = TravelDeskApplicationListSerializer(page, many=True)
 
-        return paginator.get_paginated_response(serializer.data)
+        return paginated_response(
+            serializer_data=serializer.data,
+            paginator=paginator,
+            message="Success"
+        )
 
 
 class TravelDeskApplicationDetailView(APIView):
@@ -218,6 +217,8 @@ class TravelDeskAssignBookingsView(APIView):
         if not booking_agent:
             return error_response(message="Invalid booking agent")
 
+        app = TravelApplication.objects.get(id=application_id)
+
         with transaction.atomic():
             for b in bookings:
 
@@ -261,16 +262,30 @@ class TravelDeskAssignBookingsView(APIView):
                     },
                 )
 
+                NotificationCenter.notify(
+                    event_name="travel.booking.assigned",
+                    reference={"type": "Booking", "id": b.id},
+                    payload={
+                        "request_id": app.get_travel_request_id(),
+                        "employee_id": app.employee.id,
+                        "employee_name": app.employee.get_full_name(),
+                        "booking_agent_id": booking_agent.id,
+                        "booking_agent_name": booking_agent.get_full_name(),
+                        "booking_id": b.id,
+                        "action_required": "Booking assigned by Travel Desk",
+                    },
+                )
+
             # Application status bump
-            app = TravelApplication.objects.get(id=application_id)
             if app.status in [
                 "approved_manager",
                 "approved_chro",
                 "approved_ceo",
                 "pending_travel_desk",
             ]:
-                app.status = "booking_in_progress"
+                app.status = "booking_in_progress"  
                 app.save(update_fields=["status"])
+
 
         return success_response(
             message="Bookings assigned successfully",
@@ -531,6 +546,17 @@ class TravelDeskCancelApplicationView(APIView):
             # Update app status
             app.status = "cancelled"
             app.save(update_fields=["status"])
+
+            NotificationCenter.notify(
+                event_name="travel.booking.cancelled",
+                reference={"type": "TravelRequest", "id": app.id},
+                payload={
+                    "employee_id": app.employee.id,
+                    "request_id": app.get_travel_request_id(),
+                    "employee_name": app.employee.get_full_name(),
+                    "cancel_reason": reason,
+                },
+            )
 
             AuditLog.objects.create(
                 user=request.user,

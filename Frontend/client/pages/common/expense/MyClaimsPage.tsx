@@ -284,7 +284,7 @@ export default function MyClaimsPage() {
                 </SelectContent>
               </Select>
 
-              <Input
+              {/* <Input
                 type="date"
                 placeholder="From Date"
                 value={filters.from_date || ''}
@@ -302,7 +302,7 @@ export default function MyClaimsPage() {
                   setFilters((prev) => ({ ...prev, to_date: e.target.value || undefined }))
                 }
                 className="w-full sm:w-[160px]"
-              />
+              /> */}
             </div>
           </div>
         </CardContent>

@@ -43,7 +43,7 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
   const handleSubmit = async () => {
     if (!status) {
       toast({
-        title: "Validation Error",
+        title: "Status is not selected",
         description: "Please select a status",
         variant: "destructive",
       });
@@ -78,7 +78,7 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
     } catch (error) {
       console.error("Failed to update status:", error);
       toast({
-        title: "Error",
+        title: "Oops!",
         description: "Failed to update booking status. Please try again.",
         variant: "destructive",
       });

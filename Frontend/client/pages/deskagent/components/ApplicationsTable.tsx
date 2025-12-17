@@ -23,13 +23,19 @@ const TableRowSkeleton = () => (
   </TableRow>
 );
 
+const getBookingProgress = (bookings: any[]) => {
+  const total = bookings.length;
+  const completed = bookings.filter(b => b.status === "completed").length;
+  return { total, completed };
+};
+
 export const ApplicationsTable = ({
   applications,
   isLoading,
   expandedRow,
   onExpandRow,
   onView,
-  onForward,
+  // onForward,
   onCancel,
 }) => {
   return (
@@ -41,8 +47,8 @@ export const ApplicationsTable = ({
             <TableRow className="bg-muted/40">
               {/* <TableHead className="w-[50px]" /> */}
               <TableHead>Travel Request ID</TableHead>
-              <TableHead>Employee</TableHead>
-              <TableHead>Route</TableHead>
+              <TableHead>Employee & Route</TableHead>
+              {/* <TableHead>Route</TableHead> */}
               <TableHead>Departure</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-center">Bookings</TableHead>
@@ -84,11 +90,8 @@ export const ApplicationsTable = ({
                       </span>
                     </TableCell>
 
-                    <TableCell>
+                    <TableCell className='flex flex-col'>
                       <p className="font-medium">{app.employee_name}</p>
-                    </TableCell>
-
-                    <TableCell>
                       <div className="text-sm">
                         <p>
                           {app.from_location}
@@ -97,6 +100,16 @@ export const ApplicationsTable = ({
                         </p>
                       </div>
                     </TableCell>
+
+                    {/* <TableCell>
+                      <div className="text-sm">
+                        <p>
+                          {app.from_location}
+                          <span className="mx-2 text-muted-foreground">→</span>
+                          {app.to_location}
+                        </p>
+                      </div>
+                    </TableCell> */}
 
                     <TableCell>
                       <span className="text-sm">{formatFullDate(app.departure_date)}</span>
@@ -110,17 +123,16 @@ export const ApplicationsTable = ({
                     <TableCell className="text-center">
                       <div className="flex flex-row items-center gap-1">
                         <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-sm font-semibold">
-                          {app.total_bookings}
+                          {app.booked_bookings} / {app.total_bookings}
                         </span>
-                        {app.pending_bookings > 0 ? (
-                          <span className="text-[11px] text-red-400">
-                            ({app.pending_bookings} pending)
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">
-                            ({app.pending_bookings} pending)
-                          </span>
-                        )}
+                        <span
+                          className={`text-[11px] ${app.pending_bookings > 0
+                              ? 'text-blue-400'
+                              : 'text-muted-foreground'
+                            }`}
+                        >
+                          Completed
+                        </span>
                       </div>
                     </TableCell>
 
@@ -137,7 +149,7 @@ export const ApplicationsTable = ({
                           <TooltipContent>View</TooltipContent>
                         </Tooltip>
 
-                        <Tooltip>
+                        {/* <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="sm"
                               className="bg-green-100 hover:bg-green-100 text-green-600 hover:text-green-600"
@@ -146,9 +158,9 @@ export const ApplicationsTable = ({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Forward</TooltipContent>
-                        </Tooltip>
+                        </Tooltip> */}
 
-                        <Tooltip>
+                        {/* <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="sm"
                               className="bg-orange-100 hover:bg-orange-100 text-orange-600 hover:text-orange-600"
@@ -157,7 +169,7 @@ export const ApplicationsTable = ({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Cancel</TooltipContent>
-                        </Tooltip>
+                        </Tooltip> */}
                       </div>
                     </TableCell>
                   </TableRow>

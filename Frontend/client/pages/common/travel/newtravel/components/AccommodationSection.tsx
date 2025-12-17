@@ -351,7 +351,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
               />
 
               <FormSelect
-                label="Sub-Option"
+                label="Accommodation Mode"
                 required
                 value={form.accommodation_sub_option}
                 onChange={

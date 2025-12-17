@@ -21,7 +21,12 @@ class NotificationCenter:
         reference: {'type': 'TravelRequest', 'id': 12}
         payload: must contain IDs like 'employee_id', 'approver_id', 'booking_agent_id', 'desk_agent_id' as needed.
         """
+        logger.error("[NOTIFY-ENTRY] event=%s payload=%s", event_name, payload)
+        
         rule = NotificationRule.objects.filter(event_name=event_name, is_active=True).first()
+
+        logger.error("[NOTIFY-RULE] event=%s rule=%s", event_name, rule)
+        
         if not rule:
             logger.info("No NotificationRule found for event: %s", event_name)
             return
@@ -33,6 +38,16 @@ class NotificationCenter:
 
         # Resolve recipients (list of User objects or simple dicts mapping to contact methods)
         recipients = NotificationCenter._resolve_recipients(rule.recipient_resolver, payload)
+
+        logger.error("[NOTIFY-RECIPIENTS] event=%s resolver=%s recipients=%s", event_name, rule.recipient_resolver, recipients)
+
+        if not recipients:
+            logger.error(
+                "[NOTIFY-ABORT] No recipients for event=%s payload=%s",
+                event_name,
+                payload
+            )
+            return
 
         # Create NotificationEvent for reminders if configured
         if rule.send_reminder and rule.reminder_intervals:
@@ -122,7 +137,7 @@ class NotificationCenter:
             - 'booking_agent' -> payload['booking_agent_id']
             - 'desk_agent' -> payload['desk_agent_id']
             - 'default_resolver' -> payload['recipients'] (list of ids or contacts)
-        """
+        """        
         users = []
         try:
             if resolver_key == 'employee' and payload.get('employee_id'):

@@ -152,13 +152,16 @@ export interface Pagination {
   next: string | null;
   previous: string | null;
   count: number;
+  page_size: number;
 }
 
 export interface ApplicationsListResponse {
   success: boolean;
   message: string;
   data: DashboardApplication[];
-  pagination?: Pagination;
+  meta?: {
+    pagination: Pagination;
+  };
   errors: any | null;
 }
 
@@ -166,6 +169,7 @@ export interface AssignBookingPayload {
   booking_ids: number[];
   scope: 'single_booking' | 'full_application';
   booking_agent_id: number;
+  note: string;
 }
 
 export interface ForwardApplicationPayload {
@@ -186,3 +190,27 @@ export interface CancelApplicationPayload {
 
 export type BookingStatus = 'pending' | 'assigned' | 'booked' | 'completed' | 'cancelled';
 export type ApplicationStatus = 'pending_travel_desk' | 'booking_in_progress' | 'booked' | 'completed' | 'cancelled';
+
+export interface RecommendedAgent {
+  id: number;
+  name: string;
+  organization: string;
+}
+
+export interface AccommodationRecommendation {
+  city: {
+    id: number;
+    name: string;
+  };
+  agents: RecommendedAgent[];
+  booking_ids: number[];
+}
+
+export interface RecommendedAgentsResponse {
+  flight_train?: {
+    agent: RecommendedAgent;
+    booking_ids: number[];
+  } | null;
+
+  accommodation: AccommodationRecommendation[];
+}

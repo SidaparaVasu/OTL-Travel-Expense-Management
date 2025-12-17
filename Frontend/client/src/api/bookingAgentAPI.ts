@@ -83,9 +83,10 @@ export interface BookingDetails {
 }
 
 export interface Pagination {
+  count: number;
   current_page: number;
   total_pages: number;
-  total_count: number;
+  page_size: number;
   next: string | null;
   previous: string | null;
 }
@@ -93,9 +94,9 @@ export interface Pagination {
 export interface BookingsListResponse {
   success: boolean;
   message: string;
-  data: {
-    results: Booking[];
-    pagination: Pagination;
+  data: Booking[];
+  meta?: {
+    pagination?: Pagination;
   };
   errors: null | Record<string, string[]>;
 }

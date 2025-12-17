@@ -20,20 +20,21 @@ export const travelDeskAPI = {
   },
 
   applications: {
-    list: async (
-      page = 1,
-      search = '',
-      status = ''
-    ): Promise<ApplicationsListResponse> => {
-      const params = new URLSearchParams();
-      if (page > 1) params.append('page', page.toString());
-      if (search) params.append('search', search);
-      if (status) params.append('status', status);
+    list: async (params?: {
+      page?: number;
+      search?: string;
+      status?: string;
+    }): Promise<ApplicationsListResponse> => {
+      const queryParams = new URLSearchParams();
+
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.search) queryParams.append('search', params.search);
+      if (params?.status) queryParams.append('status', params.status);
 
       const { data } = await apiClient.get(
-        `/travel/travel-desk/applications/${params.toString() ? `?${params}` : ''}`
+        `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ''}`
       );
-      console.log(data);
+
       return data;
     },
 
@@ -97,6 +98,13 @@ export const travelDeskAPI = {
   agents: {
     list: async (): Promise<{ data: BookingAgent[] }> => {
       const { data } = await apiClient.get(`/travel/booking-agents/`);
+      return data;
+    },
+    getRecommendedAgents: async (applicationId: number) => {
+      const { data } = await apiClient.get(
+        `/travel/travel-desk/applications/${applicationId}/recommended-agents/`
+      );
+      console.log("Recommended Agents: ", data);
       return data;
     },
   },

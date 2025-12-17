@@ -54,7 +54,7 @@ export const SearchFilterBar = ({
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
+                {/* <SelectItem value="all">All Status</SelectItem> */}
                 <SelectItem value="pending_travel_desk">Pending</SelectItem>
                 <SelectItem value="booking_in_progress">In Progress</SelectItem>
                 <SelectItem value="booked">Booked</SelectItem>

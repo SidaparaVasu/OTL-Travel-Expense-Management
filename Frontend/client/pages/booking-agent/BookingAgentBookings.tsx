@@ -39,8 +39,11 @@ const BookingAgentBookings: React.FC = () => {
     queryKey: ['booking-agent-bookings', filters],
     queryFn: async () => {
       const response = await bookingAgentAPI.bookings.list(filters);
-      console.log(response.data);
-      return response.data;
+
+      return {
+        bookings: response.data,                 // Booking[]
+        pagination: response.meta?.pagination ?? null,
+      };
     },
   });
 
@@ -51,10 +54,10 @@ const BookingAgentBookings: React.FC = () => {
   };
 
   const handleStatusChange = (status: string) => {
-    setFilters((prev) => ({ 
-      ...prev, 
-      status: status as BookingsListParams['status'], 
-      page: 1 
+    setFilters((prev) => ({
+      ...prev,
+      status: status as BookingsListParams['status'],
+      page: 1
     }));
   };
 
@@ -126,16 +129,16 @@ const BookingAgentBookings: React.FC = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-semibold">
             Bookings
-            {bookingsData?.pagination?.total_count !== undefined && (
+            {bookingsData?.pagination?.count !== undefined && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({bookingsData.pagination.total_count} total)
+                ({bookingsData.pagination.count} total)
               </span>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <BookingsTable
-            bookings={bookingsData?.results || []}
+            bookings={bookingsData?.bookings || []}
             isLoading={isLoading}
             onView={handleView}
             onUpdateStatus={handleUpdateStatus}

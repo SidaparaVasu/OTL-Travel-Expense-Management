@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-
+from apps.master_data.models import CityMaster
 
 class OrganizationalProfile(models.Model):
     """
@@ -134,6 +134,18 @@ class ExternalProfile(models.Model):
         default=list,
         blank=True,
         help_text="List of service categories. Example: ['flight_booking', 'hotel_booking']"
+    )
+
+    serves_all_cities = models.BooleanField(
+        default=False,
+        help_text="If enabled, agent serves all cities"
+    )
+    
+    service_cities = models.ManyToManyField(
+        CityMaster,
+        blank=True,
+        related_name="booking_agents",
+        help_text="Cities this booking agent serves"
     )
     
     # Business Details

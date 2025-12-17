@@ -15,7 +15,6 @@
       "updated_at": "2025-12-11T13:13:00Z"
     }
   },
-
   {
     "model": "notifications.emailtemplatemaster",
     "pk": 2,
@@ -32,7 +31,6 @@
       "updated_at": "2025-12-11T13:13:00Z"
     }
   },
-
   {
     "model": "notifications.emailtemplatemaster",
     "pk": 3,
@@ -49,7 +47,6 @@
       "updated_at": "2025-12-11T13:13:00Z"
     }
   },
-
   {
     "model": "notifications.emailtemplatemaster",
     "pk": 4,
@@ -66,7 +63,6 @@
       "updated_at": "2025-12-11T13:13:00Z"
     }
   },
-
   {
     "model": "notifications.emailtemplatemaster",
     "pk": 5,
@@ -83,7 +79,6 @@
       "updated_at": "2025-12-11T13:13:00Z"
     }
   },
-
   {
     "model": "notifications.emailtemplatemaster",
     "pk": 6,
@@ -100,7 +95,6 @@
       "updated_at": "2025-12-11T13:13:00Z"
     }
   },
-
   {
     "model": "notifications.emailtemplatemaster",
     "pk": 7,
@@ -115,6 +109,90 @@
       "is_active": true,
       "created_at": "2025-12-11T13:13:00Z",
       "updated_at": "2025-12-11T13:13:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 8,
+    "fields": {
+      "template_key": "travel.booking.auto_assigned",
+      "template_name": "Booking Auto Assigned",
+      "subject": "New Booking Assigned — {{ request_id }}",
+      "body_html": "<p>Dear {{ booking_agent_name }},</p>\n<p>A new travel booking has been automatically assigned to you.</p>\n<p><strong>Request ID:</strong> {{ request_id }}</p>\n<p><strong>Employee:</strong> {{ employee_name }}</p>\n<p><strong>Action Required:</strong> {{ action_required }}</p>\n<p>Please log in and proceed with the booking on priority.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "A new booking ({{ request_id }}) has been assigned to you. Please proceed with booking.",
+      "is_active": true,
+      "created_at": "2025-12-15T14:05:00Z",
+      "updated_at": "2025-12-15T14:05:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 9,
+    "fields": {
+      "template_key": "travel.booking.assigned",
+      "template_name": "Booking Assigned by Travel Desk",
+      "subject": "Booking Assigned by Travel Desk — {{ request_id }}",
+      "body_html": "<p>Dear {{ booking_agent_name }},</p>\n<p>The Travel Desk has assigned a booking to you.</p>\n<p><strong>Request ID:</strong> {{ request_id }}</p>\n<p><strong>Employee:</strong> {{ employee_name }}</p>\n<p>Please proceed with the booking.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Booking {{ request_id }} has been assigned by Travel Desk.",
+      "is_active": true,
+      "created_at": "2025-12-15T14:05:00Z",
+      "updated_at": "2025-12-15T14:05:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 10,
+    "fields": {
+      "template_key": "travel.cost.escalation",
+      "template_name": "Travel Cost Escalation",
+      "subject": "Travel Booking Paused Due to Cost Escalation — {{ request_id }}",
+      "body_html": "<p>Dear {{ employee_name }},</p>\n<p>Your travel booking has been temporarily paused.</p>\n<p><strong>Reason:</strong> {{ reason }}</p>\n<p><strong>Revised Cost:</strong> ₹{{ actual_cost }}</p>\n<p>The request has been forwarded for additional approval.</p>\n<p>You will be notified once a decision is made.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Your travel booking {{ request_id }} is paused due to cost escalation.",
+      "is_active": true,
+      "created_at": "2025-12-15T14:05:00Z",
+      "updated_at": "2025-12-15T14:05:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 11,
+    "fields": {
+      "template_key": "travel.ceo.reapproval_required",
+      "template_name": "CEO Re-Approval Required",
+      "subject": "Approval Required: Revised Travel Cost — {{ request_id }}",
+      "body_html": "<p>Dear {{ approver_name }},</p>\n<p>A travel request requires your approval due to revised booking cost.</p>\n<p><strong>Request ID:</strong> {{ request_id }}</p>\n<p><strong>Employee:</strong> {{ employee_name }}</p>\n<p><strong>Estimated Cost:</strong> ₹{{ estimated_cost }}</p>\n<p><strong>Actual Cost:</strong> ₹{{ actual_cost }}</p>\n<p>Please review and take appropriate action.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Approval required for travel request {{ request_id }} due to revised cost.",
+      "is_active": true,
+      "created_at": "2025-12-15T14:05:00Z",
+      "updated_at": "2025-12-15T14:05:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 12,
+    "fields": {
+      "template_key": "travel.ceo.reapproval_approved",
+      "template_name": "CEO Re-Approval Approved",
+      "subject": "Travel Booking Approved — Resume Processing — {{ request_id }}",
+      "body_html": "<p>Dear {{ recipient_name }},</p>\n<p>The revised travel cost for request <strong>{{ request_id }}</strong> has been approved.</p>\n<p><strong>Next Step:</strong> {{ action_required }}</p>\n<p>Please log in to continue.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Revised travel cost approved for request {{ request_id }}.",
+      "is_active": true,
+      "created_at": "2025-12-15T14:05:00Z",
+      "updated_at": "2025-12-15T14:05:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 13,
+    "fields": {
+      "template_key": "travel.ceo.reapproval_rejected",
+      "template_name": "CEO Re-Approval Rejected",
+      "subject": "Travel Cost Approval Rejected — {{ request_id }}",
+      "body_html": "<p>Dear {{ recipient_name }},</p>\n<p>The revised travel cost for request <strong>{{ request_id }}</strong> has been rejected.</p>\n<p><strong>Reason:</strong> {{ reason }}</p>\n<p><strong>Action Required:</strong> {{ action_required }}</p>\n<p>Please review and proceed accordingly.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Revised travel cost rejected for request {{ request_id }}.",
+      "is_active": true,
+      "created_at": "2025-12-15T14:05:00Z",
+      "updated_at": "2025-12-15T14:05:00Z"
     }
   }
 ]

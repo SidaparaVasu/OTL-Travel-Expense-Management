@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from apps.notifications.center import NotificationCenter
+from utils.get_assigned_agents import get_assigned_booking_agent
+from utils.get_travel_desk_users import get_travel_desk_users
 
 class TravelApprovalFlow(models.Model):
     """
@@ -77,21 +80,66 @@ class TravelApprovalFlow(models.Model):
         )
     
     def approve(self, notes=""):
-        """Approve this step and trigger next approval"""
         self.status = 'approved'
         self.approved_at = timezone.now()
         self.notes = notes
         self.save()
 
-        # Check if parallel approvals are complete
-        if self.parallel_group:
-            if not self.is_parallel_approval_complete():
-                # Wait for other parallel approvals
-                return
+        application = self.travel_application
+
+        # -----------------------------------------
+        # SPECIAL CASE: CEO approval after cost escalation
+        # -----------------------------------------
+        if (
+            self.approval_level == "ceo"
+            and self.triggered_by_rule in [
+                "actual_cost_crossed_policy_limit",
+                "actual_cost_exceeded_allowed_delta",
+            ]
+        ):
+            # Resume booking workflow
+            application.status = "booking_in_progress"
+            application.current_approver = None
+            application.save(update_fields=["status", "current_approver"])
+
+            # Audit (important)
+            from apps.travel.models.audit import AuditLog
+            AuditLog.objects.create(
+                user=self.approver,
+                action="resume_booking_after_ceo_approval",
+                content_object=application,
+                changes={
+                    "approval_flow_id": self.id,
+                    "reason": self.triggered_by_rule,
+                },
+            )
+            return
+
+        # -----------------------------------------
+        # DEFAULT FLOW
+        # -----------------------------------------
+        application.update_status_after_approval(self)
+        assigned_agent = get_assigned_booking_agent(application)
+
+        # Notify Booking Agent
+        NotificationCenter.notify(
+            event_name="travel.ceo.reapproval_approved",
+            reference={"type": "TravelRequest", "id": application.id},
+            payload={
+                "request_id": application.get_travel_request_id(),
+                "employee_name": application.employee.get_full_name(),
+                "booking_agent_name": assigned_agent.get_full_name() if assigned_agent else "",
+                "action_required": "Resume booking",
+
+                # REQUIRED for default_resolver
+                "recipients": [
+                    application.employee.id,
+                    *( [assigned_agent.id] if assigned_agent else [] ),
+                ],
+            },
+        )
         
-        # Update travel application status
-        self.travel_application.update_status_after_approval(self)
-    
+
     def reject(self, notes=""):
         """Reject application"""
         self.status = 'rejected'
@@ -102,3 +150,22 @@ class TravelApprovalFlow(models.Model):
         # Update travel application status to rejected
         self.travel_application.status = f'rejected_{self.approval_level}'
         self.travel_application.save()
+
+        assigned_agent = get_assigned_booking_agent(self.travel_application)
+        travel_desk_users = get_assigned_booking_agent(self.travel_application)
+
+        NotificationCenter.notify(
+        event_name="travel.ceo.reapproval_rejected",
+        reference={"type": "TravelRequest", "id": self.travel_application.id},
+        payload={
+            "request_id": self.travel_application.get_travel_request_id(),
+            "reason": self.notes,
+            "action_required": "Travel Desk intervention required",
+
+            # REQUIRED for default_resolver
+            "recipients": [
+                self.travel_application.employee.id,
+                *( [assigned_agent.id] if assigned_agent else [] ),
+            ],
+        },
+    )

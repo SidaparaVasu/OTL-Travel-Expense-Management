@@ -315,6 +315,9 @@ class TravelApplicationSubmitView(APIView):
             travel_app.set_settlement_due_date()
             travel_app.save(update_fields=["status"]) 
 
+            from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings
+            auto_forward_flight_train_bookings(travel_app, system_user=request.user)
+
             return success_response(
                 data={
                     "travel_request_id": travel_app.get_travel_request_id(),
@@ -402,7 +405,7 @@ class TravelApplicationSubmitView(APIView):
         travel_app.save()
 
         # Schedule auto-completion
-        from notifications.tasks import schedule_travel_completion
+        from apps.notifications.tasks import schedule_travel_completion
         schedule_travel_completion(travel_app)
 
         # 9) Send email notification
@@ -410,7 +413,7 @@ class TravelApplicationSubmitView(APIView):
             from apps.notifications.center import NotificationCenter
             NotificationCenter.notify(
                 event_name="travel.submitted",
-                reference={"type": "TravelRequest", "id": 999},
+                reference={"type": "TravelRequest", "id": travel_app.id},
                 payload={
                     "employee_id": request.user.id,
                     "approver_id": travel_app.current_approver.id,

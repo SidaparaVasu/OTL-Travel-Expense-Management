@@ -10,6 +10,7 @@ from .views.dashboards import *
 from .views.analytics import TravelAnalyticsView, ComplianceReportView
 from .views.travel_desk_views import *
 from .views.booking_agent_views import *
+from .views.travel_desk_recommendation import *
 
 urlpatterns = [
     # Travel Applications
@@ -38,9 +39,9 @@ urlpatterns = [
     path("travel-desk/bookings/<int:booking_id>/notes/", BookingNotesView.as_view(), name="travel-desk-booking-notes"),
     path("travel-desk/applications/<int:app_id>/forward/", ForwardApplicationView.as_view(), name="travel-desk-forward-application"),
     path("travel-desk/applications/<int:app_id>/cancel/", TravelDeskCancelApplicationView.as_view(), name="travel-desk-cancel-application"),
+    path("travel-desk/applications/<int:application_id>/recommended-agents/", TravelDeskRecommendedAgentsView.as_view(), name="travel-desk-recommended-agents"),
 
     # Booking Agent
-    # urls.py
     path("booking-agents/", BookingAgentsListView.as_view(), name="booking-agents"),
     path("booking-agent/bookings/", BookingAgentBookingsListView.as_view(), name="agent-bookings-list"),
     path("booking-agent/bookings/<int:pk>/", BookingAgentBookingDetailView.as_view(), name="agent-booking-detail"),

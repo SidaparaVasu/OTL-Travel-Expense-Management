@@ -1,6 +1,6 @@
 from celery import shared_task
 from django.utils import timezone
-from travel.models import TravelApplication
+from apps.travel.models import TravelApplication
 from .models import NotificationLog, NotificationEvent
 from .providers import EmailProviderFactory
 from .center import NotificationCenter
@@ -27,8 +27,10 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
             provider.send(subject=subject, body_text=body_text, body_html=body_html, to_emails=to_emails)
         elif channel == 'in_app':
             # create an in-app notification record or push through websocket
-            from .in_app import create_in_app_notification
-            create_in_app_notification(payload=payload, recipient=log.recipient, title=subject, body=body_text)
+            # from .in_app import create_in_app_notification
+            # create_in_app_notification(payload=payload, recipient=log.recipient, title=subject, body=body_text)
+            logger.warning('In app notifications are pending as of now.')
+            pass
         else:
             # SMS / other channels placeholder
             logger.warning('Channel %s not implemented yet', channel)
@@ -49,18 +51,18 @@ def mark_travel_as_completed(travel_id):
     try:
         travel = TravelApplication.objects.get(id=travel_id)
 
-        # if already completed or cancelled, do nothing
-        if travel.status in ["Completed", "Cancelled"]:
+        if travel.status in ["completed", "cancelled"]:
             return
 
-        # ensure end date has passed
-        if timezone.now().date() >= travel.end_date:
-            travel.status = "Completed"
-            travel.is_claimable = True  # Assuming such a field exists
-            travel.save()
+        end_date = travel.get_travel_end_date()
+        if not end_date:
+            return
 
-            # optionally trigger settlement reminder here
-            from notifications.center import NotificationCenter
+        if timezone.now().date() >= end_date:
+            travel.status = "completed"
+            travel.is_claimable = True  # if this field exists
+            travel.save(update_fields=["status", "is_claimable"])
+
             NotificationCenter.notify(
                 "travel.settlement.reminder",
                 {"type": "TravelRequest", "id": travel.id},
@@ -68,25 +70,32 @@ def mark_travel_as_completed(travel_id):
                     "employee_id": travel.employee.id,
                     "employee_name": travel.employee.get_full_name(),
                     "request_id": travel.get_travel_request_id(),
-                    "settlement_due_date": travel.get_settlement_due_date()
+                    "settlement_due_date": travel.settlement_due_date,
                 }
             )
+
     except TravelApplication.DoesNotExist:
-        pass
+        logger.warning("TravelApplication not found for id=%s", travel_id)
 
 
 def schedule_travel_completion(travel_app):
-    # When to run the job? End date at midnight or immediately after.
+    end_date = travel_app.get_travel_end_date()
+
+    if not end_date:
+        logger.warning(
+            "Cannot schedule completion: no trip dates for travel_app=%s",
+            travel_app.id
+        )
+        return
+
     run_datetime = timezone.make_aware(
-        datetime.datetime.combine(travel_app.end_date, datetime.time(hour=1))
+        datetime.datetime.combine(end_date, datetime.time(hour=1))
     )
 
-    # Create clocked schedule
     clocked, _ = ClockedSchedule.objects.get_or_create(
         clocked_time=run_datetime
     )
 
-    # Create one-off task
     PeriodicTask.objects.create(
         name=f"travel_complete_{travel_app.id}",
         task="notifications.tasks.mark_travel_as_completed",
