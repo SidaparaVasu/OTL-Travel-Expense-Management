@@ -288,7 +288,7 @@ export default function GeographyMaster() {
             setCountryModal({ open: false, data: null });
         } catch (error) {
             console.error("Error saving country:", error);
-            toast.error(error.response?.data?.message || "Failed to save country");
+            toast.error(error.response?.data?.errors?.country_name[0] || error.response?.data?.errors?.country_code[0] || "Failed to save country");
         }
     };
 
@@ -523,12 +523,16 @@ function CountryForm({ data, onSubmit, onCancel }) {
             toast.error("Please enter country name");
             return;
         }
+        if (!formData.country_code) {
+            toast.error("Please enter country code");
+            return;
+        }
         onSubmit(formData);
     };
     return (
         <div className="space-y-4">
             <div><label className="block text-sm font-medium text-slate-700 mb-1">Country Name <span className="text-red-500">*</span></label><input type="text" value={formData.country_name || ""} onChange={(e) => setFormData({ ...formData, country_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Country Code</label><input type="text" maxLength={3} value={formData.country_code || ""} onChange={(e) => setFormData({ ...formData, country_code: e.target.value.toUpperCase() })} placeholder="e.g. IND, USA" className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="block text-sm font-medium text-slate-700 mb-1">Country Code <span className="text-red-500">*</span></label><input type="text" maxLength={3} value={formData.country_code || ""} onChange={(e) => setFormData({ ...formData, country_code: e.target.value.toUpperCase() })} placeholder="e.g. IND, USA" className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
                 <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 hover:bg-gray-100 rounded-md">Cancel</button>
                 <button onClick={handleSubmit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"><Save className="w-4 h-4" />Save</button>
@@ -544,12 +548,16 @@ function StateForm({ data, onSubmit, onCancel }) {
             toast.error("Please enter state name");
             return;
         }
+        if (!formData.state_code) {
+            toast.error("Please enter state code");
+            return;
+        }
         onSubmit(formData);
     };
     return (
         <div className="space-y-4">
             <div><label className="block text-sm font-medium text-slate-700 mb-1">State Name <span className="text-red-500">*</span></label><input type="text" value={formData.state_name || ""} onChange={(e) => setFormData({ ...formData, state_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">State Code</label><input type="text" maxLength={3} value={formData.state_code || ""} onChange={(e) => setFormData({ ...formData, state_code: e.target.value.toUpperCase() })} placeholder="e.g. GJ, MH" className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="block text-sm font-medium text-slate-700 mb-1">State Code <span className="text-red-500">*</span></label><input type="text" maxLength={3} value={formData.state_code || ""} onChange={(e) => setFormData({ ...formData, state_code: e.target.value.toUpperCase() })} placeholder="e.g. GJ, MH" className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
                 <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 hover:bg-gray-100 rounded-md">Cancel</button>
                 <button onClick={handleSubmit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"><Save className="w-4 h-4" />Save</button>
@@ -565,12 +573,21 @@ function CityForm({ data, categories, onSubmit, onCancel }) {
             toast.error("Please enter city name");
             return;
         }
+        if (!formData.city_code) {
+            toast.error("Please enter city code");
+            return;
+        }
+        if (!formData.category) {
+            toast.error("Please select city category");
+            return;
+        }
         onSubmit(formData);
     };
     return (
         <div className="space-y-4">
             <div><label className="block text-sm font-medium text-slate-700 mb-1">City Name <span className="text-red-500">*</span></label><input type="text" value={formData.city_name || ""} onChange={(e) => setFormData({ ...formData, city_name: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Category (Optional)</label><select value={formData.category || ''} onChange={(e) => setFormData({ ...formData, category: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">No category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div>
+            <div><label className="block text-sm font-medium text-slate-700 mb-1">City Code <span className="text-red-500">*</span></label><input type="text" value={formData.city_code || ""} onChange={(e) => setFormData({ ...formData, city_code: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="block text-sm font-medium text-slate-700 mb-1">Category <span className="text-red-500">*</span></label><select value={formData.category || ''} onChange={(e) => setFormData({ ...formData, category: e.target.value ? parseInt(e.target.value) : null })} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="">No category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div>
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
                 <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 hover:bg-gray-100 rounded-md">Cancel</button>
                 <button onClick={handleSubmit} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"><Save className="w-4 h-4" />Save</button>
