@@ -5,16 +5,17 @@ class CityCategoriesMaster(models.Model):
     """
     City categories for DA/expense calculations (A, B, C)
     """
+    # Example cateogaries
     CATEGORY_CHOICES = [
         ('A', 'Category A'),
         ('B', 'Category B'),
         ('C', 'Category C'),
     ]
-    name = models.CharField(max_length=1, choices=CATEGORY_CHOICES, unique=True)
+    name = models.CharField(max_length=1, unique=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
-        return dict(self.CATEGORY_CHOICES).get(self.name, self.name)
+        return f"{self.name} - {self.description}"
 
 class CityCategoryAssignment(models.Model):
     country_name = models.CharField(max_length=100)

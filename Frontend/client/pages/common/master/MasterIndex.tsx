@@ -37,7 +37,7 @@ const MASTER_CATEGORIES = [
         title: 'Geography',
         icon: MapPin,
         items: [
-            { id: 'city-category', title: 'City Category', route: ROUTES.geographyMaster },
+            { id: 'city-category', title: 'City Category', route: ROUTES.cityCategoryMaster },
             { id: 'city', title: 'City', route: ROUTES.geographyMaster },
             { id: 'state', title: 'State', route: ROUTES.geographyMaster },
             { id: 'country', title: 'Country', route: ROUTES.geographyMaster },
