@@ -96,3 +96,11 @@ yarn-debug.log*
 yarn-error.log*
 build/
 dist/
+
+# --- Agentic AI Assistant ---
+task.md
+implementation_plan.md
+walkthrough.md
+.gemini/
+.antigravity/
+.agent/
