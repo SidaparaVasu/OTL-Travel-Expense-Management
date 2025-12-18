@@ -175,9 +175,9 @@ export default function ClaimDetailPage() {
                     <TableRow className="border-slate-200">
                       <TableHead className="text-xs font-semibold">Expense Type</TableHead>
                       <TableHead className="text-xs font-semibold">Expense Date</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">Actual Cost</TableHead>
+                      <TableHead className="text-xs font-semibold">Actual Cost</TableHead>
                       <TableHead className="text-xs font-semibold">Receipt</TableHead>
-                      <TableHead className="text-xs font-semibold">Remarks</TableHead>
+                      <TableHead className="text-xs font-semibold text-left">Remarks</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -189,7 +189,7 @@ export default function ClaimDetailPage() {
                         <TableCell className="text-sm text-slate-700">
                           {formatDate(item.expense_date)}
                         </TableCell>
-                        <TableCell className="text-sm font-semibold text-right text-slate-800">
+                        <TableCell className="text-sm font-semibold text-slate-800">
                           {formatCurrency(item.amount)}
                         </TableCell>
                         <TableCell>
@@ -206,7 +206,7 @@ export default function ClaimDetailPage() {
                             <Badge className="text-xs bg-slate-200 hover:bg-slate-100 text-slate-700" variant='success'>None</Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs text-slate-600">
+                        <TableCell className="text-xs text-slate-600 text-left">
                           {item.remarks || 'N/A'}
                         </TableCell>
                       </TableRow>

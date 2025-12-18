@@ -23,6 +23,9 @@ from apps.expenses.business_logic.claims import (
 #--------------------------
 from apps.travel.models.approval import TravelApprovalFlow
 from apps.authentication.models.profiles import OrganizationalProfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create initial approval stage
 def get_initial_claim_approver(tr):
@@ -57,6 +60,7 @@ class ExpenseItemSerializer(serializers.ModelSerializer):
         queryset=ExpenseTypeMaster.objects.filter(is_active=True)
     )
     expense_type_display = serializers.SerializerMethodField()
+    booking_id = serializers.IntegerField(required=False, write_only=True)
 
     class Meta:
         model = ExpenseItem
@@ -75,6 +79,7 @@ class ExpenseItemSerializer(serializers.ModelSerializer):
             "bill_number",
             "city_category",
             "remarks",
+            "booking_id",
         ]
 
     def get_expense_type_display(self, obj):
@@ -232,6 +237,12 @@ class ClaimSubmitSerializer(serializers.Serializer):
 
     def validate(self, data):
         # basic TR validation
+        logger.info(f"Validating ClaimSubmitSerializer data keys: {list(data.keys())}")
+        if 'items' in data:
+            logger.info(f"Items count: {len(data['items'])}")
+            for i, item in enumerate(data['items']):
+                logger.info(f"Item [{i}] - Has BookingID: {item.get('booking_id')}, Has Receipt: {item.get('has_receipt')}, Type: {item.get('expense_type')}")
+
         tr = TravelApplication.objects.filter(id=data["travel_application_id"]).first()
         if not tr:
             raise serializers.ValidationError({"travel_application_id": "Travel request not found"})
@@ -245,8 +256,14 @@ class ClaimSubmitSerializer(serializers.Serializer):
             et = item.get("expense_type")
             # et is a model instance (PrimaryKeyRelatedField converted)
             if hasattr(et, "requires_receipt") and et.requires_receipt and not item.get("has_receipt", True):
-                # allow self-certified if explicitly provided
-                if not item.get("is_self_certified", False):
+                # allow self-certified if explicitly provided OR if linked to a booking (booking_id present)
+                booking_id = item.get("booking_id")
+                is_self_cert = item.get("is_self_certified", False)
+                
+                logger.debug(f"Checking receipt for item {idx}: et={et.name}, booking_id={booking_id}, self_cert={is_self_cert}")
+
+                if not is_self_cert and not booking_id:
+                    logger.warning(f"Validation Error: Receipt required for item {idx}")
                     raise serializers.ValidationError({
                         f"items[{idx}].has_receipt": [f"Receipt required for expense type: {et.name}"]
                     })
@@ -321,7 +338,9 @@ class ClaimSubmitSerializer(serializers.Serializer):
 
             # Save items
             for item in prepared["items_prepared"]:
-                ExpenseItem.objects.create(claim=claim, **item)
+                item_data = item.copy()
+                item_data.pop("booking_id", None) # Remove non-model field
+                ExpenseItem.objects.create(claim=claim, **item_data)
 
             # Save DA breakdown
             for day in prepared["computed"]["da_breakdown"]:

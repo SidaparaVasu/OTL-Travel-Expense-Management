@@ -22,6 +22,9 @@ from utils.response_formatter import *
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+import logging
+
+logger = logging.getLogger(__name__)
 
 # -------------------------
 # Validate endpoint
@@ -56,6 +59,7 @@ class ClaimSubmitView(APIView):
             serializer = ClaimSubmitSerializer(data=request.data)
             serializer.is_valid(raise_exception=False)
             if serializer.errors:
+                logger.error(f"ClaimSubmitSerializer validation failed: {serializer.errors}")
                 return error_response(data=serializer.errors, message="Validation failed")
 
             with transaction.atomic():
@@ -124,6 +128,7 @@ class ClaimListCreateView(APIView):
             serializer = ClaimSubmitRequestSerializer(data=request.data)
             serializer.is_valid(raise_exception=False)
             if serializer.errors:
+                logger.error(f"ClaimSubmitRequestSerializer validation failed: {serializer.errors}")
                 return error_response(data=serializer.errors, message="Validation failed")
 
             claim = serializer.save()

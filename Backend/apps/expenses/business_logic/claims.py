@@ -8,8 +8,11 @@ from apps.travel.models.application import TravelApplication
 from apps.expenses.models import *
 from apps.master_data.models.travel import GradeEntitlementMaster
 from apps.master_data.models.geography import CityCategoriesMaster
-from apps.master_data.models.approval import DAIncidentalMaster  
+from apps.master_data.models.approval import DAIncidentalMaster, ConveyanceRateMaster, ApprovalMatrix
 from apps.travel.models.application import TripDetails         
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------------------------
@@ -18,6 +21,8 @@ from apps.travel.models.application import TripDetails
 
 def _to_decimal(val) -> Decimal:
     try:
+        if val is None:
+            return Decimal("0")
         return Decimal(str(val))
     except:
         return Decimal("0")
@@ -40,6 +45,12 @@ def _get_expense_type_code(etype) -> str:
     """Return expense type code from instance or raw value."""
     if hasattr(etype, "code"):
         return etype.code.lower()
+    return str(etype).lower()
+
+def _get_expense_type_name(etype) -> str:
+    """Return expense type name from instance or raw value."""
+    if hasattr(etype, "name"):
+        return etype.name.lower()
     return str(etype).lower()
 
 
@@ -65,7 +76,10 @@ def _get_da_rates_for_grade(grade_name: str):
     )
 
     if not rows.exists():
-        # Master data missing → validation error
+        # Master data missing -> validation error (or fallback empty)
+        # We raise a validation error here as per previous logic, 
+        # but in production, might want soft failure.
+        # Keeping it strict for now.
         raise ValidationError({
             "da_master": [f"DA/Incidental master data not found for grade '{grade_name}'."]
         })
@@ -77,9 +91,34 @@ def _get_da_rates_for_grade(grade_name: str):
             "half": _to_decimal(r.da_half_day),
             "inc_full": _to_decimal(r.incidental_full_day),
             "inc_half": _to_decimal(r.incidental_half_day),
+            # Also store stay allowances for future use
+            "stay_a": _to_decimal(r.stay_allowance_category_a),
+            "stay_b": _to_decimal(r.stay_allowance_category_b),
         }
 
     return result
+
+def _get_city_category_for_date(trips, current_date: date) -> str:
+    """
+    Find the city category for a given date based on TripDetails.
+    """
+    # Finding the trip segment that covers this date
+    # Logic: If date is between departure and return of a trip
+    # Naive assumption: sequential trips.
+    
+    # Sort trips by date just in case
+    sorted_trips = trips.order_by("departure_date")
+    
+    for trip in sorted_trips:
+        start = _date_from_str(trip.departure_date)
+        end = _date_from_str(trip.return_date)
+        if start and end and start <= current_date <= end:
+            return trip.get_city_category() or "B"
+    
+    # Fallback: if between trips or not found, pick the destination of the last trip before this date
+    # or just default to B.
+    return "B"
+
 
 # --------------------------------------------------------------------
 # MAIN: DA CALCULATION WITH FIXED DATE EXTRACTION
@@ -88,16 +127,16 @@ def _get_da_rates_for_grade(grade_name: str):
 def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
     """
     Calculate DA/Incidental for each day of travel.
-    FIX: Travel dates extracted from TripDetails if TR doesn't have start_date / end_date.
     """
 
     # ---------- Extract travel dates ----------
     start = _date_from_str(getattr(tr, "start_date", None))
     end = _date_from_str(getattr(tr, "end_date", None))
 
+    trips = tr.trip_details.all()
+
     # Fallback to TripDetails table
     if not start or not end:
-        trips = tr.trip_details.all()
         if trips.exists():
             start = _date_from_str(trips.order_by("departure_date").first().departure_date)
             end = _date_from_str(trips.order_by("-return_date").first().return_date)
@@ -109,40 +148,90 @@ def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
     grade_code = getattr(getattr(tr, "employee", None), "grade", None) or "B-3"
     da_master = _get_da_rates_for_grade(grade_code)
 
-    # ---------- City Category (default B) ----------
-    trips = tr.trip_details.all()
-    cat = "B"
-    if trips.exists():
-        first_trip = trips.first()
-        trip_cat = first_trip.get_city_category()
-        if trip_cat:
-            cat = trip_cat
-
-    if cat not in da_master:
-        cat = list(da_master.keys())[0]
-
-    daily_rates = da_master[cat]
-
     # ---------- Build breakdown ----------
     results = []
+    
+    # Sort trips by departure date
+    # sorted_trips = trips.order_by("departure_date") # Already sorted in definition or usage
+
     curr = start
     while curr <= end:
-        # NOTE: Duration logic can be enhanced later.
-        duration_hours = 24
+        # Determine City Category for this specific date
+        cat = _get_city_category_for_date(trips, curr)
+
+        if cat not in da_master:
+            # Fallback
+            keys = list(da_master.keys())
+            cat = keys[0] if keys else "B"
+            
+        daily_rates = da_master.get(cat, da_master.get("B", {}))
+        
+        # Calculate Duration
+        # Default: 24 hours (full day)
+        duration_hours = Decimal(24)
+        
+        # Check if Start Day (find matching trip departure)
+        # We look for a trip where departure_date == curr
+        start_trip = trips.filter(departure_date=curr).first()
+        
+        # Check if End Day (find matching trip return)
+        end_trip = trips.filter(return_date=curr).first()
+        
+        if start_trip and end_trip and start_trip == end_trip:
+             # Single Day Trip
+             # Duration = End Time - Start Time
+             st = start_trip.start_time
+             et = start_trip.end_time
+             
+             if st and et:
+                 # Calculate diff
+                 dt_start = datetime.combine(curr, st)
+                 dt_end = datetime.combine(curr, et)
+                 diff = dt_end - dt_start
+                 duration_hours = Decimal(diff.total_seconds() / 3600)
+             else:
+                 # Fallback if times missing, though model says start_time mandatory
+                 duration_hours = Decimal(12) # Assume half day or full? Safer to assume full if unknown
+                 
+        elif start_trip:
+             # First day of multi-day trip
+             # Duration = 24h - Start Time
+             # e.g. Start 8 PM -> 4 hours travel
+             st = start_trip.start_time
+             if st:
+                 duration = 24 - (st.hour + st.minute/60.0)
+                 duration_hours = Decimal(duration)
+                 
+        elif end_trip:
+             # Last day of multi-day trip
+             # Duration = End Time
+             # e.g. End 10 AM -> 10 hours travel
+             et = end_trip.end_time
+             # Note: model says end_time can be null/blank? line 433
+             if et:
+                 duration = et.hour + et.minute/60.0
+                 duration_hours = Decimal(duration)
+        
+        # Sanity check
+        if duration_hours < 0: duration_hours = Decimal(0)
+        if duration_hours > 24: duration_hours = Decimal(24)
 
         if duration_hours > 12:
-            da = daily_rates["full"]
-            inc = daily_rates["inc_full"]
+            da = daily_rates.get("full", Decimal(0))
+            inc = daily_rates.get("inc_full", Decimal(0))
         elif duration_hours >= 8:
-            da = daily_rates["half"]
-            inc = daily_rates["inc_half"]
+            da = daily_rates.get("half", Decimal(0))
+            inc = daily_rates.get("inc_half", Decimal(0))
         else:
             da = Decimal("0")
             inc = Decimal("0")
 
+        # Future: Add Stay Allowance check here if needed
+
         results.append({
             "date": curr,
-            "duration_hours": duration_hours,
+            "duration_hours": float(round(duration_hours, 2)),
+            "city_category": cat,
             "eligible": da > 0,
             "da": da,
             "incidental": inc
@@ -151,6 +240,36 @@ def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
         curr += timedelta(days=1)
 
     return results
+
+def get_grade_entitlement_limit(grade_name, city_category_name, sub_option_name="Hotel/Guest House"):
+    """
+    Fetch max_amount for a specific grade, city cat, and sub_option.
+    Returns: Decimal limit or None if not found/unlimited.
+    """
+    # Try specific city category first
+    ent = GradeEntitlementMaster.objects.filter(
+        grade__name=grade_name,
+        sub_option__name__icontains=sub_option_name,
+        city_category__name=city_category_name,
+        is_allowed=True
+    ).first()
+    
+    if ent and ent.max_amount:
+        return ent.max_amount
+
+    # Try 'All Cities' (null city_category)
+    ent_all = GradeEntitlementMaster.objects.filter(
+        grade__name=grade_name,
+        sub_option__name__icontains=sub_option_name,
+        city_category__isnull=True,
+        is_allowed=True
+    ).first()
+
+    if ent_all:
+        return ent_all.max_amount
+    
+    return None
+
 
 
 # --------------------------------------------------------------------
@@ -172,7 +291,6 @@ def validate_claim_payload(
 ):
     """
     Core validation function.
-    Supports both 'tr' and 'travel_application' for compatibility.
     """
 
     # Normalization: accept either argument name
@@ -205,18 +323,16 @@ def validate_claim_payload(
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
     # 4 — DA Breakdown
-    breakdown = calculate_da_breakdown(tr)
+    try:
+        breakdown = calculate_da_breakdown(tr)
+    except ValidationError as e:
+        errors.update(e.message_dict)
+        return {"errors": errors, "warnings": warnings, "computed": computed}
+
     if not breakdown:
-        # warnings["trip_dates"] = ["Travel dates missing in TravelApplication/TripDetails."]
         warnings.setdefault("trip_dates", []).append(
             "Travel dates missing in TravelApplication/TripDetails."
         )
-
-    if not breakdown:
-        errors.setdefault("da_master", []).append(
-            "DA / Incidental master data not configured for this grade and city category."
-        )
-        return {"errors": errors, "warnings": warnings, "computed": {}}
 
     total_da = sum([row["da"] for row in breakdown])
     total_inc = sum([row["incidental"] for row in breakdown])
@@ -225,9 +341,48 @@ def validate_claim_payload(
     computed["total_da"] = _to_decimal(total_da)
     computed["total_incidental"] = _to_decimal(total_inc)
 
+    # 4b — Prepare Stay Allowance Rates (from DA Master)
+    # We re-fetch DA master here for the grade to get stay allowances
+    try:
+        emp = getattr(tr, "employee", None)
+        # Handle case where emp is None or grade attr missing
+        grade = getattr(emp, "grade", None) if emp else "B-3"
+        
+        logger.info(f"Fetching DA rates for grade: {grade} (Employee: {emp})")
+        da_rates_map = _get_da_rates_for_grade(grade)
+    except Exception as e:
+        logger.error(f"Failed to fetch DA rates map: {e}")
+        # Use empty map or re-raise if critical?
+        da_rates_map = {}
+        # We might want to warn
+        warnings.setdefault("master_data", []).append(f"Could not fetch DA Master for grade {grade}: {str(e)}")
+
     # 5 — Expenses
     items = payload.get("items", [])
     total_exp = Decimal("0")
+    
+    # 5a — Get Common Policy Data
+    today = date.today()
+    grade_code = getattr(getattr(tr, "employee", None), "grade", None) or "B-3"
+    
+    # Fetch all active conveyance rates
+    conveyance_rates = {
+        cr.conveyance_type: cr.rate_per_km 
+        for cr in ConveyanceRateMaster.objects.filter(is_active=True, effective_from__lte=today)
+    }
+    # Fallback default
+    default_rate = conveyance_rates.get('taxi_without_receipt') or conveyance_rates.get('own_vehicle') or Decimal("15.00")
+
+    # Fetch Approval Matrix for Grade (specifically for Car logic)
+    # Finding matrix for "Car/Taxi" -> assuming travel_mode name logic or ID
+    # For simplicity, we search generic matrices for this grade
+    approval_rules = ApprovalMatrix.objects.filter(
+        employee_grade__name=grade_code,
+        is_active=True
+    )
+    
+    # Helper to check approvals
+    approval_requirements = set()
 
     for idx, item in enumerate(items):
         prefix = f"items[{idx}]"
@@ -248,21 +403,97 @@ def validate_claim_payload(
 
         # receipt rules
         has_receipt = item.get("has_receipt", True)
-        if code in ("hotel", "flight", "train", "taxi") and not has_receipt:
-            warnings.setdefault(f"{prefix}.receipt", []).append(
-                "Receipt missing for required expense type."
-            )
+        if code in ("hotel", "flight", "train", "taxi"):
+            # If item is linked to a booking (has booking_id) OR has receipt, it's valid.
+            # If neither, and it's a required type, warn.
+            is_booking = item.get("booking_id") or item.get("is_booking")
+            
+            if not has_receipt and not is_booking:
+                warnings.setdefault(f"{prefix}.receipt", []).append(
+                    "Receipt missing for required expense type."
+                )
 
-        # distance-based rules
+        # --------------------------------------------------------------------------------
+        # 7. NEW: ACCOMMODATION RULES
+        # --------------------------------------------------------------------------------
+        
+        # A) Hotel Limit Check
+        if code == 'hotel':
+             # Find duration of stay from dates? or just check Total Amount vs (Limit * 1 day)?
+             # Ideally validation should check "Check-In" / "Check-Out" but ExpenseItem only has `expense_date`.
+             # We will assume each "Hotel" line item represents 1 night unless specified.
+             # BETTER: Check simple daily limit. If amount > limit, warn.
+             
+             # Need city category for this expense
+             city_cat = item.get("city_category") or "B" 
+             
+             limit = get_grade_entitlement_limit(grade_code, city_cat, "Hotel")
+             
+             if limit and amt > limit:
+                 warnings.setdefault(f"{prefix}.approval", []).append(
+                     f"Hotel expense {amt} exceeds entitlement {limit}. Requires CHRO Approval."
+                 )
+                 approval_requirements.add("CHRO")
+
+        # B) Own Stay Allowance Check
+        # Expense type code for this needs to be known. Assuming 'own_accommodation' or similar.
+        if code in ('own_accommodation', 'own_arrangement', 'stay_allowance'):
+             # Determine rate based on city category
+             city_cat = item.get("city_category") or "B"
+             
+             # Fetch rates for this grade (using the map we fetched earlier)
+             # da_rates_map[cat] -> {stay_a, stay_b}
+             
+             rate_key = "stay_a" if city_cat == "A" else "stay_b"
+             # Safe fallback
+             grade_rates = da_rates_map.get(city_cat, da_rates_map.get("B", {}))
+             allowed_rate = grade_rates.get(rate_key, Decimal(0))
+             
+             if allowed_rate > 0 and amt > allowed_rate:
+                  errors.setdefault(f"{prefix}.amount", []).append(
+                      f"Own Stay Allowance {amt} exceeds permissible rate {allowed_rate} for Category {city_cat}."
+                  )
+             elif allowed_rate == 0:
+                  # Maybe validation missing or zero entitlement?
+                  pass
         if etype.is_distance_based:
-            if not item.get("distance_km"):
-                errors.setdefault(f"{prefix}.distance_km", []).append("Distance (km) required.")
-            else:
-                dist = _to_decimal(item["distance_km"])
-                if dist <= 0:
-                    errors.setdefault(f"{prefix}.distance_km", []).append("Invalid distance.")
+            dist_km = _to_decimal(item.get("distance_km") or 0)
+            
+            if dist_km <= 0:
+                 errors.setdefault(f"{prefix}.distance_km", []).append("Distance (km) required.")
+            
+            # Rate Validation / Calculation fallback
+            # Note: amount is usually user-input, but we can validate it against rate
+            # Determine rate type
+            rate = default_rate
+            if code == 'own_car':
+                rate = conveyance_rates.get('own_vehicle', default_rate)
+            elif code == 'taxi':
+                rate = conveyance_rates.get('taxi_without_receipt', default_rate)
+
+            # Check Max Distance & Approval Rules
+            # Filter matrices that might apply to this distance
+            # We look for any rule that has distance_limit_km
+            relevant_rules = approval_rules.filter(distance_limit_km__isnull=False)
+            
+            for rule in relevant_rules:
+                limit = rule.distance_limit_km
+                if limit and dist_km > limit:
+                     # Check what approvals needed
+                     if rule.requires_chro or rule.requires_chro_for_distance:
+                         warnings.setdefault(f"{prefix}.approval", []).append(
+                             f"Distance {dist_km}km exceeds limit {limit}km. Requires CHRO Approval."
+                         )
+                         approval_requirements.add("CHRO")
+                     elif rule.requires_ceo:
+                         warnings.setdefault(f"{prefix}.approval", []).append(
+                             f"Distance {dist_km}km exceeds limit {limit}km. Requires CEO Approval."
+                         )
+                         approval_requirements.add("CEO")
+
 
     computed["total_expenses"] = total_exp
+    computed["approval_requirements"] = list(approval_requirements)
 
     # 6 — Advance
     adv = Decimal("0")
@@ -287,7 +518,8 @@ def validate_claim_payload(
 
     computed["policy_summary"] = {
         "da_rates_source": "master",
-        "per_km_rate_no_receipt": "15",
+        "per_km_rate_default": str(default_rate),
+        "approval_matrix_active": approval_rules.exists()
     }
 
     return {"errors": errors, "warnings": warnings, "computed": computed}
@@ -325,6 +557,7 @@ def compute_claim_totals_and_prepare(
             "expense_type": item["expense_type"],
             "expense_date": _date_from_str(item.get("expense_date")),
             "amount": amt,
+            "booking_id": item.get("booking_id"), # Pass booking_id if present
             "has_receipt": item.get("has_receipt", True),
             "receipt_file": item.get("receipt_file"),
             "is_self_certified": item.get("is_self_certified", False),
@@ -345,3 +578,4 @@ def compute_claim_totals_and_prepare(
         "advance_received": computed["advance_received"],
         "final_amount": computed["final_amount"],
     }
+

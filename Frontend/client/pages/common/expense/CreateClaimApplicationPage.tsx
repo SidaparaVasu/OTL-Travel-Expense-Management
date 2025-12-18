@@ -86,6 +86,7 @@ export default function CreateClaimApplicationPage() {
               booking_file: b.booking_file,
               has_receipt: Boolean(b.booking_file),
               receipt_file: null,
+              distance_km: "",
               remarks: ""
             });
           });
@@ -108,6 +109,7 @@ export default function CreateClaimApplicationPage() {
         amount: "",
         has_receipt: false,
         receipt_file: null,
+        distance_km: "",
         remarks: ""
       }
     ]);
@@ -197,7 +199,9 @@ export default function CreateClaimApplicationPage() {
           expense_type: Number(b.expense_type),
           expense_date: b.expense_date,
           amount: Number(b.amount),
+          booking_id: b.bookingId,
           has_receipt: Boolean(b.has_receipt),
+          distance_km: Number(b.distance_km) || 0,
           remarks: b.remarks || ""
         })),
         ...otherExpenses.map(o => ({
@@ -205,6 +209,7 @@ export default function CreateClaimApplicationPage() {
           expense_date: o.expense_date,
           amount: Number(o.amount),
           has_receipt: true,
+          distance_km: Number(o.distance_km) || 0,
           remarks: o.remarks || ""
         }))
       ],
@@ -275,7 +280,9 @@ export default function CreateClaimApplicationPage() {
           expense_type: parseInt(b.expense_type),
           expense_date: b.expense_date,
           amount: parseFloat(b.amount) || 0,
+          booking_id: b.bookingId,
           has_receipt: b.has_receipt,
+          distance_km: parseFloat(b.distance_km) || 0,
           remarks: b.remarks || "",
         })),
         ...otherExpenses.map((o) => ({
@@ -283,6 +290,7 @@ export default function CreateClaimApplicationPage() {
           expense_date: o.expense_date,
           amount: parseFloat(o.amount) || 0,
           has_receipt: o.has_receipt,
+          distance_km: parseFloat(o.distance_km) || 0,
           remarks: o.remarks || "",
         })),
       ],
@@ -480,6 +488,7 @@ export default function CreateClaimApplicationPage() {
                       <TableHead className="min-w-[180px]">Expense Type *</TableHead>
                       <TableHead className="min-w-[150px]">Travel Mode</TableHead>
                       <TableHead className="min-w-[140px]">Expense Date *</TableHead>
+                      <TableHead className="min-w-[100px]">Distance (km)</TableHead>
                       <TableHead className="min-w-[120px]">Advance Taken</TableHead>
                       <TableHead className="min-w-[140px]">Actual Amount *</TableHead>
                       <TableHead className="min-w-[140px]">Receipt</TableHead>
@@ -539,6 +548,22 @@ export default function CreateClaimApplicationPage() {
                               });
                             }}
                             className={`bg-muted ${errors[`items.${index}.expense_date`] ? 'border-destructive' : ''}`}
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <Input
+                            type="number"
+                            value={row.distance_km}
+                            onChange={(e) => {
+                              setBookingRows(prev => {
+                                const updated = [...prev];
+                                updated[index].distance_km = e.target.value;
+                                return updated;
+                              });
+                            }}
+                            placeholder="0"
+                            className={errors[`items.${index}.distance_km`] ? 'border-destructive' : ''}
                           />
                         </TableCell>
 
@@ -665,6 +690,7 @@ export default function CreateClaimApplicationPage() {
                         <TableHead className="w-[50px]">#</TableHead>
                         <TableHead className="min-w-[180px]">Expense Type *</TableHead>
                         <TableHead className="min-w-[140px]">Expense Date *</TableHead>
+                        <TableHead className="min-w-[100px]">Distance (km)</TableHead>
                         <TableHead className="min-w-[140px]">Amount Spent*</TableHead>
                         <TableHead className="min-w-[180px]">Receipt * (Mandatory)</TableHead>
                         <TableHead className="min-w-[200px]">Remarks</TableHead>
@@ -717,6 +743,22 @@ export default function CreateClaimApplicationPage() {
                                   )
                                 }
                                 className={errors[`items.${itemIndex}.expense_date`] ? 'border-destructive' : ''}
+                              />
+                            </TableCell>
+
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={row.distance_km}
+                                onChange={(e) =>
+                                  setOtherExpenses(prev =>
+                                    prev.map(r =>
+                                      r.id === row.id ? { ...r, distance_km: e.target.value } : r
+                                    )
+                                  )
+                                }
+                                placeholder="0"
+                                className={errors[`items.${itemIndex}.distance_km`] ? 'border-destructive' : ''}
                               />
                             </TableCell>
 
@@ -878,13 +920,13 @@ export default function CreateClaimApplicationPage() {
               </Alert>
             )}
 
-            {validationResult?.data?.warnings && validationResult.data.warnings.length > 0 && (
+            {validationResult?.data?.warnings && Object.keys(validationResult.data.warnings).length > 0 && (
               <Alert className="border-yellow-500 bg-yellow-50">
                 <AlertTriangle className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-yellow-800">
                   <strong>Warnings:</strong>
                   <ul className="mt-2 list-disc list-inside text-sm">
-                    {validationResult.data.warnings.map((w: any, idx: number) => (
+                    {Object.values(validationResult.data.warnings).flat().map((w: any, idx: number) => (
                       <li key={idx}>{w.message || w}</li>
                     ))}
                   </ul>
