@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, IndianRupee, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, IndianRupee, CheckCircle, XCircle, Clock, Banknote, Lock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -53,11 +53,71 @@ export default function ClaimDetailPage() {
       case 'approved':
         return 'bg-green-100 text-green-700 hover:bg-green-200';
       case 'pending':
+      case 'manager_pending':
         return 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200';
       case 'rejected':
         return 'bg-red-100 text-red-700 hover:bg-red-200';
+      case 'paid':
+        return 'bg-blue-100 text-blue-700 hover:bg-blue-200';
+      case 'closed':
+        return 'bg-slate-200 text-slate-700 hover:bg-slate-300';
       default:
         return 'bg-slate-100 text-slate-700 hover:bg-slate-200';
+    }
+  };
+
+  const getStatusConfig = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return {
+          bg: 'bg-gradient-to-br from-green-50 to-green-50/50 border-green-100',
+          iconColor: 'text-green-600',
+          Icon: CheckCircle,
+          label: 'Claim Approved',
+          message: 'All approvals completed'
+        };
+      case 'manager_pending':
+      case 'finance_pending':
+      case 'pending':
+        return {
+          bg: 'bg-gradient-to-br from-yellow-50 to-yellow-50/50 border-yellow-100',
+          iconColor: 'text-yellow-600',
+          Icon: Clock,
+          label: 'Approval Pending',
+          message: status === 'manager_pending' ? 'Pending Manager Approval' : 'Pending Manager Approval'
+        };
+      case 'rejected':
+        return {
+          bg: 'bg-gradient-to-br from-red-50 to-red-50/50 border-red-100',
+          iconColor: 'text-red-600',
+          Icon: XCircle,
+          label: 'Claim Rejected',
+          message: 'This claim has been rejected'
+        };
+      case 'paid':
+        return {
+          bg: 'bg-gradient-to-br from-blue-50 to-blue-50/50 border-blue-100',
+          iconColor: 'text-blue-600',
+          Icon: Banknote,
+          label: 'Payment Processed',
+          message: 'Amount has been disbursed'
+        };
+      case 'closed':
+        return {
+          bg: 'bg-gradient-to-br from-slate-100 to-slate-200 border-slate-200',
+          iconColor: 'text-slate-600',
+          Icon: Lock,
+          label: 'Claim Closed',
+          message: 'This claim record is closed'
+        };
+      default:
+        return {
+          bg: 'bg-gradient-to-br from-slate-50 to-slate-50/50 border-slate-200',
+          iconColor: 'text-slate-600',
+          Icon: AlertCircle,
+          label: claim?.status_label || status,
+          message: 'Status information'
+        };
     }
   };
 
@@ -80,6 +140,8 @@ export default function ClaimDetailPage() {
   const finalAmount = parseFloat(String(claim.final_amount_payable));
   const isRefund = finalAmount > 0;
   const isBalance = finalAmount < 0;
+  const statusConfig = getStatusConfig(claim?.status_code);
+  const StatusIcon = statusConfig.Icon;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -111,8 +173,8 @@ export default function ClaimDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-slate-200">
-                      <TableHead className="text-xs font-semibold">Type</TableHead>
-                      <TableHead className="text-xs font-semibold">Date</TableHead>
+                      <TableHead className="text-xs font-semibold">Expense Type</TableHead>
+                      <TableHead className="text-xs font-semibold">Expense Date</TableHead>
                       <TableHead className="text-xs font-semibold text-right">Actual Cost</TableHead>
                       <TableHead className="text-xs font-semibold">Receipt</TableHead>
                       <TableHead className="text-xs font-semibold">Remarks</TableHead>
@@ -163,34 +225,36 @@ export default function ClaimDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-200">
-                      <TableHead className="text-xs font-semibold">Date</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">Hours</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">DA</TableHead>
-                      <TableHead className="text-xs font-semibold text-right">Incidental</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {claim.da_breakdown?.map((item: any, idx: number) => (
-                      <TableRow key={idx} className="border-slate-200 hover:bg-slate-50">
-                        <TableCell className="text-sm font-medium text-slate-800">
-                          {formatDate(item.date)}
-                        </TableCell>
-                        <TableCell className="text-sm text-right text-slate-700">
-                          {item.hours}
-                        </TableCell>
-                        <TableCell className="text-sm text-right font-medium text-slate-800">
-                          {formatCurrency(item.eligible_da)}
-                        </TableCell>
-                        <TableCell className="text-sm text-right font-medium text-slate-800">
-                          {formatCurrency(item.eligible_incidental)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className={claim.da_breakdown?.length > 10 ? "max-h-[400px] overflow-y-auto pr-2" : ""}>
+                    <Table>
+                    <TableHeader>
+                        <TableRow className="border-slate-200">
+                        <TableHead className="text-xs font-semibold">Date</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Hours</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">DA</TableHead>
+                        <TableHead className="text-xs font-semibold text-right">Incidental</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {claim.da_breakdown?.map((item: any, idx: number) => (
+                        <TableRow key={idx} className="border-slate-200 hover:bg-slate-50">
+                            <TableCell className="text-sm font-medium text-slate-800">
+                            {formatDate(item.date)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right text-slate-700">
+                            {item.hours}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-medium text-slate-800">
+                            {formatCurrency(item.eligible_da)}
+                            </TableCell>
+                            <TableCell className="text-sm text-right font-medium text-slate-800">
+                            {formatCurrency(item.eligible_incidental)}
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                    </Table>
+                </div>
               </CardContent>
             </Card>
 
@@ -295,15 +359,15 @@ export default function ClaimDetailPage() {
             </Card>
 
             {/* Status Card */}
-            <Card className="shadow-sm border-slate-200 mt-6 bg-gradient-to-br from-green-50 to-green-50/50">
+            <Card className={`shadow-sm mt-6 ${statusConfig.bg}`}>
               <CardContent className="pt-6">
                 <div className="space-y-3 text-center">
-                  <CheckCircle className="w-10 h-10 text-green-600 mx-auto" />
+                  <StatusIcon className={`w-10 h-10 mx-auto ${statusConfig.iconColor}`} />
                   <div>
                     <p className="text-xs text-slate-600 mb-1">Claim Status</p>
-                    <p className="text-lg font-bold text-green-600">{claim.status_label}</p>
+                    <p className={`text-lg font-bold ${statusConfig.iconColor}`}>{statusConfig.label}</p>
                   </div>
-                  <p className="text-xs text-slate-600">All approvals completed</p>
+                  <p className="text-xs text-slate-600">{statusConfig.message}</p>
                 </div>
               </CardContent>
             </Card>
