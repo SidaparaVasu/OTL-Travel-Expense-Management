@@ -24,6 +24,8 @@ export default function ClaimDetailPage() {
     enabled: !!id,
   });
 
+  console.log("Claim data: ", claim);
+
   const formatCurrency = (amount: number | string) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -130,7 +132,11 @@ export default function ClaimDetailPage() {
                         </TableCell>
                         <TableCell>
                           {item.has_receipt ? (
-                            <Badge className="text-xs bg-green-100 hover:bg-green-100 text-green-700" variant='success'>Receipt</Badge>
+                            <a href={item.receipt_file} target="_blank" rel="noopener noreferrer" className="no-underline">
+                              <Badge className="text-xs bg-green-100 hover:bg-green-100 text-green-700 cursor-pointer" variant='success'>
+                                View Receipt
+                              </Badge>
+                            </a>
                             
                           ) : item.is_self_certified ? (
                             <Badge className="text-xs bg-yellow-100 hover:bg-yellow-100 text-yellow-700" variant='success'>Self-Cert</Badge>
