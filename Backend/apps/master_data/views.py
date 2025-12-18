@@ -245,9 +245,12 @@ class ActiveTravelSubOptionListView(ListAPIView):
         return TravelSubOptionMaster.objects.select_related("mode").filter(is_active=True)
 
 class GradeEntitlementListCreateView(ListCreateAPIView):
+    # queryset = GradeEntitlementMaster.objects.select_related(
+    #     'grade', 'sub_option__mode', 'city_category'
+    # ).filter(is_allowed=True)
     queryset = GradeEntitlementMaster.objects.select_related(
         'grade', 'sub_option__mode', 'city_category'
-    ).filter(is_allowed=True)
+    ).all()
     serializer_class = GradeEntitlementSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
