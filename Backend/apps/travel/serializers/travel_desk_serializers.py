@@ -70,9 +70,11 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "booking_file", "special_instruction", "created_at", "updated_at", "booked_at", "assigned_agent", 
             "booking_details",
             "meal_preference",
+            "can_reassign",
         ]
     
     meal_preference = serializers.SerializerMethodField()
+    can_reassign = serializers.SerializerMethodField()
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -96,12 +98,30 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         if not assignment or not assignment.assigned_to:
             return None
         user = assignment.assigned_to
-        return {
+        data = {
             "id": user.id,
             "name": user.get_full_name() or user.username,
             "scope": assignment.assignment_scope,
             "assigned_at": assignment.assigned_at,
         }
+
+        # Fetch external profile details if available
+        if hasattr(user, 'external_profile'):
+            profile = user.external_profile
+            data.update({
+                "organization_name": profile.organization_name,
+                "contact_person": profile.contact_person,
+                "phone": profile.phone,
+                "email": profile.email,
+                "address": profile.address,
+            })
+        
+        return data
+
+    def get_can_reassign(self, obj):
+        # Logic: Can only reassign if pending or requested.
+        # Not allowed if in_progress, confirmed, completed, cancelled.
+        return obj.status in ['pending', 'requested']
 
 
 class TravelDeskTripSerializer(serializers.ModelSerializer):

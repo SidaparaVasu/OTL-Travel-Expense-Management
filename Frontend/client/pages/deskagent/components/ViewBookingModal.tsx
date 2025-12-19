@@ -120,16 +120,53 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
 
           {/* Assigned Agent */}
           {booking.assigned_agent && (
-            <div className="bg-muted/40 border rounded-lg p-3 space-y-2">
-              <p className="text-sm font-medium flex items-center gap-2">
+            <div className="bg-muted/40 border rounded-lg p-3 space-y-3">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
                 <User className="w-4 h-4 text-primary" />
-                Assigned Agent
-              </p>
-              <p className="text-sm">{booking.assigned_agent.name}</p>
-              <p className="text-xs text-muted-foreground">
-                Assigned at:{" "}
-                {formatDateTime(booking.assigned_agent.assigned_at)}
-              </p>
+                <p className="text-sm font-medium">Assigned Agent</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Name</p>
+                  <p className="font-medium">{booking.assigned_agent.name}</p>
+                </div>
+                {booking.assigned_agent.organization_name && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Organization</p>
+                    <p className="font-medium">{booking.assigned_agent.organization_name}</p>
+                  </div>
+                )}
+                {booking.assigned_agent.contact_person && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Contact Person</p>
+                    <p>{booking.assigned_agent.contact_person}</p>
+                  </div>
+                )}
+                {booking.assigned_agent.phone && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p>{booking.assigned_agent.phone}</p>
+                  </div>
+                )}
+                {booking.assigned_agent.email && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p>{booking.assigned_agent.email}</p>
+                  </div>
+                )}
+                 {booking.assigned_agent.address && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs text-muted-foreground">Address</p>
+                    <p className="whitespace-pre-wrap">{booking.assigned_agent.address}</p>
+                  </div>
+                )}
+                <div className="md:col-span-2 pt-1 border-t border-dashed border-border mt-1">
+                  <p className="text-xs text-muted-foreground">
+                    Assigned at: {formatDateTime(booking.assigned_agent.assigned_at)}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

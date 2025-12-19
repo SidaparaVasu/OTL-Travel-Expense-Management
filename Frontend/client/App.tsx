@@ -68,6 +68,7 @@ import DAIncidentalMasterPage from "./pages/common/master/DAIncidentalsMaster";
 import ConveyanceRateMasterPage from "./pages/common/master/ConveyanceRateMaster";
 import ExpenseTypesMasterPage from "./pages/common/master/ExpenseTypeMaster";
 import ClaimStatusMasterPage from "./pages/common/master/ClaimStatusMaster";
+import BookingAgentList from "./pages/common/master/BookingAgentList";
 
 // UI
 import { Toaster } from "@/components/ui/toaster";
@@ -80,373 +81,499 @@ const queryClient = new QueryClient();
  * Basic Auth Guard (employee/admin)
  */
 function AuthOnly({ children }: { children: JSX.Element }) {
-    return localStorage.getItem("access_token")
-        ? children
-        : <Navigate to={ROUTES.login} replace />;
+  return localStorage.getItem("access_token") ? (
+    children
+  ) : (
+    <Navigate to={ROUTES.login} replace />
+  );
 }
 
 const isAdminUser = () => {
-    const roles = JSON.parse(localStorage.getItem("roles") || "[]");
-    return roles.some((r: any) =>
-        ["admin", "manager", "chro", "ceo"].includes(r.role_type?.toLowerCase())
-    );
+  const roles = JSON.parse(localStorage.getItem("roles") || "[]");
+  return roles.some((r: any) =>
+    ["admin", "manager", "chro", "ceo"].includes(r.role_type?.toLowerCase()),
+  );
 };
 
 const App = () => (
-    <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-            <Toaster />
-            <Sonner />
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
 
-            <BrowserRouter>
-                <Routes>
-                    {/* ---------------- UNAUTHORIZED / 404 ---------------- */}
-                    <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                    <Route path="*" element={<NotFound />} />
+      <BrowserRouter>
+        <Routes>
+          {/* ---------------- UNAUTHORIZED / 404 ---------------- */}
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="*" element={<NotFound />} />
 
-                    {/* ---------------- AUTH ---------------- */}
-                    <Route path="/" element={<Login />} />
-                    <Route path={ROUTES.login} element={<Login />} />
+          {/* ---------------- AUTH ---------------- */}
+          <Route path="/" element={<Login />} />
+          <Route path={ROUTES.login} element={<Login />} />
 
-                    {/* ---------------- EMPLOYEE DASHBOARD ---------------- */}
-                    <Route
-                        path={ROUTES.employeeDashboard}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <EmployeeIndex />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          {/* ---------------- EMPLOYEE DASHBOARD ---------------- */}
+          <Route
+            path={ROUTES.employeeDashboard}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <EmployeeIndex />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    {/* ---------------- ADMIN DASHBOARD ---------------- */}
-                    <Route
-                        path={ROUTES.adminDashboard}
-                        element={
-                            <ProtectedRoute requiredDashboard="admin">
-                                <UnifiedLayout>
-                                    <AdminIndex />
-                                </UnifiedLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+          {/* ---------------- ADMIN DASHBOARD ---------------- */}
+          <Route
+            path={ROUTES.adminDashboard}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <AdminIndex />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    {/* ---------------- DESK AGENT DASHBOARD ---------------- */}
-                    <Route
-                        path={ROUTES.deskAgentDashboard}
-                        element={
-                            <ProtectedRoute requiredDashboard="travel_desk">
-                                <UnifiedLayout>
-                                    <TravelDeskDashboard />
-                                </UnifiedLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+          {/* ---------------- DESK AGENT DASHBOARD ---------------- */}
+          <Route
+            path={ROUTES.deskAgentDashboard}
+            element={
+              <ProtectedRoute requiredDashboard="travel_desk">
+                <UnifiedLayout>
+                  <TravelDeskDashboard />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    {/* ---------------- BOOKING AGENT DASHBOARD ---------------- */}
-                    <Route
-                        path={ROUTES.bookingAgentDashboard}
-                        element={
-                            <ProtectedRoute requiredDashboard="booking_agent">
-                                <UnifiedLayout>
-                                    <BookingAgentDashboard />
-                                </UnifiedLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+          {/* ---------------- BOOKING AGENT DASHBOARD ---------------- */}
+          <Route
+            path={ROUTES.bookingAgentDashboard}
+            element={
+              <ProtectedRoute requiredDashboard="booking_agent">
+                <UnifiedLayout>
+                  <BookingAgentDashboard />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.pendingBookingsPage}
-                        element={
-                            <ProtectedRoute requiredDashboard="booking_agent">
-                                <UnifiedLayout>
-                                    <BookingAgentBookings />
-                                </UnifiedLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+          <Route
+            path={ROUTES.pendingBookingsPage}
+            element={
+              <ProtectedRoute requiredDashboard="booking_agent">
+                <UnifiedLayout>
+                  <BookingAgentBookings />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    {/* ---------------- PROFILE ---------------- */}
-                    <Route
-                        path={ROUTES.profile}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <NewProfile />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          {/* ---------------- PROFILE ---------------- */}
+          <Route
+            path={ROUTES.profile}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <NewProfile />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    {/* ---------------- TRAVEL (EMPLOYEE + ADMIN) ---------------- */}
-                    <Route
-                        path={ROUTES.makeTravelApplicationOld}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <MakeTravelApplicationOld />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          {/* ---------------- TRAVEL (EMPLOYEE + ADMIN) ---------------- */}
+          <Route
+            path={ROUTES.makeTravelApplicationOld}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <MakeTravelApplicationOld />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.makeTravelApplication(":id?")}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <MakeTravelApplication3 />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.makeTravelApplication(":id?")}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <MakeTravelApplication3 />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.makeTravelApplicationNew}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <MakeTravelApplicationNew />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.makeTravelApplicationNew}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <MakeTravelApplicationNew />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.travelApplicationList}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <TravelApplicationList />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.travelApplicationList}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <TravelApplicationList />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.travelRequestApproval}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <TravelRequestApprovals />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.travelRequestApproval}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <TravelRequestApprovals />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path="/travel/itineraries/:id"
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <ItinerariesPage />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path="/travel/itineraries/:id"
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <ItinerariesPage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path="/travel/bookings"
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <BookingsPage />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path="/travel/bookings"
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <BookingsPage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.travelApplicationView(":id")}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <ApplicationView />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.travelApplicationView(":id")}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <ApplicationView />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    {/* ---------------- EXPENSE (EMPLOYEE + ADMIN) ---------------- */}
-                    <Route
-                        path={ROUTES.indexExpense}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <ExpenseIndex />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          {/* ---------------- EXPENSE (EMPLOYEE + ADMIN) ---------------- */}
+          <Route
+            path={ROUTES.indexExpense}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <ExpenseIndex />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.indexClaimPage}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <MyClaimsPage />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.indexClaimPage}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <MyClaimsPage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.claimDetailPage(":id")}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <ClaimDetailPage />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.claimDetailPage(":id")}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <ClaimDetailPage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.claimApplicationPage}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <CreateClaimApplicationPage />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.claimApplicationPage}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <CreateClaimApplicationPage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.claimApprovalPage}
-                        element={
-                            <AuthOnly>
-                                <UnifiedLayout>
-                                    <ClaimApprovalPage />
-                                </UnifiedLayout>
-                            </AuthOnly>
-                        }
-                    />
+          <Route
+            path={ROUTES.claimApprovalPage}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <ClaimApprovalPage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
 
-                    {/* ---------------- MASTER PAGES (ADMIN ONLY) ---------------- */}
-                    <Route
-                        path={ROUTES.master}
-                        element={
-                            <ProtectedRoute requiredDashboard="admin">
-                                <UnifiedLayout>
-                                    <MasterPage />
-                                </UnifiedLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+          {/* ---------------- MASTER PAGES (ADMIN ONLY) ---------------- */}
+          <Route
+            path={ROUTES.master}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <MasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route
-                        path={ROUTES.employeeMasterPage}
-                        element={
-                            <ProtectedRoute requiredDashboard="admin">
-                                <UnifiedLayout>
-                                    <EmployeeMasterPage />
-                                </UnifiedLayout>
-                            </ProtectedRoute>
-                        }
-                    />
+          <Route
+            path={ROUTES.employeeMasterPage}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <EmployeeMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    {/* All other master routes */}
-                    <Route path={ROUTES.userManagement} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><UserManagementPage /></UnifiedLayout>
-                        </ProtectedRoute> }/>
+          {/* All other master routes */}
+          <Route
+            path={ROUTES.userManagement}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <UserManagementPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.users} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><UsersPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.users}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <UsersPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.orgMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><OrganizationMasters /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.orgMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <OrganizationMasters />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.employeeTypeMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><EmployeeTypeMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.employeeTypeMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <EmployeeTypeMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.geographyMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><GeographyMasters /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.geographyMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <GeographyMasters />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.cityCategoryMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><CityCategoriesMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.cityCategoryMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <CityCategoriesMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.locationMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><LocationMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.locationMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <LocationMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.gradeMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><GradeMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.gradeMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <GradeMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.approvalMatrixMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><ApprovalMatrixMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.approvalMatrixMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <ApprovalMatrixMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.daIncidentalMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><DAIncidentalMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.daIncidentalMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <DAIncidentalMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.conveyanceRateMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><ConveyanceRateMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.conveyanceRateMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <ConveyanceRateMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.glCodeMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><GLCodeMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.glCodeMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <GLCodeMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.travelModeMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><TravelModeMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.travelModeMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <TravelModeMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.gradeEntitlementMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><GradeEntitlementMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.gradeEntitlementMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <GradeEntitlementMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.guestHouseMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><GuestHouseMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.guestHouseMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <GuestHouseMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.arcHotelMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><ARCHotelMaster /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.arcHotelMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <ARCHotelMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.locationSPOCMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><LocationSPOCMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.locationSPOCMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <LocationSPOCMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.expenseTypeMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><ExpenseTypesMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.expenseTypeMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <ExpenseTypesMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                    <Route path={ROUTES.claimStatusMaster} element={
-                        <ProtectedRoute requiredDashboard="admin">
-                            <UnifiedLayout><ClaimStatusMasterPage /></UnifiedLayout>
-                        </ProtectedRoute>} />
+          <Route
+            path={ROUTES.claimStatusMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <ClaimStatusMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
 
-                </Routes>
-            </BrowserRouter>
-        </TooltipProvider>
-    </QueryClientProvider>
+          <Route
+            path={ROUTES.bookingAgents}
+            element={
+              <ProtectedRoute requiredDashboard="admin_or_desk">
+                <UnifiedLayout>
+                  <BookingAgentList />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
 );
 
 import { HelmetProvider } from "react-helmet-async";
@@ -454,9 +581,9 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 createRoot(document.getElementById("root")!).render(
-    <HelmetProvider>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <App />
-        </LocalizationProvider>
-    </HelmetProvider>
+  <HelmetProvider>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <App />
+    </LocalizationProvider>
+  </HelmetProvider>,
 );

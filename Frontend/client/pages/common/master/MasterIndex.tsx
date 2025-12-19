@@ -106,6 +106,7 @@ const MASTER_CATEGORIES = [
             // {id: 'employee', title: "Employees", route: ROUTES.employeeMasterPage},
             // {id: 'user-mng', title: "User Management", route: ROUTES.userManagement},
             {id: 'users', title: "Users (new)", route: ROUTES.users},
+            {id: 'booking-agents', title: "Booking Agents", route: ROUTES.bookingAgents},
         ]
     },
     // {

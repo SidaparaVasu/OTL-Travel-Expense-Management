@@ -670,28 +670,35 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         <TooltipContent>View</TooltipContent>
                                       </Tooltip>
 
-                                      {/* Actions disabled if fully completed */}
-                                      {!isAllCompleted && (
-                                        <>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800"
-                                                onClick={() => handleForwardBooking(booking)}
-                                              >
-                                                {booking.status === 'pending' ? (
-                                                  <Send className="w-4 h-4" />
-                                                ) : (
-                                                  <FileUp className="w-4 h-4" />
-                                                )}
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              {booking.status === 'pending' ? 'Forward' : 'Reassign'}
-                                            </TooltipContent>
-                                          </Tooltip>
+                                          {/* Actions disabled if fully completed */}
+                                          {!isAllCompleted && (
+                                            <>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                      onClick={() => handleForwardBooking(booking)}
+                                                      disabled={!booking.can_reassign}
+                                                    >
+                                                      {booking.status === 'pending' ? (
+                                                        <Send className="w-4 h-4" />
+                                                      ) : (
+                                                        <FileUp className="w-4 h-4" />
+                                                      )}
+                                                    </Button>
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  {!booking.can_reassign
+                                                    ? 'Cannot reassign active/completed booking'
+                                                    : booking.status === 'pending'
+                                                      ? 'Forward'
+                                                      : 'Reassign'}
+                                                </TooltipContent>
+                                              </Tooltip>
 
                                           <Tooltip>
                                             <TooltipTrigger asChild>

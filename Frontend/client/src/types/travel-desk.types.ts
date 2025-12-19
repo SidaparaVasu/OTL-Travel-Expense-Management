@@ -50,6 +50,7 @@ export interface Booking {
   vendor_reference: string;
   booking_file: string | null;
   special_instruction: string;
+  can_reassign: boolean;
 }
 
 export interface TripDetail {
@@ -213,4 +214,44 @@ export interface RecommendedAgentsResponse {
   } | null;
 
   accommodation: AccommodationRecommendation[];
+}
+
+export interface AgentAnalyticsSummary {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  organization_name: string;
+  contact_person: string;
+  phone: string;
+  active_bookings: number;
+  completed_bookings: number;
+  avg_response_time: number;
+}
+
+export interface AgentRecentBooking {
+  id: number;
+  trip_id: string;
+  employee_name: string;
+  booking_type: string;
+  sub_option: string;
+  status: string;
+  created_at: string;
+  booked_at: string;
+  travel_date: string;
+  from_loc: string;
+  to_loc: string;
+}
+
+export interface AgentAnalyticsDetail extends AgentAnalyticsSummary {
+  address: string;
+  profile_type: string;
+  today_assignments: number;
+  pending_requests: number;
+}
+
+export interface AgentAnalyticsResponse {
+  agent: AgentAnalyticsDetail;
+  recent_bookings: AgentRecentBooking[];
 }

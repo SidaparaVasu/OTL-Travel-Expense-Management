@@ -15,6 +15,7 @@ import {
   CheckCircle,
   BarChart3,
   BadgeIndianRupee,
+  User,
 } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 
@@ -122,5 +123,10 @@ export const getTravelDeskSidebar = (): SidebarSection[] => [
     title: "Dashboard",
     icon: LayoutDashboard,
     path: ROUTES.deskAgentDashboard,
+  },
+  {
+    title: "Booking Agents",
+    icon: User,
+    path: ROUTES.bookingAgents,
   },
 ];

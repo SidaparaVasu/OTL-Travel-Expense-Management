@@ -9,6 +9,8 @@ import type {
   ReassignBookingPayload,
   CancelApplicationPayload,
   BookingAgent,
+  AgentAnalyticsSummary,
+  AgentAnalyticsResponse
 } from '@/src/types/travel-desk.types';
 
 export const travelDeskAPI = {
@@ -108,4 +110,26 @@ export const travelDeskAPI = {
       return data;
     },
   },
+
+  analytics: {
+    agents: {
+      list: async (search?: string, cityId?: number | null) => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (cityId) params.append('city', cityId.toString());
+        
+        const { data } = await apiClient.get< {data: AgentAnalyticsSummary[]} >(
+          `/travel/travel-desk/analytics/agents/?${params.toString()}`
+        );
+        return data.data;
+      },
+      detail: async (id: number) => {
+        const { data } = await apiClient.get< {data: AgentAnalyticsResponse} >(
+          `/travel/travel-desk/analytics/agents/${id}/`
+        );
+        return data.data;
+      }
+    }
+  }
+
 };

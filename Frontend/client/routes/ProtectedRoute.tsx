@@ -18,8 +18,9 @@ export default function ProtectedRoute({
 
   if (!requiredDashboard) return <>{children}</>;
 
-  const roles = JSON.parse(localStorage.getItem("roles") || "[]")
-    .map((r: any) => r.role_type?.toLowerCase());
+  const roles = JSON.parse(localStorage.getItem("roles") || "[]").map(
+    (r: any) => r.role_type?.toLowerCase(),
+  );
 
   const adminRoles = ["admin", "manager", "ceo", "chro"];
 
@@ -33,9 +34,12 @@ export default function ProtectedRoute({
     hasAccess = roles.includes("travel_desk");
   } else if (required === "booking_agent") {
     hasAccess = roles.includes("booking_agent");
-  }
-  else if (required === "employee") {
+  } else if (required === "employee") {
     hasAccess = roles.includes("employee");
+  } else if (required === "admin_or_desk") {
+    hasAccess =
+      roles.some((r) => adminRoles.includes(r)) ||
+      roles.includes("travel_desk");
   }
 
   if (!hasAccess) {

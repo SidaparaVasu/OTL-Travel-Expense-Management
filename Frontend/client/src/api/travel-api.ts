@@ -30,7 +30,7 @@ export interface City {
   city_code: string;
   state_name?: string;
   country_name?: string;
-  category_id?: number;
+  category?: number;
 }
 
 export interface TravelMode {

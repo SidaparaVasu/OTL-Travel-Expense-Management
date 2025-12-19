@@ -42,6 +42,8 @@ export const ROUTES = {
   // User Management Master
   userManagement: "/masters/user-management",
   users: "/masters/users",
+  bookingAgents: "/masters/booking-agents",
+
 
   // Employee Master
   employeeMasterPage: "/masters/employees",
