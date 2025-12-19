@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   X,
   XCircle,
@@ -14,11 +14,11 @@ import {
   Car,
   Home,
   Info,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/StatusBadge';
-import { Checkbox } from '@/components/ui/checkbox';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -26,27 +26,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+} from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import {
-  ForwardModal,
-  AddNoteModal,
-  ViewBookingModal,
-  CancelModal,
-} from './';
-import {
-  formatDateToDDMMYYYY,
-  formatCurrency,
-} from '../utils/format';
-import { travelDeskAPI } from '@/src/api/travel-desk';
-import { toast } from 'sonner';
-import type { Application, Booking, BookingAgent, RecommendedAgentsResponse } from '@/src/types/travel-desk.types';
+import { ForwardModal, AddNoteModal, ViewBookingModal, CancelModal } from "./";
+import { formatDateToDDMMYYYY, formatCurrency } from "../utils/format";
+import { travelDeskAPI } from "@/src/api/travel-desk";
+import { toast } from "sonner";
+import type {
+  Application,
+  Booking,
+  BookingAgent,
+  RecommendedAgentsResponse,
+} from "@/src/types/travel-desk.types";
 
 interface ApplicationDrawerProps {
   isOpen: boolean;
@@ -57,11 +54,21 @@ interface ApplicationDrawerProps {
 
 const getBookingIcon = (type: string) => {
   const lower = type.toLowerCase();
-  if (lower.includes('flight')) return Plane;
-  if (lower.includes('train')) return Train;
-  if (lower.includes('car') || lower.includes('pick') || lower.includes('drop')) return Car;
-  if (lower.includes('accommodation') || lower.includes('hotel') || lower.includes('guest')) return Home;
+  if (lower.includes("flight")) return Plane;
+  if (lower.includes("train")) return Train;
+  if (lower.includes("car") || lower.includes("pick") || lower.includes("drop"))
+    return Car;
+  if (
+    lower.includes("accommodation") ||
+    lower.includes("hotel") ||
+    lower.includes("guest")
+  )
+    return Home;
   return MapPin;
+};
+
+const isSelfArranged = (booking: Booking) => {
+  return booking.booking_details?.accommodation_type === "self";
 };
 
 export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
@@ -76,11 +83,15 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const [selectedBookings, setSelectedBookings] = useState<number[]>([]);
   const [agents, setAgents] = useState<BookingAgent[]>([]);
-  const [recommendedAgents, setRecommendedAgents] = useState<RecommendedAgentsResponse | null>(null);
+  const [recommendedAgents, setRecommendedAgents] =
+    useState<RecommendedAgentsResponse | null>(null);
 
   const [forwardModalOpen, setForwardModalOpen] = useState(false);
-  const [forwardType, setForwardType] = useState<'forward' | 'reassign'>('forward');
-  const [selectedBookingForAction, setSelectedBookingForAction] = useState<Booking | null>(null);
+  const [forwardType, setForwardType] = useState<"forward" | "reassign">(
+    "forward",
+  );
+  const [selectedBookingForAction, setSelectedBookingForAction] =
+    useState<Booking | null>(null);
   const [addNoteModalOpen, setAddNoteModalOpen] = useState(false);
   const [viewBookingModalOpen, setViewBookingModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -103,8 +114,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
       console.log("In Drawer: ", res);
       setApplication(res.data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load application details');
-      toast.error('Failed to load application details');
+      setError(err.message || "Failed to load application details");
+      toast.error("Failed to load application details");
     } finally {
       setLoading(false);
     }
@@ -141,11 +152,9 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const getSelectedBookingTypes = (): Set<string> => {
     const bookings = selectedBookingForAction
       ? [selectedBookingForAction]
-      : getAllBookings().filter(b => selectedBookings.includes(b.id));
+      : getAllBookings().filter((b) => selectedBookings.includes(b.id));
 
-    return new Set(
-      bookings.map(b => b.booking_type_name.toLowerCase())
-    );
+    return new Set(bookings.map((b) => b.booking_type_name.toLowerCase()));
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -169,7 +178,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const handleForwardBooking = async (booking: Booking) => {
     setSelectedBookingForAction(booking);
-    setForwardType(booking.status === 'pending' ? 'forward' : 'reassign');
+    setForwardType(booking.status === "pending" ? "forward" : "reassign");
     await fetchRecommendedAgents();
     setForwardModalOpen(true);
   };
@@ -186,11 +195,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const handleBulkForward = async () => {
     if (selectedBookings.length === 0) {
-      toast.error('Please select at least one booking');
+      toast.error("Please select at least one booking");
       return;
     }
     setSelectedBookingForAction(null);
-    setForwardType('forward');
+    setForwardType("forward");
     await fetchRecommendedAgents();
     setForwardModalOpen(true);
   };
@@ -203,7 +212,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         ? [selectedBookingForAction.id]
         : selectedBookings;
 
-      if (forwardType === 'reassign' && selectedBookingForAction) {
+      if (forwardType === "reassign" && selectedBookingForAction) {
         await travelDeskAPI.bookings.reassign(selectedBookingForAction.id, {
           new_agent_id: agentId,
         });
@@ -211,19 +220,19 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         await travelDeskAPI.bookings.assign({
           booking_ids: ids,
           booking_agent_id: agentId,
-          scope: ids.length === 1 ? 'single_booking' : 'full_application',
+          scope: ids.length === 1 ? "single_booking" : "full_application",
           note: note || undefined,
         });
       }
 
-      toast.success('Booking forwarded successfully');
+      toast.success("Booking forwarded successfully");
       setForwardModalOpen(false);
       setSelectedBookings([]);
       setSelectedBookingForAction(null);
       await fetchApplicationDetails();
       onRefresh?.();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to forward booking');
+      toast.error(err.message || "Failed to forward booking");
     } finally {
       setActionLoading(false);
     }
@@ -264,12 +273,14 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
     setActionLoading(true);
     try {
-      await travelDeskAPI.bookings.addNote(selectedBookingForAction.id, { note });
-      toast.success('Note added');
+      await travelDeskAPI.bookings.addNote(selectedBookingForAction.id, {
+        note,
+      });
+      toast.success("Note added");
       setAddNoteModalOpen(false);
       fetchApplicationDetails();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to add note');
+      toast.error(err.message || "Failed to add note");
     } finally {
       setActionLoading(false);
     }
@@ -279,14 +290,16 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     if (!selectedBookingForAction) return;
     setActionLoading(true);
     try {
-      await travelDeskAPI.bookings.cancel(selectedBookingForAction.id, { reason });
-      toast.success('Booking cancelled');
+      await travelDeskAPI.bookings.cancel(selectedBookingForAction.id, {
+        reason,
+      });
+      toast.success("Booking cancelled");
       setCancelModalOpen(false);
       setSelectedBookingForAction(null);
       fetchApplicationDetails();
       onRefresh?.();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to cancel booking');
+      toast.error(err.message || "Failed to cancel booking");
     } finally {
       setActionLoading(false);
     }
@@ -302,10 +315,15 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const allBookings = getAllBookings();
   const totalBookings = allBookings.length;
-  const allSelected = allBookings.length > 0 && selectedBookings.length === allBookings.length;
-  const someSelected = selectedBookings.length > 0 && selectedBookings.length < allBookings.length;
-  const completedBookings = allBookings.filter((b) => b.status === 'completed').length;
-  const isAllCompleted = totalBookings > 0 && completedBookings === totalBookings;
+  const allSelected =
+    allBookings.length > 0 && selectedBookings.length === allBookings.length;
+  const someSelected =
+    selectedBookings.length > 0 && selectedBookings.length < allBookings.length;
+  const completedBookings = allBookings.filter(
+    (b) => b.status === "completed",
+  ).length;
+  const isAllCompleted =
+    totalBookings > 0 && completedBookings === totalBookings;
 
   return (
     <>
@@ -323,7 +341,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
             <FileText className="w-5 h-5 text-blue-600" />
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-semibold">
-                {application?.travel_request_id || 'Loading...'}
+                {application?.travel_request_id || "Loading..."}
               </h2>
 
               <Badge variant="outline">
@@ -338,7 +356,12 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
             </div>
           </div>
 
-          <Button variant="ghost" size="sm" className="hover:bg-slate-100 hover:text-black" onClick={handleClose}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:bg-slate-100 hover:text-black"
+            onClick={handleClose}
+          >
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -368,28 +391,40 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground">Purpose</p>
-                      <p className="text-sm font-medium break-words">{application.purpose}</p>
+                      <p className="text-sm font-medium break-words">
+                        {application.purpose}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Internal Order</p>
-                      <p className="text-sm font-medium">{application.internal_order}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Internal Order
+                      </p>
+                      <p className="text-sm font-medium">
+                        {application.internal_order}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Estimated Cost</p>
+                      <p className="text-xs text-muted-foreground">
+                        Estimated Cost
+                      </p>
                       <p className="text-sm font-semibold text-blue-600">
                         {formatCurrency(application.estimated_total_cost)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Advance Amount</p>
+                      <p className="text-xs text-muted-foreground">
+                        Advance Amount
+                      </p>
                       <p className="text-sm font-semibold text-blue-600">
                         {formatCurrency(application.advance_amount)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Sanction Number</p>
+                      <p className="text-xs text-muted-foreground">
+                        Sanction Number
+                      </p>
                       <p className="text-sm font-medium">
-                        {application.sanction_number || '—'}
+                        {application.sanction_number || "—"}
                       </p>
                     </div>
                     <div>
@@ -399,17 +434,22 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Submitted On</p>
+                      <p className="text-xs text-muted-foreground">
+                        Submitted On
+                      </p>
                       <p className="text-sm font-medium">
                         {application.submitted_at
-                          ? new Date(application.submitted_at).toLocaleString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                          : '—'}
+                          ? new Date(application.submitted_at).toLocaleString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )
+                          : "—"}
                       </p>
                     </div>
                   </div>
@@ -428,10 +468,12 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       <div className="flex items-center gap-2">
                         <Badge variant="default">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {formatDateToDDMMYYYY(trip.departure_date)} -{' '}
+                          {formatDateToDDMMYYYY(trip.departure_date)} -{" "}
                           {formatDateToDDMMYYYY(trip.return_date)}
                         </Badge>
-                        <Badge variant="outline">{trip.duration_days} days</Badge>
+                        <Badge variant="outline">
+                          {trip.duration_days} days
+                        </Badge>
                       </div>
                     </div>
                   </CardHeader>
@@ -461,8 +503,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                 aria-label="select all"
                                 className={
                                   someSelected
-                                    ? 'data-[state=checked]:bg-blue-500/60 data-[state=checked]:border-blue-500'
-                                    : ''
+                                    ? "data-[state=checked]:bg-blue-500/60 data-[state=checked]:border-blue-500"
+                                    : ""
                                 }
                               />
                             </TableHead>
@@ -470,9 +512,15 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                             <TableHead>Booking Type &amp; Sub Option</TableHead>
                             <TableHead>Origin → Destination</TableHead>
                             <TableHead>Departure → Arrival</TableHead>
-                            <TableHead className="text-right">Estimated Cost</TableHead>
-                            <TableHead className="text-center">Status</TableHead>
-                            <TableHead className="text-center">Actions</TableHead>
+                            <TableHead className="text-right">
+                              Estimated Cost
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Status
+                            </TableHead>
+                            <TableHead className="text-center">
+                              Actions
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
 
@@ -488,24 +536,40 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                             </TableRow>
                           ) : (
                             trip.bookings.map((booking, index) => {
-                              const Icon = getBookingIcon(booking.booking_type_name);
+                              const Icon = getBookingIcon(
+                                booking.booking_type_name,
+                              );
                               const d = (booking as any).booking_details || {};
-                              const type = booking.booking_type_name?.toLowerCase() || '';
+                              const type =
+                                booking.booking_type_name?.toLowerCase() || "";
 
                               return (
-                                <TableRow key={booking.id} className="hover:bg-slate-50">
+                                <TableRow
+                                  key={booking.id}
+                                  className="hover:bg-slate-50"
+                                >
                                   <TableCell>
                                     <Checkbox
-                                      checked={selectedBookings.includes(booking.id)}
-                                      disabled={isAllCompleted}
+                                      checked={selectedBookings.includes(
+                                        booking.id,
+                                      )}
+                                      disabled={
+                                        isAllCompleted ||
+                                        isSelfArranged(booking)
+                                      }
                                       onCheckedChange={(checked) =>
-                                        handleSelectBooking(booking.id, checked as boolean)
+                                        handleSelectBooking(
+                                          booking.id,
+                                          checked as boolean,
+                                        )
                                       }
                                       aria-label={`select booking ${booking.id}`}
                                     />
                                   </TableCell>
 
-                                  <TableCell className="font-medium">{index + 1}</TableCell>
+                                  <TableCell className="font-medium">
+                                    {index + 1}
+                                  </TableCell>
 
                                   <TableCell>
                                     <div className="flex items-start gap-2">
@@ -515,117 +579,166 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                           {booking.booking_type_name}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
-                                          {booking.sub_option_name || '—'}
+                                          {booking.sub_option_name || "—"}
                                         </p>
                                         {(booking.booking_reference ||
                                           booking.vendor_reference ||
                                           booking.booking_file ||
                                           booking.special_instruction) && (
-                                            <p className="text-[11px] text-slate-500">
-                                              {booking.booking_reference && (
-                                                <span>Ref: {booking.booking_reference}</span>
-                                              )}
-                                              {booking.vendor_reference && (
-                                                <span>
-                                                  {booking.booking_reference ? ' • ' : ''}
-                                                  Vendor: {booking.vendor_reference}
-                                                </span>
-                                              )}
-                                              {booking.booking_file && (
-                                                <span>
-                                                  {(booking.booking_reference ||
-                                                    booking.vendor_reference) &&
-                                                    ' • '}
-                                                  File attached
-                                                </span>
-                                              )}
-                                              {booking.special_instruction && (
-                                                <span>
-                                                  {(booking.booking_reference ||
-                                                    booking.vendor_reference ||
-                                                    booking.booking_file) &&
-                                                    ' • '}
-                                                  Note: {booking.special_instruction}
-                                                </span>
-                                              )}
-                                            </p>
-                                          )}
+                                          <p className="text-[11px] text-slate-500">
+                                            {booking.booking_reference && (
+                                              <span>
+                                                Ref: {booking.booking_reference}
+                                              </span>
+                                            )}
+                                            {booking.vendor_reference && (
+                                              <span>
+                                                {booking.booking_reference
+                                                  ? " • "
+                                                  : ""}
+                                                Vendor:{" "}
+                                                {booking.vendor_reference}
+                                              </span>
+                                            )}
+                                            {booking.booking_file && (
+                                              <span>
+                                                {(booking.booking_reference ||
+                                                  booking.vendor_reference) &&
+                                                  " • "}
+                                                File attached
+                                              </span>
+                                            )}
+                                            {booking.special_instruction && (
+                                              <span>
+                                                {(booking.booking_reference ||
+                                                  booking.vendor_reference ||
+                                                  booking.booking_file) &&
+                                                  " • "}
+                                                Note:{" "}
+                                                {booking.special_instruction}
+                                              </span>
+                                            )}
+                                          </p>
+                                        )}
                                       </div>
                                     </div>
                                   </TableCell>
 
                                   <TableCell className="text-sm">
                                     {(() => {
-                                      if (type.includes('flight') || type.includes('train')) {
+                                      if (
+                                        type.includes("flight") ||
+                                        type.includes("train")
+                                      ) {
                                         const from =
                                           d.from_location_name ||
                                           d.from_location ||
                                           trip.from_location_name ||
-                                          '—';
+                                          "—";
                                         const to =
                                           d.to_location_name ||
                                           d.to_location ||
                                           trip.to_location_name ||
-                                          '—';
-                                        return <span>{from} → {to}</span>;
+                                          "—";
+                                        return (
+                                          <span>
+                                            {from} → {to}
+                                          </span>
+                                        );
                                       }
 
-                                      if (type.includes('accommodation')) {
-                                        const place = d.place || trip.to_location_name || '—';
+                                      if (type.includes("accommodation")) {
+                                        const place =
+                                          d.place ||
+                                          trip.to_location_name ||
+                                          "—";
                                         return <span>{place}</span>;
                                       }
 
                                       if (
-                                        type.includes('car') ||
-                                        type.includes('cab') ||
-                                        type.includes('conveyance')
+                                        type.includes("car") ||
+                                        type.includes("cab") ||
+                                        type.includes("conveyance")
                                       ) {
-                                        const from = d.from_location || 'Pickup';
-                                        const to = d.drop_location || d.to_location || 'Drop';
-                                        return <span>{from} → {to}</span>;
+                                        const from =
+                                          d.from_location || "Pickup";
+                                        const to =
+                                          d.drop_location ||
+                                          d.to_location ||
+                                          "Drop";
+                                        return (
+                                          <span>
+                                            {from} → {to}
+                                          </span>
+                                        );
                                       }
 
                                       return (
-                                        <span>{booking.trip_segment || '—'}</span>
+                                        <span>
+                                          {booking.trip_segment || "—"}
+                                        </span>
                                       );
                                     })()}
                                   </TableCell>
 
                                   <TableCell className="text-sm">
                                     {(() => {
-                                      if (type.includes('flight') || type.includes('train')) {
+                                      if (
+                                        type.includes("flight") ||
+                                        type.includes("train")
+                                      ) {
                                         const dep =
-                                          d.departure_date || trip.departure_date || null;
+                                          d.departure_date ||
+                                          trip.departure_date ||
+                                          null;
                                         const arr =
-                                          d.arrival_date || trip.return_date || null;
+                                          d.arrival_date ||
+                                          trip.return_date ||
+                                          null;
                                         return (
                                           <span>
-                                            {dep ? formatDateToDDMMYYYY(dep) : '—'} →{' '}
-                                            {arr ? formatDateToDDMMYYYY(arr) : '—'}
+                                            {dep
+                                              ? formatDateToDDMMYYYY(dep)
+                                              : "—"}{" "}
+                                            →{" "}
+                                            {arr
+                                              ? formatDateToDDMMYYYY(arr)
+                                              : "—"}
                                           </span>
                                         );
                                       }
 
-                                      if (type.includes('accommodation')) {
+                                      if (type.includes("accommodation")) {
                                         const inDate = d.check_in_date || null;
-                                        const outDate = d.check_out_date || null;
+                                        const outDate =
+                                          d.check_out_date || null;
                                         return (
                                           <span>
-                                            {inDate ? formatDateToDDMMYYYY(inDate) : '—'} →{' '}
-                                            {outDate ? formatDateToDDMMYYYY(outDate) : '—'}
+                                            {inDate
+                                              ? formatDateToDDMMYYYY(inDate)
+                                              : "—"}{" "}
+                                            →{" "}
+                                            {outDate
+                                              ? formatDateToDDMMYYYY(outDate)
+                                              : "—"}
                                           </span>
                                         );
                                       }
 
                                       if (
-                                        type.includes('car') ||
-                                        type.includes('cab') ||
-                                        type.includes('conveyance')
+                                        type.includes("car") ||
+                                        type.includes("cab") ||
+                                        type.includes("conveyance")
                                       ) {
-                                        const start = d.start_date || trip.departure_date || null;
+                                        const start =
+                                          d.start_date ||
+                                          trip.departure_date ||
+                                          null;
                                         return (
                                           <span>
-                                            {start ? formatDateToDDMMYYYY(start) : '—'}
+                                            {start
+                                              ? formatDateToDDMMYYYY(start)
+                                              : "—"}
                                           </span>
                                         );
                                       }
@@ -633,12 +746,16 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                       return (
                                         <span>
                                           {trip.departure_date
-                                            ? formatDateToDDMMYYYY(trip.departure_date)
-                                            : '—'}{' '}
-                                          →{' '}
+                                            ? formatDateToDDMMYYYY(
+                                                trip.departure_date,
+                                              )
+                                            : "—"}{" "}
+                                          →{" "}
                                           {trip.return_date
-                                            ? formatDateToDDMMYYYY(trip.return_date)
-                                            : '—'}
+                                            ? formatDateToDDMMYYYY(
+                                                trip.return_date,
+                                              )
+                                            : "—"}
                                         </span>
                                       );
                                     })()}
@@ -650,7 +767,10 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                   <TableCell className="text-center">
                                     {/* <StatusBadge status={booking.status} /> */}
-                                    <StatusBadge statusType="booking" status={booking.status} />
+                                    <StatusBadge
+                                      statusType="booking"
+                                      status={booking.status}
+                                    />
                                   </TableCell>
 
                                   <TableCell className="text-center">
@@ -662,7 +782,9 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                             variant="ghost"
                                             size="sm"
                                             className="bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800"
-                                            onClick={() => handleViewBooking(booking)}
+                                            onClick={() =>
+                                              handleViewBooking(booking)
+                                            }
                                           >
                                             <Eye className="w-4 h-4" />
                                           </Button>
@@ -670,8 +792,17 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         <TooltipContent>View</TooltipContent>
                                       </Tooltip>
 
-                                          {/* Actions disabled if fully completed */}
-                                          {!isAllCompleted && (
+                                      {/* Actions disabled if fully completed */}
+                                      {!isAllCompleted && (
+                                        <>
+                                          {isSelfArranged(booking) ? (
+                                            <Badge
+                                              variant="outline"
+                                              className="bg-yellow-50 text-yellow-700 border-yellow-200"
+                                            >
+                                              Self Arranged
+                                            </Badge>
+                                          ) : (
                                             <>
                                               <Tooltip>
                                                 <TooltipTrigger asChild>
@@ -680,10 +811,17 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                                       variant="ghost"
                                                       size="sm"
                                                       className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                      onClick={() => handleForwardBooking(booking)}
-                                                      disabled={!booking.can_reassign}
+                                                      onClick={() =>
+                                                        handleForwardBooking(
+                                                          booking,
+                                                        )
+                                                      }
+                                                      disabled={
+                                                        !booking.can_reassign
+                                                      }
                                                     >
-                                                      {booking.status === 'pending' ? (
+                                                      {booking.status ===
+                                                      "pending" ? (
                                                         <Send className="w-4 h-4" />
                                                       ) : (
                                                         <FileUp className="w-4 h-4" />
@@ -693,44 +831,56 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                   {!booking.can_reassign
-                                                    ? 'Cannot reassign active/completed booking'
-                                                    : booking.status === 'pending'
-                                                      ? 'Forward'
-                                                      : 'Reassign'}
+                                                    ? "Cannot reassign active/completed booking"
+                                                    : booking.status ===
+                                                        "pending"
+                                                      ? "Forward"
+                                                      : "Reassign"}
                                                 </TooltipContent>
                                               </Tooltip>
 
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
-                                                onClick={() => handleAddNote(booking)}
-                                              >
-                                                <MessageSquarePlus className="w-4 h-4" />
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>Add Note</TooltipContent>
-                                          </Tooltip>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
+                                                    onClick={() =>
+                                                      handleAddNote(booking)
+                                                    }
+                                                  >
+                                                    <MessageSquarePlus className="w-4 h-4" />
+                                                  </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  Add Note
+                                                </TooltipContent>
+                                              </Tooltip>
 
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
-                                                onClick={() => handleCancelBooking(booking)}
-                                              >
-                                                <XCircle className="w-4 h-4" />
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>Cancel Booking</TooltipContent>
-                                          </Tooltip>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
+                                                    onClick={() =>
+                                                      handleCancelBooking(
+                                                        booking,
+                                                      )
+                                                    }
+                                                  >
+                                                    <XCircle className="w-4 h-4" />
+                                                  </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  Cancel Booking
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </>
+                                          )}
                                         </>
                                       )}
                                     </div>
-
                                   </TableCell>
                                 </TableRow>
                               );
@@ -749,11 +899,14 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
       <ForwardModal
         isOpen={forwardModalOpen}
-        onClose={() => { setForwardModalOpen(false); setRecommendedAgents(null) }}
+        onClose={() => {
+          setForwardModalOpen(false);
+          setRecommendedAgents(null);
+        }}
         onConfirm={confirmForward}
         title={
           selectedBookingForAction
-            ? forwardType === 'forward'
+            ? forwardType === "forward"
               ? `Forward Booking #${selectedBookingForAction.id}`
               : `Reassign Booking #${selectedBookingForAction.id}`
             : `Forward ${selectedBookings.length} Booking(s)`

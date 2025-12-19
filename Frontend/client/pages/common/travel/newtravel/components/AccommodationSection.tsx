@@ -11,14 +11,12 @@ import { ARCHotelSelector } from "./ARCHotelSelector";
 import { Button } from "@/components/ui/button";
 import { TimePickerField } from "./TimePickerField";
 import { CityCombobox } from "./CityCombobox";
-import {
-  getEmptyAccommodation,
-} from "../lib/travel-constants";
+import { getEmptyAccommodation } from "../lib/travel-constants";
 import {
   isDateInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
-  isAmountWithinLimit
+  isAmountWithinLimit,
 } from "../lib/travel-validation";
 
 interface AccommodationFormData {
@@ -40,7 +38,9 @@ interface AccommodationFormData {
 
 interface AccommodationSectionProps {
   accommodation: AccommodationFormData[];
-  setAccommodation: React.Dispatch<React.SetStateAction<AccommodationFormData[]>>;
+  setAccommodation: React.Dispatch<
+    React.SetStateAction<AccommodationFormData[]>
+  >;
   notRequired: boolean;
   setNotRequired: (value: boolean) => void;
   tripStartDate: string;
@@ -49,7 +49,7 @@ interface AccommodationSectionProps {
   travelSubOptions: Record<string, any>;
   guestHouses: any[];
   arcHotels: any[];
-  cities: any[],
+  cities: any[];
   bookingErrors?: Record<number, string>;
 }
 
@@ -67,7 +67,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   cities,
   bookingErrors = {},
 }) => {
-  const [form, setForm] = useState<AccommodationFormData>(getEmptyAccommodation());
+  const [form, setForm] = useState<AccommodationFormData>(
+    getEmptyAccommodation(),
+  );
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -76,14 +78,21 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   console.log("FormData: ", form);
 
   const mode = form.accommodation_sub_option_label?.toLowerCase() || "";
-  const isGuestHouseSelected = mode.includes("guest house") || mode.includes("guest");
-  const isARCHotelSelected = mode.includes("company arranged") || mode.includes("company") || mode.includes("company-tied") || mode.includes("ARC") || mode.includes("arc");
-  const isSelfArranged = mode.includes("self arranged") || mode.includes("self");
+  const isGuestHouseSelected =
+    mode.includes("guest house") || mode.includes("guest");
+  const isARCHotelSelected =
+    mode.includes("company arranged") ||
+    mode.includes("company") ||
+    mode.includes("company-tied") ||
+    mode.includes("ARC") ||
+    mode.includes("arc");
+  const isSelfArranged =
+    mode.includes("self arranged") || mode.includes("self");
 
   const selectedSubOption = form.accommodation_sub_option
     ? currentSubOptions.find(
-      s => String(s.id) === form.accommodation_sub_option
-    )
+        (s) => String(s.id) === form.accommodation_sub_option,
+      )
     : undefined;
 
   const selectedCity = cities.find((c) => String(c.id) === form.place);
@@ -91,43 +100,48 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   let derivedCityCategory: string | undefined;
 
   if (isSelfArranged) {
-    const selectedCity = cities.find(c => String(c.id) === form.place);
+    const selectedCity = cities.find((c) => String(c.id) === form.place);
     derivedCityCategory = selectedCity?.category_name;
   } else if (isGuestHouseSelected && form.guest_house_preferences.length > 0) {
-    const gh = guestHouses.find(g => g.id === form.guest_house_preferences[0]);
+    const gh = guestHouses.find(
+      (g) => g.id === form.guest_house_preferences[0],
+    );
     console.log(gh, gh?.city, gh?.city_category);
     derivedCityCategory = gh?.city_category;
   } else if (isARCHotelSelected && form.arc_hotel_preferences.length > 0) {
-    const hotel = arcHotels.find(h => h.id === form.arc_hotel_preferences[0]);
+    const hotel = arcHotels.find((h) => h.id === form.arc_hotel_preferences[0]);
     derivedCityCategory = hotel?.city_category;
   }
 
-  const selectedLimit = selectedSubOption?.limits?.find(l => l.city_category === derivedCityCategory);
+  const selectedLimit = selectedSubOption?.limits?.find(
+    (l) => l.city_category === derivedCityCategory,
+  );
   const maxAllowed = selectedLimit?.max_amount;
-  console.log('selectedSubOption: ', selectedSubOption);
-  console.log('selectedSubOption.limits: ', selectedSubOption?.limits);
-  console.log('selectedCity: ', selectedCity);
-  console.log('derivedCityCategory: ', derivedCityCategory);
-  console.log('selectedLimit: ', selectedLimit, ' maxAllowed: ', maxAllowed);
+  console.log("selectedSubOption: ", selectedSubOption);
+  console.log("selectedSubOption.limits: ", selectedSubOption?.limits);
+  console.log("selectedCity: ", selectedCity);
+  console.log("derivedCityCategory: ", derivedCityCategory);
+  console.log("selectedLimit: ", selectedLimit, " maxAllowed: ", maxAllowed);
 
   // Auto-select sub-option based on accommodation type change
   useEffect(() => {
     // Do nothing if type is empty OR sub-options not loaded
-    if (!form.accommodation_type_label || currentSubOptions.length === 0) return;
+    if (!form.accommodation_type_label || currentSubOptions.length === 0)
+      return;
 
     const type = form.accommodation_type_label.toLowerCase();
 
     // Guest House
     if (type.includes("company") || type.includes("company arranged")) {
-      const guestHouse = currentSubOptions.find(opt =>
-        opt.name.toLowerCase().includes("guest")
+      const guestHouse = currentSubOptions.find((opt) =>
+        opt.name.toLowerCase().includes("guest"),
       );
 
       if (
         guestHouse &&
         form.accommodation_sub_option !== String(guestHouse.id)
       ) {
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
           accommodation_sub_option: String(guestHouse.id),
           accommodation_sub_option_label: guestHouse.name,
@@ -138,16 +152,17 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     }
 
     // ARC / Company-tied Hotels
-    else if (type.includes("arc") || type.includes("company-tied") || type.includes("hotel")) {
-      const arcHotel = currentSubOptions.find(opt =>
-        opt.name.toLowerCase().includes("hotel")
+    else if (
+      type.includes("arc") ||
+      type.includes("company-tied") ||
+      type.includes("hotel")
+    ) {
+      const arcHotel = currentSubOptions.find((opt) =>
+        opt.name.toLowerCase().includes("hotel"),
       );
 
-      if (
-        arcHotel &&
-        form.accommodation_sub_option !== String(arcHotel.id)
-      ) {
-        setForm(prev => ({
+      if (arcHotel && form.accommodation_sub_option !== String(arcHotel.id)) {
+        setForm((prev) => ({
           ...prev,
           accommodation_sub_option: String(arcHotel.id),
           accommodation_sub_option_label: arcHotel.name,
@@ -159,15 +174,15 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
 
     // Self-arranged Stay
     else if (type.includes("self")) {
-      const selfArranged = currentSubOptions.find(opt =>
-        opt.name.toLowerCase().includes("self")
+      const selfArranged = currentSubOptions.find((opt) =>
+        opt.name.toLowerCase().includes("self"),
       );
 
       if (
         selfArranged &&
         form.accommodation_sub_option !== String(selfArranged.id)
       ) {
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
           accommodation_sub_option: String(selfArranged.id),
           accommodation_sub_option_label: selfArranged.name,
@@ -182,22 +197,29 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!form.accommodation_type) newErrors.accommodation_type = "Accommodation type is required";
-    if (!form.accommodation_sub_option) newErrors.accommodation_sub_option = "Sub-option is required";
-    if (!form.check_in_date) newErrors.check_in_date = "Check-in date is required";
-    if (!form.check_out_date) newErrors.check_out_date = "Check-out date is required";
-    if (!form.check_in_time) newErrors.check_in_time = "Check-in time is required";
-    if (!form.check_out_time) newErrors.check_out_time = "Check-out time is required";
+    if (!form.accommodation_type)
+      newErrors.accommodation_type = "Accommodation type is required";
+    if (!form.accommodation_sub_option)
+      newErrors.accommodation_sub_option = "Sub-option is required";
+    if (!form.check_in_date)
+      newErrors.check_in_date = "Check-in date is required";
+    if (!form.check_out_date)
+      newErrors.check_out_date = "Check-out date is required";
+    if (!form.check_in_time)
+      newErrors.check_in_time = "Check-in time is required";
+    if (!form.check_out_time)
+      newErrors.check_out_time = "Check-out time is required";
     // if (!form.estimated_cost) newErrors.estimated_cost = "Estimated cost is required";
 
-    // Guest house preferences required for Guest House
-    if (isGuestHouseSelected && form.guest_house_preferences.length === 0) {
-      newErrors.guest_house_preferences = "At least one guest house preference is required";
-    }
+    // Guest house preferences required for Guest House - REMOVED CHECK
+    // if (isGuestHouseSelected && form.guest_house_preferences.length === 0) {
+    //   newErrors.guest_house_preferences = "At least one guest house preference is required";
+    // }
 
     // Companies-tied Hotels (ARC Hotels) preferences required for Companies-tied Hotels (ARC Hotels)
     if (isARCHotelSelected && form.arc_hotel_preferences.length === 0) {
-      newErrors.arc_hotel_preferences = "At least one hotel preference is required";
+      newErrors.arc_hotel_preferences =
+        "At least one hotel preference is required";
     }
 
     // Date range validation
@@ -213,8 +235,13 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     }
 
     // Check-out after check-in
-    if (form.check_in_date && form.check_out_date && form.check_out_date < form.check_in_date) {
-      newErrors.check_out_date = "Check-out date cannot be before check-in date";
+    if (
+      form.check_in_date &&
+      form.check_out_date &&
+      form.check_out_date < form.check_in_date
+    ) {
+      newErrors.check_out_date =
+        "Check-out date cannot be before check-in date";
     }
 
     // Validate estimated cost against entitlement
@@ -222,8 +249,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       const cost = Number(form.estimated_cost);
 
       if (cost > selectedLimit.max_amount) {
-        newErrors.estimated_cost =
-          `Maximum allowed is ₹${selectedLimit.max_amount} for ${selectedCity?.name}`;
+        newErrors.estimated_cost = `Maximum allowed is ₹${selectedLimit.max_amount} for ${selectedCity?.name}`;
       }
     }
 
@@ -234,7 +260,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     }
 
     // Special instructions
-    const instructionError = validateSpecialInstructions(form.special_instruction);
+    const instructionError = validateSpecialInstructions(
+      form.special_instruction,
+    );
     if (instructionError) newErrors.special_instruction = instructionError;
 
     setErrors(newErrors);
@@ -254,7 +282,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     if (!form.accommodation_sub_option) return null;
 
     const sub = currentSubOptions.find(
-      s => String(s.id) === form.accommodation_sub_option
+      (s) => String(s.id) === form.accommodation_sub_option,
     );
     if (!sub || !sub.limits?.length) return null;
 
@@ -262,13 +290,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     const category = derivedCityCategory;
     if (!category) return null;
 
-    const limit = sub.limits.find(l => l.city_category === category);
+    const limit = sub.limits.find((l) => l.city_category === category);
     return limit || null;
-  }, [
-    form.accommodation_sub_option,
-    derivedCityCategory,
-    currentSubOptions
-  ]);
+  }, [form.accommodation_sub_option, derivedCityCategory, currentSubOptions]);
 
   const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -277,7 +301,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     setForm({ ...form, estimated_cost: value });
 
     if (maxAllowed && cost > maxAllowed) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         estimated_cost: `Maximum allowed is ₹${maxAllowed}`,
       }));
@@ -296,7 +320,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     }
 
     if (!isAmountWithinLimit(maxAllowed, form.estimated_cost)) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         estimated_cost: `Maximum allowed is ₹${maxAllowed} for ${selectedCity?.city_name}`,
       }));
@@ -338,7 +362,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
 
   const handleTypeChange = (typeId: string) => {
     const mode = travelModes.find((m) => String(m.id) === typeId);
-    setForm({ ...getEmptyAccommodation(), accommodation_type: typeId, accommodation_type_label: mode?.name || "", });
+    setForm({
+      ...getEmptyAccommodation(),
+      accommodation_type: typeId,
+      accommodation_type_label: mode?.name || "",
+    });
     setErrors({});
   };
 
@@ -346,9 +374,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     {
       label: "Type",
       render: (row: AccommodationFormData) => {
-        const type = travelModes.find((t) => String(t.id) === row.accommodation_type);
+        const type = travelModes.find(
+          (t) => String(t.id) === row.accommodation_type,
+        );
         const subOption = travelSubOptions[row.accommodation_type]?.find(
-          (s) => String(s.id) === row.accommodation_sub_option
+          (s) => String(s.id) === row.accommodation_sub_option,
         );
         return `${type?.name || ""} - ${subOption?.name || ""}`;
       },
@@ -357,14 +387,16 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       label: "Accommodation",
       render: (row: AccommodationFormData) => {
         // 1. Guest House selected
+        // 1. Guest House selected
         if (
-          row.accommodation_sub_option_label?.toLowerCase().includes("guest") &&
-          row.guest_house_preferences?.length > 0
+          row.accommodation_sub_option_label?.toLowerCase().includes("guest")
+          // && row.guest_house_preferences?.length > 0
         ) {
-          return row.guest_house_preferences
-            .map((id) => guestHouses.find((gh) => gh.id === id)?.name)
-            .filter(Boolean)
-            .join(", ");
+          // return row.guest_house_preferences
+          //   .map((id) => guestHouses.find((gh) => gh.id === id)?.name)
+          //   .filter(Boolean)
+          //   .join(", ");
+          return "Guest House";
         }
 
         // 2. ARC / Company-tied Hotels
@@ -379,7 +411,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         }
 
         // 3. Self-arranged Stay
-        if (row.accommodation_sub_option_label?.toLowerCase().includes("self")) {
+        if (
+          row.accommodation_sub_option_label?.toLowerCase().includes("self")
+        ) {
           return row.place_label || "N/A";
         }
 
@@ -389,11 +423,13 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     },
     {
       label: "Check-in",
-      render: (row: AccommodationFormData) => `${row.check_in_date} ${row.check_in_time || ""}`,
+      render: (row: AccommodationFormData) =>
+        `${row.check_in_date} ${row.check_in_time || ""}`,
     },
     {
       label: "Check-out",
-      render: (row: AccommodationFormData) => `${row.check_out_date} ${row.check_out_time || ""}`,
+      render: (row: AccommodationFormData) =>
+        `${row.check_out_date} ${row.check_out_time || ""}`,
     },
     {
       label: "Cost (₹)",
@@ -410,8 +446,12 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
           <Home className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Accommodation</h2>
-          <p className="text-sm text-muted-foreground">Add your accommodation requirements</p>
+          <h2 className="text-xl font-semibold text-foreground">
+            Accommodation
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Add your accommodation requirements
+          </p>
         </div>
       </div>
 
@@ -432,7 +472,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         <>
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-foreground mb-4">
-              {editIndex !== null ? "Edit Accommodation" : "Add New Accommodation"}
+              {editIndex !== null
+                ? "Edit Accommodation"
+                : "Add New Accommodation"}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -455,17 +497,26 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 label="Accommodation Mode"
                 required
                 value={form.accommodation_sub_option}
-                onChange={
-                  (value) => {
-                    const subOption = currentSubOptions.find((s) => String(s.id) === value);
-                    setForm({
-                      ...form, accommodation_sub_option: value,
-                      accommodation_sub_option_label: subOption?.name || "",
-                      guest_house_preferences: [], arc_hotel_preferences: [], place: ""
-                    })
-                  }}
+                onChange={(value) => {
+                  const subOption = currentSubOptions.find(
+                    (s) => String(s.id) === value,
+                  );
+                  setForm({
+                    ...form,
+                    accommodation_sub_option: value,
+                    accommodation_sub_option_label: subOption?.name || "",
+                    guest_house_preferences: [],
+                    arc_hotel_preferences: [],
+                    place: "",
+                  });
+                }}
                 options={[
-                  { value: "", label: form.accommodation_type ? "Select sub-option" : "Select type first" },
+                  {
+                    value: "",
+                    label: form.accommodation_type
+                      ? "Select sub-option"
+                      : "Select type first",
+                  },
                   ...currentSubOptions.map((s) => ({
                     value: String(s.id),
                     label: s.name,
@@ -475,16 +526,14 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.accommodation_sub_option}
               />
 
-              {isGuestHouseSelected ? (
-                <GuestHouseSelector
-                  selectedPreferences={form.guest_house_preferences}
-                  setSelectedPreferences={(prefs) =>
-                    setForm({ ...form, guest_house_preferences: prefs })
-                  }
-                  guestHouses={guestHouses}
-                  error={errors.guest_house_preferences}
-                />
-              ) : isARCHotelSelected ? (
+              {isGuestHouseSelected ? //   selectedPreferences={form.guest_house_preferences} // <GuestHouseSelector
+              //   setSelectedPreferences={(prefs) =>
+              //     setForm({ ...form, guest_house_preferences: prefs })
+              //   }
+              //   guestHouses={guestHouses}
+              //   error={errors.guest_house_preferences}
+              // />
+              null : isARCHotelSelected ? (
                 <ARCHotelSelector
                   selectedPreferences={form.arc_hotel_preferences}
                   setSelectedPreferences={(prefs) =>
@@ -501,7 +550,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   value={form.place ? parseInt(form.place) : null}
                   displayValue={form.place_label}
                   onChange={(id, label) =>
-                    setForm({ ...form, place: id ? String(id) : "", place_label: label })
+                    setForm({
+                      ...form,
+                      place: id ? String(id) : "",
+                      place_label: label,
+                    })
                   }
                   placeholder="Enter location"
                   error={errors.from_location}
@@ -513,7 +566,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 required
                 type="date"
                 value={form.check_in_date}
-                onChange={(e) => setForm({ ...form, check_in_date: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, check_in_date: e.target.value })
+                }
                 min={tripStartDate}
                 max={tripEndDate}
                 error={errors.check_in_date}
@@ -532,7 +587,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 required
                 type="date"
                 value={form.check_out_date}
-                onChange={(e) => setForm({ ...form, check_out_date: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, check_out_date: e.target.value })
+                }
                 min={form.check_in_date || tripStartDate}
                 max={tripEndDate}
                 error={errors.check_out_date}
@@ -542,7 +599,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 label="Check-out Time"
                 required
                 value={form.check_out_time}
-                onChange={(value) => setForm({ ...form, check_out_time: value })}
+                onChange={(value) =>
+                  setForm({ ...form, check_out_time: value })
+                }
                 error={errors.check_out_time}
               />
 
@@ -566,7 +625,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 <FormTextarea
                   label="Special Instructions"
                   value={form.special_instruction}
-                  onChange={(e) => setForm({ ...form, special_instruction: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, special_instruction: e.target.value })
+                  }
                   placeholder="Any special requirements..."
                   rows={2}
                   error={errors.special_instruction}

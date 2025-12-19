@@ -1,17 +1,29 @@
 // ApplicationView.tsx
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { travelAPI } from "@/lib/api/travel";
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/StatusBadge';
-import { useToast } from '@/components/ui/use-toast';
-import { useTravelStore } from '@/src/store/travelStore';
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { useToast } from "@/components/ui/use-toast";
+import { useTravelStore } from "@/src/store/travelStore";
 import {
-  FileText, Plane, MapPin, CalendarDays, Home, Car, Users, User, SendHorizontal, Trash2, Info, ChevronDown, ChevronUp
-} from 'lucide-react';
+  FileText,
+  Plane,
+  MapPin,
+  CalendarDays,
+  Home,
+  Car,
+  Users,
+  User,
+  SendHorizontal,
+  Trash2,
+  Info,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 import { docViewer } from "@/src/api/document_viewer";
 
@@ -57,21 +69,35 @@ const ApplicationView: React.FC = () => {
   const handleSubmitApplication = async (appId: number) => {
     try {
       await submitApplication(appId);
-      toast({ title: 'Success', description: 'Application submitted successfully' });
+      toast({
+        title: "Success",
+        description: "Application submitted successfully",
+      });
       await getApp();
     } catch (err) {
-      toast({ title: 'Error', description: 'Failed to submit application', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to submit application",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDeleteApplication = async (appId: number) => {
-    if (!confirm('Are you sure you want to delete this application?')) return;
+    if (!confirm("Are you sure you want to delete this application?")) return;
     try {
       await deleteApplication(appId);
-      toast({ title: 'Success', description: 'Application deleted successfully' });
+      toast({
+        title: "Success",
+        description: "Application deleted successfully",
+      });
       navigate(ROUTES.travelApplicationList);
     } catch (err) {
-      toast({ title: 'Error', description: 'Failed to delete application', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Failed to delete application",
+        variant: "destructive",
+      });
     }
   };
 
@@ -144,10 +170,14 @@ function createGuestHouseMap(application: any) {
 const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
   const statusColorClass = (status: string) => {
     switch (status) {
-      case 'approved': return "bg-green-100 text-green-700 hover:bg-green-200";
-      case 'pending_manager': return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200";
-      case 'draft': return "bg-slate-100 text-slate-700 hover:bg-slate-200";
-      default: return "bg-blue-100 text-blue-700 hover:bg-blue-200";
+      case "approved":
+        return "bg-green-100 text-green-700 hover:bg-green-200";
+      case "pending_manager":
+        return "bg-yellow-100 text-yellow-700 hover:bg-yellow-200";
+      case "draft":
+        return "bg-slate-100 text-slate-700 hover:bg-slate-200";
+      default:
+        return "bg-blue-100 text-blue-700 hover:bg-blue-200";
     }
   };
 
@@ -164,15 +194,26 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
                     {application.travel_request_id}
                   </CardTitle>
 
-                  <StatusBadge statusType="travel" status={application.status} />
+                  <StatusBadge
+                    statusType="travel"
+                    status={application.status}
+                  />
                 </div>
 
                 <p className="text-xs text-slate-500">
                   Created on{" "}
-                  {new Date(application.created_at).toLocaleDateString('en-IN', {
-                    day: 'numeric', month: 'short', year: 'numeric'
-                  })}{" "}
-                  by <span className="font-medium text-slate-800">{application.employee_name}</span>
+                  {new Date(application.created_at).toLocaleDateString(
+                    "en-IN",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    },
+                  )}{" "}
+                  by{" "}
+                  <span className="font-medium text-slate-800">
+                    {application.employee_name}
+                  </span>
                 </p>
               </div>
             </div>
@@ -180,27 +221,45 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
               {!application.is_settled ? (
                 <>
                   {application.settlement_due_date !== null && (
-                      <>
-                        <p className="text-sm">Settlement due date:
-                          <span className="font-medium text-slate-800"> {formatDateToDDMMYYYY(application.settlement_due_date)}</span>
-                        </p>
-                      </>
-                    )}
+                    <>
+                      <p className="text-sm">
+                        Settlement due date:
+                        <span className="font-medium text-slate-800">
+                          {" "}
+                          {formatDateToDDMMYYYY(
+                            application.settlement_due_date,
+                          )}
+                        </span>
+                      </p>
+                    </>
+                  )}
                 </>
               ) : (
-                <StatusBadge statusType="booking" status={application.status_code} />
+                <StatusBadge
+                  statusType="booking"
+                  status={application.status_code}
+                />
               )}
             </div>
           </div>
         </div>
 
-        {application.status === 'draft' && (
+        {application.status === "draft" && (
           <div className="flex gap-2">
-            <Button size="sm" onClick={onSubmit} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              size="sm"
+              onClick={onSubmit}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <SendHorizontal className="w-4 h-4 mr-2" />
               Submit
             </Button>
-            <Button size="sm" variant="outline" onClick={onDelete} className="text-red-600 border-red-300 hover:bg-red-50">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onDelete}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </Button>
@@ -227,16 +286,29 @@ const InfoCard = ({ application }: any) => {
       <CardContent className="pt-4 space-y-6">
         <div className="p-4 rounded-lg bg-blue-50/60 border border-blue-100">
           <p className="text-xs font-medium text-slate-500">Purpose</p>
-          <p className="text-sm text-slate-800 mt-1">{application.purpose || "Not specified"}</p>
+          <p className="text-sm text-slate-800 mt-1">
+            {application.purpose || "Not specified"}
+          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <InfoItem label="Employee Grade" value={application.employee_grade} />
           <InfoItem label="GL Code" value={application.gl_code_name} />
           <InfoItem label="Internal Order" value={application.internal_order} />
-          <InfoItem label="Sanction Number" value={application.sanction_number || "N/A"} />
-          <InfoItem label="Estimated Total Cost" value={`₹${Number(application.estimated_total_cost || 0).toLocaleString('en-IN')}`} highlight />
-          <InfoItem label="Advance Amount" value={`₹${Number(application.advance_amount || 0).toLocaleString('en-IN')}`} highlight />
+          <InfoItem
+            label="Sanction Number"
+            value={application.sanction_number || "N/A"}
+          />
+          <InfoItem
+            label="Estimated Total Cost"
+            value={`₹${Number(application.estimated_total_cost || 0).toLocaleString("en-IN")}`}
+            highlight
+          />
+          <InfoItem
+            label="Advance Amount"
+            value={`₹${Number(application.advance_amount || 0).toLocaleString("en-IN")}`}
+            highlight
+          />
         </div>
       </CardContent>
     </Card>
@@ -244,10 +316,20 @@ const InfoCard = ({ application }: any) => {
 };
 
 /* InfoItem — small reusable pair */
-const InfoItem = ({ label, value, highlight = false }: { label: string; value: any; highlight?: boolean }) => (
+const InfoItem = ({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: any;
+  highlight?: boolean;
+}) => (
   <div>
     <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
-    <p className={`text-sm ${highlight ? 'text-blue-600 font-semibold' : 'text-slate-800 font-medium'}`}>
+    <p
+      className={`text-sm ${highlight ? "text-blue-600 font-semibold" : "text-slate-800 font-medium"}`}
+    >
       {value ?? "N/A"}
     </p>
   </div>
@@ -261,27 +343,40 @@ const TripCard = ({ trip, parentPurpose, guestHousesMap }: any) => {
 
   // Collapse/expand animation variants
   const containerVariants = {
-    collapsed: { height: 'auto' }, // leaving height auto; content animates separately
-    expanded: { height: 'auto' }
+    collapsed: { height: "auto" }, // leaving height auto; content animates separately
+    expanded: { height: "auto" },
   };
 
   const contentVariants = {
     collapsed: { opacity: 0, height: 0, y: -6 },
-    expanded: { opacity: 1, height: 'auto', y: 0 }
+    expanded: { opacity: 1, height: "auto", y: 0 },
   };
 
   // group bookings
-  const ticketing = (trip.bookings || []).filter((b: any) => /flight|train/i.test(b.booking_type_name || ''));
-  const accommodation = (trip.bookings || []).filter((b: any) => /accommodation/i.test(b.booking_type_name || ''));
-  const conveyance = (trip.bookings || []).filter((b: any) => /car|conveyance|taxi|pick-up|drop|own|personal/i.test(b.booking_type_name || ''));
+  const ticketing = (trip.bookings || []).filter((b: any) =>
+    /flight|train/i.test(b.booking_type_name || ""),
+  );
+  const accommodation = (trip.bookings || []).filter((b: any) =>
+    /accommodation/i.test(b.booking_type_name || ""),
+  );
+  const conveyance = (trip.bookings || []).filter((b: any) =>
+    /car|conveyance|taxi|pick-up|drop|own|personal/i.test(
+      b.booking_type_name || "",
+    ),
+  );
 
   return (
-    <motion.div layout initial={false} animate={open ? "expanded" : "collapsed"} variants={containerVariants}>
+    <motion.div
+      layout
+      initial={false}
+      animate={open ? "expanded" : "collapsed"}
+      variants={containerVariants}
+    >
       <Card className="border-slate-200 shadow-sm mb-2">
         {/* Header clickable — collapses the whole card */}
         <div
           role="button"
-          onClick={() => setOpen(v => !v)}
+          onClick={() => setOpen((v) => !v)}
           className="cursor-pointer select-none"
           aria-expanded={open}
         >
@@ -291,7 +386,9 @@ const TripCard = ({ trip, parentPurpose, guestHousesMap }: any) => {
                 <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-slate-800 truncate">
-                    {trip.from_location_name} <span className="mx-2 text-slate-400">→</span> {trip.to_location_name}
+                    {trip.from_location_name}{" "}
+                    <span className="mx-2 text-slate-400">→</span>{" "}
+                    {trip.to_location_name}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 truncate">
                     {trip.trip_purpose || parentPurpose || "Not specified"}
@@ -304,14 +401,21 @@ const TripCard = ({ trip, parentPurpose, guestHousesMap }: any) => {
                   <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
                   <div className="text-xs text-slate-700 text-right">
                     <p className="font-medium text-slate-800 flex gap-2">
-                      {formatShortDate(trip.departure_date)} - {formatShortDate(trip.return_date)}
-                      <p className="text-slate-500">({trip.duration_days} days)</p>
+                      {formatShortDate(trip.departure_date)} -{" "}
+                      {formatShortDate(trip.return_date)}
+                      <p className="text-slate-500">
+                        ({trip.duration_days} days)
+                      </p>
                     </p>
                   </div>
                 </div>
 
                 <div className="ml-2">
-                  {open ? <ChevronUp className="w-5 h-5 text-slate-600" /> : <ChevronDown className="w-5 h-5 text-slate-600" />}
+                  {open ? (
+                    <ChevronUp className="w-5 h-5 text-slate-600" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-600" />
+                  )}
                 </div>
               </div>
             </div>
@@ -331,13 +435,31 @@ const TripCard = ({ trip, parentPurpose, guestHousesMap }: any) => {
                 <div className="space-y-6">
                   {/* Booking sections rendered in order */}
                   {ticketing.length > 0 && (
-                    <BookingSection title="Flight & Train Bookings" icon={Plane} bookings={ticketing} type="ticketing" fromLocationName={trip.from_location_name} toLocationName={trip.to_location_name} />
+                    <BookingSection
+                      title="Flight & Train Bookings"
+                      icon={Plane}
+                      bookings={ticketing}
+                      type="ticketing"
+                      fromLocationName={trip.from_location_name}
+                      toLocationName={trip.to_location_name}
+                    />
                   )}
                   {accommodation.length > 0 && (
-                    <BookingSection title="Accommodation" icon={Home} bookings={accommodation} type="accommodation" guestHousesMap={guestHousesMap} />
+                    <BookingSection
+                      title="Accommodation"
+                      icon={Home}
+                      bookings={accommodation}
+                      type="accommodation"
+                      guestHousesMap={guestHousesMap}
+                    />
                   )}
                   {conveyance.length > 0 && (
-                    <BookingSection title="Local Conveyance" icon={Car} bookings={conveyance} type="conveyance" />
+                    <BookingSection
+                      title="Local Conveyance"
+                      icon={Car}
+                      bookings={conveyance}
+                      type="conveyance"
+                    />
                   )}
                 </div>
               </CardContent>
@@ -351,10 +473,10 @@ const TripCard = ({ trip, parentPurpose, guestHousesMap }: any) => {
 
 /* Utility: short date (dd MMM) */
 const formatShortDate = (d: string) => {
-  if (!d) return '—';
+  if (!d) return "—";
   try {
     const dt = new Date(d);
-    return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    return dt.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   } catch {
     return d;
   }
@@ -365,14 +487,20 @@ const formatShortDate = (d: string) => {
    - Mobile optimized: horizontal swipe, snap
    - Medium spacing
    ========================== */
-const BookingSection = ({ title, icon: Icon, bookings, type, guestHousesMap }: any) => {
+const BookingSection = ({
+  title,
+  icon: Icon,
+  bookings,
+  type,
+  guestHousesMap,
+}: any) => {
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
         <Icon className="w-4 h-4 text-blue-600" />
         <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
         <Badge variant="secondary" className="ml-2 text-xs">
-          {bookings.length} booking{bookings.length > 1 ? 's' : ''}
+          {bookings.length} booking{bookings.length > 1 ? "s" : ""}
         </Badge>
       </div>
 
@@ -380,7 +508,12 @@ const BookingSection = ({ title, icon: Icon, bookings, type, guestHousesMap }: a
       <div className="relative">
         <div className="hidden lg:grid lg:grid-cols-2 gap-4">
           {bookings.map((b: any, i: number) => (
-            <BookingCard key={b.id ?? i} booking={b} type={type} guestHousesMap={guestHousesMap} />
+            <BookingCard
+              key={b.id ?? i}
+              booking={b}
+              type={type}
+              guestHousesMap={guestHousesMap}
+            />
           ))}
         </div>
 
@@ -388,8 +521,15 @@ const BookingSection = ({ title, icon: Icon, bookings, type, guestHousesMap }: a
         <div className="lg:hidden -mx-4 px-4">
           <div className="flex gap-3 overflow-x-auto py-1 snap-x snap-mandatory touch-pan-x">
             {bookings.map((b: any, i: number) => (
-              <div key={b.id ?? i} className="snap-start w-[86%] sm:w-[70%] md:w-[50%]">
-                <BookingCard booking={b} type={type} guestHousesMap={guestHousesMap} />
+              <div
+                key={b.id ?? i}
+                className="snap-start w-[86%] sm:w-[70%] md:w-[50%]"
+              >
+                <BookingCard
+                  booking={b}
+                  type={type}
+                  guestHousesMap={guestHousesMap}
+                />
               </div>
             ))}
           </div>
@@ -407,7 +547,6 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
 
   return (
     <div className="rounded-md border border-slate-200 bg-white p-4 hover:shadow-sm transition-shadow">
-
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
         {/* Left side: title */}
@@ -435,27 +574,41 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
           </p>
 
           {/* StatusBadge replaces plain text */}
-          <StatusBadge
-            statusType="booking"
-            status={booking.status}
-          />
+          <StatusBadge statusType="booking" status={booking.status} />
         </div>
       </div>
 
       {/* Type-specific detail grid */}
       {type === "ticketing" && (
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <DetailRow label="From" value={details.from_location_name || details.from_location || "N/A"} />
-          <DetailRow label="To" value={details.to_location_name || details.to_location || "N/A"} />
+          <DetailRow
+            label="From"
+            value={details.from_location_name || details.from_location || "N/A"}
+          />
+          <DetailRow
+            label="To"
+            value={details.to_location_name || details.to_location || "N/A"}
+          />
           <DetailRow
             label="Departure"
-            value={`${details.departure_date || ""} ${details.departure_time || ""}`.trim() || "N/A"}
+            value={
+              `${details.departure_date || ""} ${details.departure_time || ""}`.trim() ||
+              "N/A"
+            }
           />
           <DetailRow
             label="Arrival"
-            value={`${details.arrival_date || ""} ${details.arrival_time || ""}`.trim() || "N/A"}
+            value={
+              `${details.arrival_date || ""} ${details.arrival_time || ""}`.trim() ||
+              "N/A"
+            }
           />
-          <DetailRow label="Meal Preference" value={details.meal_preference || details.meal_preference_name || "N/A"} />
+          <DetailRow
+            label="Meal Preference"
+            value={
+              details.meal_preference || details.meal_preference_name || "N/A"
+            }
+          />
         </div>
       )}
 
@@ -465,16 +618,23 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
             <DetailRow label="Place" value={details.place || "N/A"} />
             <DetailRow
               label="Check-in"
-              value={`${details.check_in_date || ""} ${details.check_in_time || ""}`.trim() || "N/A"}
+              value={
+                `${details.check_in_date || ""} ${details.check_in_time || ""}`.trim() ||
+                "N/A"
+              }
             />
             <DetailRow
               label="Check-out"
-              value={`${details.check_out_date || ""} ${details.check_out_time || ""}`.trim() || "N/A"}
+              value={
+                `${details.check_out_date || ""} ${details.check_out_time || ""}`.trim() ||
+                "N/A"
+              }
             />
             <DetailRow label="Status" value={booking.status || "N/A"} />
           </div>
 
-          {Array.isArray(details.guest_house_preferences) &&
+          {/* Guest House Preferences Display Removed */}
+          {/* {Array.isArray(details.guest_house_preferences) &&
             details.guest_house_preferences.length > 0 && (
               <div className="mt-3 pt-3 border-t border-slate-200">
                 <p className="text-xs font-medium text-slate-600 mb-2">
@@ -489,22 +649,36 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
         </>
       )}
 
       {type === "conveyance" && (
         <>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <DetailRow label="From" value={details.from_location_name || details.from_location || "N/A"} />
-            <DetailRow label="To" value={details.to_location_name || details.to_location || "N/A"} />
+            <DetailRow
+              label="From"
+              value={
+                details.from_location_name || details.from_location || "N/A"
+              }
+            />
+            <DetailRow
+              label="To"
+              value={details.to_location_name || details.to_location || "N/A"}
+            />
             <DetailRow label="Report At" value={details.report_at || "N/A"} />
             <DetailRow label="Drop At" value={details.drop_location || "N/A"} />
             <DetailRow
               label="Date & Time"
-              value={`${details.start_date || ""} ${details.start_time || ""}`.trim() || "N/A"}
+              value={
+                `${details.start_date || ""} ${details.start_time || ""}`.trim() ||
+                "N/A"
+              }
             />
-            <DetailRow label="Club Booking" value={details.club_booking ? "Yes" : "No"} />
+            <DetailRow
+              label="Club Booking"
+              value={details.club_booking ? "Yes" : "No"}
+            />
           </div>
 
           {!details.club_booking && details.club_reason && (
@@ -556,7 +730,9 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
           <p className="text-xs font-medium text-slate-600 mb-1">
             Special Instructions
           </p>
-          <p className="text-sm text-slate-700">{booking.special_instruction}</p>
+          <p className="text-sm text-slate-700">
+            {booking.special_instruction}
+          </p>
         </div>
       )}
 
@@ -577,18 +753,20 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
   );
 };
 
-
 /* ==========================
    DetailRow small
    ========================== */
 const DetailRow = ({ label, value }: { label: string; value: any }) => (
   <div>
     <p className="text-[11px] text-slate-500">{label}</p>
-    <p className="text-sm font-medium text-slate-800 capitalize">{value ?? '—'}</p>
+    <p className="text-sm font-medium text-slate-800 capitalize">
+      {value ?? "—"}
+    </p>
   </div>
 );
 
 /* ==========================
    Small helpers
    ========================== */
-const capitalize = (s: string = '') => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const capitalize = (s: string = "") =>
+  s ? s.charAt(0).toUpperCase() + s.slice(1) : s;

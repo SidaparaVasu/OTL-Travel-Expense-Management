@@ -34,6 +34,7 @@ export interface BookingDetails {
   not_required?: boolean;
   drop_location?: string;
   has_six_airbags?: boolean;
+  accommodation_type?: 'company' | 'self';
 }
 
 export interface Booking {

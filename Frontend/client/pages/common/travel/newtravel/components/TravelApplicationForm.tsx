@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Calendar, Plane, Home, Car, Send, RotateCcw, ChevronLeft, ChevronRight, Wallet, Save, Check, AlertTriangle } from "lucide-react";
+import {
+  Calendar,
+  Plane,
+  Home,
+  Car,
+  Send,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Wallet,
+  Save,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,7 +43,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { travelAPI, locationAPI, type City, type GLCode, type TravelMode, type TravelSubOption, type GuestHouse, type ARCHotel } from "@/src/api/travel-api";
+import {
+  travelAPI,
+  locationAPI,
+  type City,
+  type GLCode,
+  type TravelMode,
+  type TravelSubOption,
+  type GuestHouse,
+  type ARCHotel,
+} from "@/src/api/travel-api";
 
 const STORAGE_KEY = "travel_application_form";
 
@@ -61,7 +83,9 @@ export const TravelApplicationForm: React.FC = () => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [draftApplicationId, setDraftApplicationId] = useState<number | null>(null);
+  const [draftApplicationId, setDraftApplicationId] = useState<number | null>(
+    null,
+  );
 
   // API Data
   const [cities, setCities] = useState<City[]>([]);
@@ -72,7 +96,7 @@ export const TravelApplicationForm: React.FC = () => {
     useState<TravelSubOptionsGrouped>({
       ticketing: {},
       accommodation: {},
-      conveyance: {}
+      conveyance: {},
     });
   const [guestHouses, setGuestHouses] = useState<GuestHouse[]>([]);
   const [arcHotels, setARCHotels] = useState<ARCHotel[]>([]);
@@ -80,76 +104,100 @@ export const TravelApplicationForm: React.FC = () => {
 
   // Purpose form state
   const [purposeData, setPurposeData] = useState(getEmptyPurposeForm);
-  const [purposeErrors, setPurposeErrors] = useState<Record<string, string>>({});
+  const [purposeErrors, setPurposeErrors] = useState<Record<string, string>>(
+    {},
+  );
 
   // Ticketing state
   // const [ticketing, setTicketing] = useState<ReturnType<typeof getEmptyTicketing>[]>([]);
   const [ticketing, setTicketing] = useState<any[]>([]);
   const [ticketingNotRequired, setTicketingNotRequired] = useState(false);
   const [ticketingTravelModes, setTicketingTravelModes] = useState<any[]>([]);
-  const [ticketingErrors, setTicketingErrors] = useState<Record<number, string>>({});
+  const [ticketingErrors, setTicketingErrors] = useState<
+    Record<number, string>
+  >({});
 
   // Accommodation state
   // const [accommodation, setAccommodation] = useState<ReturnType<typeof getEmptyAccommodation>[]>([]);
   const [accommodation, setAccommodation] = useState<any[]>([]);
-  const [accommodationNotRequired, setAccommodationNotRequired] = useState(false);
-  const [accommodationErrors, setAccommodationErrors] = useState<Record<number, string>>({});
+  const [accommodationNotRequired, setAccommodationNotRequired] =
+    useState(false);
+  const [accommodationErrors, setAccommodationErrors] = useState<
+    Record<number, string>
+  >({});
 
   // Conveyance state
   // const [conveyance, setConveyance] = useState<ReturnType<typeof getEmptyConveyance>[]>([]);
   const [conveyance, setConveyance] = useState<any[]>([]);
   const [conveyanceNotRequired, setConveyanceNotRequired] = useState(false);
-  const [conveyanceErrors, setConveyanceErrors] = useState<Record<number, string>>({});
+  const [conveyanceErrors, setConveyanceErrors] = useState<
+    Record<number, string>
+  >({});
 
   // Load API data on mount
   useEffect(() => {
-      if (purposeData.departure_date && purposeData.return_date) {
-        // Validate ticketing
-        if (ticketing.length > 0 && !ticketingNotRequired) {
-          const ticketValidation = validateTicketingDates(
-            ticketing,
-            purposeData.departure_date,
-            purposeData.return_date
+    if (purposeData.departure_date && purposeData.return_date) {
+      // Validate ticketing
+      if (ticketing.length > 0 && !ticketingNotRequired) {
+        const ticketValidation = validateTicketingDates(
+          ticketing,
+          purposeData.departure_date,
+          purposeData.return_date,
+        );
+        setTicketingErrors(ticketValidation.errors);
+        if (!ticketValidation.isValid) {
+          toast.error(
+            "Some ticket dates are outside the trip window. Please correct them.",
           );
-          setTicketingErrors(ticketValidation.errors);
-          if (!ticketValidation.isValid) {
-            toast.error("Some ticket dates are outside the trip window. Please correct them.");
-          }
-        } else {
-          setTicketingErrors({});
         }
-
-        // Validate accommodation
-        if (accommodation.length > 0 && !accommodationNotRequired) {
-          const accValidation = validateAccommodationDates(
-            accommodation,
-            purposeData.departure_date,
-            purposeData.return_date
-          );
-          setAccommodationErrors(accValidation.errors);
-          if (!accValidation.isValid) {
-            toast.error("Some accommodation dates are outside the trip window. Please correct them.");
-          }
-        } else {
-          setAccommodationErrors({});
-        }
-
-        // Validate conveyance
-        if (conveyance.length > 0 && !conveyanceNotRequired) {
-          const convValidation = validateConveyanceDates(
-            conveyance,
-            purposeData.departure_date,
-            purposeData.return_date
-          );
-          setConveyanceErrors(convValidation.errors);
-          if (!convValidation.isValid) {
-            toast.error("Some conveyance dates are outside the trip window. Please correct them.");
-          }
-        } else {
-          setConveyanceErrors({});
-        }
+      } else {
+        setTicketingErrors({});
       }
-    }, [purposeData.departure_date, purposeData.return_date, ticketing, accommodation, conveyance, ticketingNotRequired, accommodationNotRequired, conveyanceNotRequired]);
+
+      // Validate accommodation
+      if (accommodation.length > 0 && !accommodationNotRequired) {
+        const accValidation = validateAccommodationDates(
+          accommodation,
+          purposeData.departure_date,
+          purposeData.return_date,
+        );
+        setAccommodationErrors(accValidation.errors);
+        if (!accValidation.isValid) {
+          toast.error(
+            "Some accommodation dates are outside the trip window. Please correct them.",
+          );
+        }
+      } else {
+        setAccommodationErrors({});
+      }
+
+      // Validate conveyance
+      if (conveyance.length > 0 && !conveyanceNotRequired) {
+        const convValidation = validateConveyanceDates(
+          conveyance,
+          purposeData.departure_date,
+          purposeData.return_date,
+        );
+        setConveyanceErrors(convValidation.errors);
+        if (!convValidation.isValid) {
+          toast.error(
+            "Some conveyance dates are outside the trip window. Please correct them.",
+          );
+        }
+      } else {
+        setConveyanceErrors({});
+      }
+    }
+  }, [
+    purposeData.departure_date,
+    purposeData.return_date,
+    ticketing,
+    accommodation,
+    conveyance,
+    ticketingNotRequired,
+    accommodationNotRequired,
+    conveyanceNotRequired,
+  ]);
 
   // Check if all bookings are valid
   const hasBookingErrors = useMemo(() => {
@@ -160,13 +208,18 @@ export const TravelApplicationForm: React.FC = () => {
     );
   }, [ticketingErrors, accommodationErrors, conveyanceErrors]);
 
-
   // Load API data on mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoadingData(true);
       try {
-        const [citiesData, glCodesData, travelModesData, guestHousesData, arcHotelsData] = await Promise.all([
+        const [
+          citiesData,
+          glCodesData,
+          travelModesData,
+          guestHousesData,
+          arcHotelsData,
+        ] = await Promise.all([
           locationAPI.getAllCities(),
           travelAPI.getGLCodes(),
           travelAPI.getAllowedTravelModes(),
@@ -179,8 +232,11 @@ export const TravelApplicationForm: React.FC = () => {
         setGLCodes(glCodesData);
         setTravelModes(travelModesData.modes);
         const { ticketing, accommodation, conveyance } =
-          prepareSectionWiseTravelData(travelModesData.modes, travelModesData.subOptions);
-        setTravelSubOptions({ ticketing, accommodation, conveyance, });
+          prepareSectionWiseTravelData(
+            travelModesData.modes,
+            travelModesData.subOptions,
+          );
+        setTravelSubOptions({ ticketing, accommodation, conveyance });
         setGuestHouses(guestHousesData);
         setARCHotels(arcHotelsData);
       } catch (error) {
@@ -202,13 +258,17 @@ export const TravelApplicationForm: React.FC = () => {
         const data = JSON.parse(saved);
         if (data.purposeData) setPurposeData(data.purposeData);
         if (data.ticketing) setTicketing(data.ticketing);
-        if (data.ticketingNotRequired !== undefined) setTicketingNotRequired(data.ticketingNotRequired);
+        if (data.ticketingNotRequired !== undefined)
+          setTicketingNotRequired(data.ticketingNotRequired);
         if (data.accommodation) setAccommodation(data.accommodation);
-        if (data.accommodationNotRequired !== undefined) setAccommodationNotRequired(data.accommodationNotRequired);
+        if (data.accommodationNotRequired !== undefined)
+          setAccommodationNotRequired(data.accommodationNotRequired);
         if (data.conveyance) setConveyance(data.conveyance);
-        if (data.conveyanceNotRequired !== undefined) setConveyanceNotRequired(data.conveyanceNotRequired);
+        if (data.conveyanceNotRequired !== undefined)
+          setConveyanceNotRequired(data.conveyanceNotRequired);
         if (data.activeTab) setActiveTab(data.activeTab);
-        if (data.draftApplicationId) setDraftApplicationId(data.draftApplicationId);
+        if (data.draftApplicationId)
+          setDraftApplicationId(data.draftApplicationId);
       }
     } catch (error) {
       console.error("Error loading saved form data:", error);
@@ -229,9 +289,19 @@ export const TravelApplicationForm: React.FC = () => {
       draftApplicationId,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [purposeData, ticketing, ticketingNotRequired, accommodation, accommodationNotRequired, conveyance, conveyanceNotRequired, activeTab, draftApplicationId]);
+  }, [
+    purposeData,
+    ticketing,
+    ticketingNotRequired,
+    accommodation,
+    accommodationNotRequired,
+    conveyance,
+    conveyanceNotRequired,
+    activeTab,
+    draftApplicationId,
+  ]);
 
-   // Warn on unsaved changes when leaving
+  // Warn on unsaved changes when leaving
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const hasData =
@@ -250,9 +320,9 @@ export const TravelApplicationForm: React.FC = () => {
 
   // --- Build Section-wise Travel Modes ---
   const prepareSectionWiseTravelData = (modes, subOptions) => {
-    const ticketing = {};       // Flight + Train
-    const accommodation = {};   // Accommodation
-    const conveyance = {};      // All other conveyance modes
+    const ticketing = {}; // Flight + Train
+    const accommodation = {}; // Accommodation
+    const conveyance = {}; // All other conveyance modes
 
     Object.entries(subOptions).forEach(([modeId, options]) => {
       const mode = modes.find((m) => String(m.id) === modeId);
@@ -335,17 +405,40 @@ export const TravelApplicationForm: React.FC = () => {
     const ticketingValid = isTicketingValid();
     const accommodationValid = isAccommodationValid();
     const conveyanceValid = isConveyanceValid();
-    
-    const hasAtLeastOneBooking = 
-      ticketing.length > 0 || 
-      accommodation.length > 0 || 
+
+    const hasAtLeastOneBooking =
+      ticketing.length > 0 ||
+      accommodation.length > 0 ||
       conveyance.length > 0 ||
-      (ticketingNotRequired && accommodationNotRequired && conveyanceNotRequired);
+      (ticketingNotRequired &&
+        accommodationNotRequired &&
+        conveyanceNotRequired);
 
-    return purposeValid && ticketingValid && accommodationValid && conveyanceValid && hasAtLeastOneBooking && !hasBookingErrors;
-  }, [purposeData, ticketing, accommodation, conveyance, ticketingNotRequired, accommodationNotRequired, conveyanceNotRequired, ticketingErrors, accommodationErrors, conveyanceErrors, hasBookingErrors]);
+    return (
+      purposeValid &&
+      ticketingValid &&
+      accommodationValid &&
+      conveyanceValid &&
+      hasAtLeastOneBooking &&
+      !hasBookingErrors
+    );
+  }, [
+    purposeData,
+    ticketing,
+    accommodation,
+    conveyance,
+    ticketingNotRequired,
+    accommodationNotRequired,
+    conveyanceNotRequired,
+    ticketingErrors,
+    accommodationErrors,
+    conveyanceErrors,
+    hasBookingErrors,
+  ]);
 
-  const getTabStatus = (tabId: string): "complete" | "incomplete" | "error" | "active" => {
+  const getTabStatus = (
+    tabId: string,
+  ): "complete" | "incomplete" | "error" | "active" => {
     if (activeTab === tabId) return "active";
 
     switch (tabId) {
@@ -370,11 +463,16 @@ export const TravelApplicationForm: React.FC = () => {
   const validatePurpose = (): boolean => {
     const errors: Record<string, string> = {};
     if (!purposeData.purpose.trim()) errors.purpose = "Purpose is required";
-    if (!purposeData.internal_order.trim()) errors.internal_order = "IO number is required";
-    if (!purposeData.general_ledger) errors.general_ledger = "GL Code is required";
-    if (!purposeData.trip_from_location) errors.trip_from_location = "Origin city is required";
-    if (!purposeData.trip_to_location) errors.trip_to_location = "Destination city is required";
-    if (!purposeData.departure_date) errors.departure_date = "Start date is required";
+    if (!purposeData.internal_order.trim())
+      errors.internal_order = "IO number is required";
+    if (!purposeData.general_ledger)
+      errors.general_ledger = "GL Code is required";
+    if (!purposeData.trip_from_location)
+      errors.trip_from_location = "Origin city is required";
+    if (!purposeData.trip_to_location)
+      errors.trip_to_location = "Destination city is required";
+    if (!purposeData.departure_date)
+      errors.departure_date = "Start date is required";
     if (!purposeData.start_time) errors.start_time = "Start time is required";
     if (!purposeData.return_date) errors.return_date = "End date is required";
     if (!purposeData.end_time) errors.end_time = "End time is required";
@@ -385,17 +483,22 @@ export const TravelApplicationForm: React.FC = () => {
 
   const validateBookings = (): boolean => {
     const hasTicketing = ticketing.length > 0 || ticketingNotRequired;
-    const hasAccommodation = accommodation.length > 0 || accommodationNotRequired;
+    const hasAccommodation =
+      accommodation.length > 0 || accommodationNotRequired;
     const hasConveyance = conveyance.length > 0 || conveyanceNotRequired;
 
     if (!hasTicketing && !hasAccommodation && !hasConveyance) {
-      toast.error("At least one booking must exist or all sections must be marked as not required");
+      toast.error(
+        "At least one booking must exist or all sections must be marked as not required",
+      );
       return false;
     }
 
     // Check for booking date errors
     if (hasBookingErrors) {
-      toast.error("Some booking dates are outside the trip window. Please correct them before submitting.");
+      toast.error(
+        "Some booking dates are outside the trip window. Please correct them before submitting.",
+      );
       return false;
     }
 
@@ -403,10 +506,10 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const buildPayload = (isDraft: boolean = false) => {
-    console.log('purposeData: ', purposeData);
-    console.log('ticketingData: ', ticketing);
-    console.log('accommodationData: ', accommodation);
-    console.log('conveyanceData: ', conveyance);
+    console.log("purposeData: ", purposeData);
+    console.log("ticketingData: ", ticketing);
+    console.log("accommodationData: ", accommodation);
+    console.log("conveyanceData: ", conveyance);
 
     return {
       purpose: purposeData.purpose,
@@ -415,77 +518,82 @@ export const TravelApplicationForm: React.FC = () => {
       sanction_number: purposeData.sanction_number,
       advance_amount: purposeData.advance_amount,
 
-      trip_details: [{
-        from_location: purposeData?.trip_from_location,
-        to_location: purposeData?.trip_to_location,
-        departure_date: purposeData?.departure_date,
-        start_time: purposeData?.start_time,
-        return_date: purposeData?.return_date,
-        end_time: purposeData?.end_time,
+      trip_details: [
+        {
+          from_location: purposeData?.trip_from_location,
+          to_location: purposeData?.trip_to_location,
+          departure_date: purposeData?.departure_date,
+          start_time: purposeData?.start_time,
+          return_date: purposeData?.return_date,
+          end_time: purposeData?.end_time,
 
-        bookings: [
-          ...ticketing.map(t => ({
-            booking_type: parseInt(t.booking_type), // // Ticketing mode ID
-            sub_option: parseInt(t.sub_option),
-            estimated_cost: parseFloat(t.estimated_cost) || null,
-            special_instruction: t.special_instruction,
-            booking_details: {
-              ticket_number: t.ticket_number,
-              from_location: t.from_location,
-              from_location_name: t.from_label,
-              to_location: t.to_location,
-              to_location_name: t.to_label,
-              departure_date: t.departure_date,
-              departure_time: t.departure_time,
-              arrival_date: t.arrival_date,
-              arrival_time: t.arrival_time,
-              meal_preference: t.meal_preference,
-            },
-          })),
-          ...accommodation.map(a => ({
-            booking_type: a.accommodation_type, // Accommodation mode ID
-            sub_option: parseInt(a.accommodation_sub_option),
-            estimated_cost: parseFloat(a.estimated_cost),
-            special_instruction: a.special_instruction || '',
-            booking_details: {
-              // guest_house_id: parseInt(a.guest_house) || '',
-              // guest_house: a.guest_house || '',
-              guest_house_preferences: a.guest_house_preferences || [],
-              place: a.place,
-              check_in_date: a.check_in_date,
-              check_out_date: a.check_out_date,
-              check_in_time: a.check_in_time,
-              check_out_time: a.check_out_time,
-            },
-          })),
-          ...conveyance.map(c => ({
-            booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
-            sub_option: parseInt(c.vehicle_sub_option),
-            estimated_cost: parseFloat(c.estimated_cost),
-            special_instruction: c.special_instruction || '',
-            booking_details: {
-              from_location: c.from_location,
-              to_location: c.to_location,
-              report_at: c.report_at,
-              drop_location: c.drop_location,
-              start_date: c.start_date,
-              start_time: c.start_time || '',
-              club_booking: !!c.club_booking,
-              club_reason: c.club_reason?.trim() || '',
-              not_required: !!c.not_required,
-              has_six_airbags: c.has_six_airbags,
-              distance_km: c.distance_km,
-              guests: (c.guests || []).map(g => ({
-                id: g.id || null,
-                name: g.full_name,
-                employee_id: g.employee_id || null,
-                is_internal: !!g.employee_id,   // employee = internal guest
-                is_external: !g.employee_id,   // non-employee = external
-              })),
-            },
-          }))
-        ]
-      }]
+          bookings: [
+            ...ticketing.map((t) => ({
+              booking_type: parseInt(t.booking_type), // // Ticketing mode ID
+              sub_option: parseInt(t.sub_option),
+              estimated_cost: parseFloat(t.estimated_cost) || null,
+              special_instruction: t.special_instruction,
+              booking_details: {
+                ticket_number: t.ticket_number,
+                from_location: t.from_location,
+                from_location_name: t.from_label,
+                to_location: t.to_location,
+                to_location_name: t.to_label,
+                departure_date: t.departure_date,
+                departure_time: t.departure_time,
+                arrival_date: t.arrival_date,
+                arrival_time: t.arrival_time,
+                meal_preference: t.meal_preference,
+              },
+            })),
+            ...accommodation.map((a) => ({
+              booking_type: a.accommodation_type, // Accommodation mode ID
+              sub_option: parseInt(a.accommodation_sub_option),
+              estimated_cost: parseFloat(a.estimated_cost),
+              special_instruction: a.special_instruction || "",
+              booking_details: {
+                // guest_house_id: parseInt(a.guest_house) || '',
+                // guest_house: a.guest_house || '',
+                // guest_house_id: parseInt(a.guest_house) || '',
+                // guest_house: a.guest_house || '',
+                // guest_house_preferences: a.guest_house_preferences || [],
+                guest_house_preferences: [], // Removed as per request
+                place: a.place,
+                check_in_date: a.check_in_date,
+                check_out_date: a.check_out_date,
+                check_in_time: a.check_in_time,
+                check_out_time: a.check_out_time,
+              },
+            })),
+            ...conveyance.map((c) => ({
+              booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
+              sub_option: parseInt(c.vehicle_sub_option),
+              estimated_cost: parseFloat(c.estimated_cost),
+              special_instruction: c.special_instruction || "",
+              booking_details: {
+                from_location: c.from_location,
+                to_location: c.to_location,
+                report_at: c.report_at,
+                drop_location: c.drop_location,
+                start_date: c.start_date,
+                start_time: c.start_time || "",
+                club_booking: !!c.club_booking,
+                club_reason: c.club_reason?.trim() || "",
+                not_required: !!c.not_required,
+                has_six_airbags: c.has_six_airbags,
+                distance_km: c.distance_km,
+                guests: (c.guests || []).map((g) => ({
+                  id: g.id || null,
+                  name: g.full_name,
+                  employee_id: g.employee_id || null,
+                  is_internal: !!g.employee_id, // employee = internal guest
+                  is_external: !g.employee_id, // non-employee = external
+                })),
+              },
+            })),
+          ],
+        },
+      ],
 
       // purpose: purposeData,
       // ticketing: ticketingNotRequired ? [] : ticketing,
@@ -523,7 +631,7 @@ export const TravelApplicationForm: React.FC = () => {
   }
 
   function parsePythonErrorString(pyString: string): string | null {
-    // Extract content inside ErrorDetail(string='...') 
+    // Extract content inside ErrorDetail(string='...')
     const regex = /ErrorDetail\(string='([^']+)'/;
     const match = pyString.match(regex);
 
@@ -642,25 +750,40 @@ export const TravelApplicationForm: React.FC = () => {
                 <Plane className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Travel Application</h1>
+                <h1 className="text-lg font-semibold text-foreground">
+                  Travel Application
+                </h1>
                 <p className="text-xs text-muted-foreground">
-                  {draftApplicationId ? `Draft #${draftApplicationId}` : "Create new request"}
+                  {draftApplicationId
+                    ? `Draft #${draftApplicationId}`
+                    : "Create new request"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => setShowClearDialog(true)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowClearDialog(true)}
+              >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Clear
               </Button>
-              <Button variant="outline" onClick={handleSaveAsDraft} disabled={isSaving}>
+              <Button
+                variant="outline"
+                onClick={handleSaveAsDraft}
+                disabled={isSaving}
+              >
                 <Save className="w-4 h-4 mr-2" />
                 {isSaving ? "Saving..." : "Save Draft"}
               </Button>
-              <Button 
-                onClick={handleSubmit} 
+              <Button
+                onClick={handleSubmit}
                 disabled={isSubmitting || !isFormValid}
-                title={!isFormValid ? "Please complete all required fields and fix any errors" : "Submit application"}
+                title={
+                  !isFormValid
+                    ? "Please complete all required fields and fix any errors"
+                    : "Submit application"
+                }
               >
                 <Send className="w-4 h-4 mr-2" />
                 {isSubmitting ? "Submitting..." : "Submit"}
@@ -676,8 +799,10 @@ export const TravelApplicationForm: React.FC = () => {
           <Alert className="border-destructive/50 bg-destructive/10">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive">
-              <strong>Booking Date Errors:</strong> Some booking dates are outside the trip window ({purposeData.departure_date} to {purposeData.return_date}). 
-              Please review and correct the highlighted bookings before submitting.
+              <strong>Booking Date Errors:</strong> Some booking dates are
+              outside the trip window ({purposeData.departure_date} to{" "}
+              {purposeData.return_date}). Please review and correct the
+              highlighted bookings before submitting.
             </AlertDescription>
           </Alert>
         </div>
@@ -703,10 +828,10 @@ export const TravelApplicationForm: React.FC = () => {
                     isActive
                       ? "text-primary border-primary bg-primary/5"
                       : isError
-                      ? "text-destructive border-destructive hover:bg-destructive/5"
-                      : isCompleted
-                      ? "text-green-600 border-green-500 hover:bg-muted/50"
-                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50"
+                        ? "text-destructive border-destructive hover:bg-destructive/5"
+                        : isCompleted
+                          ? "text-green-600 border-green-500 hover:bg-muted/50"
+                          : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50",
                   )}
                 >
                   <div
@@ -715,10 +840,10 @@ export const TravelApplicationForm: React.FC = () => {
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : isError
-                        ? "bg-destructive text-destructive-foreground"
-                        : isCompleted
-                        ? "bg-green-500 text-white"
-                        : "bg-muted text-muted-foreground"
+                          ? "bg-destructive text-destructive-foreground"
+                          : isCompleted
+                            ? "bg-green-500 text-white"
+                            : "bg-muted text-muted-foreground",
                     )}
                   >
                     {isError ? (
@@ -769,7 +894,9 @@ export const TravelApplicationForm: React.FC = () => {
                 tripStartDate={purposeData.departure_date}
                 tripEndDate={purposeData.return_date}
                 cities={cities}
-                travelModes={travelModes.filter(m => m.name === "Flight" || m.name === "Train")}
+                travelModes={travelModes.filter(
+                  (m) => m.name === "Flight" || m.name === "Train",
+                )}
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
               />
@@ -783,7 +910,9 @@ export const TravelApplicationForm: React.FC = () => {
                 setNotRequired={setAccommodationNotRequired}
                 tripStartDate={purposeData.departure_date}
                 tripEndDate={purposeData.return_date}
-                travelModes={travelModes.filter(m => m.name === "Accommodation")}
+                travelModes={travelModes.filter(
+                  (m) => m.name === "Accommodation",
+                )}
                 travelSubOptions={travelSubOptions.accommodation}
                 guestHouses={guestHouses}
                 arcHotels={arcHotels}
@@ -800,7 +929,9 @@ export const TravelApplicationForm: React.FC = () => {
                 setNotRequired={setConveyanceNotRequired}
                 tripStartDate={purposeData.departure_date}
                 tripEndDate={purposeData.return_date}
-                travelModes={travelModes.filter(m => !["Flight", "Train", "Accommodation"].includes(m.name))}
+                travelModes={travelModes.filter(
+                  (m) => !["Flight", "Train", "Accommodation"].includes(m.name),
+                )}
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}
               />
@@ -839,10 +970,10 @@ export const TravelApplicationForm: React.FC = () => {
                     status === "active"
                       ? "bg-primary"
                       : status === "error"
-                      ? "bg-destructive"
-                      : status === "complete"
-                      ? "bg-green-500"
-                      : "bg-muted"
+                        ? "bg-destructive"
+                        : status === "complete"
+                          ? "bg-green-500"
+                          : "bg-muted",
                   )}
                   onClick={() => setActiveTab(tab.id)}
                 />
@@ -856,8 +987,8 @@ export const TravelApplicationForm: React.FC = () => {
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={isSubmitting || !isFormValid}
             >
               <Send className="w-4 h-4 mr-2" />
@@ -873,12 +1004,16 @@ export const TravelApplicationForm: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Clear Form?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove all entered data and cannot be undone. Are you sure you want to clear the form?
+              This will remove all entered data and cannot be undone. Are you
+              sure you want to clear the form?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={clearForm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={clearForm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Clear Form
             </AlertDialogAction>
           </AlertDialogFooter>

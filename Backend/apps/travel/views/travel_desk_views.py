@@ -212,6 +212,11 @@ class TravelDeskAssignBookingsView(APIView):
         booking_agent_id = serializer.validated_data["booking_agent_id"]
         application_id = serializer.validated_data["_application_id"]
         bookings = serializer.validated_data["_bookings"]
+        
+        # Validate no self-arranged bookings
+        for b in bookings:
+            if b.booking_details and b.booking_details.get("accommodation_type") == "self":
+                return error_response(message=f"Booking {b.id} is self-arranged and cannot be assigned.")
 
         booking_agent = User.objects.filter(id=booking_agent_id, is_active=True).first()
         if not booking_agent:
@@ -314,6 +319,9 @@ class TravelDeskReassignBookingView(APIView):
         booking = Booking.objects.filter(id=booking_id).first()
         if not booking:
             return error_response(message="Invalid booking id")
+
+        if booking.booking_details and booking.booking_details.get("accommodation_type") == "self":
+            return error_response(message="Cannot reassign self-arranged booking")
 
         new_agent = User.objects.filter(id=new_agent_id, is_active=True).first()
         if not new_agent or not hasattr(new_agent, "external_profile"):
@@ -433,7 +441,12 @@ class ForwardApplicationView(APIView):
             return error_response(message="Invalid booking agent")
 
         # Fetch all bookings belonging to the application
-        bookings = Booking.objects.filter(trip_details__travel_application=app)
+        all_bookings = Booking.objects.filter(trip_details__travel_application=app)
+        # Exclude self-arranged bookings
+        bookings = [b for b in all_bookings if not (b.booking_details and b.booking_details.get("accommodation_type") == "self")]
+        
+        if not bookings:
+             return error_response(message="No assignable bookings found in this application")
 
         agent_user = agent_profile.user
 
