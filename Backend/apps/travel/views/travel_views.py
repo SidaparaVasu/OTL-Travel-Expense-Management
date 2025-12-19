@@ -976,7 +976,8 @@ class TravelApplicationValidationView(APIView):
                             booking.booking_type,
                             booking.sub_option,
                             # trip.to_location.city.category
-                            trip.to_location.category
+                            trip.to_location.category,
+                            estimated_cost=booking.estimated_cost
                         )
                     except Exception as e:
                         booking_validation['issues'].append({

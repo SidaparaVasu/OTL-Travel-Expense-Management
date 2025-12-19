@@ -397,7 +397,7 @@ export default function TravelApplicationList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Request ID</TableHead>
-                  <TableHead className='max-w-2xs'>Purpose</TableHead>
+                  <TableHead className='max-w-[200px]'>Purpose</TableHead>
                   <TableHead className='max-w-2xs'>Dates</TableHead>
                   <TableHead>Total Cost</TableHead>
                   <TableHead className="text-center">Status</TableHead>
@@ -420,7 +420,7 @@ export default function TravelApplicationList() {
                   applications.map((app) => (
                     <TableRow key={app.id}>
                       <TableCell className="font-medium">{app.travel_request_id}</TableCell>
-                      <TableCell className='max-w-2xs'>{app.purpose}...</TableCell>
+                      <TableCell className='max-w-[200px] truncate' title={app.purpose}>{app.purpose}</TableCell>
                       {/* <TableCell>{app.trip_details.length} trip(s)</TableCell> */}
                       <TableCell className='max-w-2xs'>{formatDateRange(app.trip_details[0].departure_date, app.trip_details[0].return_date)}</TableCell>
                       <TableCell>₹{parseFloat(app.estimated_total_cost).toLocaleString()}</TableCell>

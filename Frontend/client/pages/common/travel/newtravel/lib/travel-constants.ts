@@ -125,6 +125,7 @@ export const getEmptyTicketing = () => ({
   arrival_date: "",
   arrival_time: "",
   estimated_cost: "",
+  meal_preference: "",
   special_instruction: "",
 });
 

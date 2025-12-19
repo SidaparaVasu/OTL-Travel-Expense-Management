@@ -222,6 +222,20 @@ class TravelApplication(models.Model):
             # All approvals completed - send to travel desk
             self.current_approver = None
             self.status = 'pending_travel_desk'
+            self.save()  # Save first to ensure status is updated
+
+            # Helper to trigger auto-forwarding
+            try:
+                from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings
+                # Use the last approver as the system user for audit
+                auto_forward_flight_train_bookings(self, system_user=approved_flow.approver)
+            except Exception as e:
+                # Log error but don't fail the approval
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to auto-forward bookings for app {self.id}: {str(e)}")
+            
+            return
         
         self.save()
 

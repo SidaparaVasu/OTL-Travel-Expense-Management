@@ -169,6 +169,8 @@ class ApprovalEngineV2:
             if grade_name in ['B-2B']:
                 if 'train' in mode:
                     return True
+                if 'flight' in mode:
+                    return True
                 if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
                     return True
             

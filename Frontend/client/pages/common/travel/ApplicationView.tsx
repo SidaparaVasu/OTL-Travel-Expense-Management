@@ -248,7 +248,7 @@ const InfoItem = ({ label, value, highlight = false }: { label: string; value: a
   <div>
     <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
     <p className={`text-sm ${highlight ? 'text-blue-600 font-semibold' : 'text-slate-800 font-medium'}`}>
-      {value ?? "—"}
+      {value ?? "N/A"}
     </p>
   </div>
 );
@@ -445,32 +445,33 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
       {/* Type-specific detail grid */}
       {type === "ticketing" && (
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <DetailRow label="From" value={details.from_location_name || details.from_location || "—"} />
-          <DetailRow label="To" value={details.to_location_name || details.to_location || "—"} />
+          <DetailRow label="From" value={details.from_location_name || details.from_location || "N/A"} />
+          <DetailRow label="To" value={details.to_location_name || details.to_location || "N/A"} />
           <DetailRow
             label="Departure"
-            value={`${details.departure_date || ""} ${details.departure_time || ""}`.trim() || "—"}
+            value={`${details.departure_date || ""} ${details.departure_time || ""}`.trim() || "N/A"}
           />
           <DetailRow
             label="Arrival"
-            value={`${details.arrival_date || ""} ${details.arrival_time || ""}`.trim() || "—"}
+            value={`${details.arrival_date || ""} ${details.arrival_time || ""}`.trim() || "N/A"}
           />
+          <DetailRow label="Meal Preference" value={details.meal_preference || details.meal_preference_name || "N/A"} />
         </div>
       )}
 
       {type === "accommodation" && (
         <>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <DetailRow label="Place" value={details.place || "—"} />
+            <DetailRow label="Place" value={details.place || "N/A"} />
             <DetailRow
               label="Check-in"
-              value={`${details.check_in_date || ""} ${details.check_in_time || ""}`.trim() || "—"}
+              value={`${details.check_in_date || ""} ${details.check_in_time || ""}`.trim() || "N/A"}
             />
             <DetailRow
               label="Check-out"
-              value={`${details.check_out_date || ""} ${details.check_out_time || ""}`.trim() || "—"}
+              value={`${details.check_out_date || ""} ${details.check_out_time || ""}`.trim() || "N/A"}
             />
-            <DetailRow label="Status" value={booking.status || "—"} />
+            <DetailRow label="Status" value={booking.status || "N/A"} />
           </div>
 
           {Array.isArray(details.guest_house_preferences) &&
@@ -495,13 +496,13 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
       {type === "conveyance" && (
         <>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <DetailRow label="From" value={details.from_location_name || details.from_location || "—"} />
-            <DetailRow label="To" value={details.to_location_name || details.to_location || "—"} />
-            <DetailRow label="Report At" value={details.report_at || "—"} />
-            <DetailRow label="Drop At" value={details.drop_location || "—"} />
+            <DetailRow label="From" value={details.from_location_name || details.from_location || "N/A"} />
+            <DetailRow label="To" value={details.to_location_name || details.to_location || "N/A"} />
+            <DetailRow label="Report At" value={details.report_at || "N/A"} />
+            <DetailRow label="Drop At" value={details.drop_location || "N/A"} />
             <DetailRow
               label="Date & Time"
-              value={`${details.start_date || ""} ${details.start_time || ""}`.trim() || "—"}
+              value={`${details.start_date || ""} ${details.start_time || ""}`.trim() || "N/A"}
             />
             <DetailRow label="Club Booking" value={details.club_booking ? "Yes" : "No"} />
           </div>

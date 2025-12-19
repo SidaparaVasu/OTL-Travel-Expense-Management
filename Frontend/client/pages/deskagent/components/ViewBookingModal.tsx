@@ -190,7 +190,8 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
           {/* Ticket Details */}
           {(details.ticket_number ||
             details.report_at ||
-            details.drop_location) && (
+            details.drop_location ||
+            details.meal_preference) && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
@@ -203,6 +204,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                   {renderRow("Club Booking", details.club_booking ? "Yes" : null)}
                   {renderRow("Club Reason", details.club_reason)}
                   {renderRow("Distance (km)", details.distance_km)}
+                  {renderRow("Meal Preference", details.meal_preference)}
                 </div>
               </div>
             )}

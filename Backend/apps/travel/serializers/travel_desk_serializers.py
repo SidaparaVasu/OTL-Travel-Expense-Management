@@ -69,7 +69,13 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "status", "status_display", "estimated_cost", "actual_cost", "booking_reference", "vendor_reference", 
             "booking_file", "special_instruction", "created_at", "updated_at", "booked_at", "assigned_agent", 
             "booking_details",
+            "meal_preference",
         ]
+    
+    meal_preference = serializers.SerializerMethodField()
+
+    def get_meal_preference(self, obj):
+        return obj.booking_details.get('meal_preference', "")
 
     def get_trip_segment(self, obj):
         td = obj.trip_details

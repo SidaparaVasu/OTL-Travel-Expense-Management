@@ -54,6 +54,7 @@ export interface BookingDetails {
   arrival_date?: string;
   arrival_time?: string;
   ticket_number?: string;
+  meal_preference?: string;
   
   // Accommodation
   place?: string;

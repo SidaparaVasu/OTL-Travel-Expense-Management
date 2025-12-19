@@ -37,6 +37,7 @@ interface TicketingFormData {
   arrival_date: string;
   arrival_time: string;
   estimated_cost: string;
+  meal_preference?: string;
   special_instruction: string;
 }
 
@@ -401,6 +402,18 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })}
                 placeholder="0.00"
                 error={errors.estimated_cost}
+              />
+
+              <FormSelect
+                label="Meal Preference"
+                value={form.meal_preference || ""}
+                onChange={(value) => setForm({ ...form, meal_preference: value })}
+                options={[
+                  { value: "", label: "Select Meal Preference" },
+                  { value: "Vegeterian Food", label: "Vegeterian Food" },
+                  { value: "Non. Vegeterian Food", label: "Non. Vegeterian Food" },
+                  { value: "No Food", label: "No Food" },
+                ]}
               />
 
               <div className="md:col-span-3">

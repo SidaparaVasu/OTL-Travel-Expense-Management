@@ -125,7 +125,7 @@ def validate_advance_booking(departure_date, mode_name, estimated_cost=0):
 
 # --- entitlement -------------------------------------------------------------
 
-def validate_travel_entitlement(employee, booking_type, sub_option, city_category=None):
+def validate_travel_entitlement(employee, booking_type, sub_option, city_category=None, estimated_cost=None):
     """
     Validates entitlement based on GradeEntitlementMaster.
     No unexpected filter args, safe for all booking modes.
@@ -152,14 +152,24 @@ def validate_travel_entitlement(employee, booking_type, sub_option, city_categor
 
     # --- City Category Condition ---
     if city_category:
+        # Try to find specific match first, then generic
+        qs_specific = qs.all()
         if hasattr(city_category, "name"):
-            qs = qs.filter(city_category__name__iexact=city_category.name)
+            qs_specific = qs_specific.filter(city_category__name__iexact=city_category.name)
         elif hasattr(city_category, "id"):
-            qs = qs.filter(city_category=city_category.id)
+            qs_specific = qs_specific.filter(city_category=city_category.id)
         else:
-            qs = qs.filter(city_category__name__iexact=str(city_category))
-
-    entitlement = qs.first()
+            qs_specific = qs_specific.filter(city_category__name__iexact=str(city_category))
+            
+        entitlement = qs_specific.first()
+        
+        # Fallback to generic (NULL city_category) if specific not found
+        if not entitlement:
+            entitlement = qs.filter(city_category__isnull=True).first()
+    else:
+        # If no city category passed, try generic first? 
+        # Or just take whatever (entitlement logic usually implies generic if not passed)
+        entitlement = qs.first()
 
     # --- Not Allowed Case ---
     if not entitlement or not entitlement.is_allowed:
@@ -168,12 +178,16 @@ def validate_travel_entitlement(employee, booking_type, sub_option, city_categor
             f"and travel option '{sub_option.name}'."
         )
 
-    # --- Optional max_amount enforcement (kept disabled for now) ---
-    # if entitlement.max_amount and entitlement.max_amount > Decimal('0'):
-    #     if estimated_cost > entitlement.max_amount:
-    #         raise serializers.ValidationError(
-    #             f"Estimated cost exceeds entitlement limit ({entitlement.max_amount})."
-    #         )
+    # --- Optional max_amount enforcement ---
+    if estimated_cost and entitlement.max_amount and entitlement.max_amount > Decimal('0'):
+        try:
+           cost_dec = Decimal(str(estimated_cost))
+           if cost_dec > entitlement.max_amount:
+               raise serializers.ValidationError(
+                   f"Estimated cost ({cost_dec}) exceeds entitlement limit ({entitlement.max_amount})."
+               )
+        except Exception:
+           pass
 
     return True
 

@@ -23,7 +23,15 @@ class BookingSerializer(serializers.ModelSerializer):
             'vendor_reference', 
             'booking_file', 
             'special_instruction',
+            'meal_preference',
         ]
+    
+    meal_preference = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['meal_preference'] = instance.booking_details.get('meal_preference', "")
+        return ret
 
 class BookingListSerializer(serializers.ModelSerializer):
     booking_type_name = serializers.CharField(source='booking_type.name', read_only=True)
@@ -59,15 +67,25 @@ class BookingListSerializer(serializers.ModelSerializer):
             'booking_file', 
             'special_instruction',
             'created_at', #
+            'meal_preference',
         ]
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['meal_preference'] = instance.booking_details.get('meal_preference', "")
+        return ret
 
 class BookingDetailSerializer(serializers.ModelSerializer):
     booking_type_name = serializers.CharField(source='booking_type.name', read_only=True)
     sub_option_name = serializers.CharField(source='sub_option.name', read_only=True)
+    meal_preference = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = '__all__'
+    
+    def get_meal_preference(self, obj):
+        return obj.booking_details.get('meal_preference', "")
 
 
 class ItineraryEventSerializer(serializers.Serializer):
@@ -230,6 +248,13 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                         error_messages = [e['message'] for e in errors if e['severity'] == 'error']
                         raise serializers.ValidationError({'own_car': error_messages})
                 
+                # Handle meal_preference
+                meal_preference = booking_data.pop('meal_preference', None)
+                if meal_preference:
+                    if 'booking_details' not in booking_data:
+                        booking_data['booking_details'] = {}
+                    booking_data['booking_details']['meal_preference'] = meal_preference
+
                 Booking.objects.create(trip_details=trip_detail, **booking_data)
         
         travel_application.calculate_estimated_cost()
@@ -265,6 +290,13 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                     )
                 
                 for booking_data in bookings_data:
+                    # Handle meal_preference
+                    meal_preference = booking_data.pop('meal_preference', None)
+                    if meal_preference:
+                        if 'booking_details' not in booking_data:
+                            booking_data['booking_details'] = {}
+                        booking_data['booking_details']['meal_preference'] = meal_preference
+
                     Booking.objects.create(trip_details=trip_detail, **booking_data)
             
             # Recalculate estimated cost
@@ -298,7 +330,8 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
                             booking.booking_type,
                             booking.sub_option,
                             # trip.to_location.city.category
-                            trip.to_location.category
+                            trip.to_location.category,
+                            estimated_cost=booking.estimated_cost
                         )
                         
                 except Exception as e:

@@ -29,8 +29,14 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'id', 'booking_type', 'sub_option', 'booking_type_name', 'sub_option_name', 
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file',
-            'assigned_agent_name'
+            'assigned_agent_name',
+            'meal_preference'
         ]
+    
+    meal_preference = serializers.SerializerMethodField()
+
+    def get_meal_preference(self, obj):
+        return obj.booking_details.get('meal_preference', "")
 
     def get_assigned_agent_name(self, obj):
         assignment = getattr(obj, 'active_assignment', None)
@@ -58,7 +64,13 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "booking_reference", "vendor_reference", "booking_file",
             "created_at", "updated_at",
             "assigned_agent",
+            "meal_preference",
         ]
+
+    meal_preference = serializers.SerializerMethodField()
+
+    def get_meal_preference(self, obj):
+        return obj.booking_details.get('meal_preference', "")
 
     def get_employee_name(self, obj):
         emp = obj.trip_details.travel_application.employee
@@ -116,7 +128,13 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "booking_file", "special_instruction", 
             "created_at", "updated_at", "booked_at", "assigned_agent",
             "booking_details",
+            "meal_preference",
         ]
+
+    meal_preference = serializers.SerializerMethodField()
+
+    def get_meal_preference(self, obj):
+        return obj.booking_details.get('meal_preference', "")
 
     def get_employee_name(self, obj):
         app = obj.trip_details.travel_application

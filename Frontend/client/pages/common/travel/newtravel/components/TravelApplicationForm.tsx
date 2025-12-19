@@ -438,7 +438,8 @@ export const TravelApplicationForm: React.FC = () => {
               departure_date: t.departure_date,
               departure_time: t.departure_time,
               arrival_date: t.arrival_date,
-              arrival_time: t.arrival_time
+              arrival_time: t.arrival_time,
+              meal_preference: t.meal_preference,
             },
           })),
           ...accommodation.map(a => ({

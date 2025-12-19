@@ -11,7 +11,7 @@ import {
   User,
   FileText,
   Download,
-  DollarSign,
+  IndianRupee,
   Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -139,6 +139,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               {renderRow("Travel Request", booking.travel_request_id)}
               {renderRow("Employee", booking.employee_name)}
               {renderRow("Grade", booking.employee_grade)}
+              {renderRow("Meal Preference", details.meal_preference)}
             </>
           ))}
 
@@ -197,10 +198,10 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
           )}
 
           {/* Financial */}
-          {renderSection("Financial", DollarSign, (
+          {renderSection("Financial", IndianRupee, (
             <>
-              {renderRow("Estimated Cost", formatCurrency(booking.estimated_cost))}
-              {renderRow("Actual Cost", formatCurrency(booking.actual_cost))}
+              {renderRow("Estimated Cost", formatCurrency(booking.estimated_cost) || "Not Provided")}
+              {renderRow("Actual Cost", formatCurrency(booking.actual_cost) || "Not Provided")}
               {renderRow("Booking Reference", booking.booking_reference)}
               {renderRow("Vendor Reference", booking.vendor_reference)}
             </>

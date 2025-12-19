@@ -192,7 +192,7 @@ export default function TravelRequestApprovals() {
   useEffect(() => {
     fetchApprovals(statusFilter, page);
     fetchStatistics();
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   const canUserApprove = (request) => {
     const pendingStatuses = [
@@ -261,16 +261,8 @@ export default function TravelRequestApprovals() {
         await approvalAPI.reject(id, notes);
       }
 
-      // Update local state immediately
-      setApplications(prev => ({
-        ...prev,
-        results: prev.results.map(req =>
-          req.id === id
-            ? { ...req, status: action === "approve" ? "approved_manager" : "rejected_manager" }
-            : req
-        )
-      }));
-
+      // Re-fetch data to reflect changes
+      await fetchApprovals(statusFilter, page);
       fetchStatistics();
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -495,7 +487,7 @@ export default function TravelRequestApprovals() {
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Employee
                   </TableHead>
-                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
+                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider max-w-[200px]">
                     Destination
                   </TableHead>
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
@@ -540,7 +532,7 @@ export default function TravelRequestApprovals() {
                           <div className="font-medium text-foreground">
                             {request.trip_summary[0]?.from} → {request.trip_summary[0]?.to}
                           </div>
-                          <div className="text-sm text-muted-foreground line-clamp-1">
+                          <div className="text-sm text-muted-foreground line-clamp-1 max-w-[200px] truncate">
                             {request.purpose}
                           </div>
                         </div>
