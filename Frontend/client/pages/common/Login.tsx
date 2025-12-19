@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Plane } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import loginIllustration from "@/assets/login-illustration.png";
+// import OrangeLogo from "@/assets/Ultimatix-Logo.jpg";
+import OrangeLogo from "@/assets/logo-otl-e1576143457585.png";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -75,12 +77,14 @@ export default function Login() {
         <div className="w-full max-w-md">
           
           {/* Logo */}
-          <div className="mb-12">
+          <div className="mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Plane className="w-6 h-6 text-white" />
+              <div className="h-10 w-10 rounded-lg flex items-center justify-left flex-shrink-0">
+                {/* <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center"> */}
+                {/*<Plane className="w-6 h-6 text-white" />*/}
+                  <img src={OrangeLogo} alt="Orange LOGO" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">Travel Expense Pro</span>
+              <span className="text-2xl font-bold text-gray-900">Orange Travel Expense</span>
             </div>
           </div>
 

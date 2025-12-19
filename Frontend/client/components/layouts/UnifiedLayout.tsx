@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { authAPI } from "@/src/api/auth";
 import { ROUTES } from "@/routes/routes";
-import OrangeLogo from "@/assets/Ultimatix-Logo.jpg";
+import OrangeLogo from "@/assets/logo-otl-e1576143457585.png";
 
 import {
   DropdownMenu,
