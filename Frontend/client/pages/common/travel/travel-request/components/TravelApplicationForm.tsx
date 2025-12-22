@@ -567,6 +567,7 @@ export const TravelApplicationForm: React.FC = () => {
                 check_out_date: a.check_out_date,
                 check_in_time: a.check_in_time,
                 check_out_time: a.check_out_time,
+                meal_preference: a.meal_preference,
               },
             })),
             ...conveyance.map((c) => ({

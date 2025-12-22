@@ -33,6 +33,7 @@ interface AccommodationFormData {
   check_out_date: string;
   check_out_time: string;
   estimated_cost: string;
+  meal_preference?: string;
   special_instruction: string;
 }
 
@@ -526,9 +527,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.accommodation_sub_option}
               />
 
-              {isGuestHouseSelected ? //   selectedPreferences={form.guest_house_preferences} // <GuestHouseSelector
-              //   setSelectedPreferences={(prefs) =>
-              //     setForm({ ...form, guest_house_preferences: prefs })
+              {isGuestHouseSelected ? //     setForm({ ...form, guest_house_preferences: prefs }) //   setSelectedPreferences={(prefs) => //   selectedPreferences={form.guest_house_preferences} // <GuestHouseSelector
               //   }
               //   guestHouses={guestHouses}
               //   error={errors.guest_house_preferences}
@@ -619,6 +618,23 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                     : "Enter estimated cost"
                 }
                 error={errors.estimated_cost}
+              />
+
+              <FormSelect
+                label="Meal Preference"
+                value={form.meal_preference || ""}
+                onChange={(value) =>
+                  setForm({ ...form, meal_preference: value })
+                }
+                options={[
+                  { value: "", label: "Select Meal Preference" },
+                  { value: "Vegeterian Food", label: "Vegeterian Food" },
+                  {
+                    value: "Non. Vegeterian Food",
+                    label: "Non. Vegeterian Food",
+                  },
+                  // { value: "No Food", label: "No Food" },
+                ]}
               />
 
               <div className="md:col-span-3">

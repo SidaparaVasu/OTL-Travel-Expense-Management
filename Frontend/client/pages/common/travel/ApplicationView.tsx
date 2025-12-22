@@ -645,6 +645,10 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
               }
             />
             {/* <DetailRow label="Status" value={booking.status || "N/A"} /> */}
+            <DetailRow
+              label="Meal Preference"
+              value={details.meal_preference || "N/A"}
+            />
           </div>
 
           {/* Guest House Preferences Display Removed */}
