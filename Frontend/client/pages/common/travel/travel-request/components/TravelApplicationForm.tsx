@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Plane,
@@ -53,6 +54,7 @@ import {
   type GuestHouse,
   type ARCHotel,
 } from "@/src/api/travel-api";
+import { ROUTES } from "@/routes/routes";
 
 const STORAGE_KEY = "travel_application_form";
 
@@ -79,6 +81,8 @@ interface TravelSubOptionsGrouped {
 }
 
 export const TravelApplicationForm: React.FC = () => {
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("purpose");
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -363,7 +367,7 @@ export const TravelApplicationForm: React.FC = () => {
     setActiveTab("purpose");
     setDraftApplicationId(null);
     localStorage.removeItem(STORAGE_KEY);
-    toast.success("Form cleared successfully");
+    // toast.success("Form cleared successfully");
     setShowClearDialog(false);
   };
 
@@ -658,10 +662,20 @@ export const TravelApplicationForm: React.FC = () => {
       if (draftApplicationId) {
         await travelAPI.updateApplication(draftApplicationId, payload);
         toast.success("Draft updated successfully");
+        clearForm();
+        navigate(ROUTES.travelApplicationList);
       } else {
-        const result = await travelAPI.createApplication(payload);
-        setDraftApplicationId(result.id);
-        toast.success("Draft saved successfully");
+        const result: any = await travelAPI.createApplication(payload as any);
+        const newId = result.data?.id || result.id;
+
+        if (newId) {
+          setDraftApplicationId(newId);
+          toast.success("Draft saved successfully");
+          clearForm();
+          navigate(ROUTES.travelApplicationList);
+        } else {
+          toast.error("Failed to save draft. No ID returned.");
+        }
       }
     } catch (error: any) {
       console.error("Failed to save draft:", error);
@@ -704,17 +718,19 @@ export const TravelApplicationForm: React.FC = () => {
       if (applicationId) {
         await travelAPI.updateApplication(applicationId, payload);
       } else {
-        const result = await travelAPI.createApplication(payload);
-        applicationId = result.id;
+        const result: any = await travelAPI.createApplication(payload as any);
+        applicationId = result.data?.id || result.id;
       }
 
       // Submit the application
       if (applicationId) {
         await travelAPI.submitApplication(applicationId);
+        toast.success("Travel application submitted successfully!");
+        clearForm();
+        navigate(ROUTES.travelApplicationList);
+      } else {
+        toast.error("Failed to create application. Please try again.");
       }
-
-      toast.success("Travel application submitted successfully!");
-      clearForm();
     } catch (error: any) {
       console.error("Failed to submit application:", error);
       const backendErrors = error.response?.data?.errors;

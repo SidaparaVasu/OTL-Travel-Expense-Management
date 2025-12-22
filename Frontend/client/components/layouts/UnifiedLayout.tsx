@@ -14,14 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import {
-  Bell,
-  Menu,
-  ChevronDown,
-  Users,
-  LogOut,
-  Settings,
-} from "lucide-react";
+import { Bell, Menu, ChevronDown, Users, LogOut, Settings } from "lucide-react";
 
 import {
   getAdminSidebar,
@@ -46,7 +39,9 @@ const getUser = () => {
 const getRoleTypes = (): string[] => {
   try {
     const roles = JSON.parse(localStorage.getItem("roles") || "[]");
-    return roles.map((r: any) => r.role_type?.toLowerCase()).filter(Boolean) || [];
+    return (
+      roles.map((r: any) => r.role_type?.toLowerCase()).filter(Boolean) || []
+    );
   } catch {
     return [];
   }
@@ -54,7 +49,7 @@ const getRoleTypes = (): string[] => {
 
 const getPrimaryDashboard = (): string => {
   const roleTypes = getRoleTypes();
-  if (roleTypes.some(r => ["admin", "manager", "chro", "ceo"].includes(r))) {
+  if (roleTypes.some((r) => ["admin", "manager", "chro", "ceo"].includes(r))) {
     return "/admin/dashboard";
   }
   if (roleTypes.includes("travel_desk")) {
@@ -74,7 +69,7 @@ const detectUserRoleType = (): UserRoleType => {
   const roleTypes = getRoleTypes();
 
   // Check admin roles first
-  if (roleTypes.some(r => ["admin", "ceo", "chro"].includes(r))) {
+  if (roleTypes.some((r) => ["admin", "ceo", "chro"].includes(r))) {
     return "admin";
   }
   // Then travel desk
@@ -89,7 +84,10 @@ const detectUserRoleType = (): UserRoleType => {
   return "employee";
 };
 
-const getSidebarSections = (roleType: UserRoleType, primaryDashboard: string): SidebarSection[] => {
+const getSidebarSections = (
+  roleType: UserRoleType,
+  primaryDashboard: string,
+): SidebarSection[] => {
   switch (roleType) {
     case "admin":
       return getAdminSidebar(primaryDashboard);
@@ -114,7 +112,7 @@ const Logo = ({ expanded }: { expanded: boolean }) => (
     <span
       className={cn(
         "text-lg font-semibold text-foreground whitespace-nowrap transition-all duration-300",
-        expanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"
+        expanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden",
       )}
     >
       Orange Travel Expense
@@ -143,7 +141,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   const primaryDashboard = useMemo(() => getPrimaryDashboard(), []);
   const sections = useMemo(
     () => getSidebarSections(roleType, primaryDashboard),
-    [roleType, primaryDashboard]
+    [roleType, primaryDashboard],
   );
 
   const expanded = !sidebarCollapsed;
@@ -153,7 +151,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
     const found = sections.find(
       (s) =>
         s.path === location.pathname ||
-        s.items?.some((i) => i.path === location.pathname)
+        s.items?.some((i) => i.path === location.pathname),
     );
     if (found) {
       setActiveSection(found.title);
@@ -166,7 +164,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   const logout = async () => {
     try {
       await authAPI.logout();
-    } catch { }
+    } catch {}
     navigate(ROUTES.login);
   };
 
@@ -185,7 +183,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
       <aside
         className={cn(
           "fixed top-0 left-0 z-40 h-screen bg-background border-r border-gray-200 transition-all duration-300",
-          expanded ? "w-[280px]" : "w-20"
+          expanded ? "w-[280px]" : "w-20",
         )}
       >
         {/* Logo */}
@@ -214,17 +212,19 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
                   }}
                   className={cn(
                     "flex w-full items-center rounded-lg py-2.5 transition-all duration-300 focus:outline-none",
-                    expanded ? "px-4 gap-3 justify-between" : "px-4 justify-center",
+                    expanded
+                      ? "px-4 gap-3 justify-between"
+                      : "px-4 justify-center",
                     isActive
                       ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
+                      : "text-gray-600 hover:bg-gray-100",
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Icon
                       className={cn(
                         "h-5 w-5 flex-shrink-0",
-                        isActive ? "text-white" : "text-gray-600"
+                        isActive ? "text-white" : "text-gray-600",
                       )}
                       strokeWidth={2}
                     />
@@ -240,37 +240,43 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
                       className={cn(
                         "flex-shrink-0 transition-transform duration-300",
                         isOpen ? "rotate-180" : "rotate-0",
-                        isActive ? "text-white" : "text-gray-600"
+                        isActive ? "text-white" : "text-gray-600",
                       )}
                     />
                   )}
                 </button>
 
                 {/* Submenu */}
-                {expanded && section.collapsible && isOpen && items.length > 0 && (
-                  <div className="mt-1 space-y-1 overflow-hidden">
-                    {items.map((item) => {
-                      const ItemIcon = item.Icon;
-                      const isItemActive = location.pathname === item.path;
+                {expanded &&
+                  section.collapsible &&
+                  isOpen &&
+                  items.length > 0 && (
+                    <div className="mt-1 space-y-1 overflow-hidden">
+                      {items.map((item) => {
+                        const ItemIcon = item.Icon;
+                        const isItemActive = location.pathname === item.path;
 
-                      return (
-                        <button
-                          key={item.path}
-                          onClick={() => navigateTo(item.path)}
-                          className={cn(
-                            "w-full flex items-center gap-3 py-2 pl-12 pr-4 text-sm rounded-lg transition-all duration-300 focus:outline-none min-w-0",
-                            isItemActive
-                              ? "bg-blue-50 text-blue-700 font-medium"
-                              : "text-gray-600 hover:bg-gray-50"
-                          )}
-                        >
-                          <ItemIcon className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
-                          <span className="truncate">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                        return (
+                          <button
+                            key={item.path}
+                            onClick={() => navigateTo(item.path)}
+                            className={cn(
+                              "w-full flex items-center gap-3 py-2 pl-12 pr-4 text-sm rounded-lg transition-all duration-300 focus:outline-none min-w-0",
+                              isItemActive
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-600 hover:bg-gray-50",
+                            )}
+                          >
+                            <ItemIcon
+                              className="h-4 w-4 flex-shrink-0"
+                              strokeWidth={2}
+                            />
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
               </div>
             );
           })}
@@ -281,7 +287,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
       <div
         className={cn(
           "transition-all duration-300 min-h-screen",
-          expanded ? "ml-[280px]" : "ml-20"
+          expanded ? "ml-[280px]" : "ml-20",
         )}
       >
         {/* Header */}
@@ -322,13 +328,16 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
                     <Users className="mr-2 h-4 w-4" /> Profile
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <DropdownMenuItem onClick={() => navigate(ROUTES.master)}>
                     <Settings className="mr-2 h-4 w-4" /> Settings
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive"
+                  >
                     <LogOut className="mr-2 h-4 w-4" /> Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>

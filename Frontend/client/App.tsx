@@ -11,14 +11,11 @@ import UnauthorizedPage from "./pages/common/UnauthorizedPage";
 
 // Layouts
 import { UnifiedLayout } from "@/components/layouts/UnifiedLayout";
-import { AdminLayout } from "@/components/layouts/AdminLayout";
-import { EmployeeLayout } from "@/components/layouts/EmployeeLayout";
-import { BookingAgentLayout } from "@/components/layouts/BookingAgentLayout";
 
 // Common Pages
 import Login from "./pages/common/Login";
 import NotFound from "./pages/common/NotFound";
-import NewProfile from "./pages/common/NewProfile";
+import Profile from "./pages/common/Profile";
 
 // Dashboards
 import AdminIndex from "./pages/admin/Index";
@@ -31,13 +28,10 @@ import BookingAgentBookings from "./pages/booking-agent/BookingAgentBookings";
 
 // Travel
 import MakeTravelApplicationOld from "./pages/common/travel/MakeTravelApplication";
-import MakeTravelApplication3 from "./pages/common/travel/MakeTravelApplication3";
-import MakeTravelApplicationNew from "./pages/common/travel/newtravel/Index";
+import MakeTravelApplicationNew from "./pages/common/travel/travel-request/Index";
 import TravelApplicationList from "./pages/common/travel/TravelApplicationList";
 import ApplicationView from "./pages/common/travel/ApplicationView";
 import TravelRequestApprovals from "./pages/common/travel/TravelRequestApprovals";
-import BookingsPage from "./pages/common/travel/BookingsPage";
-import ItinerariesPage from "./pages/common/travel/ItineraryPage";
 
 // Expense
 import ExpenseIndex from "./pages/common/expense/Index";
@@ -48,9 +42,7 @@ import ClaimApprovalPage from "./pages/common/expense/ClaimApprovalPage";
 
 // Master Pages (Admin Only)
 import MasterPage from "./pages/common/master/MasterIndex";
-import UserManagementPage from "./pages/common/master/user-management/Index";
 import UsersPage from "./pages/common/master/users/Index";
-import EmployeeMasterPage from "./pages/common/master/employee-master/Index";
 import GuestHouseMaster from "./pages/common/master/guest-house/Index";
 import ARCHotelMaster from "./pages/common/master/arc-hotel/Index";
 import LocationSPOCMasterPage from "./pages/common/master/LocationSPOCMaster";
@@ -61,7 +53,7 @@ import OrganizationMasters from "./pages/common/master/OrganizationMaster";
 import EmployeeTypeMaster from "./pages/common/master/EmployeeTypeMaster";
 import GLCodeMaster from "./pages/common/master/GLCodeMaster";
 import TravelModeMaster from "./pages/common/master/TravelModeMaster";
-import GradeEntitlementMaster from "./pages/common/master/NewGradeEntitlementMaster";
+import GradeEntitlementMaster from "./pages/common/master/GradeEntitlementMaster";
 import GradeMasterPage from "./pages/common/master/GradeMaster";
 import ApprovalMatrixMasterPage from "./pages/common/master/ApprovalMatrixMaster";
 import DAIncidentalMasterPage from "./pages/common/master/DAIncidentalsMaster";
@@ -176,7 +168,7 @@ const App = () => (
             element={
               <AuthOnly>
                 <UnifiedLayout>
-                  <NewProfile />
+                  <Profile />
                 </UnifiedLayout>
               </AuthOnly>
             }
@@ -189,17 +181,6 @@ const App = () => (
               <AuthOnly>
                 <UnifiedLayout>
                   <MakeTravelApplicationOld />
-                </UnifiedLayout>
-              </AuthOnly>
-            }
-          />
-
-          <Route
-            path={ROUTES.makeTravelApplication(":id?")}
-            element={
-              <AuthOnly>
-                <UnifiedLayout>
-                  <MakeTravelApplication3 />
                 </UnifiedLayout>
               </AuthOnly>
             }
@@ -233,28 +214,6 @@ const App = () => (
               <AuthOnly>
                 <UnifiedLayout>
                   <TravelRequestApprovals />
-                </UnifiedLayout>
-              </AuthOnly>
-            }
-          />
-
-          <Route
-            path="/travel/itineraries/:id"
-            element={
-              <AuthOnly>
-                <UnifiedLayout>
-                  <ItinerariesPage />
-                </UnifiedLayout>
-              </AuthOnly>
-            }
-          />
-
-          <Route
-            path="/travel/bookings"
-            element={
-              <AuthOnly>
-                <UnifiedLayout>
-                  <BookingsPage />
                 </UnifiedLayout>
               </AuthOnly>
             }
@@ -339,29 +298,7 @@ const App = () => (
             }
           />
 
-          <Route
-            path={ROUTES.employeeMasterPage}
-            element={
-              <ProtectedRoute requiredDashboard="admin">
-                <UnifiedLayout>
-                  <EmployeeMasterPage />
-                </UnifiedLayout>
-              </ProtectedRoute>
-            }
-          />
-
           {/* All other master routes */}
-          <Route
-            path={ROUTES.userManagement}
-            element={
-              <ProtectedRoute requiredDashboard="admin">
-                <UnifiedLayout>
-                  <UserManagementPage />
-                </UnifiedLayout>
-              </ProtectedRoute>
-            }
-          />
-
           <Route
             path={ROUTES.users}
             element={

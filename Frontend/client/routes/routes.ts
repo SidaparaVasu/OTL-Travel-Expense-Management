@@ -14,17 +14,12 @@ export const ROUTES = {
 
   // ---------------- TRAVEL (Employee/Admin) ----------------
   makeTravelApplicationOld: "/travel/make-travel-application-old",
-  makeTravelApplication: (id?:number | string) => id ? `/travel/make-travel-application/${id}` : `/travel/make-travel-application`,
+  // makeTravelApplication: (id?:number | string) => id ? `/travel/make-travel-application/${id}` : `/travel/make-travel-application`,
   makeTravelApplicationNew: "/travel/create-travel-application",
   travelApplicationList: "/travel/travel-application-list",
   travelApplicationView: (id: number | string) =>
     `/travel/travel-application/${id}/`,
   travelRequestApproval: "/travel/travel-request-approval",
-
-  // Employee/Admin bookings
-  travelBookings: "/travel/bookings",
-  travelItinerary: (id: number | string) =>
-    `/travel/itineraries/${id}`,
 
   // ---------------- EXPENSE MANAGEMENT ----------------
   indexExpense: "/expense",
