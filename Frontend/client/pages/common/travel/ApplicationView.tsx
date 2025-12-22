@@ -24,6 +24,12 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ROUTES } from "@/routes/routes";
 import { docViewer } from "@/src/api/document_viewer";
 
@@ -615,7 +621,15 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
       {type === "accommodation" && (
         <>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <DetailRow label="Place" value={details.place || "N/A"} />
+            <DetailRow
+              label="Place"
+              value={
+                details.place_name ||
+                details.place_label ||
+                details.place ||
+                "N/A"
+              }
+            />
             <DetailRow
               label="Check-in"
               value={
@@ -630,7 +644,7 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
                 "N/A"
               }
             />
-            <DetailRow label="Status" value={booking.status || "N/A"} />
+            {/* <DetailRow label="Status" value={booking.status || "N/A"} /> */}
           </div>
 
           {/* Guest House Preferences Display Removed */}
@@ -690,35 +704,40 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
             </div>
           )}
 
-          {booking.guests?.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-slate-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-slate-600" />
-                <p className="text-xs font-medium text-slate-600">
-                  Guests ({booking.guests.length})
-                </p>
-              </div>
+          {details.guests?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-slate-200 flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-600">
+                Guests ({details.guests.length})
+              </span>
 
-              <div className="flex flex-wrap gap-2">
-                {booking.guests.map((guest: any, idx: number) => (
-                  <Badge
-                    key={idx}
-                    className={
-                      guest.employee_id
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-green-100 text-green-700"
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      <User className="w-3 h-3" />
-                      <span className="text-xs">
-                        {guest.name}
-                        {guest.employee_id ? ` (${guest.employee_id})` : ""}
-                      </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-blue-600 cursor-pointer" />
+                  </TooltipTrigger>
+                  <TooltipContent className="p-3 bg-white border border-slate-200 shadow-lg rounded-lg">
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-semibold text-slate-700 mb-1">
+                        Guest List:
+                      </p>
+                      {details.guests.map((guest: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 text-xs"
+                        >
+                          <User className="w-3 h-3 text-slate-500" />
+                          <span className="text-slate-700">
+                            {guest.full_name || guest.name}
+                            {guest.employee_id
+                              ? ` (${guest.employee_id})`
+                              : " (Other)"}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  </Badge>
-                ))}
-              </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
         </>

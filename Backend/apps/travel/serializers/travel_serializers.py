@@ -31,6 +31,18 @@ class BookingSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         ret['meal_preference'] = instance.booking_details.get('meal_preference', "")
+        
+        # Add place_name for self-arranged accommodation
+        place_id = instance.booking_details.get('place')
+        if place_id:
+            try:
+                from apps.master_data.models import CityMaster
+                city = CityMaster.objects.filter(id=place_id).first()
+                if city:
+                    ret['booking_details'] = {**ret['booking_details'], 'place_name': city.city_name}
+            except Exception:
+                pass
+        
         return ret
 
 class BookingListSerializer(serializers.ModelSerializer):
@@ -255,7 +267,13 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                         booking_data['booking_details'] = {}
                     booking_data['booking_details']['meal_preference'] = meal_preference
 
-                Booking.objects.create(trip_details=trip_detail, **booking_data)
+                booking = Booking.objects.create(trip_details=trip_detail, **booking_data)
+                
+                # Auto-confirm self-arranged accommodation (no vendor required)
+                sub_option = booking.sub_option
+                if sub_option and 'self' in sub_option.name.lower():
+                    booking.status = 'confirmed'
+                    booking.save(update_fields=['status'])
         
         travel_application.calculate_estimated_cost()
         travel_application.save(update_fields=['estimated_total_cost'])

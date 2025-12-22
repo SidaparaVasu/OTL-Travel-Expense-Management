@@ -40,7 +40,7 @@ class TravelApplication(models.Model):
         'pending_ceo': ['approved_ceo', 'rejected_ceo', 'cancelled'],
         'approved_ceo': ['pending_travel_desk', 'cancelled'],
         'rejected_ceo': ['draft', 'cancelled'],
-        'pending_travel_desk': ['booking_in_progress', 'cancelled'],
+        'pending_travel_desk': ['booking_in_progress', 'booked', 'cancelled'],
         'booking_in_progress': ['booked', 'pending_travel_desk', 'cancelled'],
         'booked': ['completed', 'cancelled'],
         'completed': ['completed'],
@@ -226,9 +226,10 @@ class TravelApplication(models.Model):
 
             # Helper to trigger auto-forwarding
             try:
-                from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings
+                from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
                 # Use the last approver as the system user for audit
                 auto_forward_flight_train_bookings(self, system_user=approved_flow.approver)
+                auto_confirm_self_arranged_bookings(self, system_user=approved_flow.approver)
             except Exception as e:
                 # Log error but don't fail the approval
                 import logging

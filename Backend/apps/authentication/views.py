@@ -520,3 +520,45 @@ class NotificationPreferencesView(APIView):
         return success_response(
             message='Preferences updated successfully'
         )
+
+
+class EmployeeSearchView(APIView):
+    """
+    GET /auth/employees/search/?q=<query>
+    Search for employees by name (for colleague selection in travel forms)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q
+        
+        query = request.query_params.get('q', '').strip()
+        if len(query) < 3:
+            return success_response(data=[], message="Query too short")
+        
+        # Search for internal users by name
+        employees = User.objects.filter(
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(username__icontains=query),
+            is_active=True,
+            user_type='organizational'
+        ).exclude(id=request.user.id).select_related(
+            'organizational_profile__department'
+        )[:20]
+
+        data = []
+        for emp in employees:
+            dept_name = None
+            if hasattr(emp, 'organizational_profile') and emp.organizational_profile:
+                if emp.organizational_profile.department:
+                    dept_name = emp.organizational_profile.department.dept_name
+            
+            data.append({
+                'id': emp.id,
+                'employee_id': emp.username,
+                'full_name': emp.get_full_name() or emp.username,
+                'department': dept_name,
+            })
+        
+        return success_response(data=data)

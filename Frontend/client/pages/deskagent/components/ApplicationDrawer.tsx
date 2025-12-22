@@ -68,7 +68,10 @@ const getBookingIcon = (type: string) => {
 };
 
 const isSelfArranged = (booking: Booking) => {
-  return booking.booking_details?.accommodation_type === "self";
+  const subOptionName = ((booking as any).sub_option_name || "").toLowerCase();
+  return (
+    subOptionName.includes("self") || subOptionName.includes("self-arranged")
+  );
 };
 
 export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { User, X, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { userAPI } from "@/src/api/users";
 
 interface Guest {
   id?: number;
@@ -9,15 +10,6 @@ interface Guest {
   department?: string;
   is_colleague: boolean;
 }
-
-// Mock colleagues data
-const MOCK_COLLEAGUES: Guest[] = [
-  { id: 101, employee_id: "EMP001", full_name: "Rahul Sharma", department: "Engineering", is_colleague: true },
-  { id: 102, employee_id: "EMP002", full_name: "Priya Patel", department: "Finance", is_colleague: true },
-  { id: 103, employee_id: "EMP003", full_name: "Amit Kumar", department: "HR", is_colleague: true },
-  { id: 104, employee_id: "EMP004", full_name: "Sneha Gupta", department: "Marketing", is_colleague: true },
-  { id: 105, employee_id: "EMP005", full_name: "Vijay Singh", department: "Operations", is_colleague: true },
-];
 
 interface GuestSelectorProps {
   selectedGuests: Guest[];
@@ -32,18 +24,24 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
   const [searchInput, setSearchInput] = useState("");
   const [suggestions, setSuggestions] = useState<Guest[]>([]);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [isLoading, setIsLoading] = useState(false);
 
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (searchInput.length >= 3) {
-      const filtered = MOCK_COLLEAGUES.filter(
-        (c) =>
-          c.full_name.toLowerCase().includes(searchInput.toLowerCase()) &&
-          !selectedGuests.some((g) => g.id === c.id)
-      );
-      setSuggestions(filtered);
+      setIsLoading(true);
+      userAPI
+        .searchColleagues(searchInput)
+        .then((colleagues: any[]) => {
+          const filtered = colleagues
+            .filter((c) => !selectedGuests.some((g) => g.id === c.id))
+            .map((c) => ({ ...c, is_colleague: true }));
+          setSuggestions(filtered);
+        })
+        .catch(() => setSuggestions([]))
+        .finally(() => setIsLoading(false));
     } else {
       setSuggestions([]);
     }
@@ -51,7 +49,10 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -72,7 +73,12 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
 
   const addCustomGuest = () => {
     const trimmedName = searchInput.trim();
-    if (!trimmedName || selectedGuests.some((g) => g.full_name.toLowerCase() === trimmedName.toLowerCase())) {
+    if (
+      !trimmedName ||
+      selectedGuests.some(
+        (g) => g.full_name.toLowerCase() === trimmedName.toLowerCase(),
+      )
+    ) {
       return;
     }
     setSelectedGuests([
@@ -168,7 +174,7 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
                           onClick={() => addColleague(colleague)}
                           className={cn(
                             "w-full px-3 py-2 text-left text-sm hover:bg-primary/10 transition-colors border-b border-border last:border-b-0",
-                            highlightIndex === index && "bg-primary/10"
+                            highlightIndex === index && "bg-primary/10",
                           )}
                         >
                           <div className="flex items-center justify-between">
@@ -181,7 +187,9 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
                                   {colleague.employee_id}
                                 </span>
                                 {colleague.department && (
-                                  <span className="truncate">• {colleague.department}</span>
+                                  <span className="truncate">
+                                    • {colleague.department}
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -200,7 +208,8 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
                       onClick={addCustomGuest}
                       className={cn(
                         "w-full px-3 py-2 text-left text-sm hover:bg-green-600/10 transition-colors",
-                        highlightIndex === suggestions.length && "bg-green-600/10"
+                        highlightIndex === suggestions.length &&
+                          "bg-green-600/10",
                       )}
                     >
                       <div className="flex items-center justify-between">
@@ -240,14 +249,16 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
                           "flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-medium",
                           guest.is_colleague
                             ? "bg-primary/10 text-primary border border-primary/20"
-                            : "bg-green-600/10 text-green-400 border border-green-400/20"
+                            : "bg-green-600/10 text-green-400 border border-green-400/20",
                         )}
                       >
                         <User size={12} />
                         <span className="max-w-[150px] truncate">
                           {guest.full_name}
                           {guest.employee_id && (
-                            <span className="ml-1 opacity-70">({guest.employee_id})</span>
+                            <span className="ml-1 opacity-70">
+                              ({guest.employee_id})
+                            </span>
                           )}
                         </span>
                         <button
@@ -264,8 +275,10 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({
               )}
 
               <div className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                <span className="font-medium text-primary">Blue</span> = Colleagues •
-                <span className="font-medium text-green-400 ml-1">Green</span> = Others
+                <span className="font-medium text-primary">Blue</span> =
+                Colleagues •
+                <span className="font-medium text-green-400 ml-1">Green</span> =
+                Others
               </div>
             </div>
           </div>

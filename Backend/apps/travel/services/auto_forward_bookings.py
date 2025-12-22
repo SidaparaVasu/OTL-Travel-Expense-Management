@@ -106,3 +106,63 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
         )
 
 
+def auto_confirm_self_arranged_bookings(application: TravelApplication, system_user):
+    """
+    Auto-confirm 'Self-Arranged' accommodation bookings.
+    These don't need vendor assignment - they go directly to 'confirmed' status.
+    
+    Also checks if all bookings are now confirmed and updates application status to 'booked'.
+    """
+    bookings = (
+        Booking.objects
+        .filter(
+            trip_details__travel_application=application,
+            status="pending"
+        )
+        .select_related("sub_option")
+    )
+
+    confirmed_count = 0
+    for booking in bookings:
+        sub_option = booking.sub_option
+        if sub_option and 'self' in sub_option.name.lower():
+            booking.status = "confirmed"
+            booking.save(update_fields=["status"])
+            confirmed_count += 1
+
+            AuditLog.objects.create(
+                user=system_user,
+                action="auto_confirm_booking",
+                content_object=booking,
+                changes={
+                    "booking_id": booking.id,
+                    "application_id": application.id,
+                    "reason": "Self-arranged accommodation - no vendor required",
+                },
+            )
+
+    # Check if ALL bookings are now confirmed (no pending bookings remain)
+    # If so, transition application directly to 'booked' status
+    if confirmed_count > 0:
+        pending_bookings = Booking.objects.filter(
+            trip_details__travel_application=application,
+            status__in=["pending", "requested", "in_progress"]
+        ).exists()
+        
+        if not pending_bookings:
+            # All bookings are confirmed - skip booking_in_progress and go to booked
+            application.status = "booked"
+            application.save(update_fields=["status"])
+            
+            AuditLog.objects.create(
+                user=system_user,
+                action="application_status_updated",
+                content_object=application,
+                changes={
+                    "from": "pending_travel_desk",
+                    "to": "booked",
+                    "reason": "All bookings confirmed (self-arranged) - no vendor booking required",
+                },
+            )
+
+    return confirmed_count

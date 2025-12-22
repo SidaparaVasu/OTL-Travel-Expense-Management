@@ -315,8 +315,9 @@ class TravelApplicationSubmitView(APIView):
             travel_app.set_settlement_due_date()
             travel_app.save(update_fields=["status"]) 
 
-            from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings
+            from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
             auto_forward_flight_train_bookings(travel_app, system_user=request.user)
+            auto_confirm_self_arranged_bookings(travel_app, system_user=request.user)
 
             return success_response(
                 data={
