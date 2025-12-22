@@ -60,6 +60,7 @@ export default function CreateClaimApplicationPage() {
 
   const [bookingRows, setBookingRows] = useState<any[]>([]);
   const [otherExpenses, setOtherExpenses] = useState<any[]>([]);
+  const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
 
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [validationResult, setValidationResult] = useState<any>(null);
@@ -336,6 +337,7 @@ export default function CreateClaimApplicationPage() {
 
       if (result?.success) {
         setValidationResult(result);
+        setDeclarationConfirmed(false); // Reset declaration
         setValidationModalOpen(true);
       } else {
         const friendly = normalizeErrors(result?.data || result?.errors);
@@ -1207,6 +1209,29 @@ export default function CreateClaimApplicationPage() {
                   </div>
                 </div>
 
+                <div className="flex items-start space-x-2 my-4 p-4 bg-slate-50 rounded-md border border-slate-200">
+                  <Checkbox
+                    id="declaration"
+                    checked={declarationConfirmed}
+                    onCheckedChange={(checked) =>
+                      setDeclarationConfirmed(checked as boolean)
+                    }
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="declaration"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      I hereby declare that the expenses claimed are genuine and
+                      incurred for official purposes.
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      I understand that any misrepresentation may lead to
+                      disciplinary action.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="flex gap-3 justify-end pt-4">
                   <Button
                     variant="outline"
@@ -1218,7 +1243,7 @@ export default function CreateClaimApplicationPage() {
                   <Button
                     onClick={handleSubmit}
                     className="uppercase"
-                    disabled={loading}
+                    disabled={loading || !declarationConfirmed}
                   >
                     {loading ? "Submitting..." : "Submit Claim"}
                   </Button>
