@@ -33,7 +33,7 @@ function ExpenseReportItemBase({
         <h4 className="text-lg font-medium text-foreground">{title}</h4>
         <p className="text-base text-secondary-foreground">{submittedBy}</p>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-center">
         <p className="text-lg font-bold text-foreground">{amount}</p>
         <div
           className={`rounded px-3 py-1 text-sm font-medium ${STATUS_STYLES[status]}`}

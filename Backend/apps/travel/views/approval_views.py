@@ -11,6 +11,10 @@ from ..serializers.approval_serializers import (
     TravelApprovalFlowSerializer, ApprovalActionSerializer,
     ManagerApprovalListSerializer
 )
+from apps.expenses.models import ExpenseClaim, ClaimApprovalFlow
+from django.db.models import Sum
+from datetime import timedelta
+from django.db.models.functions import TruncMonth
 from ...authentication.permissions import HasCustomPermission
 from apps.authentication.decorators import require_permission, require_role
 from utils.response_formatter import success_response, error_response, validation_error_response, paginated_response
@@ -371,14 +375,112 @@ class ApprovalDashboardView(APIView):
             for approval in recent_approvals
         ]
 
+
+        # --- Expense Reports (Recent Activity) ---
+        recent_claims = ClaimApprovalFlow.objects.filter(
+            approver=user
+        ).select_related(
+            'claim__employee'
+        ).order_by('-acted_on', '-id')[:5]
+
+        expense_reports = []
+        for flow in recent_claims:
+            expense_reports.append({
+                'title': f"Expense Claim #{flow.claim.id}",
+                'submitted_by': f"Submitted by {flow.claim.employee.get_full_name()}",
+                'amount': float(flow.claim.total_expenses),
+                'status': flow.status
+            })
+            
+        # --- Monthly Expense Trends (Last 12 Months) ---
+        # Get team members (if manager)
+        from apps.authentication.models import User
+        team_members = User.objects.filter(reporting_manager=user)
+        
+        # Calculate last 12 months range
+        end_date = timezone.now().date()
+        start_date = end_date.replace(day=1) - timedelta(days=365) # Approx 1 year
+        
+        # Aggregate expenses by month for team (or self if no team)
+        # Using submitted_on date for trends
+        expense_qs = ExpenseClaim.objects.filter(
+            submitted_on__gte=start_date,
+            status__label__in=['Approved', 'Paid', 'Closed'] # Only approved expenses
+        )
+        
+        if team_members.exists():
+             expense_qs = expense_qs.filter(employee__in=team_members)
+        else:
+             expense_qs = expense_qs.filter(employee=user)
+             
+        trends_data = expense_qs.annotate(
+            month=TruncMonth('submitted_on')
+        ).values('month').annotate(
+            total=Sum('total_expenses')
+        ).order_by('month')
+        
+        # Format for frontend [Jan, Feb...] and values
+        months_labels = []
+        values_data = []
+        
+        # Fill in missing months? For simplicity, we just return what we have or basic 12 slots if needed.
+        # Let's map to the last 12 months explicitly to ensure correct chart x-axis
+        
+        # Helper to generate last 12 months list
+        current = end_date.replace(day=1)
+        for i in range(11, -1, -1):
+            # Calculate past month
+            d = current - timedelta(days=30*i) # rough Approx
+            # Better specific logic:
+            year = current.year
+            month = current.month - i
+            while month <= 0:
+                month += 12
+                year -= 1
+            
+            label = timezone.datetime(year, month, 1).strftime('%b')
+            months_labels.append(label)
+            
+            # Find matching data
+            val = 0
+            for item in trends_data:
+                if item['month'].year == year and item['month'].month == month:
+                    val = float(item['total'])
+                    break
+            values_data.append(val)
+
+
+        # --- Active Trips (Team) ---
+        active_trips = 0
+        if team_members.exists():
+             # Statuses indicating active travel
+             active_statuses = ['booked', 'trip_started', 'booking_in_progress'] 
+             active_trips = TravelApplication.objects.filter(
+                 employee__in=team_members,
+                 status__in=active_statuses
+             ).count()
+
+        # --- Pending Expenses Amount (Approver) ---
+        pending_expenses_amount = ClaimApprovalFlow.objects.filter(
+            approver=user,
+            status='pending'
+        ).aggregate(total=Sum('claim__total_expenses'))['total'] or 0
+
         return success_response(
             data={
                 'statistics': {
                     'pending_approvals': pending_approvals,
                     'total_approvals_done': total_approvals_done,
-                    'approvals_this_month': approvals_this_month
+                    'approvals_this_month': approvals_this_month,
+                    'active_trips': active_trips,
+                    'pending_expenses_amount': float(pending_expenses_amount)
                 },
-                'recent_activity': recent_data
+                'recent_activity': recent_data,
+                'expense_reports': expense_reports,
+                'expense_trends': {
+                    'months': months_labels,
+                    'values': values_data
+                }
             },
             message='Dashboard data retrieved successfully'
         )

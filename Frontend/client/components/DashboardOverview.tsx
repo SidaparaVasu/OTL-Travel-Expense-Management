@@ -14,28 +14,48 @@ import {
   StatCardExpense,
 } from "@/assets/icons";
 import { CheckCheckIcon, IndianRupeeIcon } from "lucide-react";
-
+import { ROUTES } from "@/routes/routes";
 
 interface ApprovalStats {
-  pendingApproval: number;
-  approvedToday: number;
-  totalBudget: string;
-  rejected: number;
+  pending_approvals: number;
+  total_approvals_done: number;
+  approvals_this_month: number;
+  active_trips: number;
+  pending_expenses_amount: number;
 }
 
 interface RecentActivities {
-  action: string,
-  approval_level: string,
-  employee_name: string,
-  travel_request_id: string,
-  location: object,
+  action: string;
+  approval_level: string;
+  employee_name: string;
+  travel_request_id: string;
+  location: {
+    from_location__city_name?: string;
+    to_location__city_name?: string;
+  } | null;
+}
+
+interface ExpenseReport {
+  title: string;
+  submitted_by: string;
+  amount: number;
+  status: string;
+}
+
+interface ExpenseTrends {
+  months: string[];
+  values: number[];
 }
 
 export function DashboardOverview() {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState<ApprovalStats | null>(null);
-  const [activity, setAcitivity] = useState<RecentActivities | null>(null);
+  const [activity, setAcitivity] = useState<RecentActivities[]>([]);
+  const [expenseReports, setExpenseReports] = useState<ExpenseReport[]>([]);
+  const [expenseTrends, setExpenseTrends] = useState<ExpenseTrends | null>(
+    null,
+  );
 
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +67,9 @@ export function DashboardOverview() {
     try {
       const dashboardData = await approvalAPI.getDashboard();
       setStats(dashboardData.data.statistics);
-      setAcitivity(dashboardData.data.recent_activity)
+      setAcitivity(dashboardData.data.recent_activity || []);
+      setExpenseReports(dashboardData.data.expense_reports || []);
+      setExpenseTrends(dashboardData.data.expense_trends);
       console.log(dashboardData.data);
     } catch (err) {
       console.error("Failed to load approval statistics!", err);
@@ -56,7 +78,7 @@ export function DashboardOverview() {
     }
   };
 
-  const months = [
+  const months = expenseTrends?.months || [
     "Jan",
     "Feb",
     "Mar",
@@ -70,9 +92,7 @@ export function DashboardOverview() {
     "Nov",
     "Dec",
   ];
-  const values = [
-    2750, 1800, 3800, 1120, 3760, 2300, 2130, 3446, 3910, 780, 1873, 2836,
-  ];
+  const values = expenseTrends?.values || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
   return (
     <div className="space-y-8">
@@ -81,46 +101,45 @@ export function DashboardOverview() {
           Dashboard Overview
         </h1>
         <p className="mt-2 text-lg text-foreground">
-          Welcome back! Here's what's happening with your travel &
-          expenses.
+          Welcome back! Here's what's happening with your travel & expenses.
         </p>
       </div>
 
       {stats && (
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Active Trips"
-          value="24"
-          icon={
-            <StatCardPlane className="h-9 w-9 text-[#0B98D3] [&_*]:fill-current" />
-          }
-          bgColor="bg-blue-50"
-        />
-        <StatCard
-          title="Pending Expenses"
-          value="₹15,150"
-          icon={<StatCardFileText className="h-9 w-9" />}
-          bgColor="bg-red-50"
-        />
-        <StatCard
-          title="Awaiting Approval"
-          value={stats.pending_approvals || 0}
-          icon={<StatCardWaiting className="h-9 w-9" />}
-          bgColor="bg-orange-50"
-        />
-        <StatCard
-          title="Total Approved"
-          value={stats.total_approvals_done}
-          icon={<CheckCheckIcon className="h-9 w-9 text-green-500" />}
-          bgColor="bg-green-50"
-        />
-        {/* <StatCard
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Active Trips"
+            value={String(stats.active_trips || 0)}
+            icon={
+              <StatCardPlane className="h-9 w-9 text-[#0B98D3] [&_*]:fill-current" />
+            }
+            bgColor="bg-blue-50"
+          />
+          <StatCard
+            title="Pending Expenses"
+            value={`₹${(stats.pending_expenses_amount || 0).toLocaleString("en-IN")}`}
+            icon={<StatCardFileText className="h-9 w-9" />}
+            bgColor="bg-red-50"
+          />
+          <StatCard
+            title="Awaiting Approval"
+            value={String(stats.pending_approvals || 0)}
+            icon={<StatCardWaiting className="h-9 w-9" />}
+            bgColor="bg-orange-50"
+          />
+          <StatCard
+            title="Total Approved"
+            value={String(stats.total_approvals_done)}
+            icon={<CheckCheckIcon className="h-9 w-9 text-green-500" />}
+            bgColor="bg-green-50"
+          />
+          {/* <StatCard
           title="Monthly Budget"
           value="₹45,000"
           icon={<IndianRupeeIcon className="h-9 w-9 text-green-500" />}
           bgColor="bg-green-50"
         /> */}
-      </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -129,29 +148,30 @@ export function DashboardOverview() {
             <h2 className="text-xl font-bold text-foreground">
               Recent Travel Requests
             </h2>
-            <button className="text-base font-bold text-primary underline" onClick={() => navigate(`/travel/travel-request-approval`)}>
+            <button
+              className="text-base font-bold text-primary underline"
+              onClick={() => navigate(ROUTES.travelRequestApproval)}
+            >
               View All
             </button>
           </div>
           <div className="space-y-4">
-            {
-              Array.isArray(activity) && activity.map((request) => (
+            {Array.isArray(activity) &&
+              activity.map((request) => (
                 <div>
                   <TravelRequestItem
                     name={request.employee_name}
                     avatar="https://api.builder.io/api/v1/image/assets/TEMP/4fa4c38ef3892012b166bc2fbb474ffbd49bda2e?width=100"
-                    from={request.location.from_location__city_name}
-                    to={request.location.to_location__city_name}
-                    status={request.action}
+                    from={request.location?.from_location__city_name || "N/A"}
+                    to={request.location?.to_location__city_name || "N/A"}
+                    status={request.action as any}
                   />
                   <div className="h-px bg-foreground/10" />
                 </div>
-              ))
-            }
+              ))}
             {activity?.length === 0 && (
-                <center className="m-5">No recent application found.
-                </center>
-              )}
+              <center className="m-5">No recent application found.</center>
+            )}
             {/* <TravelRequestItem
               name="Sarah Johnson"
               avatar="https://api.builder.io/api/v1/image/assets/TEMP/4fa4c38ef3892012b166bc2fbb474ffbd49bda2e?width=100"
@@ -188,26 +208,25 @@ export function DashboardOverview() {
             </button>
           </div>
           <div className="space-y-4">
-            <ExpenseReportItem
-              title="Q1 2025 Business Travel"
-              submittedBy="Submitted by Alex Rivera"
-              amount="₹3.245"
-              status="pending"
-            />
-            <div className="h-px bg-foreground/10" />
-            <ExpenseReportItem
-              title="Client Meeting Expenses"
-              submittedBy="Submitted by Lisa Park"
-              amount="₹3.245"
-              status="approved"
-            />
-            <div className="h-px bg-foreground/10" />
-            <ExpenseReportItem
-              title="Conference Attendance"
-              submittedBy="Submitted by David Kim"
-              amount="₹3.245"
-              status="rejected"
-            />
+            {expenseReports.length > 0 ? (
+              expenseReports.map((report, index) => (
+                <div key={index}>
+                  <ExpenseReportItem
+                    title={report.title}
+                    submittedBy={report.submitted_by}
+                    amount={`₹${report.amount.toLocaleString("en-IN")}`}
+                    status={report.status as any}
+                  />
+                  {index < expenseReports.length - 1 && (
+                    <div className="h-px bg-foreground/10" />
+                  )}
+                </div>
+              ))
+            ) : (
+              <center className="m-5 text-sm text-gray-500">
+                No recent expense reports found.
+              </center>
+            )}
           </div>
         </div>
       </div>
