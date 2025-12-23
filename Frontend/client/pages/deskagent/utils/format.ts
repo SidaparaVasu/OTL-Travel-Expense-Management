@@ -72,11 +72,11 @@ export function formatTime(timeStr: string | null | undefined): string {
 }
 
 export function formatCurrency(amount: string | number | null | undefined): string {
-  if (amount === null || amount === undefined) return "—";
+  if (amount === null || amount === undefined) return "N/A";
   
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   
-  if (isNaN(numAmount)) return "—";
+  if (isNaN(numAmount)) return "N/A";
   
   return `₹${numAmount.toLocaleString('en-IN')}`;
 }
@@ -94,7 +94,7 @@ export function formatHours(hours: number | null | undefined): string {
 export function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     pending: 'Pending',
-    pending_travel_desk: 'Pending Travel Desk',
+    pending_travel_desk: 'Pending by Travel Desk',
     booking_in_progress: 'Booking in Progress',
     assigned: 'Assigned',
     booked: 'Booked',

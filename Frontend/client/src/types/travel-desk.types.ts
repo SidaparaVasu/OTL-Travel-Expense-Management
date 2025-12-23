@@ -52,6 +52,7 @@ export interface Booking {
   booking_file: string | null;
   special_instruction: string;
   can_reassign: boolean;
+  trip_segment?: string;
 }
 
 export interface TripDetail {

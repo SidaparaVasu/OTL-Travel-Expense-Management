@@ -17,6 +17,10 @@ from apps.master_data.models import (
 from apps.travel.models import TravelApplication
 
 
+# --- Configuration -----------------------------------------------------------
+
+STRICT_ADVANCE_BOOKING = False  # Set to True to block bookings that violate advance notice
+
 # --- helpers -----------------------------------------------------------------
 
 def _get_policy(policy_type, travel_mode=None, grade=None):
@@ -83,11 +87,15 @@ def validate_advance_booking(departure_date, mode_name, estimated_cost=0):
             required_days = 7
 
         if days_ahead < required_days:
+            msg = f"Flight booking is {days_ahead} days ahead (policy: {required_days} days minimum)."
+            if STRICT_ADVANCE_BOOKING:
+                raise serializers.ValidationError(msg)
+
             # treat as warning (non-blocking) per new requirements
             warnings.append({
                 "type": "advance_booking_violation",
                 "mode": "Flight",
-                "message": f"Flight booking is {days_ahead} days ahead (policy: {required_days} days minimum).",
+                "message": msg,
                 "severity": "warning"
             })
 
@@ -112,10 +120,14 @@ def validate_advance_booking(departure_date, mode_name, estimated_cost=0):
             required_days = 3
 
         if days_ahead < required_days:
+            msg = f"Train booking is {days_ahead} days ahead (policy: {required_days} days minimum)."
+            if STRICT_ADVANCE_BOOKING:
+                raise serializers.ValidationError(msg)
+
             warnings.append({
                 "type": "advance_booking_violation",
                 "mode": "Train",
-                "message": f"Train booking is {days_ahead} days ahead (policy: {required_days} days minimum).",
+                "message": msg,
                 "severity": "warning"
             })
 

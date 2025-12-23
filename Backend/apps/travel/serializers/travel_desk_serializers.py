@@ -123,6 +123,31 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         # Not allowed if in_progress, confirmed, completed, cancelled.
         return obj.status in ['pending', 'requested']
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        
+        # Add place_name for self-arranged accommodation
+        booking_details = ret.get('booking_details') or {}
+        place_id = booking_details.get('place')
+        
+        if place_id:
+            try:
+                # Check if it's already a name or an ID
+                # If it's numeric, try to resolve it
+                if str(place_id).isdigit():
+                    from apps.master_data.models import CityMaster
+                    city = CityMaster.objects.filter(id=int(place_id)).first()
+                    if city:
+                        booking_details['place_name'] = city.city_name
+                        # Also optionally update place to be the name if desired, 
+                        # but adding place_name is safer for backward compatibility.
+                        # Frontend should check place_name or place.
+                        ret['booking_details'] = booking_details
+            except Exception:
+                pass
+        
+        return ret
+
 
 class TravelDeskTripSerializer(serializers.ModelSerializer):
     from_location_name = serializers.CharField(source="from_location.city_name", read_only=True)
@@ -231,7 +256,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
 
 
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
-    travel_request_id = serializers.CharField(read_only=True)
+    travel_request_id = serializers.CharField(source='get_travel_request_id', read_only=True)
     employee_name = serializers.SerializerMethodField()
     employee_grade = serializers.CharField(read_only=True)
     status_label = serializers.SerializerMethodField()

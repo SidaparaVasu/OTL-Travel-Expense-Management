@@ -43,7 +43,7 @@ class TravelApplicationAdmin(admin.ModelAdmin):
                       'advance_amount', 'estimated_total_cost')
         }),
         ('Status & Approval', {
-            'fields': ('status', 'current_approver', 'is_settled', 'settlement_due_date')
+            'fields': ('status', 'current_approver', 'is_settled', 'settlement_due_date', 'self_approved')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at', 'submitted_at'),

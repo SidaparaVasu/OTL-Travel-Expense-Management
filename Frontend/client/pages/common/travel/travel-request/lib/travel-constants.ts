@@ -167,3 +167,6 @@ export const getEmptyConveyance = () => ({
   distance_km: "",
   has_six_airbags: true,
 });
+
+// Validation Configuration
+export const STRICT_ADVANCE_BOOKING = false;

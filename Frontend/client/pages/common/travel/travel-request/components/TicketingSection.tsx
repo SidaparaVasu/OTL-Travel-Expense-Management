@@ -10,10 +10,10 @@ import { DataTable } from "./DataTable";
 import { Button } from "@/components/ui/button";
 import { TimePickerField } from "./TimePickerField";
 import {
-  CITIES,
   TRAVEL_MODES,
   TRAVEL_SUB_OPTIONS,
   getEmptyTicketing,
+  STRICT_ADVANCE_BOOKING,
 } from "../lib/travel-constants";
 import {
   isDateInRange,
@@ -22,7 +22,13 @@ import {
   validateEstimatedCost,
   validateSpecialInstructions,
 } from "../lib/travel-validation";
-import { travelAPI, locationAPI, type City, type TravelMode, type TravelSubOption } from "@/src/api/travel-api";
+import {
+  travelAPI,
+  locationAPI,
+  type City,
+  type TravelMode,
+  type TravelSubOption,
+} from "@/src/api/travel-api";
 
 interface TicketingFormData {
   booking_type: string;
@@ -131,8 +137,19 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
     if (form.departure_date && form.booking_type) {
       const modeName = getModeNameById(form.booking_type);
       if (modeName === "Flight" || modeName === "Train") {
-        const advanceError = validateAdvanceBooking(form.departure_date, modeName);
-        if (advanceError) newErrors.departure_date = advanceError;
+        const advanceError = validateAdvanceBooking(
+          form.departure_date,
+          modeName,
+        );
+        if (advanceError) {
+          if (STRICT_ADVANCE_BOOKING) {
+            newErrors.departure_date = advanceError;
+          } else {
+            toast.warning(advanceError, {
+              duration: 5000,
+            });
+          }
+        }
       }
     }
 

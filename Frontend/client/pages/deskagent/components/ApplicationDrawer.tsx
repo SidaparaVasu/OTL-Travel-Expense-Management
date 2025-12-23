@@ -323,7 +323,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const someSelected =
     selectedBookings.length > 0 && selectedBookings.length < allBookings.length;
   const completedBookings = allBookings.filter(
-    (b) => b.status === "completed",
+    (b) => b.status === "completed" || b.status === "confirmed",
   ).length;
   const isAllCompleted =
     totalBookings > 0 && completedBookings === totalBookings;
@@ -652,10 +652,21 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                       if (type.includes("accommodation")) {
                                         const place =
+                                          d.place_name ||
                                           d.place ||
                                           trip.to_location_name ||
                                           "—";
-                                        return <span>{place}</span>;
+                                        const segment =
+                                          booking.trip_segment ||
+                                          `${trip.from_location_name} → ${trip.to_location_name}`;
+                                        return (
+                                          <div className="flex flex-col">
+                                            <span className="text-xs text-muted-foreground mb-0.5">
+                                              {segment}
+                                            </span>
+                                            <span>{place}</span>
+                                          </div>
+                                        );
                                       }
 
                                       if (

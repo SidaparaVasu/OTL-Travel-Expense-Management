@@ -310,10 +310,11 @@ class TravelApplicationSubmitView(APIView):
             )
             # Directly move to travel desk
             travel_app.status = "pending_travel_desk"
+            travel_app.self_approved = True
             travel_app.submitted_at = timezone.now()
             travel_app.current_approver = None
             travel_app.set_settlement_due_date()
-            travel_app.save(update_fields=["status"]) 
+            travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"]) 
 
             from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
             auto_forward_flight_train_bookings(travel_app, system_user=request.user)
