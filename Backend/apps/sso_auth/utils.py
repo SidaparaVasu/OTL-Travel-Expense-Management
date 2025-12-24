@@ -23,7 +23,8 @@ class SSOTokenHandler:
         """
         try:
             # Handle URL encoding (replace URL-safe chars)
-            encrypted_base64 = encrypted_base64.replace('-', '+').replace('_', '/')
+            # Standard URL parsers convert '+' to ' ', so we must convert it back
+            encrypted_base64 = encrypted_base64.replace(' ', '+').replace('-', '+').replace('_', '/')
             
             # Add padding if needed
             padding_needed = len(encrypted_base64) % 4
