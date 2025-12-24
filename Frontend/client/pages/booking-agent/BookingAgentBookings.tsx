@@ -70,10 +70,12 @@ const BookingAgentBookings: React.FC = () => {
     setIsViewModalOpen(true);
   };
 
-  const handleUpdateStatus = (booking: Booking) => {
-    setSelectedBooking(booking);
+  const handleUpdateStatus = async (booking: Booking) => {
+    const { data } = await bookingAgentAPI.bookings.get(booking.id);
+    setSelectedBooking(data);
     setIsStatusModalOpen(true);
   };
+
 
   const handleAddNote = (booking: Booking) => {
     setSelectedBooking(booking);

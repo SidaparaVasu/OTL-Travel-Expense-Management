@@ -203,7 +203,7 @@ export default function ClaimDetailPage() {
                           ) : item.is_self_certified ? (
                             <Badge className="text-xs bg-yellow-100 hover:bg-yellow-100 text-yellow-700" variant='success'>Self-Cert</Badge>
                           ) : (
-                            <Badge className="text-xs bg-slate-200 hover:bg-slate-100 text-slate-700" variant='success'>None</Badge>
+                            <Badge className="text-xs bg-slate-200 hover:bg-slate-100 text-slate-700" variant='success'>Not Provided</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-slate-600 text-left">

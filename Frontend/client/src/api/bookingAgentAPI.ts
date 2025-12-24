@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export interface BookingAgentDashboardStats {
   total_assigned: number;
@@ -41,6 +41,8 @@ export interface Booking {
     assigned_at: string;
   };
   created_at?: string;
+  max_allowed_cost?: number;
+  ceo_approval_status?: "pending" | "approved" | "rejected" | "not_required";
 }
 
 export interface BookingDetails {
@@ -55,7 +57,7 @@ export interface BookingDetails {
   arrival_time?: string;
   ticket_number?: string;
   meal_preference?: string;
-  
+
   // Accommodation
   place?: string;
   check_in_date?: string;
@@ -63,7 +65,7 @@ export interface BookingDetails {
   check_out_date?: string;
   check_out_time?: string;
   guest_house_preferences?: number[];
-  
+
   // Conveyance
   start_date?: string;
   start_time?: string;
@@ -104,75 +106,84 @@ export interface BookingsListResponse {
 
 export interface BookingsListParams {
   page?: number;
-  status?: 'pending' | 'in_progress' | 'confirmed' | 'cancelled' | '';
+  status?: "pending" | "in_progress" | "confirmed" | "cancelled" | "";
   search?: string;
 }
 
 export const bookingAgentAPI = {
   dashboard: {
-    get: async (): Promise<{ success: boolean; data: BookingAgentDashboardData }> => {
-      const response = await apiClient.get('/travel/dashboard/booking-agent/');
+    get: async (): Promise<{
+      success: boolean;
+      data: BookingAgentDashboardData;
+    }> => {
+      const response = await apiClient.get("/travel/dashboard/booking-agent/");
       return response.data;
     },
   },
 
   bookings: {
-    list: async (params: BookingsListParams = {}): Promise<BookingsListResponse> => {
+    list: async (
+      params: BookingsListParams = {},
+    ): Promise<BookingsListResponse> => {
       const queryParams = new URLSearchParams();
-      if (params.page) queryParams.append('page', params.page.toString());
-      if (params.status) queryParams.append('status', params.status);
-      if (params.search) queryParams.append('search', params.search);
-      
+      if (params.page) queryParams.append("page", params.page.toString());
+      if (params.status) queryParams.append("status", params.status);
+      if (params.search) queryParams.append("search", params.search);
+
       const response = await apiClient.get(
-        `/travel/booking-agent/bookings/?${queryParams.toString()}`
+        `/travel/booking-agent/bookings/?${queryParams.toString()}`,
       );
       return response.data;
     },
 
-    get: async (bookingId: number): Promise<{ success: boolean; data: Booking }> => {
-      const response = await apiClient.get(`/travel/booking-agent/bookings/${bookingId}/`);
+    get: async (
+      bookingId: number,
+    ): Promise<{ success: boolean; data: Booking }> => {
+      const response = await apiClient.get(
+        `/travel/booking-agent/bookings/${bookingId}/`,
+      );
       return response.data;
     },
 
     updateStatus: async (
       bookingId: number,
-      formData: FormData
+      formData: FormData,
     ): Promise<{ success: boolean; message: string }> => {
       const response = await apiClient.post(
         `/travel/booking-agent/bookings/${bookingId}/status/`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
       return response.data;
     },
 
     addNote: async (
       bookingId: number,
-      data: { note: string }
+      data: { note: string },
     ): Promise<{ success: boolean; message: string }> => {
       const response = await apiClient.post(
         `/travel/booking-agent/bookings/${bookingId}/notes/`,
-        data
+        data,
       );
       return response.data;
     },
 
     uploadFile: async (
       bookingId: number,
-      formData: FormData
+      formData: FormData,
     ): Promise<{ success: boolean; message: string }> => {
       const response = await apiClient.post(
         `/travel/booking-agent/bookings/${bookingId}/upload-file/`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
       return response.data;
     },

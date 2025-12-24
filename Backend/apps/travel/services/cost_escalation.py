@@ -86,15 +86,27 @@ def escalate_application_to_ceo(application, booking, triggered_by, reason):
     application.current_approver = None
     application.save(update_fields=["status", "current_approver"])
 
+    # Find CEO User
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    # Try to find user with CEO Role
+    # User is linked with roles via UserRole model
+    ceo_user = User.objects.filter(
+        userrole__role__name__iexact="CEO",
+        userrole__is_active=True,
+        is_active=True
+    ).first()
+
+    if not ceo_user:
+        raise RuntimeError("CEO user not found in the system (Role: CEO)")
+
     # Create CEO approval flow if missing
     TravelApprovalFlow.objects.get_or_create(
         travel_application=application,
         approval_level="ceo",
         defaults={
-            "approver": TravelApprovalFlow.objects
-                .filter(approval_level="ceo")
-                .first()
-                .approver,
+            "approver": ceo_user,
             "sequence": 999,
             "status": "pending",
             "is_required": True,
@@ -119,8 +131,8 @@ def escalate_application_to_ceo(application, booking, triggered_by, reason):
             "actual_cost": str(booking.actual_cost),
             "reason": "Actual booking cost exceeded policy limit",
             "action_required": "Approve revised cost",
+            "approver_id": ceo_user.id, # Pass ID for resolver
         },
-        recipients=[ceo_user],
     )
 
     # Notify Applicant (awareness)
@@ -131,8 +143,8 @@ def escalate_application_to_ceo(application, booking, triggered_by, reason):
             "request_id": application.get_travel_request_id(),
             "actual_cost": str(booking.actual_cost),
             "reason": "Booking paused due to cost escalation",
+            "employee_id": application.employee.id, # Pass ID for resolver
         },
-        recipients=[application.employee],
     )
 
     # Audit

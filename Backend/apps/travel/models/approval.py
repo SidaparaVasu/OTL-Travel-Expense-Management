@@ -102,11 +102,31 @@ class TravelApprovalFlow(models.Model):
             application.current_approver = None
             application.save(update_fields=["status", "current_approver"])
 
+            assigned_agent = get_assigned_booking_agent(application)
+            
+            # Notify Booking Agent
+            NotificationCenter.notify(
+                event_name="travel.ceo.reapproval_approved",
+                reference={"type": "TravelRequest", "id": application.id},
+                payload={
+                    "request_id": application.get_travel_request_id(),
+                    "employee_name": application.employee.get_full_name(),
+                    "booking_agent_name": assigned_agent.get_full_name() if assigned_agent else "",
+                    "action_required": "Resume booking",
+                    
+                    # REQUIRED for default_resolver
+                    "recipients": [
+                        application.employee.id,
+                        *( [assigned_agent.id] if assigned_agent else [] ),
+                    ],
+                },
+            )
+
             # Audit (important)
             from apps.travel.models.audit import AuditLog
             AuditLog.objects.create(
                 user=self.approver,
-                action="resume_booking_after_ceo_approval",
+                action="ceo_resume_booking",
                 content_object=application,
                 changes={
                     "approval_flow_id": self.id,
@@ -119,25 +139,6 @@ class TravelApprovalFlow(models.Model):
         # DEFAULT FLOW
         # -----------------------------------------
         application.update_status_after_approval(self)
-        assigned_agent = get_assigned_booking_agent(application)
-
-        # Notify Booking Agent
-        NotificationCenter.notify(
-            event_name="travel.ceo.reapproval_approved",
-            reference={"type": "TravelRequest", "id": application.id},
-            payload={
-                "request_id": application.get_travel_request_id(),
-                "employee_name": application.employee.get_full_name(),
-                "booking_agent_name": assigned_agent.get_full_name() if assigned_agent else "",
-                "action_required": "Resume booking",
-
-                # REQUIRED for default_resolver
-                "recipients": [
-                    application.employee.id,
-                    *( [assigned_agent.id] if assigned_agent else [] ),
-                ],
-            },
-        )
         
 
     def reject(self, notes=""):

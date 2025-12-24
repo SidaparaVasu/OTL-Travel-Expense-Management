@@ -18,6 +18,7 @@ class AuditLog(models.Model):
         ('assign_booking', 'Booking Assigned'),
         ('update_booking_status', 'Booking Status Updated'),
         ('forward_to_travel_desk', 'Forwarded to Travel Desk'),
+        ('ceo_resume_booking', 'CEO Resumed Booking'),
     ]
     
     user = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True)

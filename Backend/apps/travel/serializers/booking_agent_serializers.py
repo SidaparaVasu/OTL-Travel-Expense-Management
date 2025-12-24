@@ -54,13 +54,14 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)
     status_label = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
+    max_allowed_cost = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
             "id", "application_id", "travel_request_id", "employee_name", "trip_segment", 
             "booking_details", "booking_type", "booking_type_name", "sub_option", "sub_option_name",
-            "status", "status_label", "estimated_cost", "actual_cost",
+            "status", "status_label", "estimated_cost", "actual_cost", "max_allowed_cost",
             "booking_reference", "vendor_reference", "booking_file",
             "created_at", "updated_at",
             "assigned_agent",
@@ -104,6 +105,34 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "scope": assignment.assignment_scope,
         }
 
+    def get_max_allowed_cost(self, obj):
+        # Escalation applies only to Flight
+        if obj.booking_type.name != "Flight":
+            return None
+
+        from apps.master_data.models import TravelPolicyMaster
+        from django.utils import timezone
+        from django.db.models import Q
+
+        today = timezone.now().date()
+
+        policy = (
+            TravelPolicyMaster.objects
+            .filter(
+                policy_type="amount_limit",
+                is_active=True,
+                travel_mode=obj.booking_type,
+                effective_from__lte=today
+            )
+            .filter(Q(effective_to__isnull=True) | Q(effective_to__gte=today))
+            .order_by("-effective_from")
+            .first()
+        )
+        
+        if policy and policy.rule_parameters:
+            return policy.rule_parameters.get("max_amount")
+        return None
+
 
 class AgentBookingDetailSerializer(serializers.ModelSerializer):
     application_id = serializers.IntegerField(source="trip_details.travel_application.id", read_only=True)
@@ -116,7 +145,8 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)
     status_label = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
-    booking_details = serializers.JSONField()
+    max_allowed_cost = serializers.SerializerMethodField()
+    ceo_approval_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -129,6 +159,8 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "created_at", "updated_at", "booked_at", "assigned_agent",
             "booking_details",
             "meal_preference",
+            "max_allowed_cost",
+            "ceo_approval_status",
         ]
 
     meal_preference = serializers.SerializerMethodField()
@@ -147,6 +179,35 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
 
     def get_status_label(self, obj):
         return obj.get_status_display()
+    
+    def get_ceo_approval_status(self, obj):
+        app = obj.trip_details.travel_application
+        ceo_flow = app.approval_flows.filter(approval_level='ceo').first()
+        if not ceo_flow:
+            return 'not_required'
+        return ceo_flow.status
+    
+    def get_max_allowed_cost(self, obj):
+        from apps.master_data.models import ApprovalMatrix
+        app = obj.trip_details.travel_application
+        employee = app.employee
+        
+        # Determine grade (use employee's grade)
+        grade = employee.grade
+        if not grade:
+            return None
+        
+        # Find matrix rule
+        # Rule: Flight + Grade -> max_amount
+        matrix = ApprovalMatrix.objects.filter(
+            travel_mode=obj.booking_type,
+            employee_grade=grade,
+            is_active=True
+        ).order_by('min_amount').last() # simplistic lookup
+        
+        if matrix and matrix.max_amount:
+            return matrix.max_amount
+        return None
 
     def get_assigned_agent(self, obj):
         assignment = (

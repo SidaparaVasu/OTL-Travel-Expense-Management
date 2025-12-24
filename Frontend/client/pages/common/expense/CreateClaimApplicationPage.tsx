@@ -1226,6 +1226,10 @@ export default function CreateClaimApplicationPage() {
                       incurred for official purposes.
                     </label>
                     <p className="text-sm text-muted-foreground">
+                      This is to certify that all the information filled in by
+                      me is true. Amount claimed by me is as per entitlements.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       I understand that any misrepresentation may lead to
                       disciplinary action.
                     </p>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -27,15 +27,46 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
   onSuccess,
 }) => {
   const { toast } = useToast();
-  const [status, setStatus] = useState<string>("");
-  const [remarks, setRemarks] = useState<string>("");
+
+  console.log("Booking: ", booking);
+
+  const [status, setStatus] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [actualCost, setActualCost] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (booking) {
+      setStatus(booking.status);
+      setActualCost(booking.actual_cost ?? "");
+      setRemarks("");
+      setFile(null);
+    }
+  }, [booking]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setStatus("");
+      setRemarks("");
+      setFile(null);
+      setActualCost("");
+    }
+  }, [isOpen]);
 
   if (!isOpen || !booking) return null;
 
+  const requiresCeoApproval = () => {
+    if (status !== "confirmed") return false;
+    if (booking.booking_type_name !== "Flight") return false;
+    if (booking.ceo_approval_status === "approved") return false;
+    if (!actualCost || booking.max_allowed_cost == null) return false;
+
+    return Number(actualCost) > Number(booking.max_allowed_cost);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.length) {
       setFile(e.target.files[0]);
     }
   };
@@ -43,8 +74,27 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
   const handleSubmit = async () => {
     if (!status) {
       toast({
-        title: "Status is not selected",
+        title: "Status required",
         description: "Please select a status",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (status === "confirmed" && !actualCost) {
+      toast({
+        title: "Actual cost required",
+        description: "Actual cost is mandatory for confirmation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (requiresCeoApproval()) {
+      toast({
+        title: "CEO approval required",
+        description:
+          "Cost exceeds allowed limit. Please wait for CEO approval.",
         variant: "destructive",
       });
       return;
@@ -55,31 +105,43 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
     try {
       const formData = new FormData();
       formData.append("status", status);
+
       if (remarks.trim()) {
         formData.append("remarks", remarks.trim());
       }
+
       if (file) {
         formData.append("booking_file", file);
       }
 
-      await bookingAgentAPI.bookings.updateStatus(booking.id, formData);
+      if (actualCost) {
+        formData.append("actual_cost", actualCost);
+      }
 
-      toast({
-        title: "Status Updated",
-        description: `Booking status has been updated to ${status}`,
-      });
+      const response = await bookingAgentAPI.bookings.updateStatus(
+        booking.id,
+        formData,
+      );
 
-      // Reset form
-      setStatus("");
-      setRemarks("");
-      setFile(null);
+      if (response?.data?.status === "escalated") {
+        toast({
+          title: "Sent for CEO approval",
+          description:
+            "Booking cost exceeds limit and has been sent to CEO for approval.",
+        });
+      } else {
+        toast({
+          title: "Status updated",
+          description: `Booking marked as ${status}`,
+        });
+      }
+
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error("Failed to update status:", error);
+    } catch {
       toast({
-        title: "Oops!",
-        description: "Failed to update booking status. Please try again.",
+        title: "Update failed",
+        description: "Unable to update booking status",
         variant: "destructive",
       });
     } finally {
@@ -88,30 +150,23 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
-      setStatus("");
-      setRemarks("");
-      setFile(null);
-      onClose();
-    }
+    if (!isSubmitting) onClose();
   };
 
   return (
     <div
-      className="fixed inset-0 top-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={handleClose}
     >
       <div
-        className="bg-card rounded-xl shadow-xl w-full max-w-md overflow-hidden"
+        className="bg-card rounded-xl shadow-xl w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h3 className="text-lg font-semibold">Update Booking Status</h3>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
             onClick={handleClose}
             disabled={isSubmitting}
           >
@@ -119,79 +174,116 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
           </Button>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-4 space-y-4">
           <div className="text-sm text-muted-foreground">
-            Booking ID: <span className="font-mono font-medium text-foreground">BK-{String(booking.id).padStart(5, '0')}</span>
+            Booking ID:{" "}
+            <span className="font-mono text-foreground">
+              BK-{String(booking.id).padStart(5, "0")}
+            </span>
           </div>
 
-          {/* Status Select */}
           <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
-            <Select value={status} onValueChange={setStatus} disabled={isSubmitting}>
+            <Label>Status *</Label>
+            <Select value={status} onValueChange={setStatus}>
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem
+                  value="confirmed"
+                  disabled={booking.ceo_approval_status === "rejected"}
+                >
+                  Confirmed
+                  {booking.ceo_approval_status === "rejected" &&
+                    " (CEO Rejected)"}
+                </SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
+
+            {booking.ceo_approval_status === "rejected" && (
+              <p className="text-xs text-destructive">
+                CEO has rejected this booking. Only cancellation is allowed.
+              </p>
+            )}
           </div>
 
-          {/* Remarks */}
           <div className="space-y-2">
-            <Label htmlFor="remarks">Remarks</Label>
+            <Label>Actual Cost *</Label>
+            {booking.max_allowed_cost != null && (
+              <p className="text-xs text-muted-foreground">
+                Max allowed: ₹{booking.max_allowed_cost}
+              </p>
+            )}
+            <input
+              type="number"
+              value={actualCost}
+              onChange={(e) => setActualCost(e.target.value)}
+              className="w-full h-10 rounded-md border px-3 text-sm"
+              placeholder="Enter actual cost"
+              disabled={isSubmitting}
+            />
+
+            {requiresCeoApproval() && (
+              <p className="text-xs text-amber-600 font-medium">
+                Cost exceeds allowed limit. CEO approval is required before
+                confirmation.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Remarks</Label>
             <Textarea
-              id="remarks"
-              placeholder="Add any remarks or notes..."
+              rows={3}
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              disabled={isSubmitting}
-              rows={3}
+              placeholder="Optional remarks"
             />
           </div>
 
-          {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="file">Attachment (optional)</Label>
-            <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+            <Label>Attachment</Label>
+            <div className="border-2 border-dashed rounded-lg p-4 text-center">
               <input
                 type="file"
                 id="file"
                 className="hidden"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                 onChange={handleFileChange}
-                disabled={isSubmitting}
               />
               <label
                 htmlFor="file"
                 className="cursor-pointer flex flex-col items-center gap-2"
               >
-                <Upload className="w-8 h-8 text-muted-foreground" />
-                {file ? (
-                  <span className="text-sm font-medium text-primary">{file.name}</span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    Click to upload ticket or receipt
-                  </span>
-                )}
+                <Upload className="w-6 h-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {file ? file.name : "Click to upload"}
+                </span>
               </label>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t flex justify-end gap-3">
-          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || requiresCeoApproval()}
+            className={
+              requiresCeoApproval()
+                ? "bg-amber-600 hover:bg-amber-700 text-white"
+                : ""
+            }
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
+                Saving
               </>
+            ) : requiresCeoApproval() ? (
+              "Need CEO Approval"
             ) : (
               "Update Status"
             )}

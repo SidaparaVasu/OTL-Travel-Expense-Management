@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
+from decimal import Decimal 
 
 from apps.authentication.permissions import IsTravelDesk, IsAdminUser
 from apps.travel.models import Booking, BookingAssignment, BookingNote, TravelApplication
@@ -237,9 +238,6 @@ class BookingAgentUpdateStatusView(APIView):
     def post(self, request, pk):
         user = request.user
 
-        # ----------------------------
-        # Validate booking belongs to agent
-        # ----------------------------
         booking = (
             Booking.objects
             .select_related("assignment", "trip_details__travel_application")
@@ -253,11 +251,8 @@ class BookingAgentUpdateStatusView(APIView):
                 data={"id": ["Invalid booking id"]}
             )
 
-        # ----------------------------
-        # Normalize and validate status
-        # ----------------------------
         new_status = request.data.get("status", "").strip().lower()
-        remarks = request.data.get("remarks", "")
+        remarks = request.data.get("remarks", "").strip()
 
         if new_status not in ALLOWED_AGENT_STATUSES:
             return error_response(
@@ -265,28 +260,85 @@ class BookingAgentUpdateStatusView(APIView):
                 data={"status": ["Status must be 'confirmed' or 'cancelled'"]},
             )
 
-        # ----------------------------
-        # 1. File Upload (optional)
-        # ----------------------------
         file_obj = request.FILES.get("booking_file")
         if file_obj:
             booking.booking_file = file_obj
             booking.uploaded_by = user
             booking.uploaded_at = timezone.now()
 
-        # ----------------------------
-        # 2. Update Booking Status
-        # ----------------------------
-        booking.status = new_status
+        actual_cost = request.data.get("actual_cost")
+        if actual_cost:
+            booking.actual_cost = Decimal(str(actual_cost))
+
+        application = booking.trip_details.travel_application
 
         if new_status == "confirmed":
+
+            # CEO rejection is a hard stop
+            if application.approval_flows.filter(
+                approval_level="ceo",
+                status="rejected"
+            ).exists():
+                return error_response(
+                    message="Cannot confirm booking as CEO has rejected the cost escalation.",
+                    data={"status": ["CEO rejected this booking."]}
+                )
+
+            # Escalation rules apply only to Flight
+            if booking.booking_type.name == "Flight":
+
+                if not booking.actual_cost:
+                    return error_response(
+                        message="Actual cost is required for flight confirmation",
+                        data={"actual_cost": ["Required"]}
+                    )
+
+                # Check if CEO has already approved this escalation
+                ceo_flow = application.approval_flows.filter(
+                    approval_level="ceo",
+                    status="approved"
+                ).first()
+
+                # If CEO has NOT approved yet, check if escalation is needed
+                if not ceo_flow:
+                    from apps.travel.services.cost_escalation import (
+                        requires_ceo_escalation,
+                        escalate_application_to_ceo,
+                    )
+
+                    needs_escalation, reason = requires_ceo_escalation(application, booking)
+
+                    if needs_escalation:
+                        escalate_application_to_ceo(
+                            application=application,
+                            booking=booking,
+                            triggered_by=user,
+                            reason=reason
+                        )
+
+                        application.status = "pending_ceo"
+                        application.save(update_fields=["status"])
+
+                        booking.status = "in_progress"
+                        booking.save(update_fields=["actual_cost", "status"])
+
+                        return success_response(
+                            message="Escalated to CEO for approval due to cost limit.",
+                            data={
+                                "booking_id": booking.id,
+                                "status": "escalated",
+                                "application_status": application.status
+                            }
+                        )
+
+            booking.status = "confirmed"
             booking.booked_at = timezone.now()
+
+        else:
+            booking.status = new_status
 
         booking.save()
 
-        # ----------------------------
-        # 3. Add Booking Note
-        # ----------------------------
         if remarks:
             BookingNote.objects.create(
                 booking=booking,
@@ -294,37 +346,30 @@ class BookingAgentUpdateStatusView(APIView):
                 note=remarks
             )
 
-        # ----------------------------
-        # 4. Update Application Status
-        # ----------------------------
-        application = booking.trip_details.travel_application
-
         all_bookings = Booking.objects.filter(
             trip_details__travel_application=application
         )
 
-        # If all bookings are confirmed → mark application as "booked"
-        if all_bookings.count() > 0 and all_bookings.filter(status="confirmed").count() == all_bookings.count():
+        if (
+            all_bookings.exists()
+            and all_bookings.filter(status="confirmed").count() == all_bookings.count()
+        ):
             application.status = "booked"
             application.save(update_fields=["status"])
-        
 
-        # Notification for confirmed booking to applicant
-        NotificationCenter.notify(
-            event_name="travel.booking.confirmed",
-            reference={"type": "Booking", "id": booking.id},
-            payload={
-                "request_id": application.get_travel_request_id(),
-                "employee_id": application.employee.id,
-                "employee_name": application.employee.get_full_name(),
-                "booking_agent_name": request.user.get_full_name(),
-                "ticket_number": booking.booking_reference or booking.vendor_reference,
-            },
-        )
+        if new_status == "confirmed":
+            NotificationCenter.notify(
+                event_name="travel.booking.confirmed",
+                reference={"type": "Booking", "id": booking.id},
+                payload={
+                    "request_id": application.get_travel_request_id(),
+                    "employee_id": application.employee.id,
+                    "employee_name": application.employee.get_full_name(),
+                    "booking_agent_name": user.get_full_name(),
+                    "ticket_number": booking.booking_reference or booking.vendor_reference,
+                },
+            )
 
-        # ----------------------------
-        # 5. Audit Log
-        # ----------------------------
         AuditLog.objects.create(
             user=user,
             action="update_booking_status",
@@ -336,14 +381,11 @@ class BookingAgentUpdateStatusView(APIView):
             }
         )
 
-        # ----------------------------
-        # 6. Return Response
-        # ----------------------------
         return success_response(
             message="Booking updated successfully",
             data={
                 "booking_id": booking.id,
-                "status": new_status,
+                "status": booking.status,
                 "file_uploaded": bool(file_obj),
                 "application_status": application.status,
             }
