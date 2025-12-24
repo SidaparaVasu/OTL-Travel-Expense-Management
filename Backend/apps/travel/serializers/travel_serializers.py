@@ -48,6 +48,7 @@ class BookingSerializer(serializers.ModelSerializer):
 class BookingListSerializer(serializers.ModelSerializer):
     booking_type_name = serializers.CharField(source='booking_type.name', read_only=True)
     sub_option_name = serializers.CharField(source='sub_option.name', read_only=True)
+    meal_preference = serializers.SerializerMethodField()
     
     from_location = serializers.CharField(
         source='trip_details.from_location.name',
@@ -82,9 +83,12 @@ class BookingListSerializer(serializers.ModelSerializer):
             'meal_preference',
         ]
     
+    def get_meal_preference(self, obj):
+        return obj.booking_details.get('meal_preference', "")
+    
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        ret['meal_preference'] = instance.booking_details.get('meal_preference', "")
+        # meal_preference is now handled by SerializerMethodField
         return ret
 
 class BookingDetailSerializer(serializers.ModelSerializer):
