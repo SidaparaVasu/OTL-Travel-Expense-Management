@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     'apps.travel',
     'apps.expenses',
     'apps.notifications',
+    'apps.sso_auth',
 ]
 
 MIDDLEWARE = [
@@ -403,6 +404,11 @@ LOCATION_API_BASE_URL = env("_LOCATION_API_BASE_URL") # get free key from countr
 # API of 'http://geodb-cities-api.wirefreethought.com/'
 GEODB_API_KEY = env("_GEODB_API_KEY")
 GEODB_BASE_URL = env("_GEODB_BASE_URL")
+
+# SSO Configuration
+SSO_AES_KEY = env.str('SSO_AES_KEY', default='12345678901234567890123456789012')
+SSO_AES_IV = env.str('SSO_AES_IV', default='1234567890123456')
+
 
 
 # Security Settings (Production)

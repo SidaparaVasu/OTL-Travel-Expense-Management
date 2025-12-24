@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/master/', include('apps.master_data.urls')),
     path('api/travel/', include('apps.travel.urls')),
     path('api/expense/', include('apps.expenses.urls')),
+    path('sso/', include('apps.sso_auth.urls')),
 
     path("api/file/", view_document_by_path, name="view-file"),
     

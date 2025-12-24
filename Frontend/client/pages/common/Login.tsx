@@ -33,7 +33,8 @@ export default function Login() {
       navigate(redirectTo.startsWith("/") ? redirectTo : `/${redirectTo}`);
     } catch (error) {
       const response = JSON.parse(error.request?.response || "{}");
-      const msg = response.errors?.non_field_errors?.[0] || "Invalid credentials";
+      const msg =
+        response.errors?.non_field_errors?.[0] || "Invalid credentials";
 
       toast({
         title: "Login Failed",
@@ -46,7 +47,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-[63%_37%]">
-
       {/* Override Toast Position & Fonts */}
       <style>
         {`
@@ -75,16 +75,17 @@ export default function Login() {
       {/* RIGHT COLUMN — FORM */}
       <div className="flex items-center justify-center bg-white px-8 py-12">
         <div className="w-full max-w-md">
-          
           {/* Logo */}
           <div className="mb-6">
             <div className="flex items-center gap-2">
               <div className="h-10 w-10 rounded-lg flex items-center justify-left flex-shrink-0">
                 {/* <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center"> */}
                 {/*<Plane className="w-6 h-6 text-white" />*/}
-                  <img src={OrangeLogo} alt="Orange LOGO" />
+                <img src={OrangeLogo} alt="Orange LOGO" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">Orange Travel Expense</span>
+              <span className="text-2xl font-bold text-gray-900">
+                Orange Travel Expense
+              </span>
             </div>
           </div>
 
@@ -100,10 +101,12 @@ export default function Login() {
 
           {/* Form */}
           <div className="space-y-4">
-
             {/* Username */}
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
                 Username
               </label>
               <input
@@ -118,7 +121,10 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
+              >
                 Password
               </label>
               <div className="relative">
@@ -135,7 +141,11 @@ export default function Login() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   onClick={() => setShowPass(!showPass)}
                 >
-                  {showPass ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPass ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -163,11 +173,17 @@ export default function Login() {
           {/* Footer Links */}
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2 text-sm">
-              <button type="button" className="text-blue-600 font-medium hover:underline">
+              <button
+                type="button"
+                className="text-blue-600 font-medium hover:underline"
+              >
                 Forgot password?
               </button>
               <span className="text-gray-400">•</span>
-              <button type="button" className="text-blue-600 font-medium hover:underline">
+              <button
+                type="button"
+                className="text-blue-600 font-medium hover:underline"
+              >
                 Forgot username?
               </button>
             </div>
@@ -180,7 +196,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-
     </div>
   );
 }

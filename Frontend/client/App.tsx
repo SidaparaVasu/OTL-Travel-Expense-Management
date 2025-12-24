@@ -62,10 +62,10 @@ import ExpenseTypesMasterPage from "./pages/common/master/ExpenseTypeMaster";
 import ClaimStatusMasterPage from "./pages/common/master/ClaimStatusMaster";
 import BookingAgentList from "./pages/common/master/BookingAgentList";
 
-// UI
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SSOHandler } from "@/src/components/SSOHandler";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +94,7 @@ const App = () => (
       <Sonner />
 
       <BrowserRouter>
+        <SSOHandler />
         <Routes>
           {/* ---------------- UNAUTHORIZED / 404 ---------------- */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
