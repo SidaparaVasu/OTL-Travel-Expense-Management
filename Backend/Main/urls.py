@@ -12,12 +12,14 @@ urlpatterns = [
     # JWT token refresh
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
+    # SSO Authentication
+    path('sso/', include('apps.sso_auth.urls')),
+    
     # App URLs
     path('api/', include('apps.authentication.urls')),
     path('api/master/', include('apps.master_data.urls')),
     path('api/travel/', include('apps.travel.urls')),
     path('api/expense/', include('apps.expenses.urls')),
-    path('sso/', include('apps.sso_auth.urls')),
 
     path("api/file/", view_document_by_path, name="view-file"),
     

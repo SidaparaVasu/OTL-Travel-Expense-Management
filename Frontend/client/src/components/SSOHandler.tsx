@@ -27,15 +27,37 @@ export const SSOHandler = () => {
         // Show loading toast
         const loadingToast = toast.loading("Authenticating via HRMS...");
 
-        // Construct backend base URL (without /api suffix)
-        const backendBaseUrl =
+        // Robust backend URL detection
+        const envBaseAlt = import.meta.env.VITE_API_BASE_URL_ALT;
+        const envBase = import.meta.env.VITE_API_BASE_URL;
+
+        // Determine backend base URL:
+        // 1. Try ALT env (production standard)
+        // 2. Try Standard env
+        // 3. Try origin if on localhost
+        // Then remove /api and trailing slashes
+        const rawBaseUrl =
           window.location.hostname === "localhost"
-            ? import.meta.env.VITE_API_BASE_URL?.replace("/api", "") ||
-              "http://localhost:8000"
-            : import.meta.env.VITE_API_BASE_URL_ALT?.replace("/api", "");
+            ? envBase || "http://localhost:8000"
+            : envBaseAlt || envBase || window.location.origin;
+
+        const backendBaseUrl = rawBaseUrl
+          .replace(/\/api\/?$/, "")
+          .replace(/\/+$/, "");
+
+        console.log("SSO Authentication Trace:", {
+          hostname: window.location.hostname,
+          envBaseAlt,
+          envBase,
+          selectedBase: rawBaseUrl,
+          finalBackendUrl: backendBaseUrl,
+        });
 
         // Call backend SSO endpoint (note: /sso not /api/sso)
-        const response = await axios.get(`${backendBaseUrl}/sso/login/`, {
+        const ssoUrl = `${backendBaseUrl}/sso/login/`;
+        console.log("Calling SSO Endpoint:", ssoUrl);
+
+        const response = await axios.get(ssoUrl, {
           params: { auth: authToken },
         });
 
@@ -85,13 +107,22 @@ export const SSOHandler = () => {
           // Use window.location.href for hard redirect (ensures navigation works)
           window.location.href = redirectPath;
         } else {
+          console.error("SSO Response failed (success=false):", response.data);
           toast.dismiss(loadingToast);
           toast.error("SSO Authentication Failed", {
             description: response.data.message || "Unknown error",
           });
         }
       } catch (error: any) {
-        console.error("SSO login error:", error);
+        console.error("Detailed SSO login error:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          headers: error.response?.headers,
+          url: error.config?.url,
+          method: error.config?.method,
+          params: error.config?.params,
+        });
 
         toast.error("SSO Authentication Failed", {
           description:
@@ -104,7 +135,7 @@ export const SSOHandler = () => {
         window.history.replaceState({}, "", window.location.pathname);
 
         // Redirect to login page
-        window.location.href = ROUTES.login;
+        // window.location.href = ROUTES.login;
       }
     };
 
