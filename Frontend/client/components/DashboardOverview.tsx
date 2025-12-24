@@ -203,7 +203,9 @@ export function DashboardOverview() {
             <h2 className="text-xl font-bold text-foreground">
               Expense Reports
             </h2>
-            <button className="text-base font-bold text-primary underline">
+            <button className="text-base font-bold text-primary underline"
+              onClick={() => navigate(ROUTES.claimApprovalPage)}
+            >
               View All
             </button>
           </div>
