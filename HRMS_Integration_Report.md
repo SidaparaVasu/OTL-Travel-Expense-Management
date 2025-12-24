@@ -10,7 +10,7 @@ This report documents the architectural design and implementation of the Single 
 
 A dedicated Django application `apps.sso_auth` was created to encapsulate SSO-specific logic, ensuring zero impact on the existing `apps.authentication` core.
 
-- **AES Decryption Utility (`utils.py`):** Implemented AES-256-CBC decryption using `pycryptodome`. It handles Base64 decoding (including URL-safe character substitution) and PKCS7 unpadding for incoming HRMS tokens.
+- **AES Decryption Utility (`utils.py`):** Implemented AES-256-CBC decryption using `pycryptodome`. It handles Base64 decoding (including URL-safe character substitution and **sanitizing URL-decoded spaces back to `+`**) and PKCS7 unpadding for incoming HRMS tokens.
 - **Token Validation (`validators.py`):** Implements a robust parsing engine for the HRMS parameter string format (`P1:ID$P2:UserName$P3:CmpID$P4:EmpID$P5:Flag`). It enforces mandatory field validation and authentication flag checks.
 - **SSO Login View (`views.py`):** The central controller that orchestrates decryption, validation, and session creation.
   - **Admin Handling:** Automatically creates or retrieves Admin users (`emp_id: '0'`) in the database.
