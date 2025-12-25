@@ -3,7 +3,7 @@ from django.views import View
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from apps.authentication.models import Role, UserRole
+from apps.authentication.models import Role, UserRole, OrganizationalProfile
 from .utils import SSOTokenHandler
 from .validators import SSOTokenValidator
 from .hrms_service import HRMSSyncService
