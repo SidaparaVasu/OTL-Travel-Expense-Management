@@ -14,6 +14,7 @@ class OrganizationalProfile(models.Model):
     )
     
     employee_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    employee_code = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Alpha Emp Code from HRMS")
     
     # Organizational Relations
     company = models.ForeignKey(

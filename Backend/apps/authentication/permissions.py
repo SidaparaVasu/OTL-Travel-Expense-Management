@@ -51,20 +51,38 @@ class IsOwnerOrApprover(BasePermission):
     Only the user who created the application or the current approver can access it
     """
     def has_object_permission(self, request, view, obj):
-        # Allow if user is the owner
-        if obj.employee == request.user:
+        user = request.user
+        # Allow if user is the requester
+        if obj.employee == user:
             return True
         
         # Allow if user is an approver in the workflow
         if hasattr(obj, 'approval_flows'):
             is_approver = obj.approval_flows.filter(
-                approver=request.user
+                approver=user
             ).exists()
             if is_approver:
                 return True
         
-        # Allow if user has admin/travel desk role
-        if request.user.has_role('Admin') or request.user.has_role('Travel Desk'):
+        # Super-users / Executives visibility
+        if user.has_role('Admin') or user.has_role('admin') or user.has_role('CEO') or user.has_role('CHRO'):
+            return True
+
+        # Branch Admin visibility
+        if user.has_role('Branch Admin'):
+            profile = user.get_profile()
+            obj_profile = obj.employee.get_profile()
+            if profile and obj_profile and profile.base_location == obj_profile.base_location:
+                return True
+        
+        # Manager visibility for subordinates
+        if user.has_role('Manager'):
+            obj_profile = obj.employee.get_profile()
+            if obj_profile and obj_profile.reporting_manager == user:
+                return True
+        
+        # Travel Desk visibility
+        if user.has_role('Travel Desk'):
             return True
         
         return False
@@ -138,3 +156,14 @@ class IsSPOC(BasePermission):
         return request.user.locationspoc_set.filter(is_active=True).exists()
     
     message = "SPOC access required"
+
+class IsBranchAdmin(BasePermission):
+    """
+    Permission for Branch Administrators who only manage data for their location
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return request.user.has_role('Branch Admin')
+    
+    message = "Branch Admin access required"

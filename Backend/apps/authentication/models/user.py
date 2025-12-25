@@ -34,6 +34,10 @@ class User(AbstractUser):
         null=False,
     )
     
+    # HRMS Integration Fields
+    hrms_id = models.IntegerField(unique=True, blank=True, null=True, help_text="Physical ID from HRMS system")
+    mobile_no = models.CharField(max_length=15, blank=True, null=True, help_text="Mobile number from HRMS")
+    
     # Keep Django's built-in groups and permissions for compatibility
     groups = models.ManyToManyField(
         Group,

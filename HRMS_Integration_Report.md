@@ -1,58 +1,78 @@
-# HRMS SSO Integration Technical Report
+# HRMS Integration Architectural Solution
 
-## 1. Overview
+This document outlines a production-ready strategy to integrate real-time HRMS data into the TravelExpensePro system while minimizing data redundancy and maintaining high performance.
 
-This report documents the architectural design and implementation of the Single Sign-On (SSO) integration between the external Human Resource Management System (HRMS) and the Travel Management application. The primary objective was to facilitate seamless user authentication while maintaining full compatibility with the existing frontend application and backend security protocols.
+## 1. Core Philosophy: JIT & Progressive Sync
 
-## 2. Backend Implementation (`sso_auth` app)
+Instead of replicating the entire HRMS database, we implement a **Hybrid Synchronization** model:
 
-### 2.1 Core Components
-
-A dedicated Django application `apps.sso_auth` was created to encapsulate SSO-specific logic, ensuring zero impact on the existing `apps.authentication` core.
-
-- **AES Decryption Utility (`utils.py`):** Implemented AES-256-CBC decryption using `pycryptodome`. It handles Base64 decoding (including URL-safe character substitution and **sanitizing URL-decoded spaces back to `+`**) and PKCS7 unpadding for incoming HRMS tokens.
-- **Token Validation (`validators.py`):** Implements a robust parsing engine for the HRMS parameter string format (`P1:ID$P2:UserName$P3:CmpID$P4:EmpID$P5:Flag`). It enforces mandatory field validation and authentication flag checks.
-- **SSO Login View (`views.py`):** The central controller that orchestrates decryption, validation, and session creation.
-  - **Admin Handling:** Automatically creates or retrieves Admin users (`emp_id: '0'`) in the database.
-  - **JWT Generation:** Leverages `rest_framework_simplejwt` to issue identical access and refresh tokens used by the standard login flow.
-  - **API Compatibility:** The response payload mirrors the existing `/api/auth/login/` endpoint precisely, including profile data, roles, and permissions, ensuring the frontend requires no logic changes for data consumption.
-
-### 2.2 Configuration
-
-- Registered `apps.sso_auth` in `settings.py`.
-- Exposed `/sso/login/` endpoint via the main `urls.py`.
-- Integrated `SSO_AES_KEY` and `SSO_AES_IV` as environment-controlled variables.
-
-## 3. Frontend Integration
-
-### 3.1 SSO Interceptor Component (`SSOHandler.tsx`)
-
-A new React component `SSOHandler` was implemented and placed inside the `BrowserRouter` to serve as a high-level interceptor.
-
-- **Parameter Detection:** Actively monitors the URL for the `?auth=` query parameter.
-- **Backend Synchronization:** Handles the asynchronous API call to the backend SSO endpoint.
-- **Persistence:** Directly updates `localStorage` with tokens, user metadata, and permissions.
-
-### 3.2 Key Technical Fixes & Optimizations
-
-The implementation addressed several critical integration hurdles:
-
-- **Zustand Auth Store Sync:** Resolved a race condition where the `ProtectedRoute` would redirect users back to login because the global Zustand state (`isAuthenticated`) was out of sync with `localStorage`. Implemented an explicit `initializeAuth()` call post-login to synchronize states.
-- **Navigation Consistency:** Fixed a redirect logic issue where the page would stay on the login screen. Shifted to `window.location.href` for the initial SSO redirect to ensure a clean state initialization.
-- **Role-Based Redirection:** Implemented automated routing to specific dashboards (Admin, Travel Desk, Booking Agent, Employee) based on the `is_primary` role returned by the SSO response.
-
-## 4. Verification & Status
-
-- **Decryption:** Validated against provided HRMS samples.
-- **Session Management:** Confirmed that JWT tokens issued via SSO are fully compatible with existing restricted APIs (e.g., `/api/auth/profile/`).
-- **User Persistence:** Verified that SSO users are correctly persisted in the `User` model with appropriate roles.
-
-## 5. Future Scope (Proposed)
-
-- **Employee Virtual Sessions:** Implementation of in-memory sessions for non-admin employees to avoid database bloat.
-- **Master Data Sync:** Automation of Company/Department/Designation synchronization via background tasks.
-- **HRMS Logout Integration:** Configuration of unified log-out redirection back to the HRMS portal.
+- **JIT (Just-In-Time) Sync**: Fetch specific employee details only when they interact with the system (e.g., during SSO login or when a manager views a subordinate).
+- **Bulk Sync (Daily)**: Perform a light bulk sync daily to update global attributes (like status or grade changes) and deactivate exit-dated users.
 
 ---
 
-**Status:** Base Integration Complete & Verified.
+## 2. User & Profile Mapping Strategy
+
+| HRMS Field       | Mapping to TravelExpensePro              | Logic                                                  |
+| :--------------- | :--------------------------------------- | :----------------------------------------------------- |
+| `Employee_ID`    | `OrganizationalProfile.external_hrms_id` | Stored as a secondary reference.                       |
+| `Alpha_Emp_Code` | `OrganizationalProfile.employee_id`      | Used as the primary business key (e.g., "00019").      |
+| `Work_Email`     | `User.username`                          | Primary login identity.                                |
+| `Name`           | `User.first_name` & `last_name`          | Split based on first space.                            |
+| `Gender`         | `User.gender`                            | Map "Male" -> "M", "Female" -> "F".                    |
+| `Emp_Status`     | `User.is_active`                         | "Inactive" users are disabled immediately during sync. |
+
+---
+
+## 3. Master Data "Self-Healing" Normalization
+
+To avoid manual entry of Departments, Designations, and Grades, the system will use a **lookup-or-create** pattern:
+
+1.  **Incoming Data**: API returns `"Department": "Accounts"`.
+2.  **Resolution**: The system checks `DepartmentMaster` for `dept_name="Accounts"`.
+3.  **Action**:
+    - If found, link the ID.
+    - If NOT found, **automatically create** the new Department record.
+4.  **Entitlements**: Once a new Grade is auto-created, the Admin receives a notification to configure travel entitlements (policy) for that new Grade.
+
+---
+
+## 4. Operational Workflows
+
+### Phase A: SSO Login (JIT Sync)
+
+When a user hits the SSO link:
+
+1.  **Decrypt**: Get `Employee_ID` from the token.
+2.  **Fetch Details**: Immediately call `GET /api/Employee/GetAllEmployees/<id>?cmpId=2`.
+3.  **Update Profile**: Refresh the user's Department, Designation, Grade, and Mobile No from the fresh response.
+4.  **Issue JWT**: Proceed with login. This ensures the user _always_ logs in with their current HRMS state.
+
+### Phase B: Leave Integration
+
+Leave balance is highly volatile and should **not** be stored locally.
+
+1.  **Request Flow**: When a user selects "Apply Travel", the frontend/backend calls `GET /api/Employee/GetEmployeeLeaves`.
+2.  **Validation**: The system checks if the user has enough balance or if the period overlaps with existing leaves.
+3.  **Persistence**: Only the _applied_ leave reference is saved in our system to track the specific travel request.
+
+### Phase C: Approval Hierarchy
+
+1.  **Manager Resolution**: HRMS provides `Reporting_Manager_Name`.
+2.  **Lookup**: Our system searches for a User with that name or `Alpha_Emp_Code` (if provided).
+3.  **Fall back**: If the manager is not in our system yet, we create a "Shadow User" for the manager (inactive login but active for email approvals) until they log in via SSO.
+
+---
+
+## 5. Implementation Benefits
+
+- **Zero Redundancy**: We don't store addresses, DOB, or other HR-centric data not needed for travel.
+- **Always Accurate**: Grade changes or Department transfers sync automatically on login.
+- **Security**: "Inactive" employees (Exit date reached) are locked out during the daily bulk sync.
+- **Low Maintenance**: Master data (Departments/Grades) manages itself as the organization grows.
+
+## 6. Next Steps for Implementation
+
+1.  **Shadow Models**: Add `external_id` (int) and `alpha_code` (str) to `OrganizationalProfile`.
+2.  **Integration Service**: Create a backend service layer specifically for calling HRMS APIs with proper error handling and timeouts.
+3.  **Sync Tasks**: Schedule the daily Celery worker for bulk status checks.

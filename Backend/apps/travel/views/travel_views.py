@@ -113,13 +113,37 @@ class TravelApplicationListCreateView(ListCreateAPIView):
     #         'trip_details__bookings'
     #     ).order_by('-created_at').order_by('-created_at')
     def get_queryset(self):
-        """Optimized queryset with select_related and prefetch_related"""
-        return TravelApplication.objects.filter(
-            employee=self.request.user
-        ).select_related(
+        """
+        Multilevel Role-Based Filtering:
+        - Admin, CEO, CHRO: See all applications
+        - Branch Admin: See all applications within their branch
+        - Manager: See their own + subordinates' applications
+        - Employee: See only their own applications
+        """
+        user = self.request.user
+        queryset = TravelApplication.objects.all()
+
+        if user.has_role('admin') or user.has_role('CEO') or user.has_role('CHRO'):
+            # Full visibility
+            pass
+        elif user.has_role('Branch Admin'):
+            # Filter by Branch
+            profile = user.get_profile()
+            if profile and profile.base_location:
+                queryset = queryset.filter(employee__organizational_profile__base_location=profile.base_location)
+            else:
+                queryset = queryset.none()
+        elif user.has_role('Manager'):
+            # Filter by Self + Reporting Hierarchy
+            queryset = queryset.filter(Q(employee=user) | Q(employee__organizational_profile__reporting_manager=user))
+        else:
+            # Standard Employee visibility
+            queryset = queryset.filter(employee=user)
+
+        # Optimization
+        return queryset.select_related(
             'employee',
             'employee__grade',
-            'employee__department',
             'general_ledger',
             'current_approver'
         ).prefetch_related(
@@ -127,11 +151,9 @@ class TravelApplicationListCreateView(ListCreateAPIView):
             'trip_details__from_location',
             'trip_details__to_location',
             'trip_details__bookings',
-            'trip_details__bookings__booking_type',
-            'trip_details__bookings__sub_option',
             'approval_flows',
             'approval_flows__approver'
-        ).order_by('-created_at')
+        ).distinct().order_by('-created_at')
     
     def list(self, request, *args, **kwargs):
         """Override to use standard response format"""

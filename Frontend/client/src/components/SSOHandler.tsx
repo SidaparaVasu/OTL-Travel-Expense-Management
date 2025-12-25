@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { ROUTES } from "@/routes/routes";
 import { useAuthStore } from "@/src/store/authStore";
+import SSOSyncing from "@/pages/common/SSOSyncing";
 
 /**
  * SSO Authentication Handler
@@ -12,6 +13,7 @@ import { useAuthStore } from "@/src/store/authStore";
 export const SSOHandler = () => {
   const navigate = useNavigate();
   const { initializeAuth } = useAuthStore();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const handleSSOLogin = async () => {
@@ -24,18 +26,11 @@ export const SSOHandler = () => {
       }
 
       try {
-        // Show loading toast
-        const loadingToast = toast.loading("Authenticating via HRMS...");
-
+        setIsSyncing(true);
         // Robust backend URL detection
         const envBaseAlt = import.meta.env.VITE_API_BASE_URL_ALT;
         const envBase = import.meta.env.VITE_API_BASE_URL;
 
-        // Determine backend base URL:
-        // 1. Try ALT env (production standard)
-        // 2. Try Standard env
-        // 3. Try origin if on localhost
-        // Then remove /api and trailing slashes
         const rawBaseUrl =
           window.location.hostname === "localhost"
             ? envBase || "http://localhost:8000"
@@ -45,17 +40,7 @@ export const SSOHandler = () => {
           .replace(/\/api\/?$/, "")
           .replace(/\/+$/, "");
 
-        console.log("SSO Authentication Trace:", {
-          hostname: window.location.hostname,
-          envBaseAlt,
-          envBase,
-          selectedBase: rawBaseUrl,
-          finalBackendUrl: backendBaseUrl,
-        });
-
-        // Call backend SSO endpoint (note: /sso not /api/sso)
         const ssoUrl = `${backendBaseUrl}/sso/login/`;
-        console.log("Calling SSO Endpoint:", ssoUrl);
 
         const response = await axios.get(ssoUrl, {
           params: { auth: authToken },
@@ -65,7 +50,7 @@ export const SSOHandler = () => {
           const { tokens, user, roles, permissions, profile } =
             response.data.data;
 
-          // Store authentication data (same as regular login)
+          // Store authentication data
           localStorage.setItem("access_token", tokens.access);
           localStorage.setItem("refresh_token", tokens.refresh);
           localStorage.setItem("user", JSON.stringify(user));
@@ -75,20 +60,11 @@ export const SSOHandler = () => {
             localStorage.setItem("profile", JSON.stringify(profile));
           }
 
-          // CRITICAL: Initialize auth store with localStorage data
           initializeAuth();
-
-          // Dismiss loading toast
-          toast.dismiss(loadingToast);
-
-          // Success toast
-          toast.success("SSO Login Successful", {
-            description: `Welcome, ${user.full_name}!`,
-          });
 
           // Determine redirect based on roles
           const primaryRole = roles.find((r: any) => r.is_primary);
-          let redirectPath = ROUTES.employeeDashboard; // Default
+          let redirectPath = ROUTES.employeeDashboard;
 
           if (primaryRole) {
             const roleType = primaryRole.role_type?.toLowerCase();
@@ -104,25 +80,19 @@ export const SSOHandler = () => {
             }
           }
 
-          // Use window.location.href for hard redirect (ensures navigation works)
-          window.location.href = redirectPath;
+          // Delay slightly for UX before redirect
+          setTimeout(() => {
+            window.location.href = redirectPath;
+          }, 1500);
         } else {
-          console.error("SSO Response failed (success=false):", response.data);
-          toast.dismiss(loadingToast);
+          setIsSyncing(false);
           toast.error("SSO Authentication Failed", {
             description: response.data.message || "Unknown error",
           });
         }
       } catch (error: any) {
-        console.error("Detailed SSO login error:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          headers: error.response?.headers,
-          url: error.config?.url,
-          method: error.config?.method,
-          params: error.config?.params,
-        });
+        setIsSyncing(false);
+        console.error("Detailed SSO login error:", error);
 
         toast.error("SSO Authentication Failed", {
           description:
@@ -131,16 +101,16 @@ export const SSOHandler = () => {
             "Unable to authenticate. Please try again.",
         });
 
-        // Clear auth param from URL
         window.history.replaceState({}, "", window.location.pathname);
-
-        // Redirect to login page
-        // window.location.href = ROUTES.login;
       }
     };
 
     handleSSOLogin();
   }, [navigate]);
 
-  return null; // This component renders nothing
+  if (isSyncing) {
+    return <SSOSyncing />;
+  }
+
+  return null;
 };
