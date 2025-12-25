@@ -49,6 +49,7 @@ class SSOLoginView(View):
             # Step 4: Handle Login
             emp_id = params['emp_id']
             username = params['username']
+            logger.info(f"SSO Login attempt: username={username}, emp_id={emp_id}")
             
             if emp_id == '0':
                 # LOCAL ADMIN / SUPERUSER (via SSO)
@@ -97,6 +98,13 @@ class SSOLoginView(View):
             else:
                 # Should have been synced by HRMSSyncService
                 return JsonResponse({'success': False, 'message': 'User sync failed'}, status=500)
+        
+        # Ensure OrganizationalProfile exists for all organizational users
+        if user.user_type == 'organizational':
+            OrganizationalProfile.objects.get_or_create(
+                user=user,
+                defaults={'employee_code': f"SSO-{user.id}"}
+            )
         
         # Ensure Roles exist
         self._ensure_user_roles(user, is_admin)
