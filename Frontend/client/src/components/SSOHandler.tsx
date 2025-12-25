@@ -17,7 +17,7 @@ export const SSOHandler = () => {
     const handleSSOLogin = async () => {
       // Check for auth parameter in URL
       const urlParams = new URLSearchParams(window.location.search);
-      const authToken = urlParams.get("auth");
+      const authToken = urlParams.get("auth")?.trim();
 
       if (!authToken) {
         return; // No SSO token, skip
