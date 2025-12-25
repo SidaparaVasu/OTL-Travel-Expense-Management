@@ -57,6 +57,9 @@ class HRMSSyncService:
         email = data.get('Work_Email')
         full_name = data.get('Name', '')
         
+        logger.info(f"Syncing HRMS User: {full_name} (ID: {hrms_id}, Email: {email})")
+        logger.debug(f"Raw HRMS Data: {data}")
+
         # Split Name
         name_parts = full_name.split(' ', 1)
         first_name = name_parts[0]
@@ -110,12 +113,15 @@ class HRMSSyncService:
 
         # Update Profille
         profile, _ = OrganizationalProfile.objects.get_or_create(user=user)
+        profile.employee_id = data.get('Employee_ID') # Ensure this is also populated
         profile.employee_code = data.get('Alpha_Emp_Code')
         profile.company = company
         profile.department = dept
         profile.designation = desig
         profile.grade = grade
         profile.base_location = location
+        
+        logger.info(f"Profile updated for {user.username}: Dept={dept}, Desig={desig}, Grade={grade}, Branch={location}")
         
         # Sync Manager Recursive Loop
         manager_name = data.get('Reporting_Manager_Name')

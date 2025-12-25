@@ -22,6 +22,7 @@ class OrganizationalProfileInline(admin.StackedInline):
     fk_name = 'user'
     fields = (
         'employee_id',
+        'employee_code',
         'company',
         'department',
         'designation',
@@ -57,7 +58,7 @@ class ExternalProfileInline(admin.StackedInline):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'grade', 'get_reporting_manager', 'get_roles', 'is_active')
+    list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'hrms_id', 'is_active')
     list_filter = ('user_type', 'organizational_profile__grade', 'is_staff', 'is_superuser', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name')
     ordering = ('username',)
@@ -77,7 +78,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {
-            'fields': ('first_name', 'last_name', 'email', 'gender', 'user_type')
+            'fields': ('first_name', 'last_name', 'email', 'gender', 'user_type', 'hrms_id', 'mobile_no')
         }),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
@@ -107,7 +108,7 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(OrganizationalProfile)
 class OrganizationalProfileAdmin(admin.ModelAdmin):
-    list_display = ('employee_id', 'get_user_name', 'company', 'department', 'designation')
+    list_display = ('employee_id', 'employee_code', 'get_user_name', 'company', 'department', 'designation')
     list_filter = ('company', 'department', 'designation')
     search_fields = ('employee_id', 'user__username', 'user__first_name', 'user__last_name')
     raw_id_fields = ('user', 'reporting_manager')
