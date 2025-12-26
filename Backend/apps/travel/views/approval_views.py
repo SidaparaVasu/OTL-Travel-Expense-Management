@@ -49,6 +49,8 @@ class ManagerApprovalsView(ListAPIView):
             queryset = queryset.filter(approval_flows__status='approved')
         elif status_filter == 'rejected':
             queryset = queryset.filter(approval_flows__status='rejected')
+        elif status_filter == 'cancellation_requested':
+            queryset = queryset.filter(status='cancellation_requested')
         elif status_filter == 'all':
             pass  # no filter applied — show all approvals
 

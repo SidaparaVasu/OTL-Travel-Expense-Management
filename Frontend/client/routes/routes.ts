@@ -20,6 +20,8 @@ export const ROUTES = {
   travelApplicationView: (id: number | string) =>
     `/travel/travel-application/${id}/`,
   travelRequestApproval: "/travel/travel-request-approval",
+  travelCancellationRequest: "/travel/cancellation-request",
+  travelCancellationApproval: "/travel/cancellation-approval",
 
   // ---------------- EXPENSE MANAGEMENT ----------------
   indexExpense: "/expense",
@@ -38,7 +40,6 @@ export const ROUTES = {
   userManagement: "/masters/user-management",
   users: "/masters/users",
   bookingAgents: "/masters/booking-agents",
-
 
   // Employee Master
   employeeMasterPage: "/masters/employees",
@@ -82,8 +83,8 @@ export const ROUTES = {
   travelModeMaster: "/masters/travel-mode",
 
   // Expense Master
-  expenseTypeMaster: '/masters/expense-type',
-  claimStatusMaster: '/masters/claim-status',
+  expenseTypeMaster: "/masters/expense-type",
+  claimStatusMaster: "/masters/claim-status",
 
   // ---------------- SETTINGS / REPORTS ----------------
   settings: "/settings",

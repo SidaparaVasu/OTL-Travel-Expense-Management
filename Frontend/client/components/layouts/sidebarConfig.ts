@@ -16,6 +16,9 @@ import {
   BarChart3,
   BadgeIndianRupee,
   User,
+  FileX,
+  FileXIcon,
+  ShieldCheck,
 } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 
@@ -47,9 +50,38 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
     icon: Plane,
     collapsible: true,
     items: [
-      { label: "Create Request", path: ROUTES.makeTravelApplicationNew, Icon: FilePlus },
-      { label: "My Applications", path: ROUTES.travelApplicationList, Icon: ClipboardIcon },
-      { label: "Approvals", path: ROUTES.travelRequestApproval, Icon: CircleCheckBig },
+      {
+        label: "Create Request",
+        path: ROUTES.makeTravelApplicationNew,
+        Icon: FilePlus,
+      },
+      {
+        label: "My Applications",
+        path: ROUTES.travelApplicationList,
+        Icon: ClipboardIcon,
+      },
+      {
+        label: "Approvals",
+        path: ROUTES.travelRequestApproval,
+        Icon: CircleCheckBig,
+      },
+    ],
+  },
+  {
+    title: "Cancellation",
+    icon: FileXIcon,
+    collapsible: true,
+    items: [
+      {
+        label: "Cancel Application",
+        path: ROUTES.travelCancellationRequest,
+        Icon: FileX,
+      },
+      {
+        label: "Cancellation Approvals",
+        path: ROUTES.travelCancellationApproval,
+        Icon: ShieldCheck,
+      },
     ],
   },
   {
@@ -57,25 +89,37 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
     icon: ReceiptIndianRupee,
     collapsible: true,
     items: [
-      { label: "My Claims", path: ROUTES.indexClaimPage, Icon: BadgeIndianRupee },
-      { label: "Claim Application", path: ROUTES.claimApplicationPage, Icon: CreditCard },
-      { label: "Claim Approvals", path: ROUTES.claimApprovalPage, Icon: CircleCheckBig },
+      {
+        label: "My Claims",
+        path: ROUTES.indexClaimPage,
+        Icon: BadgeIndianRupee,
+      },
+      {
+        label: "Claim Application",
+        path: ROUTES.claimApplicationPage,
+        Icon: CreditCard,
+      },
+      {
+        label: "Claim Approvals",
+        path: ROUTES.claimApprovalPage,
+        Icon: CircleCheckBig,
+      },
     ],
   },
   {
     title: "Settings",
     icon: Settings,
     collapsible: true,
-    items: [
-      { label: "Masters", path: ROUTES.master, Icon: Database },
-    ],
+    items: [{ label: "Masters", path: ROUTES.master, Icon: Database }],
   },
 ];
 
 // ------------------------------------------------------
 // Employee Sidebar
 // ------------------------------------------------------
-export const getEmployeeSidebar = (primaryDashboard: string): SidebarSection[] => [
+export const getEmployeeSidebar = (
+  primaryDashboard: string,
+): SidebarSection[] => [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
@@ -86,9 +130,38 @@ export const getEmployeeSidebar = (primaryDashboard: string): SidebarSection[] =
     icon: Plane,
     collapsible: true,
     items: [
-      { label: "Create Request", path: ROUTES.makeTravelApplicationNew, Icon: FilePlus },
-      { label: "My Applications", path: ROUTES.travelApplicationList, Icon: ClipboardIcon },
-      { label: "Approvals", path: ROUTES.travelRequestApproval, Icon: CircleCheckBig },
+      {
+        label: "Create Request",
+        path: ROUTES.makeTravelApplicationNew,
+        Icon: FilePlus,
+      },
+      {
+        label: "My Applications",
+        path: ROUTES.travelApplicationList,
+        Icon: ClipboardIcon,
+      },
+      {
+        label: "Approvals",
+        path: ROUTES.travelRequestApproval,
+        Icon: CircleCheckBig,
+      },
+    ],
+  },
+  {
+    title: "Cancellation",
+    icon: FileXIcon,
+    collapsible: true,
+    items: [
+      {
+        label: "Cancel Application",
+        path: ROUTES.travelCancellationRequest,
+        Icon: FileX,
+      },
+      {
+        label: "Cancellation Approvals",
+        path: ROUTES.travelCancellationApproval,
+        Icon: ShieldCheck,
+      },
     ],
   },
   {
@@ -96,9 +169,21 @@ export const getEmployeeSidebar = (primaryDashboard: string): SidebarSection[] =
     icon: ReceiptIndianRupee,
     collapsible: true,
     items: [
-      { label: "My Claims", path: ROUTES.indexClaimPage, Icon: BadgeIndianRupee },
-      { label: "Claim Application", path: ROUTES.claimApplicationPage, Icon: CreditCard },
-      { label: "Claim Approvals", path: ROUTES.claimApprovalPage, Icon: CircleCheckBig },
+      {
+        label: "My Claims",
+        path: ROUTES.indexClaimPage,
+        Icon: BadgeIndianRupee,
+      },
+      {
+        label: "Claim Application",
+        path: ROUTES.claimApplicationPage,
+        Icon: CreditCard,
+      },
+      {
+        label: "Claim Approvals",
+        path: ROUTES.claimApprovalPage,
+        Icon: CircleCheckBig,
+      },
     ],
   },
 ];
@@ -110,7 +195,11 @@ export const getBookingAgentSidebar = (): SidebarSection[] => [
   // { title: "Travel Bookings", icon: Plane, path: "/booking-agent/travel-bookings" },
   // { title: "Hotel Bookings", icon: Hotel, path: "/booking-agent/hotel-bookings" },
   // { title: "Car Rentals", icon: Car, path: "/booking-agent/car-rentals" },
-  { title: "Dashboard", icon: LayoutDashboard, path: ROUTES.bookingAgentDashboard },
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    path: ROUTES.bookingAgentDashboard,
+  },
   { title: "Pending Requests", icon: Clock, path: ROUTES.pendingBookingsPage },
   // { title: "Analytics", icon: BarChart3, path: "/booking-agent/analytics" },
 ];

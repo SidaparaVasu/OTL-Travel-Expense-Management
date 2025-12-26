@@ -32,6 +32,8 @@ import MakeTravelApplicationNew from "./pages/common/travel/travel-request/Index
 import TravelApplicationList from "./pages/common/travel/TravelApplicationList";
 import ApplicationView from "./pages/common/travel/ApplicationView";
 import TravelRequestApprovals from "./pages/common/travel/TravelRequestApprovals";
+import TravelCancellationRequest from "./pages/common/travel/TravelCancellationRequest";
+import TravelCancellationApproval from "./pages/common/travel/TravelCancellationApproval";
 
 // Expense
 import ExpenseIndex from "./pages/common/expense/Index";
@@ -215,6 +217,28 @@ const App = () => (
               <AuthOnly>
                 <UnifiedLayout>
                   <TravelRequestApprovals />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
+
+          <Route
+            path={ROUTES.travelCancellationRequest}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <TravelCancellationRequest />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
+
+          <Route
+            path={ROUTES.travelCancellationApproval}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <TravelCancellationApproval />
                 </UnifiedLayout>
               </AuthOnly>
             }
