@@ -63,6 +63,14 @@ class SSOLoginView(View):
                         'message': 'Failed to sync employee data from HRMS',
                         'data': None
                     }, status=400)
+
+                # BLOCK inactive HRMS users
+                if not user.is_active:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Your HRMS account is inactive. Please contact HR.',
+                        'data': None
+                    }, status=403)
                 
                 return self._handle_sso_login(user.username, params, user_obj=user)
                 

@@ -8,6 +8,7 @@ from apps.master_data.models import (
     LocationMaster, CityMaster, StateMaster, CountryMaster,
     CompanyInformation, EmployeeTypeMaster
 )
+import os
 
 logger = logging.getLogger('sso_auth')
 User = get_user_model()
@@ -16,17 +17,32 @@ class HRMSSyncService:
     """
     Service to synchronize data from HRMS API
     """
-    BASE_URL = getattr(settings, 'HRMS_API_BASE_URL', 'http://192.168.1.251:8583')
+    BASE_URL = os.getenv(
+        'HRMS_API_BASE_URL',
+        'http://192.168.1.251:8583'
+    )
     COMPANY_ID = 2  # Default as per user request
+
+    @classmethod
+    def _get_headers(cls):
+        token = os.getenv("HRMS_API_TOKEN")
+        if not token:
+            raise RuntimeError("HRMS_API_TOKEN is missing in environment")
+
+        return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
     
     @classmethod
     def fetch_employee_data(cls, hrms_id):
         """Fetch full employee details from HRMS API"""
-        url = f"{cls.BASE_URL}/api/Employee/GetAllEmployees/{hrms_id}"
+        url = f"{cls.BASE_URL}/api/Employee/GetAllEmployees"
         params = {'cmpId': cls.COMPANY_ID, 'empId': hrms_id}
         
         try:
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, timeout=10, headers=cls._get_headers())
             response.raise_for_status()
             result = response.json()
             
@@ -34,6 +50,10 @@ class HRMSSyncService:
                 return result['data']['data'][0]
             
             logger.warning(f"HRMS API returned no data for Employee ID: {hrms_id}")
+            logger.debug(f"HRMS Request URL: {response.request.url}")
+            logger.debug(f"HRMS Request Headers: {response.request.headers}")
+            logger.debug(f"HRMS Response Status Code: {response.status_code}")
+            logger.debug(f"HRMS Response Content: {response.content}")
             return None
         except Exception as e:
             logger.error(f"Failed to fetch HRMS data for ID {hrms_id}: {str(e)}")
