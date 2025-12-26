@@ -74,6 +74,14 @@ class SSOLoginView(View):
                     status=400
                 )
 
+            # HARD SAFETY CHECK
+            if not user.username:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Unable to resolve username from HRMS data',
+                    'data': None
+                }, status=400)
+
             # ----------------------------------------------------------
             # Step 5: Enforce HRMS active status
             # ----------------------------------------------------------
