@@ -25,24 +25,26 @@ class TravelApplication(models.Model):
         ('booking_in_progress', 'Booking in Progress'),
         ('booked', 'Bookings Confirmed'),
         ('completed', 'Travel Completed'),
+        ('cancellation_requested', 'Cancellation Requested'),
         ('cancelled', 'Cancelled'),
     ]
 
     VALID_STATUS_TRANSITIONS = {
         'draft': ['submitted', 'pending_manager', 'pending_ceo', 'pending_chro', 'pending_travel_desk', 'cancelled'],
         'submitted': ['pending_manager', 'pending_ceo', 'pending_chro', 'cancelled'],
-        'pending_manager': ['approved_manager', 'rejected_manager', 'cancelled'],
-        'approved_manager': ['pending_chro', 'pending_ceo', 'pending_travel_desk', 'cancelled'],
+        'pending_manager': ['approved_manager', 'rejected_manager', 'cancellation_requested', 'cancelled'],
+        'approved_manager': ['pending_chro', 'pending_ceo', 'pending_travel_desk', 'cancellation_requested', 'cancelled'],
         'rejected_manager': ['draft', 'cancelled'],
-        'pending_chro': ['approved_chro', 'rejected_chro', 'cancelled'],
-        'approved_chro': ['pending_ceo', 'pending_travel_desk', 'cancelled'],
+        'pending_chro': ['approved_chro', 'rejected_chro', 'cancellation_requested', 'cancelled'],
+        'approved_chro': ['pending_ceo', 'pending_travel_desk', 'cancellation_requested', 'cancelled'],
         'rejected_chro': ['draft', 'cancelled'],
-        'pending_ceo': ['approved_ceo', 'rejected_ceo', 'cancelled'],
-        'approved_ceo': ['pending_travel_desk', 'cancelled'],
+        'pending_ceo': ['approved_ceo', 'rejected_ceo', 'cancellation_requested', 'cancelled'],
+        'approved_ceo': ['pending_travel_desk', 'cancellation_requested', 'cancelled'],
         'rejected_ceo': ['draft', 'cancelled'],
-        'pending_travel_desk': ['booking_in_progress', 'booked', 'cancelled'],
-        'booking_in_progress': ['booked', 'pending_travel_desk', 'cancelled'],
-        'booked': ['completed', 'cancelled'],
+        'pending_travel_desk': ['booking_in_progress', 'booked', 'cancellation_requested', 'cancelled'],
+        'booking_in_progress': ['booked', 'pending_travel_desk', 'cancellation_requested', 'cancelled'],
+        'booked': ['completed', 'cancellation_requested', 'cancelled'],
+        'cancellation_requested': ['cancelled', 'draft', 'submitted', 'pending_manager', 'approved_manager', 'pending_chro', 'approved_chro', 'pending_ceo', 'approved_ceo', 'pending_travel_desk', 'booking_in_progress', 'booked'],
         'completed': ['completed'],
         'cancelled': ['cancelled'],
     }
@@ -104,6 +106,13 @@ class TravelApplication(models.Model):
         null=True,
         blank=True,
         related_name='cancelled_travel_apps'
+    )
+    previous_status = models.CharField(
+        max_length=30, 
+        choices=STATUS_CHOICES, 
+        null=True, 
+        blank=True,
+        help_text="Status before cancellation was requested"
     )
     
     # Timestamps
@@ -315,43 +324,155 @@ class TravelApplication(models.Model):
         
         return False, "You don't have permission to cancel this application"
 
+    def request_cancellation(self, requested_by, reason):
+        """Step 1: Applicant raises cancellation request"""
+        if self.status == 'completed':
+            raise ValidationError("Cannot cancel completed travel")
+        
+        if self.status == 'cancelled':
+            raise ValidationError("Already cancelled")
+
+        if self.status == 'cancellation_requested':
+            raise ValidationError("Cancellation already requested")
+
+        # Check if travel has started
+        start_date = self.get_travel_start_date()
+        if start_date and start_date <= timezone.now().date():
+            raise ValidationError("Cannot cancel - travel has already started")
+
+        # Check basic ownership/role (more specific checks in views)
+        if self.employee != requested_by and not (requested_by.has_role('Admin') or requested_by.has_role('Travel Desk')):
+             # Manager check might be needed here too if they can request cancellation FOR the user?
+             # The requirement says Applicant requests.
+             pass
+
+        self.previous_status = self.status
+        self.status = 'cancellation_requested'
+        self.cancellation_requested_at = timezone.now()
+        self.cancellation_reason = reason
+        self.save()
+
+        # Audit Log
+        from apps.travel.models.audit import AuditLog
+        from django.contrib.contenttypes.models import ContentType
+        AuditLog.objects.create(
+            user=requested_by,
+            action='cancel', # Using 'cancel' action to denote request/start of flow
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.id,
+            changes={
+                "previous_status": self.previous_status,
+                "current_status": "cancellation_requested",
+                "reason": reason
+            }
+        )
+
+    def approve_cancellation(self, approved_by, notes=""):
+        """Step 2: Manager/Admin approves cancellation"""
+        if self.status != 'cancellation_requested':
+            # Fallback for old apps or admin hard-cancel
+            if not (approved_by.has_role('Admin') or approved_by.has_role('Travel Desk')):
+                raise ValidationError("Can only approve cancellation requests.")
+
+        self._perform_hard_cancel(approved_by, notes)
+
+    def reject_cancellation(self, rejected_by, reason):
+        """Step 2: Manager rejects cancellation"""
+        if self.status != 'cancellation_requested':
+            raise ValidationError("No pending cancellation request to reject.")
+
+        if not self.previous_status:
+            raise ValidationError("Previous status lost. Cannot restore.")
+
+        old_status = self.status
+        self.status = self.previous_status
+        # self.previous_status = None # Keep it for audit? Or clear it? 
+        self.save()
+
+        # Audit Log
+        from apps.travel.models.audit import AuditLog
+        from django.contrib.contenttypes.models import ContentType
+        AuditLog.objects.create(
+            user=rejected_by,
+            action='reject',
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.id,
+            changes={
+                "previous_status": old_status,
+                "new_status": self.status,
+                "reason": reason
+            }
+        )
+
     def cancel_application(self, cancelled_by, reason):
-        """Cancel the travel application"""
-        can_cancel, message = self.can_cancel(cancelled_by)
-        
-        if not can_cancel:
-            raise ValidationError(message)
-        
+        """DEPRECATED: Use request_cancellation or approve_cancellation instead"""
+        # Kept for backward compatibility if needed, but redirects to perform_hard_cancel
+        self._perform_hard_cancel(cancelled_by, reason)
+
+    def _perform_hard_cancel(self, cancelled_by, reason):
+        """Actual logic to move to cancelled state and rollback bookings"""
+        old_status = self.status
         self.status = 'cancelled'
         self.cancelled_by = cancelled_by
-        self.cancellation_reason = reason
-        self.cancellation_requested_at = timezone.now()
+        self.cancellation_reason = reason if reason else self.cancellation_reason
+        if not self.cancellation_requested_at:
+            self.cancellation_requested_at = timezone.now()
         self.cancellation_approved_at = timezone.now()
         self.save()
         
         # Cancel all bookings
         self._cancel_all_bookings()
         
+        # Audit Log
+        from apps.travel.models.audit import AuditLog
+        from django.contrib.contenttypes.models import ContentType
+        AuditLog.objects.create(
+            user=cancelled_by,
+            action='cancelled',
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.id,
+            changes={
+                "previous_status": old_status,
+                "reason": reason if reason else self.cancellation_reason
+            }
+        )
+        
         # Send cancellation emails
         self._send_cancellation_notifications()
 
     def _cancel_all_bookings(self):
-        """Cancel all associated bookings"""
-        from apps.travel.models import AccommodationBooking, VehicleBooking
+        """Cancel all associated bookings and add audit notes"""
+        from apps.travel.models import AccommodationBooking, VehicleBooking, BookingNote
         
-        # Cancel accommodation bookings
-        AccommodationBooking.objects.filter(
-            trip_details__travel_application=self
-        ).update(status='cancelled')
-        
-        # Cancel vehicle bookings
-        VehicleBooking.objects.filter(
-            trip_details__travel_application=self
-        ).update(status='cancelled')
-        
-        # Cancel generic bookings
+        # 1. Cancel general bookings
         for trip in self.trip_details.all():
-            trip.bookings.update(status='cancelled')
+            bookings = trip.bookings.all()
+            for b in bookings:
+                b.status = 'cancelled'
+                b.save(update_fields=['status'])
+                
+                # Add note to booking
+                BookingNote.objects.create(
+                    booking=b,
+                    author=self.cancelled_by or self.employee,
+                    note=f"[SYSTEM] Travel Application TR-{self.id} cancelled. Reason: {self.cancellation_reason}"
+                )
+
+        # 2. Cancel accommodation bookings
+        accommodation_bookings = AccommodationBooking.objects.filter(
+            trip_details__travel_application=self
+        )
+        for ab in accommodation_bookings:
+             ab.status = 'cancelled'
+             ab.save(update_fields=['status'])
+
+        # 3. Cancel vehicle bookings
+        vehicle_bookings = VehicleBooking.objects.filter(
+            trip_details__travel_application=self
+        )
+        for vb in vehicle_bookings:
+             vb.status = 'cancelled'
+             vb.save(update_fields=['status'])
 
     def _send_cancellation_notifications(self):
         """Send cancellation notifications"""

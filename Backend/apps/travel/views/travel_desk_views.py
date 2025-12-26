@@ -534,48 +534,13 @@ class TravelDeskCancelApplicationView(APIView):
         if app.status in ["completed", "cancelled"]:
             return error_response(message="Application already finalised")
 
-        with transaction.atomic():
-            # Cancel all bookings
-            bookings = Booking.objects.filter(
-                trip_details__travel_application=app
-            )
-
-            for b in bookings:
-                b.status = "cancelled"
-                b.save(update_fields=["status"])
-
-                # close assignment
-                if hasattr(b, "assignment"):
-                    b.assignment.completed_at = timezone.now()
-                    b.assignment.save(update_fields=["completed_at"])
-
-                # add note
-                BookingNote.objects.create(
-                    booking=b,
-                    author=request.user,
-                    note=f"[APPLICATION CANCELLED] {reason}"
-                )
-
-            # Update app status
-            app.status = "cancelled"
-            app.save(update_fields=["status"])
-
-            NotificationCenter.notify(
-                event_name="travel.booking.cancelled",
-                reference={"type": "TravelRequest", "id": app.id},
-                payload={
-                    "employee_id": app.employee.id,
-                    "request_id": app.get_travel_request_id(),
-                    "employee_name": app.employee.get_full_name(),
-                    "cancel_reason": reason,
-                },
-            )
-
-            AuditLog.objects.create(
-                user=request.user,
-                action="cancel",
-                content_object=app,
-                changes={"reason": reason}
-            )
-
-        return success_response(message="Application cancelled successfully")
+        try:
+            with transaction.atomic():
+                # Admins/Travel Desk can hard-cancel immediately
+                app.approve_cancellation(approved_by=request.user, notes=reason)
+            
+            return success_response(message="Application cancelled successfully")
+        except ValidationError as e:
+            return error_response(str(e))
+        except Exception as e:
+            return error_response(f"An error occurred during cancellation: {str(e)}")
