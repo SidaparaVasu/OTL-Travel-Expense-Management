@@ -1,27 +1,32 @@
-import requests
+import os
 import logging
-from django.conf import settings
+import requests
 from django.contrib.auth import get_user_model
 from apps.authentication.models.profiles import OrganizationalProfile
 from apps.master_data.models import (
-    DepartmentMaster, DesignationMaster, GradeMaster, 
+    DepartmentMaster, DesignationMaster, GradeMaster,
     LocationMaster, CityMaster, StateMaster, CountryMaster,
-    CompanyInformation, EmployeeTypeMaster
+    CompanyInformation
 )
-import os
 
 logger = logging.getLogger('sso_auth')
 User = get_user_model()
 
+
 class HRMSSyncService:
     """
-    Service to synchronize data from HRMS API
+    Service to synchronize HRMS employee data into the system.
+    All company context is derived dynamically from SSO token.
     """
+
     BASE_URL = os.getenv(
         'HRMS_API_BASE_URL',
         'http://192.168.1.251:8583'
     )
-    COMPANY_ID = 2  # Default as per user request
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
     @classmethod
     def _get_headers(cls):
@@ -30,186 +35,223 @@ class HRMSSyncService:
             raise RuntimeError("HRMS_API_TOKEN is missing in environment")
 
         return {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-    }
-    
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+
+    # ------------------------------------------------------------------
+    # HRMS API calls
+    # ------------------------------------------------------------------
+
     @classmethod
-    def fetch_employee_data(cls, hrms_id):
-        """Fetch full employee details from HRMS API"""
+    def fetch_employee_data(cls, emp_id: str, company_id: str) -> dict | None:
+        """
+        Fetch employee data from HRMS for given employee & company.
+        """
         url = f"{cls.BASE_URL}/api/Employee/GetAllEmployees"
-        params = {'cmpId': cls.COMPANY_ID, 'empId': hrms_id}
-        
+        params = {
+            "cmpId": company_id,
+            "empId": emp_id,
+        }
+
         try:
-            response = requests.get(url, params=params, timeout=10, headers=cls._get_headers())
+            response = requests.get(
+                url,
+                params=params,
+                headers=cls._get_headers(),
+                timeout=10
+            )
             response.raise_for_status()
-            result = response.json()
-            
-            if result.get('status') and result.get('data', {}).get('data'):
-                return result['data']['data'][0]
-            
-            logger.warning(f"HRMS API returned no data for Employee ID: {hrms_id}")
-            logger.debug(f"HRMS Request URL: {response.request.url}")
-            logger.debug(f"HRMS Request Headers: {response.request.headers}")
-            logger.debug(f"HRMS Response Status Code: {response.status_code}")
-            logger.debug(f"HRMS Response Content: {response.content}")
+
+            payload = response.json()
+            records = payload.get("data", {}).get("data", [])
+
+            return records[0] if records else None
+
+        except Exception as exc:
+            logger.error(
+                f"HRMS fetch failed (emp_id={emp_id}, company_id={company_id}): {exc}"
+            )
             return None
-        except Exception as e:
-            logger.error(f"Failed to fetch HRMS data for ID {hrms_id}: {str(e)}")
-            return None
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     @classmethod
-    def sync_user(cls, hrms_id_or_data):
+    def sync_user(cls, emp_id: str, company_id: str) -> User | None:
         """
-        Synchronize a user and their profile from HRMS data.
-        If hrms_id_or_data is an ID, it fetches data first.
+        Sync HRMS employee into local system using dynamic company context.
         """
-        if isinstance(hrms_id_or_data, (int, str)):
-            data = cls.fetch_employee_data(hrms_id_or_data)
-        else:
-            data = hrms_id_or_data
-
+        data = cls.fetch_employee_data(emp_id, company_id)
         if not data:
             return None
 
-        hrms_id = data.get('Employee_ID')
-        email = data.get('Work_Email')
-        full_name = data.get('Name', '')
-        
-        logger.info(f"Syncing HRMS User: {full_name} (ID: {hrms_id}, Email: {email})")
-        logger.debug(f"Raw HRMS Data: {data}")
+        hrms_id = data.get("Employee_ID")
+        email = data.get("Work_Email")
+        full_name = data.get("Name", "").strip()
 
-        # Split Name
-        name_parts = full_name.split(' ', 1)
-        first_name = name_parts[0]
-        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        logger.info(
+            f"Syncing HRMS User: {full_name} "
+            f"(HRMS_ID={hrms_id}, Email={email}, Company={company_id})"
+        )
 
-        # Find or Create User
+        # --------------------------------------------------------------
+        # User creation / update
+        # --------------------------------------------------------------
+
+        first_name, last_name = cls._split_name(full_name)
+
+        emp_status = (data.get("Emp_Status") or "").strip().lower()
+        is_active = emp_status == "active"
+
         user, created = User.objects.get_or_create(
             hrms_id=hrms_id,
             defaults={
-                'username': email,
-                'email': email,
-                'first_name': first_name,
-                'last_name': last_name,
-                'gender': 'M' if data.get('Gender') == 'Male' else 'F' if data.get('Gender') == 'Female' else 'N',
-                'mobile_no': data.get('Mobile_No'),
-                'is_active': data.get('Emp_Status') == 'Active',
-            }
+                "username": email,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "mobile_no": data.get("Mobile_No"),
+                "gender": cls._map_gender(data.get("Gender")),
+                "is_active": is_active,
+            },
         )
 
         if not created:
-            # Update existing user
-            user.email = email
             user.username = email
+            user.email = email
             user.first_name = first_name
             user.last_name = last_name
-            user.mobile_no = data.get('Mobile_No')
-            user.is_active = data.get('Emp_Status') == 'Active'
+            user.mobile_no = data.get("Mobile_No")
+            user.is_active = is_active
             user.save()
 
-        # Sync Master Data
-        company, _ = CompanyInformation.objects.get_or_create(pk=cls.COMPANY_ID, defaults={'name': 'TSF'})
-        
-        dept, _ = DepartmentMaster.objects.get_or_create(
-            dept_name=data.get('Department'),
-            company=company,
-            defaults={'dept_code': data.get('Department')[:10].upper()} # Safe fallback
-        )
-        
-        desig, _ = DesignationMaster.objects.get_or_create(
-            designation_name=data.get('Designation'),
-            defaults={'designation_code': data.get('Designation')[:10].upper()}
-        )
-        
-        grade, _ = GradeMaster.objects.get_or_create(
-            name=data.get('Grade'),
-            defaults={'sorting_no': 99, 'is_active': True} # Default sorting
+        # --------------------------------------------------------------
+        # Company & Masters
+        # --------------------------------------------------------------
+
+        company, _ = CompanyInformation.objects.get_or_create(
+            id=company_id,
+            defaults={"name": f"Company-{company_id}"}
         )
 
-        # Sync Location (Branch)
+        department, _ = DepartmentMaster.objects.get_or_create(
+            dept_name=data.get("Department"),
+            company=company,
+            defaults={"dept_code": cls._safe_code(data.get("Department"))},
+        )
+
+        designation, _ = DesignationMaster.objects.get_or_create(
+            designation_name=data.get("Designation"),
+            defaults={"designation_code": cls._safe_code(data.get("Designation"))},
+        )
+
+        grade, _ = GradeMaster.objects.get_or_create(
+            name=data.get("Grade"),
+            defaults={"sorting_no": 99, "is_active": True},
+        )
+
         location = cls._sync_location(data, company)
 
-        # Update Profille
+        # --------------------------------------------------------------
+        # Profile
+        # --------------------------------------------------------------
+
         profile, _ = OrganizationalProfile.objects.get_or_create(user=user)
-        profile.employee_id = data.get('Employee_ID') # Ensure this is also populated
-        profile.employee_code = data.get('Alpha_Emp_Code')
+        profile.employee_id = hrms_id
+        profile.employee_code = data.get("Alpha_Emp_Code")
         profile.company = company
-        profile.department = dept
-        profile.designation = desig
+        profile.department = department
+        profile.designation = designation
         profile.grade = grade
         profile.base_location = location
-        
-        logger.info(f"Profile updated for {user.username}: Dept={dept}, Desig={desig}, Grade={grade}, Branch={location}")
-        
-        # Sync Manager Recursive Loop
-        manager_name = data.get('Reporting_Manager_Name')
+
+        manager_name = data.get("Reporting_Manager_Name")
         if manager_name:
             manager = cls._resolve_manager(manager_name)
             if manager:
                 profile.reporting_manager = manager
 
         profile.save()
+
+        logger.info(
+            f"Profile synced for {email} | "
+            f"Dept={department.dept_name}, "
+            f"Desig={designation.designation_name}, "
+            f"Grade={grade.name}, "
+            f"Location={location.location_name}"
+        )
+
         return user
 
-    @classmethod
-    def get_employee_leaves(cls, hrms_id, from_date, to_date):
-        """Fetch real-time leave data from HRMS API"""
-        url = f"{cls.BASE_URL}/api/Employee/GetEmployeeLeaves"
-        params = {
-            'From_Date': from_date,
-            'ToDate': to_date,
-            'Flag': 'Summary', # Or as per HRMS spec
-            'cmpId': cls.COMPANY_ID
-        }
-        
-        try:
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Failed to fetch leaves for ID {hrms_id}: {str(e)}")
-            return None
+    # ------------------------------------------------------------------
+    # Utility methods
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _split_name(full_name: str) -> tuple[str, str]:
+        parts = full_name.split(" ", 1)
+        return parts[0], parts[1] if len(parts) > 1 else ""
+
+    @staticmethod
+    def _map_gender(value: str | None) -> str:
+        if not value:
+            return "N"
+        value = value.lower()
+        if value == "male":
+            return "M"
+        if value == "female":
+            return "F"
+        return "N"
+
+    @staticmethod
+    def _safe_code(value: str | None, length: int = 10) -> str:
+        if not value:
+            return ""
+        return value[:length].upper()
 
     @classmethod
-    def _sync_location(cls, data, company):
-        """Sync location data with city mapping"""
-        branch_name = data.get('Branch')
-        city_name = data.get('Branch_City')
-        address = data.get('Branch_Address', '')
+    def _sync_location(cls, data: dict, company):
+        """
+        Sync branch / city / state / country dynamically.
+        """
+        country, _ = CountryMaster.objects.get_or_create(
+            country_name="India",
+            defaults={"country_code": "IND"},
+        )
 
-        # Standard entities for location
-        country, _ = CountryMaster.objects.get_or_create(country_name='India', defaults={'country_code': 'IND'})
-        state, _ = StateMaster.objects.get_or_create(state_name='Jharkhand', country=country) # Fallback state
-        
-        # Resolve City
+        state, _ = StateMaster.objects.get_or_create(
+            state_name="Jharkhand",
+            country=country,
+        )
+
         city, _ = CityMaster.objects.get_or_create(
-            city_name=city_name,
+            city_name=data.get("Branch_City"),
             state=state,
-            defaults={'category_id': 1} # Default category
+            defaults={"category_id": 1},
         )
 
         location, _ = LocationMaster.objects.get_or_create(
-            location_name=branch_name,
+            location_name=data.get("Branch"),
             company=company,
             defaults={
-                'location_code': branch_name[:10].upper(),
-                'city': city,
-                'state': state,
-                'country': country,
-                'address': address
-            }
+                "location_code": cls._safe_code(data.get("Branch")),
+                "city": city,
+                "state": state,
+                "country": country,
+                "address": data.get("Branch_Address", ""),
+            },
         )
+
         return location
 
-    @classmethod
-    def _resolve_manager(cls, name):
-        """Try to find manager by name, or if not found, we might need an ID to fetch them"""
-        # Search by full name combined
-        manager = User.objects.filter(first_name__icontains=name.split(' ')[0]).first()
-        if not manager:
-            # In a real scenario, we'd want the Manager's ID from the API
-            # For now, we search by name. If not found, we can't create them without an ID.
-            logger.info(f"Manager '{name}' not found locally.")
-        return manager
+    @staticmethod
+    def _resolve_manager(name: str):
+        """
+        Resolve reporting manager by name (best-effort).
+        """
+        return User.objects.filter(
+            first_name__icontains=name.split(" ")[0]
+        ).first()
