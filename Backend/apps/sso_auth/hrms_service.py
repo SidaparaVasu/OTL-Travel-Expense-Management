@@ -169,10 +169,17 @@ class HRMSSyncService:
             defaults={"designation_code": cls._safe_code(data.get("Designation"))},
         )
 
-        grade, _ = GradeMaster.objects.get_or_create(
-            name=data.get("Grade"),
-            defaults={"sorting_no": 99, "is_active": True},
-        )
+        # Use a more defensive approach for Grade syncing to avoid sorting_no collisions
+        grade = GradeMaster.objects.filter(name=data.get("Grade")).first()
+        if not grade:
+            # Try to find an unused sorting_no or just use a safe high number
+            existing_nos = GradeMaster.objects.values_list('sorting_no', flat=True)
+            new_no = max(list(existing_nos) + [100]) + 1
+            grade = GradeMaster.objects.create(
+                name=data.get("Grade"),
+                sorting_no=new_no,
+                is_active=True
+            )
 
         location = cls._sync_location(data, company)
 
@@ -237,7 +244,11 @@ class HRMSSyncService:
     def _sync_location(cls, data: dict, company):
         """
         Sync branch / city / state / country dynamically.
+        Detects existing records by name or code to prevent IntegrityErrors.
         """
+        location_name = data.get("Branch")
+        location_code = cls._safe_code(location_name)
+
         country, _ = CountryMaster.objects.get_or_create(
             country_name="India",
             defaults={"country_code": "IND"},
@@ -254,16 +265,32 @@ class HRMSSyncService:
             defaults={"category_id": 1},
         )
 
-        location, _ = LocationMaster.objects.get_or_create(
-            location_name=data.get("Branch"),
+        # 1. Try to find by name + company (The logical match)
+        location = LocationMaster.objects.filter(
+            location_name=location_name,
+            company=company
+        ).first()
+
+        if location:
+            return location
+
+        # 2. Try to find by code (The technical match)
+        # If the code exists but name is different, we reuse the existing one 
+        # to avoid IntegrityError, assuming the code is the master key.
+        location = LocationMaster.objects.filter(location_code=location_code).first()
+        if location:
+            logger.warning(f"Reusing location by code match: {location_code} ({location.location_name})")
+            return location
+
+        # 3. Create if truly missing
+        location = LocationMaster.objects.create(
+            location_name=location_name,
             company=company,
-            defaults={
-                "location_code": cls._safe_code(data.get("Branch")),
-                "city": city,
-                "state": state,
-                "country": country,
-                "address": data.get("Branch_Address", ""),
-            },
+            location_code=location_code,
+            city=city,
+            state=state,
+            country=country,
+            address=data.get("Branch_Address", ""),
         )
 
         return location
@@ -271,8 +298,21 @@ class HRMSSyncService:
     @staticmethod
     def _resolve_manager(name: str):
         """
-        Resolve reporting manager by name (best-effort).
+        Resolve reporting manager by name. 
+        Note: In real production, this should use HRMS_ID from payload.
+        Currently using improved name matching.
         """
+        parts = name.split(" ")
+        # Try finding by first and last name if possible
+        if len(parts) >= 2:
+            exact_match = User.objects.filter(
+                first_name__iexact=parts[0],
+                last_name__iexact=parts[-1]
+            ).first()
+            if exact_match:
+                return exact_match
+        
+        # Fallback to first name match
         return User.objects.filter(
-            first_name__icontains=name.split(" ")[0]
+            first_name__icontains=parts[0]
         ).first()

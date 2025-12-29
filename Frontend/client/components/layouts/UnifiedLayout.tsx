@@ -14,7 +14,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Bell, Menu, ChevronDown, Users, LogOut, Settings } from "lucide-react";
+import {
+  Bell,
+  Menu,
+  ChevronDown,
+  Users,
+  LogOut,
+  Settings,
+  RefreshCw,
+} from "lucide-react";
 
 import {
   getAdminSidebar,
@@ -165,7 +173,16 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
     try {
       await authAPI.logout();
     } catch {}
-    navigate(ROUTES.login);
+
+    const isHrmsUser = localStorage.getItem("is_hrms_user") === "true";
+    if (isHrmsUser) {
+      // Redirect to HRMS portal if defined, otherwise fallback to login
+      const hrmsUrl =
+        import.meta.env.VITE_HRMS_PORTAL_URL || "https://hrms.tatasteel.com"; // Example placeholder
+      window.location.href = hrmsUrl;
+    } else {
+      navigate(ROUTES.login);
+    }
   };
 
   const navigateTo = (path: string) => navigate(path);
@@ -331,6 +348,15 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
                   <DropdownMenuItem onClick={() => navigate(ROUTES.master)}>
                     <Settings className="mr-2 h-4 w-4" /> Settings
                   </DropdownMenuItem>
+
+                  {JSON.parse(localStorage.getItem("roles") || "[]").length >
+                    1 && (
+                    <DropdownMenuItem
+                      onClick={() => navigate(ROUTES.choosePortal)}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" /> Switch Portal
+                    </DropdownMenuItem>
+                  )}
 
                   <DropdownMenuSeparator />
 

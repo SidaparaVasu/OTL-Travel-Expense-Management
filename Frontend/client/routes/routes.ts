@@ -1,6 +1,7 @@
 export const ROUTES = {
   // ---------------- AUTH ----------------
   login: "/login",
+  choosePortal: "/choose-portal",
   root: "/",
 
   // ---------------- DASHBOARDS ----------------

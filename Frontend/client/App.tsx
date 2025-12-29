@@ -16,6 +16,7 @@ import { UnifiedLayout } from "@/components/layouts/UnifiedLayout";
 import Login from "./pages/common/Login";
 import NotFound from "./pages/common/NotFound";
 import Profile from "./pages/common/Profile";
+import ChoosePortal from "./pages/common/ChoosePortal";
 
 // Dashboards
 import AdminIndex from "./pages/admin/Index";
@@ -105,6 +106,14 @@ const App = () => (
           {/* ---------------- AUTH ---------------- */}
           <Route path="/" element={<Login />} />
           <Route path={ROUTES.login} element={<Login />} />
+          <Route
+            path={ROUTES.choosePortal}
+            element={
+              <AuthOnly>
+                <ChoosePortal />
+              </AuthOnly>
+            }
+          />
 
           {/* ---------------- EMPLOYEE DASHBOARD ---------------- */}
           <Route

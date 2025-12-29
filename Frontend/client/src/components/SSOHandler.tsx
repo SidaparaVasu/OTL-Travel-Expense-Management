@@ -56,13 +56,26 @@ export const SSOHandler = () => {
           localStorage.setItem("user", JSON.stringify(user));
           localStorage.setItem("roles", JSON.stringify(roles));
           localStorage.setItem("permissions", JSON.stringify(permissions));
+          localStorage.setItem(
+            "is_hrms_user",
+            user.is_hrms_user ? "true" : "false",
+          );
+
           if (profile) {
             localStorage.setItem("profile", JSON.stringify(profile));
           }
 
           initializeAuth();
 
-          // Determine redirect based on roles
+          // Determine redirect: Multi-role users go to Choose Portal
+          if (roles && roles.length > 1) {
+            setTimeout(() => {
+              window.location.href = ROUTES.choosePortal;
+            }, 1000);
+            return;
+          }
+
+          // Single-role users follow existing primary role logic
           const primaryRole = roles.find((r: any) => r.is_primary);
           let redirectPath = ROUTES.employeeDashboard;
 

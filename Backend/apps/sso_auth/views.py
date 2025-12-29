@@ -62,12 +62,21 @@ class SSOLoginView(View):
             # ----------------------------------------------------------
             if emp_id == '0':
                 user = self._get_or_create_admin(username)
-                return self._finalize_login(user, is_admin=True)
+                return self._finalize_login(user, is_admin=True, is_hrms=False)
 
             # ----------------------------------------------------------
             # Step 4: HRMS Employee SSO
             # ----------------------------------------------------------
-            user = HRMSSyncService.sync_user(emp_id, company_id)
+            try:
+                user = HRMSSyncService.sync_user(emp_id, company_id)
+            except Exception as sync_exc:
+                logger.error(f"HRMS Sync Error: {str(sync_exc)}", exc_info=True)
+                return self._error(
+                    "System synchronization error. Please contact Administrator.",
+                    status=500,
+                    extra=str(sync_exc)
+                )
+
             if not user:
                 return self._error(
                     "Failed to sync employee data from HRMS",
@@ -91,11 +100,15 @@ class SSOLoginView(View):
                     status=403
                 )
 
-            return self._finalize_login(user)
+            return self._finalize_login(user, is_hrms=True)
 
+        except ValueError as val_err:
+            # Crypto/Token format errors
+            logger.error(f"SSO Decryption Error: {str(val_err)}")
+            return self._error("Invalid or malformed authentication token", status=401, extra=str(val_err))
         except Exception as exc:
             logger.error("SSO login failed", exc_info=True)
-            return self._error("Authentication failed", status=401, extra=str(exc))
+            return self._error("Authentication failed due to an unexpected error", status=401, extra=str(exc))
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -121,7 +134,7 @@ class SSOLoginView(View):
         logger.info(f"Created SSO admin user: {username}")
         return user
 
-    def _finalize_login(self, user: User, is_admin: bool = False):
+    def _finalize_login(self, user: User, is_admin: bool = False, is_hrms: bool = True):
         """
         Assign roles, ensure profile, and issue JWT tokens.
         """
@@ -157,6 +170,7 @@ class SSOLoginView(View):
                     'gender': user.gender,
                     'user_type': user.user_type,
                     'mobile_no': getattr(user, 'mobile_no', None),
+                    'is_hrms_user': is_hrms,
                 },
                 'profile': self._profile_payload(user),
                 'roles': self._roles_payload(user),
