@@ -131,11 +131,14 @@ class NotificationCenter:
     def _resolve_recipients(resolver_key: str, payload: dict):
         """Resolve recipient User instances or simple dicts based on payload IDs.
 
-        Supported resolver keys (Phase 2 minimal set):
+        Supported resolver keys:
             - 'employee' -> payload['employee_id']
             - 'approver' -> payload['approver_id']
             - 'booking_agent' -> payload['booking_agent_id']
             - 'desk_agent' -> payload['desk_agent_id']
+            - 'approver_and_stakeholders' -> approver + travel desk + booking agents (for cancellation requests)
+            - 'booking_agents' -> all assigned booking agents (list)
+            - 'travel_desk' -> travel desk user or all users with Travel Desk role
             - 'default_resolver' -> payload['recipients'] (list of ids or contacts)
         """        
         users = []
@@ -148,6 +151,39 @@ class NotificationCenter:
                 users = list(User.objects.filter(id=payload.get('booking_agent_id')))
             elif resolver_key == 'desk_agent' and payload.get('desk_agent_id'):
                 users = list(User.objects.filter(id=payload.get('desk_agent_id')))
+            
+            # Cancellation-specific resolvers
+            elif resolver_key == 'approver_and_stakeholders':
+                # Primary approver
+                if payload.get('approver_id'):
+                    users.extend(User.objects.filter(id=payload.get('approver_id')))
+                
+                # Travel desk user if assigned
+                if payload.get('travel_desk_id'):
+                    users.extend(User.objects.filter(id=payload.get('travel_desk_id')))
+                
+                # Booking agents if any
+                if payload.get('booking_agent_ids'):
+                    agent_ids = payload.get('booking_agent_ids', [])
+                    users.extend(User.objects.filter(id__in=agent_ids))
+            
+            elif resolver_key == 'booking_agents':
+                # All assigned booking agents
+                if payload.get('booking_agent_ids'):
+                    agent_ids = payload.get('booking_agent_ids', [])
+                    users = list(User.objects.filter(id__in=agent_ids))
+            
+            elif resolver_key == 'travel_desk':
+                # Specific travel desk user if assigned, otherwise all Travel Desk role users
+                if payload.get('travel_desk_id'):
+                    users = list(User.objects.filter(id=payload.get('travel_desk_id')))
+                else:
+                    # Get all users with Travel Desk role
+                    from apps.authentication.models import Role
+                    travel_desk_role = Role.objects.filter(name='Travel Desk').first()
+                    if travel_desk_role:
+                        users = list(User.objects.filter(roles=travel_desk_role))
+            
             elif resolver_key == 'default_resolver':
                 # payload['recipients'] can be list of user ids, or list of contact dicts
                 recs = payload.get('recipients', [])

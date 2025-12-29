@@ -27,11 +27,13 @@ import {
   CalendarClock,
   Receipt,
   Train,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ROUTES } from "@/routes/routes";
 import { CancellationRequestModal } from "./components/CancellationRequestModal";
+import { CancellationConfirmationDialog } from "./components/CancellationConfirmationDialog";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -52,6 +54,8 @@ const TravelCancellationRequest = () => {
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [pendingReason, setPendingReason] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
 
   useEffect(() => {
@@ -74,15 +78,26 @@ const TravelCancellationRequest = () => {
     setOpen(false);
   };
 
-  const handleCancelRequest = async (reason) => {
+  const handlePrepareSubmit = (reason: string) => {
+    if (!reason.trim()) {
+      toast.error("Please provide a reason for cancellation");
+      return;
+    }
+    setPendingReason(reason);
+    setIsModalOpen(false);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmedSubmit = async () => {
     if (!application) return;
     setIsRequesting(true);
     try {
-      await travelAPI.requestCancellation(application.id, reason);
+      await travelAPI.requestCancellation(application.id, pendingReason);
       toast.success("Cancellation request submitted successfully");
+      setIsConfirmDialogOpen(false);
       setIsModalOpen(false);
       navigate(ROUTES.travelApplicationList);
-    } catch (err) {
+    } catch (err: any) {
       toast.error(
         err.response?.data?.message || "Failed to submit cancellation request",
       );
@@ -149,7 +164,11 @@ const TravelCancellationRequest = () => {
                 <ChevronsUpDown className="h-4 w-4 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="p-0 w-full">
+            <PopoverContent
+              className="p-0"
+              align="start"
+              style={{ width: "var(--radix-popover-trigger-width)" }}
+            >
               <Command>
                 <CommandInput placeholder="Type to search..." />
                 <CommandList>
@@ -217,6 +236,25 @@ const TravelCancellationRequest = () => {
                 </p>
               </div>
             </div>
+
+            {/* Show rejection reason if cancellation was rejected */}
+            {application.cancellation_rejection_reason && (
+              <div className="px-8 pt-4">
+                <div className="p-4 rounded-lg bg-red-50/60 border border-red-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">
+                        Previous Cancellation Request Rejected
+                      </p>
+                      <p className="text-sm text-red-800 mt-1">
+                        {application.cancellation_rejection_reason}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="space-y-6">
@@ -378,9 +416,18 @@ const TravelCancellationRequest = () => {
       </main>
 
       <CancellationRequestModal
-        isOpen={isModalOpen}
+        isOpen={isModalOpen && !isConfirmDialogOpen}
         onClose={() => setIsModalOpen(false)}
-        onConfirm={handleCancelRequest}
+        onConfirm={handlePrepareSubmit}
+        isLoading={isRequesting}
+      />
+
+      <CancellationConfirmationDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={handleConfirmedSubmit}
+        application={application}
+        reason={pendingReason}
         isLoading={isRequesting}
       />
     </div>

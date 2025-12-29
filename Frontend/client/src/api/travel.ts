@@ -7,6 +7,8 @@ import {
   TravelMode,
   TravelSubOption,
   GLCode,
+  TravelApplicationResponse,
+  PaginationMeta,
 } from "@/src/types/travel.types";
 
 export const travelAPI = {
@@ -20,7 +22,7 @@ export const travelAPI = {
   getMyApplications: async (
     filter: string,
     page: number,
-  ): Promise<TravelApplication[]> => {
+  ): Promise<TravelApplicationResponse> => {
     const { data } = await apiClient.get(
       `/travel/my-applications/?status=${filter}&page=${page}`,
     );
@@ -324,6 +326,13 @@ export const travelAPI = {
         action,
         reason,
       },
+    );
+    return data;
+  },
+
+  withdrawCancellation: async (id: number) => {
+    const { data } = await apiClient.post(
+      `/travel/applications/${id}/cancel/withdraw/`,
     );
     return data;
   },

@@ -36,13 +36,16 @@ class ManagerApprovalListSerializer(serializers.ModelSerializer):
     department = serializers.CharField(source='employee.department.dept_name', read_only=True)
     current_approval = serializers.SerializerMethodField()
     trip_summary = serializers.SerializerMethodField()
+    cancellation_reason = serializers.CharField(read_only=True)
+    cancellation_rejection_reason = serializers.CharField(read_only=True)
     
     class Meta:
         model = TravelApplication
         fields = [
             'id', 'travel_request_id', 'employee_name', 'employee_grade', 
             'department', 'purpose', 'estimated_total_cost', 'status',
-            'submitted_at', 'current_approval', 'trip_summary'
+            'submitted_at', 'current_approval', 'trip_summary', 'cancellation_reason',
+            'cancellation_rejection_reason'
         ]
     
     def get_current_approval(self, obj):

@@ -429,6 +429,16 @@ class ForwardApplicationView(APIView):
             app = TravelApplication.objects.get(id=app_id)
         except TravelApplication.DoesNotExist:
             return error_response(message="Application not found")
+        
+        # Check if application is cancelled or cancellation requested
+        if app.status in ['cancelled', 'cancellation_requested']:
+            return error_response(
+                message="Cannot forward application - Travel application has been cancelled",
+                data={
+                    "status": [f"This travel application is {app.get_status_display()}. Forwarding is disabled."]
+                },
+                status_code=403
+            )
 
         # Validate agent
         agent_id = request.data.get("agent_id")

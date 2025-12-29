@@ -38,9 +38,10 @@ class ManagerApprovalsView(ListAPIView):
             approval_flows__approver=user,
             approval_flows__can_approve=True
         ).select_related(
-            'employee__grade', 'employee__department'
+            'employee__grade', 'employee__department', 'employee__organizational_profile__reporting_manager'
         ).prefetch_related(
-            'trip_details__from_location', 'trip_details__to_location'
+            'trip_details__from_location', 'trip_details__to_location',
+            'trip_details__bookings', 'trip_details__bookings__booking_type'
         ).distinct()
 
         if status_filter == 'pending':

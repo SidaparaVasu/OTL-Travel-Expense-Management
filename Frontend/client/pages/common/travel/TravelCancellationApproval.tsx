@@ -169,16 +169,16 @@ const TravelCancellationApproval: React.FC = () => {
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Employee
                   </TableHead>
-                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider max-w-[200px]">
+                  <TableHead className="text-dark-600 text-left font-semibold text-xs uppercase tracking-wider">
+                    Reason
+                  </TableHead>
+                  <TableHead className="text-dark-600 text-left font-semibold text-xs uppercase tracking-wider max-w-[200px]">
                     Destination & Purpose
                   </TableHead>
-                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
+                  <TableHead className="text-dark-600 text-left font-semibold text-xs uppercase tracking-wider">
                     Travel Dates
                   </TableHead>
-                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
-                    Budget
-                  </TableHead>
-                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
+                  <TableHead className="text-dark-600 text-left font-semibold text-xs uppercase tracking-wider">
                     Status
                   </TableHead>
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
@@ -230,6 +230,11 @@ const TravelCancellationApproval: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <div className="font-bold text-foreground">
+                          {request.cancellation_reason}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <div>
                           <div className="font-medium text-foreground">
                             {request.trip_summary?.[0]?.from} →{" "}
@@ -251,14 +256,6 @@ const TravelCancellationApproval: React.FC = () => {
                           <div className="text-sm text-muted-foreground">
                             {request.trip_summary?.[0]?.duration} Days
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-bold text-foreground">
-                          ₹
-                          {Number(request.estimated_total_cost).toLocaleString(
-                            "en-IN",
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>

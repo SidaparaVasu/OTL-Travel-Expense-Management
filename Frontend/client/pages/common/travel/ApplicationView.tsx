@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { travelAPI } from "@/lib/api/travel";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -148,7 +149,10 @@ const ApplicationView: React.FC = () => {
       {application.trip_details?.map((trip: any) => (
         <TripCard
           key={trip.id}
-          trip={trip}
+          trip={{
+            ...trip,
+            travel_application_status: application.status,
+          }}
           parentPurpose={application.purpose}
           guestHousesMap={createGuestHouseMap(application)}
         />
@@ -391,10 +395,18 @@ const TripCard = ({ trip, parentPurpose, guestHousesMap }: any) => {
               <div className="flex items-center gap-3 min-w-0">
                 <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
                 <div className="min-w-0">
-                  <h3 className="text-base font-semibold text-slate-800 truncate">
+                  <h3 className="text-base font-semibold text-slate-800 truncate flex items-center gap-2">
                     {trip.from_location_name}{" "}
                     <span className="mx-2 text-slate-400">→</span>{" "}
                     {trip.to_location_name}
+                    {trip.travel_application_status === "cancelled" && (
+                      <Badge
+                        variant="destructive"
+                        className="ml-2 text-[10px] h-5"
+                      >
+                        Cancelled
+                      </Badge>
+                    )}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1 truncate">
                     {trip.trip_purpose || parentPurpose || "Not specified"}
@@ -552,7 +564,21 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
   const details = booking.booking_details || {};
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 hover:shadow-sm transition-shadow">
+    <div
+      className={cn(
+        "rounded-md border p-4 hover:shadow-sm transition-shadow relative overflow-hidden",
+        booking.status === "cancelled"
+          ? "border-red-200 bg-red-50/30 opacity-75"
+          : "border-slate-200 bg-white",
+      )}
+    >
+      {booking.status === "cancelled" && (
+        <div className="absolute top-0 right-0">
+          <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-md uppercase">
+            Cancelled
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-start mb-3">
         {/* Left side: title */}

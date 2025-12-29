@@ -43,6 +43,8 @@ export interface Booking {
   created_at?: string;
   max_allowed_cost?: number;
   ceo_approval_status?: "pending" | "approved" | "rejected" | "not_required";
+  travel_application_status?: string; // Added for hold status check
+  trip_segment?: string;
 }
 
 export interface BookingDetails {
@@ -148,7 +150,15 @@ export const bookingAgentAPI = {
     updateStatus: async (
       bookingId: number,
       formData: FormData,
-    ): Promise<{ success: boolean; message: string }> => {
+    ): Promise<{
+      success: boolean;
+      message: string;
+      data?: {
+        booking_id?: number;
+        status?: string;
+        application_status?: string;
+      };
+    }> => {
       const response = await apiClient.post(
         `/travel/booking-agent/bookings/${bookingId}/status/`,
         formData,

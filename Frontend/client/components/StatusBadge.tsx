@@ -22,6 +22,7 @@ const TRAVEL_STATUS_LABELS: Record<string, string> = {
   booked: "Booked",
   completed: "Completed",
   cancelled: "Cancelled",
+  cancellation_requested: "Cancellation Requested",
 };
 
 // Travel Request Approval Statuses
@@ -98,6 +99,7 @@ const STATUS_COLOR_MAP: Record<string, string> = {
   rejected_ceo: "bg-red-50 text-red-700 border-red-300",
 
   cancelled: "bg-red-50 text-red-700 border-red-300",
+  cancellation_requested: "bg-red-50 text-red-700 border-red-300",
 };
 
 // -------------- SIZE + SHAPE VARIANTS ----------------

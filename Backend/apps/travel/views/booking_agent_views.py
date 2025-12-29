@@ -250,6 +250,17 @@ class BookingAgentUpdateStatusView(APIView):
                 message="Booking not found or not assigned to you.",
                 data={"id": ["Invalid booking id"]}
             )
+        
+        # Check if travel application is cancelled or cancellation requested
+        application = booking.trip_details.travel_application
+        if application.status in ['cancelled', 'cancellation_requested']:
+            return error_response(
+                message="Cannot update booking status - Travel application has been cancelled",
+                data={
+                    "status": [f"This travel application is {application.get_status_display()}. Booking actions are disabled."]
+                },
+                status_code=403
+            )
 
         new_status = request.data.get("status", "").strip().lower()
         remarks = request.data.get("remarks", "").strip()
@@ -504,7 +515,7 @@ class BookingAgentAcceptBookingView(APIView):
         # Fetch booking that is assigned to this agent
         booking = (
             Booking.objects
-            .select_related("assignment")
+            .select_related("assignment", "trip_details__travel_application")
             .filter(id=pk, assignment__assigned_to=user)
             .first()
         )
@@ -513,6 +524,17 @@ class BookingAgentAcceptBookingView(APIView):
             return error_response(
                 message="Booking not found or not assigned to you.",
                 data={"id": ["Invalid booking id"]}
+            )
+        
+        # Check if travel application is cancelled or cancellation requested
+        application = booking.trip_details.travel_application
+        if application.status in ['cancelled', 'cancellation_requested']:
+            return error_response(
+                message="Cannot accept booking - Travel application has been cancelled",
+                data={
+                    "status": [f"This travel application is {application.get_status_display()}. Booking actions are disabled."]
+                },
+                status_code=403
             )
 
         assignment = booking.assignment

@@ -166,7 +166,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             'internal_order', 'general_ledger', 'gl_code_name', 'sanction_number',
             'advance_amount', 'estimated_total_cost', 'status', 'is_settled',
             'settlement_due_date', 'travel_request_id', 'total_duration_days',
-            'created_at', 'updated_at', 'submitted_at', 'trip_details'
+            'created_at', 'updated_at', 'submitted_at', 'trip_details',
+            'cancellation_reason', 'cancellation_requested_at'
         ]
         read_only_fields = [
             'employee', 'status', 'is_settled', 'estimated_total_cost',

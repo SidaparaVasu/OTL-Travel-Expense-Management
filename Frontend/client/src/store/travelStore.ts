@@ -5,7 +5,7 @@ import { TravelApplication, TravelStats, Location, TravelMode, GLCode } from '@/
 interface TravelState {
   applications: TravelApplication[];
   stats: TravelStats | null;
-  pagination: [];
+  pagination: PaginationMeta | null;
   locations: Location[];
   travelModes: TravelMode[];
   glCodes: GLCode[];
@@ -13,7 +13,7 @@ interface TravelState {
   guestHouses: any[];
   arcHotels: any[];
 
-  loadApplications: (filter: string) => Promise<void>;
+  loadApplications: (filter: string, page?: number) => Promise<void>;
   loadStats: () => Promise<void>;
   loadMasterData: () => Promise<void>;
   loadGuestHouses: () => Promise<void>;
@@ -34,7 +34,6 @@ export const useTravelStore = create<TravelState>((set, get) => ({
   guestHouses: [],
   arcHotels: [],
 
-
   loadGuestHouses: async () => {
     const data = await travelAPI.getGuestHouses();
     set({ guestHouses: data });
@@ -48,8 +47,11 @@ export const useTravelStore = create<TravelState>((set, get) => ({
   loadApplications: async (filter: string, page = 1) => {
     set({ isLoading: true });
     try {
-      const fetched_applications = await travelAPI.getMyApplications(filter, page);
-      const applications = fetched_applications.data.applications
+      const fetched_applications = await travelAPI.getMyApplications(
+        filter,
+        page,
+      );
+      const applications = fetched_applications.data.applications;
       const stats = fetched_applications.data.statistics;
       const pagination = fetched_applications.meta.pagination;
       console.log(applications);
@@ -67,7 +69,7 @@ export const useTravelStore = create<TravelState>((set, get) => ({
       const stats = await travelAPI.getStats();
       set({ stats });
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      console.error("Failed to load stats:", error);
     }
   },
 
@@ -80,7 +82,7 @@ export const useTravelStore = create<TravelState>((set, get) => ({
       ]);
       set({ locations, travelModes, glCodes });
     } catch (error) {
-      console.error('Failed to load master data:', error);
+      console.error("Failed to load master data:", error);
     }
   },
 
@@ -92,11 +94,11 @@ export const useTravelStore = create<TravelState>((set, get) => ({
 
   submitApplication: async (id) => {
     await travelAPI.submitApplication(id);
-    await get().loadApplications();
+    await get().loadApplications("all");
   },
 
   deleteApplication: async (id) => {
     await travelAPI.deleteApplication(id);
-    set({ applications: get().applications.filter(app => app.id !== id) });
+    set({ applications: get().applications.filter((app) => app.id !== id) });
   },
 }));

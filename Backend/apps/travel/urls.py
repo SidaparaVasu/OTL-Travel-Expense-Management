@@ -69,6 +69,7 @@ urlpatterns = [
     # Cancellation
     path('applications/<int:pk>/cancel/', TravelCancellationRequestView.as_view()),
     path('applications/<int:pk>/cancel/approval/', TravelCancellationApprovalView.as_view()),
+    path('applications/<int:pk>/cancel/withdraw/', WithdrawCancellationView.as_view()),
     path('applications/<int:pk>/partial-cancel/', PartialCancellationView.as_view()),
 
     # Dashboard 

@@ -38,7 +38,12 @@ export const CancellationApprovalModal: React.FC<
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="sm:justify-center gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={isLoading} className="hover:bg-slate-100 hover:text-slate-700">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="hover:bg-slate-100 hover:text-slate-700"
+          >
             Cancel
           </Button>
           <Button
@@ -96,7 +101,12 @@ export const CancellationRejectionModal: React.FC<
           />
         </div>
         <DialogFooter className="sm:justify-center gap-2 mt-2">
-          <Button variant="outline" onClick={onClose} disabled={isLoading} className="hover:bg-slate-100 hover:text-slate-700">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="hover:bg-slate-100 hover:text-slate-700"
+          >
             Cancel
           </Button>
           <Button

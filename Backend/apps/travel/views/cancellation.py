@@ -12,8 +12,9 @@ class TravelCancellationRequestView(APIView):
 
     @transaction.atomic
     def post(self, request, pk):
+        # Use select_for_update to prevent race conditions
         try:
-            travel_app = TravelApplication.objects.get(pk=pk)
+            travel_app = TravelApplication.objects.select_for_update().get(pk=pk)
         except TravelApplication.DoesNotExist:
             return error_response("Travel application not found", status_code=404)
 
@@ -112,3 +113,76 @@ class PartialCancellationView(APIView):
         travel_app.save()
 
         return success_response(message=f"Successfully cancelled {trips.count()} trip segments")
+
+
+class WithdrawCancellationView(APIView):
+    """View for employee to withdraw their pending cancellation request"""
+    permission_classes = [IsAuthenticated]
+    
+    @transaction.atomic
+    def post(self, request, pk):
+        # Use select_for_update to prevent race conditions
+        try:
+            travel_app = TravelApplication.objects.select_for_update().get(
+                pk=pk, 
+                employee=request.user
+            )
+        except TravelApplication.DoesNotExist:
+            return error_response(
+                "Travel application not found or you don't have permission to withdraw this request",
+                status_code=404
+            )
+        
+        # Check if there's a pending cancellation request
+        if travel_app.status != 'cancellation_requested':
+            return error_response(
+                "No pending cancellation request to withdraw. Current status: " + travel_app.get_status_display(),
+                status_code=400
+            )
+        
+        # Safety Condition: Check if travel has already started
+        from django.utils import timezone
+        start_date = travel_app.get_travel_start_date()
+        if start_date and start_date < timezone.now().date():
+            return error_response(
+                "Cannot withdraw cancellation - Travel has already started. "
+                "Please contact Travel Desk for assistance.",
+                status_code=400
+            )
+
+        # Check if previous status exists
+        if not travel_app.previous_status:
+            return error_response(
+                "Cannot withdraw - previous application status not found",
+                status_code=400
+            )
+        
+        # Restore previous status
+        old_status = travel_app.status
+        travel_app.status = travel_app.previous_status
+        travel_app.cancellation_requested_at = None
+        travel_app.cancellation_reason = ""
+        travel_app.save()
+        
+        # Audit log
+        from apps.travel.models.audit import AuditLog
+        from django.contrib.contenttypes.models import ContentType
+        AuditLog.objects.create(
+            user=request.user,
+            action='withdraw_cancellation',
+            content_type=ContentType.objects.get_for_model(travel_app),
+            object_id=travel_app.id,
+            changes={
+                "previous_status": old_status,
+                "restored_status": travel_app.status,
+                "action": "Cancellation request withdrawn by employee"
+            }
+        )
+        
+        return success_response(
+            message="Cancellation request withdrawn successfully",
+            data={
+                "status": travel_app.status,
+                "travel_request_id": travel_app.get_travel_request_id()
+            }
+        )

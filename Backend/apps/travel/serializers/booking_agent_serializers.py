@@ -55,6 +55,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     status_label = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
     max_allowed_cost = serializers.SerializerMethodField()
+    travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
 
     class Meta:
         model = Booking
@@ -66,6 +67,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "created_at", "updated_at",
             "assigned_agent",
             "meal_preference",
+            "travel_application_status",
         ]
 
     meal_preference = serializers.SerializerMethodField()
@@ -147,6 +149,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     assigned_agent = serializers.SerializerMethodField()
     max_allowed_cost = serializers.SerializerMethodField()
     ceo_approval_status = serializers.SerializerMethodField()
+    travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
 
     class Meta:
         model = Booking
@@ -161,6 +164,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "meal_preference",
             "max_allowed_cost",
             "ceo_approval_status",
+            "travel_application_status",
         ]
 
     meal_preference = serializers.SerializerMethodField()

@@ -100,6 +100,7 @@ class TravelApplication(models.Model):
     cancellation_requested_at = models.DateTimeField(null=True, blank=True)
     cancellation_approved_at = models.DateTimeField(null=True, blank=True)
     cancellation_reason = models.TextField(blank=True)
+    cancellation_rejection_reason = models.TextField(blank=True, help_text="Reason for rejecting cancellation request")
     cancelled_by = models.ForeignKey(
         'authentication.User',
         on_delete=models.SET_NULL,
@@ -325,21 +326,43 @@ class TravelApplication(models.Model):
         return False, "You don't have permission to cancel this application"
 
     def request_cancellation(self, requested_by, reason):
-        """Step 1: Applicant raises cancellation request"""
-        if self.status == 'completed':
-            raise ValidationError("Cannot cancel completed travel")
+        """Step 1: Applicant requests cancellation"""
+        from django.utils import timezone
         
-        if self.status == 'cancelled':
-            raise ValidationError("Already cancelled")
-
+        # 1. Prevent duplicate cancellation requests
         if self.status == 'cancellation_requested':
-            raise ValidationError("Cancellation already requested")
-
-        # Check if travel has started
+            raise ValidationError(
+                "A cancellation request is already pending for this application. "
+                "Please wait for your manager's decision or withdraw the existing request."
+            )
+        
+        # 2. Check if application is in CEO approval
+        if self.status == 'pending_ceo':
+            raise ValidationError(
+                "This application is pending CEO approval. "
+                "Please contact your manager or Travel Desk to request cancellation."
+            )
+        
+        # 3. Check if travel has already started
         start_date = self.get_travel_start_date()
-        if start_date and start_date <= timezone.now().date():
-            raise ValidationError("Cannot cancel - travel has already started")
-
+        if start_date and start_date < timezone.now().date():
+            raise ValidationError(
+                "Cannot request cancellation - Travel has already started. "
+                "Please contact Travel Desk for assistance."
+            )
+        
+        # 4. Check if already cancelled or completed
+        if self.status in ['cancelled', 'completed']:
+            raise ValidationError(
+                f"Cannot request cancellation - Application is already {self.get_status_display()}."
+            )
+        
+        # 5. Check if in draft or rejected state
+        if self.status in ['draft', 'rejected']:
+            raise ValidationError(
+                f"Cannot request cancellation - Application is in {self.get_status_display()} state."
+            )
+        
         # Check basic ownership/role (more specific checks in views)
         if self.employee != requested_by and not (requested_by.has_role('Admin') or requested_by.has_role('Travel Desk')):
              # Manager check might be needed here too if they can request cancellation FOR the user?
@@ -366,6 +389,15 @@ class TravelApplication(models.Model):
                 "reason": reason
             }
         )
+        
+        # Send cancellation request notification
+        try:
+            from apps.notifications.cancellation_service import CancellationNotificationService
+            CancellationNotificationService.send_cancellation_request_notification(self)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send cancellation request notification: {str(e)}", exc_info=True)
 
     def approve_cancellation(self, approved_by, notes=""):
         """Step 2: Manager/Admin approves cancellation"""
@@ -375,6 +407,15 @@ class TravelApplication(models.Model):
                 raise ValidationError("Can only approve cancellation requests.")
 
         self._perform_hard_cancel(approved_by, notes)
+        
+        # Send cancellation approval notification
+        try:
+            from apps.notifications.cancellation_service import CancellationNotificationService
+            CancellationNotificationService.send_cancellation_approval_notification(self, approved_by, notes)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send cancellation approval notification: {str(e)}", exc_info=True)
 
     def reject_cancellation(self, rejected_by, reason):
         """Step 2: Manager rejects cancellation"""
@@ -386,6 +427,7 @@ class TravelApplication(models.Model):
 
         old_status = self.status
         self.status = self.previous_status
+        self.cancellation_rejection_reason = reason  # Store rejection reason
         # self.previous_status = None # Keep it for audit? Or clear it? 
         self.save()
 
@@ -403,6 +445,15 @@ class TravelApplication(models.Model):
                 "reason": reason
             }
         )
+        
+        # Send cancellation rejection notification
+        try:
+            from apps.notifications.cancellation_service import CancellationNotificationService
+            CancellationNotificationService.send_cancellation_rejection_notification(self, rejected_by, reason)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send cancellation rejection notification: {str(e)}", exc_info=True)
 
     def cancel_application(self, cancelled_by, reason):
         """DEPRECATED: Use request_cancellation or approve_cancellation instead"""
@@ -476,10 +527,10 @@ class TravelApplication(models.Model):
 
     def _send_cancellation_notifications(self):
         """Send cancellation notifications"""
-        # Notify employee
-        # Notify approvers
-        # Notify travel desk
-        pass  # Implement email logic when notifications ready
+        # This method is called from _perform_hard_cancel
+        # Notifications are now handled in approve_cancellation method
+        # Keeping this for backward compatibility
+        pass
 
     def mark_booking_in_progress(self, travel_desk_user=None):
         """

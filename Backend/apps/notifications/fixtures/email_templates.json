@@ -194,5 +194,85 @@
       "created_at": "2025-12-15T14:05:00Z",
       "updated_at": "2025-12-15T14:05:00Z"
     }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 14,
+    "fields": {
+      "template_key": "travel.cancellation.requested",
+      "template_name": "Travel Cancellation Request Submitted",
+      "subject": "Cancellation Request for Travel Application — {{ request_id }}",
+      "body_html": "<p>Dear {{ approver_name }},</p>\n<p><strong>{{ employee_name }}</strong> has submitted a request to cancel their approved travel application.</p>\n<p><strong>Request ID:</strong> {{ request_id }}</p>\n<p><strong>Purpose:</strong> {{ purpose }}</p>\n<p><strong>Travel Dates:</strong> {{ travel_dates }}</p>\n<p><strong>Cancellation Reason:</strong> {{ cancellation_reason }}</p>\n<p>Please log in to the Travel Management System to review this cancellation request and approve or reject it.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Dear {{ approver_name }}, {{ employee_name }} has requested to cancel travel application {{ request_id }}. Reason: {{ cancellation_reason }}. Please review and take action.",
+      "cc_emails": [],
+      "bcc_emails": [],
+      "is_active": true,
+      "created_at": "2025-12-29T05:50:00Z",
+      "updated_at": "2025-12-29T05:50:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 15,
+    "fields": {
+      "template_key": "travel.cancellation.approved",
+      "template_name": "Travel Cancellation Approved",
+      "subject": "Your Travel Cancellation Has Been Approved — {{ request_id }}",
+      "body_html": "<p>Dear {{ employee_name }},</p>\n<p>Your cancellation request for travel application <strong>{{ request_id }}</strong> has been <strong>approved</strong> by {{ approver_name }}.</p>\n<p><strong>Purpose:</strong> {{ purpose }}</p>\n<p><strong>Travel Dates:</strong> {{ travel_dates }}</p>\n<p><strong>Approver Notes:</strong> {{ notes }}</p>\n<p>Your travel application has been successfully cancelled. All associated bookings have been marked as cancelled.</p>\n<p>If you had any advance payment for this travel, the finance team will process the refund accordingly.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Dear {{ employee_name }}, your cancellation request for travel application {{ request_id }} has been approved by {{ approver_name }}.",
+      "cc_emails": [],
+      "bcc_emails": [],
+      "is_active": true,
+      "created_at": "2025-12-29T05:50:00Z",
+      "updated_at": "2025-12-29T05:50:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 16,
+    "fields": {
+      "template_key": "travel.cancellation.rejected",
+      "template_name": "Travel Cancellation Rejected",
+      "subject": "Your Cancellation Request Has Been Rejected — {{ request_id }}",
+      "body_html": "<p>Dear {{ employee_name }},</p>\n<p>Your cancellation request for travel application <strong>{{ request_id }}</strong> has been <strong>rejected</strong> by {{ approver_name }}.</p>\n<p><strong>Rejection Reason:</strong> {{ rejection_reason }}</p>\n<p>Your travel application has been restored to its previous status: <strong>{{ previous_status }}</strong>. You may proceed with your travel as originally planned.</p>\n<p>If you still wish to cancel, please contact your approver ({{ approver_name }}) for clarification or submit a new cancellation request with additional justification.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Dear {{ employee_name }}, your cancellation request for travel application {{ request_id }} has been rejected by {{ approver_name }}. Reason: {{ rejection_reason }}.",
+      "cc_emails": [],
+      "bcc_emails": [],
+      "is_active": true,
+      "created_at": "2025-12-29T05:50:00Z",
+      "updated_at": "2025-12-29T05:50:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 17,
+    "fields": {
+      "template_key": "travel.cancellation.booking_agent",
+      "template_name": "Travel Cancellation - Booking Agent Notification",
+      "subject": "Travel Booking Cancelled — {{ request_id }}",
+      "body_html": "<p>Dear {{ booking_agent_name }},</p>\n<p>The travel application <strong>{{ request_id }}</strong> that was assigned to you for booking has been <strong>cancelled</strong>.</p>\n<p><strong>Employee:</strong> {{ employee_name }}</p>\n<p><strong>Purpose:</strong> {{ purpose }}</p>\n<p><strong>Cancellation Reason:</strong> {{ cancellation_reason }}</p>\n<p><strong>Important:</strong> All booking actions for this travel application have been disabled. Please do not proceed with any bookings or confirmations for this request.</p>\n<p>If you have already initiated any booking processes, please halt them immediately and notify the Travel Desk.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Dear {{ booking_agent_name }}, travel application {{ request_id }} assigned to you has been cancelled. Please halt all booking activities.",
+      "cc_emails": [],
+      "bcc_emails": [],
+      "is_active": true,
+      "created_at": "2025-12-29T05:50:00Z",
+      "updated_at": "2025-12-29T05:50:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 18,
+    "fields": {
+      "template_key": "travel.cancellation.travel_desk",
+      "template_name": "Travel Cancellation - Travel Desk Notification",
+      "subject": "Travel Application Cancelled — {{ request_id }}",
+      "body_html": "<p>Dear {{ travel_desk_name }},</p>\n<p>The travel application <strong>{{ request_id }}</strong> that was pending in your queue has been <strong>cancelled</strong>.</p>\n<p><strong>Employee:</strong> {{ employee_name }}</p>\n<p><strong>Purpose:</strong> {{ purpose }}</p>\n<p><strong>Travel Dates:</strong> {{ travel_dates }}</p>\n<p><strong>Cancellation Reason:</strong> {{ cancellation_reason }}</p>\n<p><strong>Important:</strong> This application cannot be forwarded to booking agents. All processing for this request must be halted immediately.</p>\n<p>Please ensure this application is removed from your active queue.</p>\n<p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Dear {{ travel_desk_name }}, travel application {{ request_id }} has been cancelled. Do not forward to booking agents.",
+      "cc_emails": [],
+      "bcc_emails": [],
+      "is_active": true,
+      "created_at": "2025-12-29T05:50:00Z",
+      "updated_at": "2025-12-29T05:50:00Z"
+    }
   }
 ]

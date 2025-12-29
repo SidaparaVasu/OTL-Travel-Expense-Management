@@ -56,6 +56,10 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
 
   if (!isOpen || !booking) return null;
 
+  // Check if application is on hold
+  const isOnHold =
+    booking.travel_application_status === "cancellation_requested";
+
   const requiresCeoApproval = () => {
     if (status !== "confirmed") return false;
     if (booking.booking_type_name !== "Flight") return false;
@@ -123,7 +127,8 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
         formData,
       );
 
-      if (response?.data?.status === "escalated") {
+      // Check if booking was escalated to CEO
+      if (response.data?.status === "escalated") {
         toast({
           title: "Sent for CEO approval",
           description:
@@ -138,12 +143,23 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
 
       onSuccess();
       onClose();
-    } catch {
-      toast({
-        title: "Update failed",
-        description: "Unable to update booking status",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // Handle 403 error for hold status
+      if (error.response?.status === 403) {
+        toast({
+          title: "Action not allowed",
+          description:
+            error.response?.data?.message ||
+            "This travel application is on hold",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Update failed",
+          description: "Unable to update booking status",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -174,6 +190,37 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
           </Button>
         </div>
 
+        {/* Hold Status Banner */}
+        {isOnHold && (
+          <div className="mx-6 mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg
+                className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-amber-900">
+                  Application On Hold - Cancellation Pending
+                </h4>
+                <p className="text-sm text-amber-800 mt-1">
+                  This travel application has a pending cancellation request.
+                  All booking actions are temporarily disabled until the
+                  approver makes a decision.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="px-6 py-4 space-y-4">
           <div className="text-sm text-muted-foreground">
             Booking ID:{" "}
@@ -184,7 +231,11 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
 
           <div className="space-y-2">
             <Label>Status *</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select
+              value={status}
+              onValueChange={setStatus}
+              disabled={isOnHold}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
@@ -221,7 +272,7 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
               onChange={(e) => setActualCost(e.target.value)}
               className="w-full h-10 rounded-md border px-3 text-sm"
               placeholder="Enter actual cost"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isOnHold}
             />
 
             {requiresCeoApproval() && (
@@ -239,6 +290,7 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder="Optional remarks"
+              disabled={isOnHold}
             />
           </div>
 
@@ -270,7 +322,7 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || requiresCeoApproval()}
+            disabled={isSubmitting || requiresCeoApproval() || isOnHold}
             className={
               requiresCeoApproval()
                 ? "bg-amber-600 hover:bg-amber-700 text-white"
@@ -282,6 +334,8 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Saving
               </>
+            ) : isOnHold ? (
+              "Actions On Hold"
             ) : requiresCeoApproval() ? (
               "Need CEO Approval"
             ) : (

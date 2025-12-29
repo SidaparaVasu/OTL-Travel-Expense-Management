@@ -34,9 +34,9 @@ export interface TicketingBooking {
   to_location: string;
   departure_date: string;
   departure_time: string;
-  arrival_date?: string;  // for round-trip
+  arrival_date?: string; // for round-trip
   arrival_time?: string;
-  booking_type: string;   // travel mode id
+  booking_type: string; // travel mode id
   sub_option?: number;
   estimated_cost: string;
   special_instruction: string;
@@ -44,7 +44,7 @@ export interface TicketingBooking {
 
 export interface AccommodationBooking {
   id?: number;
-  accommodation_type: 'company' | 'self';
+  accommodation_type: "company" | "self";
   guest_house_id?: number;
   hotel_name?: string;
   place: string;
@@ -68,7 +68,7 @@ export interface ConveyanceBooking {
   end_time: string;
   drop_location: string;
   booking_type: string;
-  sub_option?: number;  // Add this if missing
+  sub_option?: number; // Add this if missing
   estimated_cost: string;
   special_instruction: string;
 }
@@ -99,7 +99,7 @@ export interface TravelAdvanceData {
 // Trip Structure
 export interface TripDetail {
   id?: number;
-  trip_mode?: 'one-way' | 'round-trip';
+  trip_mode?: "one-way" | "round-trip";
   from_location: number;
   from_location_name?: string;
   to_location: number;
@@ -158,4 +158,24 @@ export interface TravelStats {
   pending: number;
   approved: number;
   rejected: number;
+}
+// Pagination
+export interface PaginationMeta {
+  total: number;
+  count: number;
+  per_page: number;
+  current_page: number;
+  total_pages: number;
+  next: string | null;
+  previous: string | null;
+}
+
+export interface TravelApplicationResponse {
+  data: {
+    applications: TravelApplication[];
+    statistics: TravelStats;
+  };
+  meta: {
+    pagination: PaginationMeta;
+  };
 }
