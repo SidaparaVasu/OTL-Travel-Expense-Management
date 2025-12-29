@@ -1,7 +1,7 @@
 [
   {
     "model": "notifications.notificationrule",
-    "pk": 1,
+    "pk": 14,
     "fields": {
       "event_name": "travel.cancellation.requested",
       "description": "Notification sent to approver when employee requests travel cancellation",
@@ -18,7 +18,7 @@
   },
   {
     "model": "notifications.notificationrule",
-    "pk": 2,
+    "pk": 15,
     "fields": {
       "event_name": "travel.cancellation.approved",
       "description": "Notification sent to employee when cancellation request is approved",
@@ -35,7 +35,7 @@
   },
   {
     "model": "notifications.notificationrule",
-    "pk": 3,
+    "pk": 16,
     "fields": {
       "event_name": "travel.cancellation.rejected",
       "description": "Notification sent to employee when cancellation request is rejected",
@@ -52,7 +52,7 @@
   },
   {
     "model": "notifications.notificationrule",
-    "pk": 4,
+    "pk": 17,
     "fields": {
       "event_name": "travel.cancellation.booking_agent",
       "description": "Notification sent to booking agents when travel is cancelled during booking phase",
@@ -69,7 +69,7 @@
   },
   {
     "model": "notifications.notificationrule",
-    "pk": 5,
+    "pk": 18,
     "fields": {
       "event_name": "travel.cancellation.travel_desk",
       "description": "Notification sent to travel desk when travel is cancelled while pending with them",
