@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ROUTES } from "@/routes/routes";
 import { useAuthStore } from "@/src/store/authStore";
 import SSOSyncing from "@/pages/common/SSOSyncing";
+import { API_BASE_URL } from "../../config/api.config";
 
 /**
  * SSO Authentication Handler
@@ -27,19 +28,12 @@ export const SSOHandler = () => {
 
       try {
         setIsSyncing(true);
-        // Robust backend URL detection
-        const envBaseAlt = import.meta.env.VITE_API_BASE_URL_ALT;
-        const envBase = import.meta.env.VITE_API_BASE_URL;
 
-        const rawBaseUrl =
-          window.location.hostname === "localhost"
-            ? envBase || "http://localhost:8000"
-            : envBaseAlt || envBase || window.location.origin;
-
-        const backendBaseUrl = rawBaseUrl
-          .replace(/\/api\/?$/, "")
-          .replace(/\/+$/, "");
-
+        // Use centralized API config and construct SSO URL
+        const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, "").replace(
+          /\/+$/,
+          "",
+        );
         const ssoUrl = `${backendBaseUrl}/sso/login/`;
 
         const response = await axios.get(ssoUrl, {

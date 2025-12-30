@@ -7,13 +7,8 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    allowedHosts: [
-      ".ngrok-free.app",
-      "192.168.1.90",
-      "hrms.orangetechnolab.com",
-      "120.72.91.77",
-      "120.72.91.78",
-    ],
+    // Nginx reverse proxy will handle domain routing
+    // Vite just needs to accept connections from any host
   },
   build: {
     outDir: "dist",
