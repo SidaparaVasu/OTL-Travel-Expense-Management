@@ -7,7 +7,13 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    allowedHosts: ['.ngrok-free.app', '192.168.1.90', 'http://hrms.orangetechnolab.com','http://120.72.91.78'],
+    allowedHosts: [
+      ".ngrok-free.app",
+      "192.168.1.90",
+      "hrms.orangetechnolab.com",
+      "120.72.91.77",
+      "120.72.91.78",
+    ],
   },
   build: {
     outDir: "dist",
@@ -20,6 +26,6 @@ export default defineConfig({
     },
   },
   ssr: {
-    noExternal: ['react-helmet-async'],
+    noExternal: ["react-helmet-async"],
   },
 });

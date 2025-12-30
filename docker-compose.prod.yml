@@ -147,8 +147,6 @@ services:
       - "5173:5173"
     env_file:
       - ./frontend/.env.prod
-    environment:
-      - VITE_API_BASE_URL=http://120.72.91.78:8000/api
     depends_on:
       - backend
     networks:
