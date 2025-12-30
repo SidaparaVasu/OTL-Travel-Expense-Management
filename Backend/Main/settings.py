@@ -420,6 +420,7 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 CSRF_TRUSTED_ORIGINS = [
-    "http://travel.webpayroll.in:5173",
-    "http://travel.webpayroll.in:8000"
+    "http://travel.orangebiznext.com:5173",
+    "http://travel.orangebiznext.com:8000",
+    "http://travel.orangebiznext.com"
 ]
