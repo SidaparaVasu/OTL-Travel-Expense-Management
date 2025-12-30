@@ -1,14 +1,13 @@
 import React from "react";
 import { Calendar } from "lucide-react";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { FormInput } from "./FormInput";
 import { FormTextarea } from "./FormTextarea";
 import { FormSelect } from "./FormSelect";
 import { CityCombobox } from "./CityCombobox";
 import { TimePickerField } from "./TimePickerField";
-import {
-  CITIES,
-  GL_CODES,
-} from "../lib/travel-constants";
+import { DatePickerField } from "./DatePickerField";
+import { CITIES, GL_CODES } from "../lib/travel-constants";
 import {
   getToday,
   getMaxDate,
@@ -32,7 +31,7 @@ interface PurposeFormData {
   departure_date: string;
   start_time: string;
   return_date: string;
-  end_time: string; 
+  end_time: string;
 }
 
 interface PurposeSectionProps {
@@ -56,7 +55,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
 
   // Use props if provided, otherwise use constants
   const cities = propCities && propCities.length > 0 ? propCities : CITIES;
-  const glCodes = propGLCodes && propGLCodes.length > 0 ? propGLCodes : GL_CODES;
+  const glCodes =
+    propGLCodes && propGLCodes.length > 0 ? propGLCodes : GL_CODES;
 
   const handleFieldChange = (field: keyof PurposeFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -74,14 +74,21 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
     // if (!formData.advance_amount) setErrors((prev) => ({...prev, advance_amount: "Advance Amount is required"}));
 
     if (field === "departure_date" || field === "return_date") {
-      const startDate = field === "departure_date" ? value : formData.departure_date;
+      const startDate =
+        field === "departure_date" ? value : formData.departure_date;
       const endDate = field === "return_date" ? value : formData.return_date;
 
       if (startDate && isPastDate(startDate)) {
-        setErrors((prev) => ({ ...prev, departure_date: "Start date cannot be in the past" }));
+        setErrors((prev) => ({
+          ...prev,
+          departure_date: "Start date cannot be in the past",
+        }));
       }
       if (endDate && isPastDate(endDate)) {
-        setErrors((prev) => ({ ...prev, return_date: "End date cannot be in the past" }));
+        setErrors((prev) => ({
+          ...prev,
+          return_date: "End date cannot be in the past",
+        }));
       }
 
       if (startDate && endDate) {
@@ -97,7 +104,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
         formData.departure_date,
         field === "start_time" ? value : formData.start_time,
         formData.return_date,
-        field === "end_time" ? value : formData.end_time
+        field === "end_time" ? value : formData.end_time,
       );
       if (timeError) {
         setErrors((prev) => ({ ...prev, end_time: timeError }));
@@ -108,7 +115,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
   const handleCityChange = (
     field: "trip_from_location" | "trip_to_location",
     id: number | null,
-    label: string
+    label: string,
   ) => {
     const labelField = `${field}_label` as keyof PurposeFormData;
     setFormData((prev) => ({
@@ -127,14 +134,17 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
     }
 
     // Validate location pair
-    const otherField = field === "trip_from_location" ? "trip_to_location" : "trip_from_location";
+    const otherField =
+      field === "trip_from_location"
+        ? "trip_to_location"
+        : "trip_from_location";
     const otherValue = formData[otherField];
     const newValue = id ? String(id) : "";
 
     if (newValue && otherValue) {
       const locationError = validateLocationPair(
         field === "trip_from_location" ? newValue : otherValue,
-        field === "trip_to_location" ? newValue : otherValue
+        field === "trip_to_location" ? newValue : otherValue,
       );
       if (locationError) {
         setErrors((prev) => ({ ...prev, [field]: locationError }));
@@ -149,8 +159,12 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           <Calendar className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Travel Purpose & Details</h2>
-          <p className="text-sm text-muted-foreground">Provide basic information about your travel</p>
+          <h2 className="text-xl font-semibold text-foreground">
+            Travel Purpose & Details
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Provide basic information about your travel
+          </p>
         </div>
       </div>
 
@@ -200,24 +214,34 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           maxLength={50}
         />
 
-        <FormInput
-          label="Advance Amount (₹)"
-          // required
-          type="number"
-          min="0"
-          value={formData.advance_amount}
-          onChange={(e) => handleFieldChange("advance_amount", e.target.value)}
-          placeholder="0.00"
-          // error={errors.advance_amount}
-        />
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Advance Amount (₹)</label>
+          <CurrencyInput
+            value={formData.advance_amount}
+            onValueChange={(value) =>
+              handleFieldChange("advance_amount", value?.toString() || "")
+            }
+            placeholder="0.00"
+            className={errors.advance_amount ? "border-destructive" : ""}
+          />
+          {errors.advance_amount && (
+            <p className="text-sm text-destructive">{errors.advance_amount}</p>
+          )}
+        </div>
 
         <CityCombobox
           label="Trip Origin City"
           required
           cities={cities}
-          value={formData.trip_from_location ? parseInt(formData.trip_from_location) : null}
+          value={
+            formData.trip_from_location
+              ? parseInt(formData.trip_from_location)
+              : null
+          }
           displayValue={formData.trip_from_location_label}
-          onChange={(id, label) => handleCityChange("trip_from_location", id, label)}
+          onChange={(id, label) =>
+            handleCityChange("trip_from_location", id, label)
+          }
           placeholder="Search departure city..."
           error={errors.trip_from_location}
         />
@@ -226,19 +250,24 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           label="Trip Destination City"
           required
           cities={cities}
-          value={formData.trip_to_location ? parseInt(formData.trip_to_location) : null}
+          value={
+            formData.trip_to_location
+              ? parseInt(formData.trip_to_location)
+              : null
+          }
           displayValue={formData.trip_to_location_label}
-          onChange={(id, label) => handleCityChange("trip_to_location", id, label)}
+          onChange={(id, label) =>
+            handleCityChange("trip_to_location", id, label)
+          }
           placeholder="Search destination city..."
           error={errors.trip_to_location}
         />
 
-        <FormInput
+        <DatePickerField
           label="Trip Start Date"
           required
-          type="date"
           value={formData.departure_date}
-          onChange={(e) => handleFieldChange("departure_date", e.target.value)}
+          onChange={(value) => handleFieldChange("departure_date", value)}
           min={today}
           error={errors.departure_date}
         />
@@ -260,14 +289,17 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           error={errors.start_time}
         />
 
-        <FormInput
+        <DatePickerField
           label="Trip End Date"
           required
-          type="date"
           value={formData.return_date}
-          onChange={(e) => handleFieldChange("return_date", e.target.value)}
+          onChange={(value) => handleFieldChange("return_date", value)}
           min={formData.departure_date || today}
-          max={formData.departure_date ? getMaxDate(formData.departure_date) : undefined}
+          max={
+            formData.departure_date
+              ? getMaxDate(formData.departure_date)
+              : undefined
+          }
           error={errors.return_date}
         />
 
@@ -278,7 +310,6 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           onChange={(e) => handleFieldChange("end_time", e)}
           error={errors.end_time}
         />
-
       </div>
     </div>
   );

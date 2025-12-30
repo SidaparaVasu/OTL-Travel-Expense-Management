@@ -9,6 +9,8 @@ import { DataTable } from "./DataTable";
 import { GuestSelector } from "./GuestSelector";
 import { TimePickerField } from "./TimePickerField";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { DatePickerField } from "./DatePickerField";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -90,11 +92,15 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     : [];
 
   const modeName = form.vehicle_type_label?.toLowerCase() || "";
-  const isOwnCar = modeName.includes("own car") || modeName.includes("own") || modeName.includes("personal") || modeName.includes("personal car");
+  const isOwnCar =
+    modeName.includes("own car") ||
+    modeName.includes("own") ||
+    modeName.includes("personal") ||
+    modeName.includes("personal car");
   const isCarAtDisposal = modeName.includes("disposal");
   const isRadioTaxi = modeName.includes("radio");
-  const isPickupDrop = modeName.includes("pick-up") || modeName.includes("pickup");
-
+  const isPickupDrop =
+    modeName.includes("pick-up") || modeName.includes("pickup");
 
   const getVehicleTypeName = (id: string) => {
     return VEHICLE_TYPES.find((v) => String(v.id) === id)?.name || "";
@@ -105,7 +111,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     if (isCarAtDisposal && form.start_time && form.end_time) {
       toast.warning(
         `This booking applies from ${form.start_time} to ${form.end_time} (full shift)`,
-        { duration: 5000 }
+        { duration: 5000 },
       );
     }
   }, [isCarAtDisposal, form.start_time, form.end_time]);
@@ -145,7 +151,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
         } else if (distance > 150) {
           // Show CHRO approval toast but allow submission
           toast.warning("CHRO approval required for distance exceeding 150 km", {
-            duration: 5000,
+              duration: 5000,
           });
         }
       }
@@ -207,7 +213,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     // Show Car at Disposal warning on submit
     if (isCarAtDisposal) {
       toast.info("Car at Disposal: Full shift will be applied from start time to end time.", {
-        duration: 5000,
+          duration: 5000,
       });
     }
 
@@ -267,7 +273,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     // Show Car at Disposal warning immediately
     if (isCarAtDisposal) {
       toast.warning("Car at Disposal: Full shift will be applied from start time to end time.", {
-        duration: 5000,
+          duration: 5000,
       });
     }
     setErrors({});
@@ -279,7 +285,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       render: (row: ConveyanceFormData) => {
         const type = travelModes.find((t) => String(t.id) === row.vehicle_type);
         const subOption = travelSubOptions[row.vehicle_type]?.find(
-          (s) => String(s.id) === row.vehicle_sub_option
+          (s) => String(s.id) === row.vehicle_sub_option,
         );
         return `${type?.name || ""} - ${subOption?.name || ""}`;
       },
@@ -397,11 +403,22 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 required
                 value={form.vehicle_sub_option}
                 onChange={(value) => {
-                  const sub = currentSubOptions.find((s) => String(s.id) === value);
-                  setForm({ ...form, vehicle_sub_option: value, vehicle_sub_option_label: sub?.name || "", });
+                  const sub = currentSubOptions.find(
+                    (s) => String(s.id) === value,
+                  );
+                  setForm({
+                    ...form,
+                    vehicle_sub_option: value,
+                    vehicle_sub_option_label: sub?.name || "",
+                  });
                 }}
                 options={[
-                  { value: "", label: form.vehicle_type ? "Select sub-option" : "Select type first" },
+                  {
+                    value: "",
+                    label: form.vehicle_type
+                      ? "Select sub-option"
+                      : "Select type first",
+                  },
                   ...currentSubOptions.map((s) => ({
                     value: String(s.id),
                     label: s.name,
@@ -414,24 +431,28 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               {/* Own Car specific fields */}
               {isOwnCar && (
                 <>
-                  <FormInput
-                    label="Distance (km)"
-                    required
-                    type="number"
-                    min="0"
-                    max="500"
-                    value={form.distance_km || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setForm({ ...form, distance_km: value });
-                      if (parseFloat(value) > 150) {
-                        toast.warning("CHRO approval required for distance exceeding 150 km");
-                      }
-                    }}
-                    placeholder="Enter distance in km"
-                    error={errors.distance_km}
-                    // hint="Max 150 km without CHRO approval"
-                  />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Distance (km)</label>
+                    <CurrencyInput
+                      value={form.distance_km || ""}
+                      onValueChange={(value) => {
+                        const valStr = value?.toString() || "";
+                        setForm({ ...form, distance_km: valStr });
+                        if (value && value > 150) {
+                          toast.warning(
+                            "CHRO approval required for distance exceeding 150 km",
+                          );
+                        }
+                      }}
+                      placeholder="Enter distance in km"
+                      className={errors.distance_km ? "border-destructive" : ""}
+                    />
+                    {errors.distance_km && (
+                      <p className="text-sm text-destructive">
+                        {errors.distance_km}
+                      </p>
+                    )}
+                  </div>
 
                   <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/30">
                     <Checkbox
@@ -455,7 +476,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 label="From Location"
                 required
                 value={form.from_location}
-                onChange={(e) => setForm({ ...form, from_location: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, from_location: e.target.value })
+                }
                 placeholder="Enter from location"
                 error={errors.from_location}
               />
@@ -464,7 +487,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 label="To Location"
                 required
                 value={form.to_location}
-                onChange={(e) => setForm({ ...form, to_location: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, to_location: e.target.value })
+                }
                 placeholder="Enter to location"
                 error={errors.to_location}
               />
@@ -487,12 +512,11 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 error={errors.drop_location}
               />
 
-              <FormInput
+              <DatePickerField
                 label="Start Date"
                 required
-                type="date"
                 value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                onChange={(value) => setForm({ ...form, start_date: value })}
                 min={tripStartDate}
                 max={tripEndDate}
                 error={errors.start_date}
@@ -515,12 +539,11 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 error={errors.start_time}
               /> */}
 
-              <FormInput
+              <DatePickerField
                 label="End Date"
                 required
-                type="date"
                 value={form.end_date}
-                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                onChange={(value) => setForm({ ...form, end_date: value })}
                 min={form.start_date || tripStartDate}
                 max={tripEndDate}
                 error={errors.end_date}
@@ -543,16 +566,27 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 error={errors.end_time}
               /> */}
 
-              <FormInput
-                label="Estimated Cost (₹)"
-                // required
-                type="number"
-                min="0"
-                value={form.estimated_cost}
-                onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })}
-                placeholder="0.00"
-                error={errors.estimated_cost}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Estimated Cost (₹)
+                </label>
+                <CurrencyInput
+                  value={form.estimated_cost}
+                  onValueChange={(value) =>
+                    setForm({
+                      ...form,
+                      estimated_cost: value?.toString() || "",
+                    })
+                  }
+                  placeholder="0.00"
+                  className={errors.estimated_cost ? "border-destructive" : ""}
+                />
+                {errors.estimated_cost && (
+                  <p className="text-sm text-destructive">
+                    {errors.estimated_cost}
+                  </p>
+                )}
+              </div>
 
               {/* Club Booking */}
               <div className="md:col-span-3 space-y-4">
@@ -561,7 +595,11 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                     id="club_booking"
                     checked={form.club_booking}
                     onCheckedChange={(checked) =>
-                      setForm({ ...form, club_booking: !!checked, club_booking_reason: "" })
+                      setForm({
+                        ...form,
+                        club_booking: !!checked,
+                        club_booking_reason: "",
+                      })
                     }
                   />
                   <label
@@ -577,13 +615,15 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                     label="Reason for not club booking"
                     required
                     value={form.club_booking_reason}
-                    onChange={(e) => setForm({ ...form, club_booking_reason: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, club_booking_reason: e.target.value })
+                    }
                     placeholder="Enter reason"
                     error={errors.club_booking_reason}
                   />
                 )}
               </div>
-              
+
               {/* Guests */}
               <div className="md:col-span-3">
                 <GuestSelector
@@ -596,7 +636,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 <FormTextarea
                   label="Special Instructions"
                   value={form.special_instruction}
-                  onChange={(e) => setForm({ ...form, special_instruction: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, special_instruction: e.target.value })
+                  }
                   placeholder="Any special requirements..."
                   rows={2}
                   error={errors.special_instruction}

@@ -9,8 +9,10 @@ import { DataTable } from "./DataTable";
 import { GuestHouseSelector } from "./GuestHouseSelector";
 import { ARCHotelSelector } from "./ARCHotelSelector";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { TimePickerField } from "./TimePickerField";
 import { CityCombobox } from "./CityCombobox";
+import { DatePickerField } from "./DatePickerField";
 import { getEmptyAccommodation } from "../lib/travel-constants";
 import {
   isDateInRange,
@@ -527,9 +529,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.accommodation_sub_option}
               />
 
-              {isGuestHouseSelected ? //     setForm({ ...form, guest_house_preferences: prefs }) //   setSelectedPreferences={(prefs) => //   selectedPreferences={form.guest_house_preferences} // <GuestHouseSelector
-              //   }
-              //   guestHouses={guestHouses}
+              {isGuestHouseSelected ? //   guestHouses={guestHouses} //   } //     setForm({ ...form, guest_house_preferences: prefs }) //   setSelectedPreferences={(prefs) => //   selectedPreferences={form.guest_house_preferences} // <GuestHouseSelector
               //   error={errors.guest_house_preferences}
               // />
               null : isARCHotelSelected ? (
@@ -560,14 +560,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 />
               )}
 
-              <FormInput
+              <DatePickerField
                 label="Check-in Date"
                 required
-                type="date"
                 value={form.check_in_date}
-                onChange={(e) =>
-                  setForm({ ...form, check_in_date: e.target.value })
-                }
+                onChange={(value) => setForm({ ...form, check_in_date: value })}
                 min={tripStartDate}
                 max={tripEndDate}
                 error={errors.check_in_date}
@@ -581,13 +578,12 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.check_in_time}
               />
 
-              <FormInput
+              <DatePickerField
                 label="Check-out Date"
                 required
-                type="date"
                 value={form.check_out_date}
-                onChange={(e) =>
-                  setForm({ ...form, check_out_date: e.target.value })
+                onChange={(value) =>
+                  setForm({ ...form, check_out_date: value })
                 }
                 min={form.check_in_date || tripStartDate}
                 max={tripEndDate}
@@ -604,21 +600,32 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.check_out_time}
               />
 
-              <FormInput
-                label="Estimated Cost (₹)"
-                type="number"
-                min="0"
-                value={form.estimated_cost}
-                // onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })}
-                onChange={handleCostChange}
-                onBlur={handleCostBlur}
-                placeholder={
-                  maxAllowed
-                    ? `Max allowed ₹${maxAllowed}`
-                    : "Enter estimated cost"
-                }
-                error={errors.estimated_cost}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Estimated Cost (₹)
+                </label>
+                <CurrencyInput
+                  value={form.estimated_cost}
+                  onValueChange={(value) =>
+                    setForm({
+                      ...form,
+                      estimated_cost: value?.toString() || "",
+                    })
+                  }
+                  onBlur={handleCostBlur}
+                  placeholder={
+                    maxAllowed
+                      ? `Max allowed ₹${maxAllowed}`
+                      : "Enter estimated cost"
+                  }
+                  className={errors.estimated_cost ? "border-destructive" : ""}
+                />
+                {errors.estimated_cost && (
+                  <p className="text-sm text-destructive">
+                    {errors.estimated_cost}
+                  </p>
+                )}
+              </div>
 
               <FormSelect
                 label="Meal Preference"

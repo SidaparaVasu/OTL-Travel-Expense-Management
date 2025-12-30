@@ -268,7 +268,7 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
               size="sm"
               variant="outline"
               onClick={onDelete}
-              className="text-red-600 border-red-300 hover:bg-red-50"
+              className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete

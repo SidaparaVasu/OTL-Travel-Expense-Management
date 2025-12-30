@@ -8,6 +8,8 @@ import { CityCombobox } from "./CityCombobox";
 import { NotRequiredToggle } from "./NotRequiredToggle";
 import { DataTable } from "./DataTable";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { DatePickerField } from "./DatePickerField";
 import { TimePickerField } from "./TimePickerField";
 import {
   TRAVEL_MODES,
@@ -72,17 +74,23 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   travelSubOptions: propSubOptions,
   bookingErrors = {},
 }) => {
-  const [form, setForm] = useState<TicketingFormData>({ ...getEmptyTicketing(), ticket_number: "" });
+  const [form, setForm] = useState<TicketingFormData>({
+    ...getEmptyTicketing(),
+    ticket_number: "",
+  });
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Use props if provided, otherwise use constants
   const cities = propCities && propCities.length > 0 ? propCities : [];
   const travelModes = propModes && propModes.length > 0 ? propModes : [];
-  console.log('travel modes in ticketing section: ', travelModes);
+  console.log("travel modes in ticketing section: ", travelModes);
   // const travelSubOptions = propSubOptions && Object.keys(propSubOptions).length > 0 ? propSubOptions : [];
-  const travelSubOptions = propSubOptions && Object.keys(propSubOptions).length > 0 ? propSubOptions : {};
-  console.log('travel sub modes in ticketing section: ', travelSubOptions);
+  const travelSubOptions =
+    propSubOptions && Object.keys(propSubOptions).length > 0
+      ? propSubOptions
+      : {};
+  console.log("travel sub modes in ticketing section: ", travelSubOptions);
   const currentSubOptions = form.booking_type
     ? travelSubOptions[form.booking_type] || []
     : [];
@@ -103,17 +111,24 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
 
     if (!form.booking_type) newErrors.booking_type = "Travel mode is required";
     if (!form.sub_option) newErrors.sub_option = "Sub-option is required";
-    if (!form.ticket_number?.trim()) newErrors.ticket_number = `${getTicketLabel()} is required`;
-    if (!form.from_location) newErrors.from_location = "From location is required";
+    if (!form.ticket_number?.trim())
+      newErrors.ticket_number = `${getTicketLabel()} is required`;
+    if (!form.from_location)
+      newErrors.from_location = "From location is required";
     if (!form.to_location) newErrors.to_location = "To location is required";
-    if (!form.departure_date) newErrors.departure_date = "Departure date is required";
-    if (!form.departure_time) newErrors.departure_time = "Departure time is required";
+    if (!form.departure_date)
+      newErrors.departure_date = "Departure date is required";
+    if (!form.departure_time)
+      newErrors.departure_time = "Departure time is required";
     if (!form.arrival_date) newErrors.arrival_date = "Arrival date is required";
     if (!form.arrival_time) newErrors.arrival_time = "Arrival time is required";
     // if (!form.estimated_cost) newErrors.estimated_cost = "Estimated cost is required";
 
     // Location validation
-    const locationError = validateLocationPair(form.from_location, form.to_location);
+    const locationError = validateLocationPair(
+      form.from_location,
+      form.to_location,
+    );
     if (locationError) newErrors.to_location = locationError;
 
     // Date range validation
@@ -129,7 +144,11 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
     }
 
     // Arrival after departure
-    if (form.departure_date && form.arrival_date && form.arrival_date < form.departure_date) {
+    if (
+      form.departure_date &&
+      form.arrival_date &&
+      form.arrival_date < form.departure_date
+    ) {
       newErrors.arrival_date = "Arrival date cannot be before departure date";
     }
 
@@ -168,7 +187,9 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
     }
 
     // Special instructions
-    const instructionError = validateSpecialInstructions(form.special_instruction);
+    const instructionError = validateSpecialInstructions(
+      form.special_instruction,
+    );
     if (instructionError) newErrors.special_instruction = instructionError;
 
     setErrors(newErrors);
@@ -215,7 +236,11 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   };
 
   const handleModeChange = (modeId: string) => {
-    setForm({ ...getEmptyTicketing(), ticket_number: "", booking_type: modeId });
+    setForm({
+      ...getEmptyTicketing(),
+      ticket_number: "",
+      booking_type: modeId,
+    });
     setErrors({});
   };
 
@@ -225,7 +250,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
       render: (row: TicketingFormData) => {
         const mode = travelModes.find((m) => String(m.id) === row.booking_type);
         const subOption = travelSubOptions[row.booking_type]?.find(
-          (s) => String(s.id) === row.sub_option
+          (s) => String(s.id) === row.sub_option,
         );
         return `${mode?.name || row.booking_type} - ${subOption?.name || row.sub_option}`;
       },
@@ -244,12 +269,15 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
     },
     {
       label: "Departure",
-      render: (row: TicketingFormData) => `${row.departure_date} ${row.departure_time || ""}`,
+      render: (row: TicketingFormData) =>
+        `${row.departure_date} ${row.departure_time || ""}`,
     },
     {
       label: "Arrival",
       render: (row: TicketingFormData) =>
-        row.arrival_date ? `${row.arrival_date} ${row.arrival_time || ""}` : "-",
+        row.arrival_date
+          ? `${row.arrival_date} ${row.arrival_time || ""}`
+          : "-",
     },
     {
       label: "Cost (₹)",
@@ -266,8 +294,12 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
           <Plane className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Flight & Train Bookings</h2>
-          <p className="text-sm text-muted-foreground">Add your ticketing requirements</p>
+          <h2 className="text-xl font-semibold text-foreground">
+            Flight & Train Bookings
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Add your ticketing requirements
+          </p>
         </div>
       </div>
 
@@ -313,7 +345,12 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 value={form.sub_option}
                 onChange={(value) => setForm({ ...form, sub_option: value })}
                 options={[
-                  { value: "", label: form.booking_type ? "Select sub-option" : "Select mode first" },
+                  {
+                    value: "",
+                    label: form.booking_type
+                      ? "Select sub-option"
+                      : "Select mode first",
+                  },
                   ...currentSubOptions.map((s) => ({
                     value: String(s.id),
                     label: s.name,
@@ -327,8 +364,14 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 label={getTicketLabel()}
                 required
                 value={form.ticket_number || ""}
-                onChange={(e) => setForm({ ...form, ticket_number: e.target.value })}
-                placeholder={getModeNameById(form.booking_type) === "Flight" ? "e.g., AI-302 / Air India" : "e.g., 12301 / Rajdhani Express"}
+                onChange={(e) =>
+                  setForm({ ...form, ticket_number: e.target.value })
+                }
+                placeholder={
+                  getModeNameById(form.booking_type) === "Flight"
+                    ? "e.g., AI-302 / Air India"
+                    : "e.g., 12301 / Rajdhani Express"
+                }
                 error={errors.ticket_number}
               />
 
@@ -339,7 +382,11 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 value={form.from_location ? parseInt(form.from_location) : null}
                 displayValue={form.from_label}
                 onChange={(id, label) =>
-                  setForm({ ...form, from_location: id ? String(id) : "", from_label: label })
+                  setForm({
+                    ...form,
+                    from_location: id ? String(id) : "",
+                    from_label: label,
+                  })
                 }
                 placeholder="Departure city"
                 error={errors.from_location}
@@ -352,18 +399,23 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 value={form.to_location ? parseInt(form.to_location) : null}
                 displayValue={form.to_label}
                 onChange={(id, label) =>
-                  setForm({ ...form, to_location: id ? String(id) : "", to_label: label })
+                  setForm({
+                    ...form,
+                    to_location: id ? String(id) : "",
+                    to_label: label,
+                  })
                 }
                 placeholder="Arrival city"
                 error={errors.to_location}
               />
 
-              <FormInput
+              <DatePickerField
                 label="Departure Date"
                 required
-                type="date"
                 value={form.departure_date}
-                onChange={(e) => setForm({ ...form, departure_date: e.target.value })}
+                onChange={(value) =>
+                  setForm({ ...form, departure_date: value })
+                }
                 min={tripStartDate}
                 max={tripEndDate}
                 error={errors.departure_date}
@@ -373,7 +425,9 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 label="Departure Time"
                 required
                 value={form.departure_time}
-                onChange={(value) => setForm({ ...form, departure_time: value })}
+                onChange={(value) =>
+                  setForm({ ...form, departure_time: value })
+                }
                 error={errors.departure_time}
               />
 
@@ -384,12 +438,11 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 onChange={(e) => setForm({ ...form, departure_time: e.target.value })}
               /> */}
 
-              <FormInput
+              <DatePickerField
                 label="Arrival Date"
                 required
-                type="date"
                 value={form.arrival_date}
-                onChange={(e) => setForm({ ...form, arrival_date: e.target.value })}
+                onChange={(value) => setForm({ ...form, arrival_date: value })}
                 min={tripStartDate}
                 max={tripEndDate}
                 error={errors.arrival_date}
@@ -410,25 +463,41 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 onChange={(e) => setForm({ ...form, arrival_time: e.target.value })}
               /> */}
 
-              <FormInput
-                label="Estimated Cost (₹)"
-                // required
-                type="number"
-                min="0"
-                value={form.estimated_cost}
-                onChange={(e) => setForm({ ...form, estimated_cost: e.target.value })}
-                placeholder="0.00"
-                error={errors.estimated_cost}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Estimated Cost (₹)
+                </label>
+                <CurrencyInput
+                  value={form.estimated_cost}
+                  onValueChange={(value) =>
+                    setForm({
+                      ...form,
+                      estimated_cost: value?.toString() || "",
+                    })
+                  }
+                  placeholder="0.00"
+                  className={errors.estimated_cost ? "border-destructive" : ""}
+                />
+                {errors.estimated_cost && (
+                  <p className="text-sm text-destructive">
+                    {errors.estimated_cost}
+                  </p>
+                )}
+              </div>
 
               <FormSelect
                 label="Meal Preference"
                 value={form.meal_preference || ""}
-                onChange={(value) => setForm({ ...form, meal_preference: value })}
+                onChange={(value) =>
+                  setForm({ ...form, meal_preference: value })
+                }
                 options={[
                   { value: "", label: "Select Meal Preference" },
                   { value: "Vegeterian Food", label: "Vegeterian Food" },
-                  { value: "Non. Vegeterian Food", label: "Non. Vegeterian Food" },
+                  {
+                    value: "Non. Vegeterian Food",
+                    label: "Non. Vegeterian Food",
+                  },
                   { value: "No Food", label: "No Food" },
                 ]}
               />
@@ -437,7 +506,9 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 <FormTextarea
                   label="Special Instructions"
                   value={form.special_instruction}
-                  onChange={(e) => setForm({ ...form, special_instruction: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, special_instruction: e.target.value })
+                  }
                   placeholder="Write any special request for your ticket (example: window seat, lower berth, meal preference)"
                   rows={2}
                   error={errors.special_instruction}
