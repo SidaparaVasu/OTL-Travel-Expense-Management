@@ -7,8 +7,10 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    // Nginx reverse proxy will handle domain routing
-    // Vite just needs to accept connections from any host
+    // Allow all hosts - Nginx handles security at the entry point
+    // This allows access from hrms.orangetechnolab.com and IP addresses
+    allowedHosts: true,
+    strictPort: false,
   },
   build: {
     outDir: "dist",
