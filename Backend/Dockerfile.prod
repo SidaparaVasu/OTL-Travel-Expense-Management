@@ -7,7 +7,6 @@ ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
 # Install system dependencies
-# Added unixodbc-dev for pyodbc and libssl-dev for general compilation
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
@@ -23,7 +22,6 @@ RUN apt-get update && \
 COPY requirements.txt .
 
 # Install Python dependencies
-# Using --no-cache-dir to keep image small
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -32,5 +30,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Default command
-CMD ["gunicorn", "Main.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Default command for the 'old' setup (runserver)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
