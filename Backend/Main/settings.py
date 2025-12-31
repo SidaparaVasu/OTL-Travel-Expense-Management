@@ -110,7 +110,11 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://127.0.0.1:8080",
         "http://localhost:5173",  # Vite
         "http://127.0.0.1:5173",
-        'http://localhost',
+        "http://localhost",
+        "http://travel.orangebiznext.com",
+        "http://travel.orangebiznext.com:5173",
+        "http://120.72.91.78",
+        "http://120.72.91.78:5173",
     ]
 )
 # CORS_ALLOWED_ORIGINS = [
@@ -423,8 +427,11 @@ if not DEBUG:
 CSRF_TRUSTED_ORIGINS = [
     "http://travel.orangebiznext.com",
     "http://travel.orangebiznext.com:80",
+    "http://travel.orangebiznext.com:5173",
     "http://travel.orangebiznext.com:8000",
     "http://travel.orangebiznext.com:8080",
+    "http://120.72.91.78",
+    "http://120.72.91.78:5173",
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
