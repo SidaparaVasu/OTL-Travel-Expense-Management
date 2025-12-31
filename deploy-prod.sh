@@ -5,7 +5,7 @@ echo "🚀 Starting Master Production Deployment..."
 
 # 1. Frontend Build
 echo "📦 Building Frontend (Vite)..."
-cd frontend
+cd Frontend
 npm install --quiet
 npm run build
 cd ..
