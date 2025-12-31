@@ -419,8 +419,13 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    
 CSRF_TRUSTED_ORIGINS = [
-    "http://travel.orangebiznext.com:5173",
+    "http://travel.orangebiznext.com",
+    "http://travel.orangebiznext.com:80",
     "http://travel.orangebiznext.com:8000",
-    "http://travel.orangebiznext.com"
+    "http://travel.orangebiznext.com:8080",
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+USE_X_FORWARDED_HOST = True
