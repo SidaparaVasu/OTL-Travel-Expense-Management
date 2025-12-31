@@ -8,14 +8,17 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
+    image: travelexpensepro_backend:latest
     container_name: prod_backend
     restart: unless-stopped
     command: >
-      gunicorn config.wsgi:application
+      gunicorn Main.wsgi:application
       --bind 0.0.0.0:8000
-      --workers 2
+      --workers 3
       --threads 2
-      --timeout 60
+      --timeout 120
+    environment:
+      - ENVIRONMENT=production
     env_file:
       - ./backend/.env.prod
     volumes:
@@ -24,8 +27,10 @@ services:
     expose:
       - "8000"
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - app_network
 
@@ -37,7 +42,7 @@ services:
     container_name: prod_nginx
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "80:80"
       - "443:443"
     volumes:
       - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
@@ -59,14 +64,24 @@ services:
     container_name: prod_mysql
     restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_DATABASE=${DB_NAME:-orange_tata_travel}
+      - MYSQL_USER=${DB_USER:-orange}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-orange@505}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-orange@505}
     env_file:
       - ./backend/.env.prod
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "127.0.0.1:3306:3306"
+      - "127.0.0.1:3307:3306"
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${DB_PASSWORD:-app123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # -----------------------------
   # Redis
@@ -79,17 +94,22 @@ services:
       - redis_data:/data
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # -----------------------------
   # Celery Worker
   # -----------------------------
   celery_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
+    image: travelexpensepro_backend:latest
     container_name: prod_celery_worker
     restart: unless-stopped
-    command: celery -A core worker -l info
+    command: celery -A Main worker -l info
+    environment:
+      - ENVIRONMENT=production
     env_file:
       - ./backend/.env.prod
     depends_on:
@@ -102,12 +122,12 @@ services:
   # Celery Beat
   # -----------------------------
   celery_beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
+    image: travelexpensepro_backend:latest
     container_name: prod_celery_beat
     restart: unless-stopped
-    command: celery -A core beat -l info
+    command: celery -A Main beat -l info
+    environment:
+      - ENVIRONMENT=production
     env_file:
       - ./backend/.env.prod
     depends_on:
@@ -115,6 +135,28 @@ services:
       - redis
     networks:
       - app_network
+
+  # -----------------------------
+  # Database Backup (Sidecar)
+  # -----------------------------
+  db_backup:
+    image: mysql:8.0
+    container_name: prod_db_backup
+    restart: unless-stopped
+    volumes:
+      - ./docker/mysql/backup.sh:/usr/local/bin/backup.sh:ro
+      - db_backups:/backups
+    environment:
+      - MYSQL_DATABASE=${DB_NAME:-orange_tata_travel}
+      - MYSQL_USER=${DB_USER:-orange}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-orange@505}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app_network
+    # Run the backup script every 24 hours (86400 seconds)
+    entrypoint: ["sh", "-c", "while true; do /bin/bash /usr/local/bin/backup.sh; sleep 86400; done"]
 
 # -----------------------------
 # Volumes
@@ -124,6 +166,7 @@ volumes:
   redis_data:
   static_volume:
   media_volume:
+  db_backups:
 
 # -----------------------------
 # Network

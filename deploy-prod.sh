@@ -1,61 +1,49 @@
 #!/bin/bash
+set -e # Exit immediately if any command fails
 
-echo "====================================="
-echo "Starting Production Environment"
-echo "====================================="
+echo "🚀 Starting Master Production Deployment..."
 
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker is not running. Please start Docker first."
-    exit 1
-fi
+# 1. Frontend Build
+echo "📦 Building Frontend (Vite)..."
+cd frontend
+npm install --quiet
+npm run build
+cd ..
 
-# Check if .env files exist (DO NOT auto-create in prod)
-if [ ! -f backend/.env.prod ]; then
-    echo "❌ backend/.env.prod not found."
-    echo "   Please create it (you can start from backend/.env.dev.example but update all prod secrets)."
-    exit 1
-fi
+# 2. Docker Orchestration
+echo "🐳 Building and Starting Docker Containers..."
+# We use --build to ensure code changes are picked up
+docker compose -f docker-compose.prod.yml up --build -d
 
-if [ ! -f frontend/.env.prod ]; then
-    echo "❌ frontend/.env.prod not found."
-    echo "   Please create it (you can start from frontend/.env.dev.example but update all prod URLs/keys)."
-    exit 1
-fi
+# 3. Wait for Database Readiness
+echo "⏳ Waiting for MySQL to be healthy..."
+# We use a loop to check the health status defined in docker-compose
+until [ "$(docker inspect -f {{.State.Health.Status}} prod_mysql)" == "healthy" ]; do
+    printf '.'
+    sleep 2
+done
+echo -e "\n✅ Database is ready!"
 
-# Stop any running *production* containers
-echo "🛑 Stopping existing production containers..."
-docker-compose -f docker-compose.prod.yml down
+# 4. Backend Synchronization
+echo "⚙️ Running Migrations and Static Collection..."
+docker compose -f docker-compose.prod.yml exec -T backend python manage.py migrate --noinput
+docker compose -f docker-compose.prod.yml exec -T backend python manage.py collectstatic --noinput
 
-# Build and start services
-echo "🏗️  Building production Docker images..."
-docker-compose -f docker-compose.prod.yml build
+# 5. Optional: Populate Master Data
+# If you have a command to populate data, uncomment the line below:
+# echo "💾 Populating master data..."
+# docker compose -f docker-compose.prod.yml exec -T backend python manage.py populate_master_data
 
-echo "🚀 Starting production services..."
-docker-compose -f docker-compose.prod.yml up -d
+# 6. Backup Verification
+echo "🛡️ Triggering initial safety backup..."
+docker exec prod_db_backup /bin/bash /usr/local/bin/backup.sh
 
-# Wait for services to be healthy
-echo "⏳ Waiting for services to be healthy..."
-sleep 10
+# 7. Housekeeping
+echo "🧹 Cleaning up dangling images..."
+docker system prune -f --volumes=false
 
-# Check service status
-echo ""
-echo "📊 Production Service Status:"
-docker-compose -f docker-compose.prod.yml ps
-
-echo ""
-echo "====================================="
-echo "✅ Production Environment Started!"
-echo "====================================="
-echo ""
-echo "🌐 Access your application (update with your real domain/IP):"
-echo "   Frontend:  https://120.72.91.76:5173"
-echo "   Backend:   https://120.72.91.76/api"
-echo "   Admin:     https://120.72.91.76/admin"
-echo ""
-echo "📋 Useful commands (production):"
-echo "   View logs:        docker-compose -f docker-compose.prod.yml logs -f"
-echo "   Stop services:    docker-compose -f docker-compose.prod.yml down"
-echo "   Restart service:  docker-compose -f docker-compose.prod.yml restart <service-name>"
-echo "   Shell access:     docker-compose -f docker-compose.prod.yml exec backend bash"
-echo ""
+echo "--------------------------------------------------"
+echo "✅ DEPLOYMENT SUCCESSFUL!"
+echo "🌐 Frontend: http://travel.orangebiznext.com:5173"
+echo "🌐 Admin:    http://travel.orangebiznext.com:5173/admin/"
+echo "--------------------------------------------------"
