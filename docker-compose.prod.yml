@@ -6,7 +6,7 @@ services:
   # -----------------------------
   backend:
     build:
-      context: ./backend
+      context: ./Backend
       dockerfile: Dockerfile.prod
     image: travelexpensepro_backend:latest
     container_name: prod_backend
@@ -20,7 +20,7 @@ services:
     environment:
       - ENVIRONMENT=production
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -70,7 +70,7 @@ services:
       - MYSQL_PASSWORD=${DB_PASSWORD:-orange@505}
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-orange@505}
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
@@ -111,7 +111,7 @@ services:
     environment:
       - ENVIRONMENT=production
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     depends_on:
       - backend
       - redis
@@ -129,7 +129,7 @@ services:
     environment:
       - ENVIRONMENT=production
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     depends_on:
       - backend
       - redis
