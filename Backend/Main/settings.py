@@ -426,12 +426,7 @@ if not DEBUG:
     
 CSRF_TRUSTED_ORIGINS = [
     "http://travel.orangebiznext.com",
-    "http://travel.orangebiznext.com:80",
-    "http://travel.orangebiznext.com:5173",
-    "http://travel.orangebiznext.com:8000",
-    "http://travel.orangebiznext.com:8080",
     "http://120.72.91.78",
-    "http://120.72.91.78:5173",
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
