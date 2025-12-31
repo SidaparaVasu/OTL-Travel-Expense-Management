@@ -13,7 +13,6 @@ done
 echo "Redis started"
 
 echo "Running migrations..."
-python manage.py makemigrations --noinput
 python manage.py migrate --noinput
 
 echo "Creating superuser if not exists..."
@@ -30,5 +29,5 @@ END
 echo "Collecting static files..."
 python manage.py collectstatic --noinput || true
 
-echo "Starting development server..."
+echo "Starting Gunicorn application..."
 exec "$@"
