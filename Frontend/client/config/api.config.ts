@@ -24,6 +24,15 @@ export const getApiBaseUrl = (): string => {
     return EXTERNAL_API_URL;
   }
 
+  // Force relative path for 'hrms.orangetechnolab.com' (even if in Dev mode)
+  // This prevents Mixed Content Error (HTTPS -> HTTP)
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname === "hrms.orangetechnolab.com"
+  ) {
+    return "/api";
+  }
+
   // Development mode: use environment variable or localhost
   if (import.meta.env.DEV) {
     return import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
