@@ -43,9 +43,23 @@ docker-compose -f $COMPOSE_FILE down
 echo "$ECHO_PREFIX Starting new containers..."
 docker-compose -f $COMPOSE_FILE up -d
 
-# 5. Status
+# 5. Post-Deployment Steps
+echo "$ECHO_PREFIX Waiting for services to stabilize..."
+sleep 10
+
+if [ "$ENV" == "prod" ]; then
+    echo "$ECHO_PREFIX Running Migrations..."
+    docker-compose -f $COMPOSE_FILE exec -T backend python manage.py migrate --noinput
+    
+    echo "$ECHO_PREFIX Collecting Static Files..."
+    docker-compose -f $COMPOSE_FILE exec -T backend python manage.py collectstatic --noinput
+    
+    echo "$ECHO_PREFIX Cleaning up unused images..."
+    docker system prune -f --volumes=false
+fi
+
+# 6. Status
 echo "$ECHO_PREFIX Checking status..."
-sleep 5
 docker-compose -f $COMPOSE_FILE ps
 
 echo "=================================================="
