@@ -133,23 +133,19 @@ services:
     networks:
       - app_network
 
-  # React Frontend (Development with Vite)
+  # React Frontend (Static Build)
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile.prod
     container_name: prod_frontend
     restart: unless-stopped
-    command: npm run dev -- --host 0.0.0.0
-    volumes:
-      - ./Frontend:/app
-      - /app/node_modules
+    # No command needed (Dockerfile has CMD nginx)
+    # No volumes needed (Code is baked into image)
     ports:
-      - "5173:5173"
+       - "5173:80" # Optional: For debugging access if needed, mapping host 5173 to container 80
     env_file:
       - ./Frontend/.env.prod
-    depends_on:
-      - backend
     networks:
       - app_network
 
