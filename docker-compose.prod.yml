@@ -22,7 +22,8 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-orange@505}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   # Redis Cache
   redis:
@@ -44,19 +45,19 @@ services:
   # Django Backend
   backend:
     build:
-      context: ./backend
+      context: ./Backend
       dockerfile: Dockerfile.prod
     container_name: prod_backend
     restart: unless-stopped
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./backend:/app
+      - ./Backend:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     environment:
       - ENVIRONMENT=production
       - DEBUG=True
@@ -76,16 +77,16 @@ services:
   # Celery Worker
   celery_worker:
     build:
-      context: ./backend
+      context: ./Backend
       dockerfile: Dockerfile.prod
     container_name: prod_celery_worker
     restart: unless-stopped
     # command: celery -A Main worker -l info
     command: celery -A Main worker -l info -Q default,notifications
     volumes:
-      - ./backend:/app
+      - ./Backend:/app
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     environment:
       - ENVIRONMENT=production
       - DEBUG=True
@@ -106,15 +107,15 @@ services:
   # Celery Beat (Scheduler)
   celery_beat:
     build:
-      context: ./backend
+      context: ./Backend
       dockerfile: Dockerfile.prod
     container_name: prod_celery_beat
     restart: unless-stopped
     command: celery -A Main beat -l info
     volumes:
-      - ./backend:/app
+      - ./Backend:/app
     env_file:
-      - ./backend/.env.prod
+      - ./Backend/.env.prod
     environment:
       - ENVIRONMENT=production
       - DEBUG=True
@@ -135,20 +136,18 @@ services:
   # React Frontend (Development with Vite)
   frontend:
     build:
-      context: ./frontend
+      context: ./Frontend
       dockerfile: Dockerfile.prod
     container_name: prod_frontend
     restart: unless-stopped
     command: npm run dev -- --host 0.0.0.0
     volumes:
-      - ./frontend:/app
+      - ./Frontend:/app
       - /app/node_modules
     ports:
       - "5173:5173"
     env_file:
-      - ./frontend/.env.prod
-    environment:
-      - VITE_API_BASE_URL=http://120.72.91.78:8000/api
+      - ./Frontend/.env.prod
     depends_on:
       - backend
     networks:
@@ -160,7 +159,7 @@ services:
     container_name: prod_nginx
     restart: unless-stopped
     ports:
-      - "8090:80"
+      - "80:80"
     volumes:
       - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf
       - static_volume:/app/staticfiles

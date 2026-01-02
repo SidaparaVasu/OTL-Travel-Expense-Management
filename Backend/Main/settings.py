@@ -52,28 +52,9 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-k$pu!46n#*tels#+s-335q7k
 DEBUG = env('DEBUG', default=False)
 
 # ALLOWED_HOSTS = []
-# ALLOWED_HOSTS = []
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'travel.orangebiznext.com', '*'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '*'])
 if "testserver" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append("testserver")
-
-# Trust headers from the proxy (IIS/Nginx)
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
-USE_X_FORWARDED_PORT = True
-
-# CSRF & CORS
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost",
-    "http://127.0.0.1",
-    "http://travel.orangebiznext.com",
-    "https://travel.orangebiznext.com",
-    "http://192.168.1.90",
-    "https://192.168.1.90",
-    "http://120.72.91.78",
-    "https://120.72.91.78",
-    "http://localhost:8090",
-]
 
 # Application definition
 
@@ -125,25 +106,31 @@ if DEBUG:
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=[
-        "http://localhost",
         "http://localhost:8080",
-        "http://localhost:8090",
         "http://127.0.0.1:8080",
-        "http://localhost:5173",
+        "http://localhost:5173",  # Vite
         "http://127.0.0.1:5173",
+        "http://localhost",
         "http://travel.orangebiznext.com",
-        "https://travel.orangebiznext.com",
+        "http://travel.orangebiznext.com:5173",
+        "http://120.72.91.78",
+        "http://120.72.91.78:5173",
     ]
 )
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:8080",
+#     "http://127.0.0.1:8080",
+#     "http://localhost:3000",
+#     "http://localhost:5173",  # Vite
+#     'http://localhost',
+# ]
 # CORS_ALLOW_ALL_ORIGINS = True   # allows any frontend
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'content-type',
     'authorization',
-    'x-csrftoken',
-    'x-requested-with',
 ]
-CORS_ALLOW_ALL_ORIGINS = True  # Simplify for Docker environment
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only in development
 
 ROOT_URLCONF = 'Main.urls'
 
@@ -436,8 +423,14 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    
 CSRF_TRUSTED_ORIGINS = [
+    "http://travel.orangebiznext.com",
+    "http://travel.orangebiznext.com:80",
     "http://travel.orangebiznext.com:5173",
-    "http://travel.orangebiznext.com:8000",
-    "http://travel.orangebiznext.com"
+    "http://120.72.91.78",
+    "http://120.72.91.78:5173",
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+USE_X_FORWARDED_HOST = True
