@@ -82,7 +82,7 @@ services:
     container_name: prod_celery_worker
     restart: unless-stopped
     # command: celery -A Main worker -l info
-    command: celery -A Main worker -l info -Q default,notifications
+    command: celery -A Main worker -l info -Q default,notifications --concurrency=1
     volumes:
       - ./Backend:/app
     env_file:
