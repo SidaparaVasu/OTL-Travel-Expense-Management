@@ -14,6 +14,7 @@ export default defineConfig({
       "travel.orangebiznext.com",
       "192.168.1.90",
       "120.72.91.78",
+      "hrms.orangetechnolab.com",
     ],
     proxy: {
       "/api": {

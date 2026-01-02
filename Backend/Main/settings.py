@@ -116,6 +116,7 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://120.72.91.78",
         "http://120.72.91.78:5173",
         "https://hrms.orangetechnolab.com:8596",
+        "https://hrms.orangetechnolab.com:5173",
     ]
 )
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
