@@ -7,10 +7,14 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    // Allow all hosts - Nginx handles security at the entry point
-    // This allows access from hrms.orangetechnolab.com and IP addresses
-    allowedHosts: true,
-    strictPort: false,
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      ".ngrok-free.app",
+      "travel.orangebiznext.com",
+      "192.168.1.90",
+      "120.72.91.78",
+    ],
   },
   build: {
     outDir: "dist",
