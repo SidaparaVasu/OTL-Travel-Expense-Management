@@ -15,6 +15,13 @@ export default defineConfig({
       "192.168.1.90",
       "120.72.91.78",
     ],
+    proxy: {
+      "/api": {
+        target: "http://backend:8000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   build: {
     outDir: "dist",
