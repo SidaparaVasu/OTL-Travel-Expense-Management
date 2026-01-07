@@ -33,7 +33,7 @@ export const AdvanceSection: React.FC<AdvanceSectionProps> = ({
         </div>
         <div>
           <h2 className="text-xl font-semibold text-foreground">Travel Estimated Summary</h2>
-          <p className="text-sm text-muted-foreground">Review and finalize your travel advance request</p>
+          <p className="text-sm text-slate-500">Review and finalize your travel advance request</p>
         </div>
       </div>
 
@@ -44,22 +44,22 @@ export const AdvanceSection: React.FC<AdvanceSectionProps> = ({
 
           <div className="space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-primary/20">
-              <span className="text-muted-foreground">Flight & Train Tickets</span>
+              <span className="text-slate-500">Flight & Train Tickets</span>
               <span className="font-semibold text-foreground">₹{sums.ticketSum.toLocaleString('en-IN')}</span>
             </div>
 
             <div className="flex justify-between items-center py-2 border-b border-primary/20">
-              <span className="text-muted-foreground">Accommodation</span>
+              <span className="text-slate-500">Accommodation</span>
               <span className="font-semibold text-foreground">₹{sums.accSum.toLocaleString('en-IN')}</span>
             </div>
 
             <div className="flex justify-between items-center py-2 border-b border-primary/20">
-              <span className="text-muted-foreground">Local Conveyance</span>
+              <span className="text-slate-500">Local Conveyance</span>
               <span className="font-semibold text-foreground">₹{sums.convSum.toLocaleString('en-IN')}</span>
             </div>
 
             <div className="flex justify-between items-center py-2 border-b border-primary/20">
-              <span className="text-muted-foreground">Other Expenses</span>
+              <span className="text-slate-500">Other Expenses</span>
               <span className="font-semibold text-foreground">₹{Number(otherExpenses || 0).toLocaleString('en-IN')}</span>
             </div>
 
@@ -74,7 +74,7 @@ export const AdvanceSection: React.FC<AdvanceSectionProps> = ({
         <div className="bg-card border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">Important Notes</h3>
 
-          <div className="space-y-3 text-sm text-muted-foreground">
+          <div className="space-y-3 text-sm text-slate-500">
             <div className="flex gap-2">
               <span className="text-primary font-bold">•</span>
               <p>This advance will be adjusted against actual expenses after trip completion</p>

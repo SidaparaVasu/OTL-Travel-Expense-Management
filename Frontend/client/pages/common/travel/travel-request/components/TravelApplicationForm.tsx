@@ -770,7 +770,7 @@ export const TravelApplicationForm: React.FC = () => {
                 <h1 className="text-lg font-semibold text-foreground">
                   Travel Application
                 </h1>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500">
                   {draftApplicationId
                     ? `Draft #${draftApplicationId}`
                     : "Create new request"}
