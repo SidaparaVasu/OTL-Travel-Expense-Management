@@ -232,7 +232,6 @@ export const TravelApplicationForm: React.FC = () => {
         ]);
 
         setCities(citiesData);
-        console.log(citiesData);
         setGLCodes(glCodesData);
         setTravelModes(travelModesData.modes);
         const { ticketing, accommodation, conveyance } =
@@ -520,16 +519,22 @@ export const TravelApplicationForm: React.FC = () => {
       internal_order: purposeData.internal_order,
       general_ledger: purposeData.general_ledger,
       sanction_number: purposeData.sanction_number,
-      advance_amount: purposeData.advance_amount,
+      advance_amount: purposeData.advance_amount
+        ? parseFloat(purposeData.advance_amount)
+        : 0,
 
       trip_details: [
         {
-          from_location: purposeData?.trip_from_location,
-          to_location: purposeData?.trip_to_location,
-          departure_date: purposeData?.departure_date,
-          start_time: purposeData?.start_time,
-          return_date: purposeData?.return_date,
-          end_time: purposeData?.end_time,
+          from_location: purposeData?.trip_from_location || null,
+          to_location: purposeData?.trip_to_location || null,
+          departure_date: purposeData?.departure_date || null,
+          start_time: purposeData?.start_time || null,
+          return_date: purposeData?.return_date || null,
+          end_time: purposeData?.end_time || null,
+          no_bookings_required:
+            ticketingNotRequired &&
+            accommodationNotRequired &&
+            conveyanceNotRequired,
 
           bookings: [
             ...ticketing.map((t) => ({
@@ -656,6 +661,12 @@ export const TravelApplicationForm: React.FC = () => {
   }
 
   const handleSaveAsDraft = async () => {
+    if (!purposeData.purpose.trim()) {
+      toast.error("Purpose is required to save as draft");
+      setActiveTab("purpose");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const payload = buildPayload(true);
@@ -683,9 +694,29 @@ export const TravelApplicationForm: React.FC = () => {
       console.log("RAW ERROR:", error.response?.data);
       console.log("RAW ERRORS:", error.response?.data?.errors);
 
-      const backendErrors = error.response?.data?.errors;
-      const message = extractErrorMessage(backendErrors);
-      // toast.error(error.response?.errors?.trip_0?.duplicate || "Failed to save draft. Please try again.");
+      const responseData = error.response?.data;
+      const backendErrors = responseData?.errors;
+      let message = extractErrorMessage(backendErrors);
+
+      // Prioritize top-level message if detail extraction failed
+      if (
+        message === "Something went wrong." ||
+        message === "Unexpected error occurred."
+      ) {
+        if (responseData?.message) {
+          message = responseData.message;
+        } else if (responseData && typeof responseData === "object") {
+          // Fallback: Try extracting from the root object (if response is unwrapped errors)
+          const retry = extractErrorMessage(responseData);
+          if (
+            retry !== "Something went wrong." &&
+            retry !== "Unexpected error occurred."
+          ) {
+            message = retry;
+          }
+        }
+      }
+
       toast.error(message || "Failed to save draft. Please try again.");
     } finally {
       setIsSaving(false);
@@ -734,8 +765,29 @@ export const TravelApplicationForm: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Failed to submit application:", error);
-      const backendErrors = error.response?.data?.errors;
-      const message = extractErrorMessage(backendErrors);
+      const responseData = error.response?.data;
+      const backendErrors = responseData?.errors;
+      let message = extractErrorMessage(backendErrors);
+
+      // Prioritize top-level message if detail extraction failed
+      if (
+        message === "Something went wrong." ||
+        message === "Unexpected error occurred."
+      ) {
+        if (responseData?.message) {
+          message = responseData.message;
+        } else if (responseData && typeof responseData === "object") {
+          // Fallback: Try extracting from the root object (if response is unwrapped errors)
+          const retry = extractErrorMessage(responseData);
+          if (
+            retry !== "Something went wrong." &&
+            retry !== "Unexpected error occurred."
+          ) {
+            message = retry;
+          }
+        }
+      }
+
       toast.error(message || "Failed to submit application. Please try again.");
     } finally {
       setIsSubmitting(false);

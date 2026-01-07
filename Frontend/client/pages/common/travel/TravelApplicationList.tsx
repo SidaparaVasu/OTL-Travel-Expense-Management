@@ -36,12 +36,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Plus, SendHorizontal, Eye, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 import { useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/routes/routes";
 import { travelAPI } from "@/src/api/travel";
-import { TravelApplication } from "@/src/types/travel.types";
 
 function Pagination({ pagination, onPageChange }) {
   if (!pagination) return null;
@@ -276,21 +274,36 @@ export default function TravelApplicationList() {
   const handleSubmitApplication = async (id: number) => {
     try {
       await submitApplication(id);
-      toast({
-        title: "Success",
-        description: "Application submitted successfully",
-      });
+      toast.success("Application submitted successfully");
     } catch (error: any) {
       console.error("Failed to save draft:", error);
       console.log("RAW ERROR:", error.response?.data);
       console.log("RAW ERRORS:", error.response?.data?.errors);
-      const backendErrors = error.response?.data?.errors;
-      const message = extractErrorMessage(backendErrors);
-      toast({
-        title: "Error",
-        description: message || "Failed to submit application",
-        variant: "destructive",
-      });
+
+      const responseData = error.response?.data;
+      const backendErrors = responseData?.errors;
+      let message = extractErrorMessage(backendErrors);
+
+      // 1. If we got a generic extraction result but have a specific top-level message, use that
+      if (
+        message === "Something went wrong." ||
+        message === "Unexpected error occurred."
+      ) {
+        if (responseData?.message) {
+          message = responseData.message;
+        } else if (responseData && typeof responseData === "object") {
+          // Fallback: Try extracting from the root object (if response is unwrapped errors)
+          const retry = extractErrorMessage(responseData);
+          if (
+            retry !== "Something went wrong." &&
+            retry !== "Unexpected error occurred."
+          ) {
+            message = retry;
+          }
+        }
+      }
+
+      toast.error(message || "Failed to submit application");
     }
   };
 
@@ -299,16 +312,9 @@ export default function TravelApplicationList() {
       try {
         // await deleteMutation.mutate(id);
         await deleteApplication(id);
-        toast({
-          title: "Success",
-          description: "Application deleted successfully",
-        });
+        toast.success("Application deleted successfully");
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete application",
-          variant: "destructive",
-        });
+        toast.error("Failed to delete application");
       }
     }
   };

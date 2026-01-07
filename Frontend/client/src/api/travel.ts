@@ -4,11 +4,8 @@ import {
   TravelApplicationRequest,
   TravelStats,
   Location,
-  TravelMode,
-  TravelSubOption,
   GLCode,
   TravelApplicationResponse,
-  PaginationMeta,
 } from "@/src/types/travel.types";
 
 export const travelAPI = {
@@ -72,69 +69,9 @@ export const travelAPI = {
     return data;
   },
 
-  // submitApplication: async (id: number) => {
-  //   try {
-  //     const { data } = await apiClient.post(`/travel/applications/${id}/submit/`);
-  //     return data;
-  //   } catch (error: any) {
-  //     console.log(error);
-  //     const data = error.response?.data;
-  //     console.error("Server Error Data:", error.response?.data);
-  //     let messages: string[] = [];
-
-  //     if (data?.details) {
-  //       const cleaned = data.details
-  //         .replace(/ErrorDetail\(string=/g, "")
-  //         .replace(/, code='invalid'\)/g, "")
-  //         .replace(/['"\[\]]/g, "");
-  //       messages = cleaned.split(",").map((m) => m.trim());
-  //     } else if (data?.error) {
-  //       messages.push(data.error);
-  //     } else {
-  //       messages.push("Unknown error occurred");
-  //     }
-
-  //     throw new Error(messages.join("\n")); // throw instead of toast
-  //   }
-  // },
   submitApplication: async (id: number) => {
-    try {
-      const { data } = await apiClient.post(
-        `/travel/applications/${id}/submit/`,
-      );
-      return data;
-    } catch (error: any) {
-      const responseData = error.response?.data?.errors;
-      console.error("Server Error Data:", responseData);
-      throw new Error(responseData);
-      // let messages: string[] = [];
-
-      // // Handle DRF-style errors (dict of arrays)
-      // if (responseData && typeof responseData === "object") {
-      //   // Flatten nested validation errors
-      //   for (const key in responseData) {
-      //     const value = responseData[key];
-      //     if (Array.isArray(value)) {
-      //       messages.push(`${key}: ${value.join(", ")}`);
-      //     } else if (typeof value === "object") {
-      //       for (const subKey in value) {
-      //         if (subKey == "validation_error") {
-      //           messages.push(`${value[subKey]}`);
-      //           console.log(value[subKey]);
-      //         }
-      //       }
-      //     } else if (typeof value === "string") {
-      //       messages.push(value);
-      //     }
-      //   }
-      // }
-
-      // if (messages.length === 0) {
-      //   messages.push("Validation error occurred");
-      // }
-
-      // throw new Error(messages.join("\n"));
-    }
+    const { data } = await apiClient.post(`/travel/applications/${id}/submit/`);
+    return data;
   },
 
   getCostEstimate: async (id: number) => {

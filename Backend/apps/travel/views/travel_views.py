@@ -242,6 +242,48 @@ class TravelApplicationSubmitView(APIView):
         )
         if not serializer.is_valid():
             return validation_error_response(serializer.errors)
+        
+        # 2.5) STRICT VALIDATION: Check for mandatory fields that are nullable in DB (Draft Support)
+        missing_fields = []
+        if not travel_app.internal_order:
+            missing_fields.append("Internal Order (IO)")
+        if not travel_app.general_ledger:
+            missing_fields.append("General Ledger (GL)")
+        if not travel_app.purpose: # Should not happen as text field is usually empty string, but check for safety
+             missing_fields.append("Purpose")
+
+        if missing_fields:
+            return error_response(
+                message="Cannot submit application with missing mandatory fields.",
+                errors={"validation": f"Missing: {', '.join(missing_fields)}"},
+                status_code=400
+            )
+
+        # Check trip details integrity
+        trips = travel_app.trip_details.all()
+        if not trips.exists():
+             return error_response(
+                message="Cannot submit application without trip details.",
+                status_code=400
+            )
+
+        for i, trip in enumerate(trips):
+            trip_missing = []
+            if not trip.from_location: trip_missing.append("Origin")
+            if not trip.to_location: trip_missing.append("Destination")
+            if not trip.departure_date: trip_missing.append("Departure Date")
+            if not trip.return_date: trip_missing.append("Return Date")
+            
+            # Start/End time is mandatory for travel
+            if not trip.start_time: trip_missing.append("Start Time") 
+            if not trip.end_time: trip_missing.append("End Time")
+            
+            if trip_missing:
+                 return error_response(
+                    message=f"Trip cannot be incomplete.",
+                    errors={"validation": f"Trip {i+1} missing: {', '.join(trip_missing)}"},
+                    status_code=400
+                )
 
         # 3) Validate transition: draft → pending_manager
         can_submit, msg = travel_app.can_transition_to("pending_manager")

@@ -142,7 +142,7 @@ class TripDetailsSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'from_location', 'from_location_name', 'to_location', 'to_location_name',
             'departure_date', 'start_time', 'return_date', 'end_time', 'trip_purpose', 'guest_count', 'estimated_distance_km',
-            'duration_days', 'city_category', 'bookings', 'travel_advance'
+            'duration_days', 'city_category', 'bookings', 'travel_advance', 'no_bookings_required'
         ]
     
     def get_duration_days(self, obj):
@@ -184,10 +184,11 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         """Enhanced validation with better error messages"""
         trip_details_data = data.get('trip_details', [])
         
-        if not trip_details_data:
-            raise serializers.ValidationError({
-                'trip_details': 'At least one trip detail is required'
-            })
+        # Drafts flow allows partial data, so we relax the "trip_details required" check
+        # if not trip_details_data:
+        #     raise serializers.ValidationError({
+        #         'trip_details': 'At least one trip detail is required'
+        #     })
         
         user = self.context['request'].user
         errors = {}
@@ -199,30 +200,33 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             departure = trip_data.get('departure_date')
             return_date = trip_data.get('return_date')
             
-            # Date validation
+            # Date validation (only if both present)
             if return_date and departure and return_date < departure:
                 trip_errors['dates'] = 'Return date cannot be earlier than departure date'
             
-            # Max duration validation
-            try:
-                validate_max_trip_duration(departure, return_date, max_days=90)
-            except Exception as e:
-                trip_errors['duration'] = str(e)
-            
-            # Check for duplicate travel (only if not draft)
-            if not self.instance and self.context.get('status') != 'draft':
+            # Max duration validation (only if both present)
+            if departure and return_date:
                 try:
-                    validate_duplicate_travel_request(user, departure, return_date)
+                    validate_max_trip_duration(departure, return_date, max_days=90)
                 except Exception as e:
-                    trip_errors['duplicate'] = str(e)
+                    trip_errors['duration'] = str(e)
             
-            # Booking validation
-            bookings_data = trip_data.get('bookings', [])
-            if not bookings_data:
-                trip_errors['bookings'] = 'At least one booking is required per trip'
+            # Check for duplicate travel (only if not draft and dates present)
+            if not self.instance and self.context.get('status') != 'draft':
+                if departure and return_date:
+                    try:
+                        validate_duplicate_travel_request(user, departure, return_date)
+                    except Exception as e:
+                        trip_errors['duplicate'] = str(e)
+            
+            # Booking validation - Relaxed for functionality (enforced at Submission level)
+            # bookings_data = trip_data.get('bookings', [])
+            # if not bookings_data:
+            #     trip_errors['bookings'] = 'At least one booking is required per trip'
             
             if trip_errors:
                 errors[f'trip_{idx}'] = trip_errors
+        
         
         if errors:
             raise serializers.ValidationError(errors)

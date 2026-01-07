@@ -53,10 +53,9 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
 }) => {
   const today = getToday();
 
-  // Use props if provided, otherwise use constants
-  const cities = propCities && propCities.length > 0 ? propCities : CITIES;
-  const glCodes =
-    propGLCodes && propGLCodes.length > 0 ? propGLCodes : GL_CODES;
+  // Use props if provided, otherwise empty
+  const cities = propCities && propCities.length > 0 ? propCities : [];
+  const glCodes = propGLCodes && propGLCodes.length > 0 ? propGLCodes : [];
 
   const handleFieldChange = (field: keyof PurposeFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

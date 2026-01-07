@@ -33,13 +33,13 @@ class TravelApplication(models.Model):
         'draft': ['submitted', 'pending_manager', 'pending_ceo', 'pending_chro', 'pending_travel_desk', 'cancelled'],
         'submitted': ['pending_manager', 'pending_ceo', 'pending_chro', 'cancelled'],
         'pending_manager': ['approved_manager', 'rejected_manager', 'cancellation_requested', 'cancelled'],
-        'approved_manager': ['pending_chro', 'pending_ceo', 'pending_travel_desk', 'cancellation_requested', 'cancelled'],
+        'approved_manager': ['pending_chro', 'pending_ceo', 'pending_travel_desk', 'booked', 'cancellation_requested', 'cancelled'],
         'rejected_manager': ['draft', 'cancelled'],
         'pending_chro': ['approved_chro', 'rejected_chro', 'cancellation_requested', 'cancelled'],
-        'approved_chro': ['pending_ceo', 'pending_travel_desk', 'cancellation_requested', 'cancelled'],
+        'approved_chro': ['pending_ceo', 'pending_travel_desk', 'booked', 'cancellation_requested', 'cancelled'],
         'rejected_chro': ['draft', 'cancelled'],
         'pending_ceo': ['approved_ceo', 'rejected_ceo', 'cancellation_requested', 'cancelled'],
-        'approved_ceo': ['pending_travel_desk', 'cancellation_requested', 'cancelled'],
+        'approved_ceo': ['pending_travel_desk', 'booked', 'cancellation_requested', 'cancelled'],
         'rejected_ceo': ['draft', 'cancelled'],
         'pending_travel_desk': ['booking_in_progress', 'booked', 'cancellation_requested', 'cancelled'],
         'booking_in_progress': ['booked', 'pending_travel_desk', 'cancellation_requested', 'cancelled'],
@@ -61,12 +61,14 @@ class TravelApplication(models.Model):
     # TSF Required Fields
     internal_order = models.CharField(
         max_length=50, 
-        help_text="IO reference number"
+        help_text="IO reference number",
+        null=True, blank=True
     )
     general_ledger = models.ForeignKey(
         'master_data.GLCodeMaster',
         on_delete=models.PROTECT,
-        help_text="GL code for expenses"
+        help_text="GL code for expenses",
+        null=True, blank=True
     )
     sanction_number = models.CharField(
         max_length=50,
@@ -229,22 +231,38 @@ class TravelApplication(models.Model):
             self.current_approver = next_approval.approver
             self.status = f'pending_{next_approval.approval_level}'
         else:
-            # All approvals completed - send to travel desk
+            # All approvals completed
             self.current_approver = None
-            self.status = 'pending_travel_desk'
+            
+            # Smart Routing: Check if we can skip Travel Desk
+            bookings_exist = any(trip.bookings.exists() for trip in self.trip_details.all())
+            all_bookings_skipped = all(trip.no_bookings_required for trip in self.trip_details.all())
+            # Handle NoneType for advance_amount by treating None as 0
+            advance = self.advance_amount if self.advance_amount is not None else Decimal('0')
+            no_advance_needed = advance <= 0
+            
+            if not bookings_exist and all_bookings_skipped and no_advance_needed:
+                # Scenario A: "Pure Self-Managed Trip" -> Skip Travel Desk
+                self.status = 'booked'
+                self.booking_completed_at = timezone.now()
+            else:
+                # Scenario B/C: Needs booking or advance -> Route to Travel Desk
+                self.status = 'pending_travel_desk'
+                
             self.save()  # Save first to ensure status is updated
 
-            # Helper to trigger auto-forwarding
-            try:
-                from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
-                # Use the last approver as the system user for audit
-                auto_forward_flight_train_bookings(self, system_user=approved_flow.approver)
-                auto_confirm_self_arranged_bookings(self, system_user=approved_flow.approver)
-            except Exception as e:
-                # Log error but don't fail the approval
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Failed to auto-forward bookings for app {self.id}: {str(e)}")
+            # Helper to trigger auto-forwarding (only if going to travel desk/bookings)
+            if self.status == 'pending_travel_desk':
+                try:
+                    from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
+                    # Use the last approver as the system user for audit
+                    auto_forward_flight_train_bookings(self, system_user=approved_flow.approver)
+                    auto_confirm_self_arranged_bookings(self, system_user=approved_flow.approver)
+                except Exception as e:
+                    # Log error but don't fail the approval
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to auto-forward bookings for app {self.id}: {str(e)}")
             
             return
         
@@ -273,7 +291,9 @@ class TravelApplication(models.Model):
         # Cannot submit without bookings
         if new_status in submit_statuses:
             has_bookings = any(trip.bookings.exists() for trip in self.trip_details.all())
-            if not has_bookings:
+            no_bookings_required = all(trip.no_bookings_required for trip in self.trip_details.all())
+            
+            if not has_bookings and not no_bookings_required:
                 return False, "Cannot submit travel request without booking details"
         
         # Cannot move to booking stages without approvals
@@ -597,23 +617,25 @@ class TripDetails(models.Model):
     from_location = models.ForeignKey(
         CityMaster,
         on_delete=models.PROTECT,
-        related_name='trips_from'
+        related_name='trips_from',
+        null=True, blank=True
     )
     to_location = models.ForeignKey(
         CityMaster,
         on_delete=models.PROTECT,
-        related_name='trips_to'
+        related_name='trips_to',
+        null=True, blank=True
     )
     
     # Dates
-    departure_date = models.DateField()
-    return_date = models.DateField()
+    departure_date = models.DateField(null=True, blank=True)
+    return_date = models.DateField(null=True, blank=True)
 
     # (NEW Fields) Times
     start_time = models.TimeField(
         help_text="Exact start time of travel",
-        null=False,
-        blank=False
+        null=True,
+        blank=True
     )
 
     end_time = models.TimeField(
@@ -634,6 +656,12 @@ class TripDetails(models.Model):
         blank=True,
         help_text="Estimated one-way distance in kilometers"
     )
+
+    # Flag to indicate if bookings are intentionally skipped
+    no_bookings_required = models.BooleanField(
+        default=False,
+        help_text="If true, user explicitly stated that no bookings are required for this trip"
+    )
     
     class Meta:
         ordering = ['departure_date']
@@ -642,19 +670,25 @@ class TripDetails(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.from_location.city_name} → {self.to_location.city_name} ({self.departure_date})"
+        from_loc = self.from_location.city_name if self.from_location else "Unknown"
+        to_loc = self.to_location.city_name if self.to_location else "Unknown"
+        return f"{from_loc} → {to_loc} ({self.departure_date})"
     
     def clean(self):
         from django.core.exceptions import ValidationError
-        if self.return_date < self.departure_date:
+        if self.return_date and self.departure_date and self.return_date < self.departure_date:
             raise ValidationError("Return date cannot be earlier than departure date")
     
     def get_duration_days(self):
         """Get duration of this trip in days"""
-        return (self.return_date - self.departure_date).days + 1
+        if self.return_date and self.departure_date:
+            return (self.return_date - self.departure_date).days + 1
+        return 0
     
     def get_city_category(self):
         """Get destination city category for DA calculation"""
         # return self.to_location.city.category.name
         # return self.to_location.category.name
-        return self.to_location.category.name if self.to_location.category else None     
+        if self.to_location and self.to_location.category:
+            return self.to_location.category.name
+        return None     
