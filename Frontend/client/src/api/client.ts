@@ -15,7 +15,7 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
-    // ✅ If the payload is FormData, let axios set correct headers
+    // If the payload is FormData, let axios set correct headers
     if (config.data instanceof FormData) {
       delete config.headers["Content-Type"];
     }

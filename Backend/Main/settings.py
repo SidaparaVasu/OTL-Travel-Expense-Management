@@ -103,9 +103,24 @@ if DEBUG:
     MIDDLEWARE.append('utils.database_middleware.QueryCountMiddleware')
     
 # Set the allowed origins
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=[
+# CORS_ALLOWED_ORIGINS = env.list(
+#     "CORS_ALLOWED_ORIGINS",
+#     default=[
+#         "http://localhost:8080",
+#         "http://127.0.0.1:8080",
+#         "http://localhost:5173",  # Vite
+#         "http://127.0.0.1:5173",
+#         "http://localhost",
+#         "http://travel.orangebiznext.com",
+#         "http://travel.orangebiznext.com:5173",
+#         "http://120.72.91.78",
+#         "http://120.72.91.78:5173",
+#         "https://hrms.orangetechnolab.com:8596",
+#         "https://hrms.orangetechnolab.com:5173",
+#     ]
+# )
+
+CORS_ALLOWED_ORIGINS = [
         "http://localhost:8080",
         "http://127.0.0.1:8080",
         "http://localhost:5173",  # Vite
@@ -115,21 +130,14 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://travel.orangebiznext.com:5173",
         "http://120.72.91.78",
         "http://120.72.91.78:5173",
+        "http://192.168.1.90:5173",
         "https://hrms.orangetechnolab.com:8596",
         "https://hrms.orangetechnolab.com:5173",
-    ]
-)
+  ]
+CORS_ALLOW_ALL_ORIGINS = True   # allows any frontend
+CORS_ALLOW_CREDENTIALS = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:8080",
-#     "http://127.0.0.1:8080",
-#     "http://localhost:3000",
-#     "http://localhost:5173",  # Vite
-#     'http://localhost',
-# ]
-# CORS_ALLOW_ALL_ORIGINS = True   # allows any frontend
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'content-type',
     'authorization',
