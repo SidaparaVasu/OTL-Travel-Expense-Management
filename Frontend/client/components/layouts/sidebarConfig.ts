@@ -11,7 +11,7 @@ import {
   Clock,
   Hotel,
   Car,
-  FileText,
+  Upload,
   CheckCircle,
   BarChart3,
   BadgeIndianRupee,
@@ -112,7 +112,7 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
     collapsible: true,
     items: [
       { label: "Masters", path: ROUTES.master, Icon: Database },
-      { label: "Import/Export", path: ROUTES.importExport, Icon: FileText },
+      { label: "Import/Export", path: ROUTES.importExport, Icon: Upload },
     ],
   },
 ];
