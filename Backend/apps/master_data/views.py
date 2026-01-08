@@ -208,7 +208,7 @@ class GLCodeBulkUploadAPIView(APIView):
     - Batched database operations
     """
 
-    REQUIRED_COLUMNS = {"Vertical", "G/L Account", "G/L Acct Long Text"}
+    REQUIRED_COLUMNS = {"Vertical", "G/L Account", "G/L Acct Long Text", "Short Text"}
     BATCH_SIZE = 100
 
     def post(self, request):
@@ -271,6 +271,7 @@ class GLCodeBulkUploadAPIView(APIView):
             payload = {
                 "vertical_name": row.get("Vertical"),
                 "description": row.get("G/L Acct Long Text"),
+                "short_description": row.get("Short Text"),
                 "gl_code": row.get("G/L Account"),
                 "sorting_no": 1,
                 "is_active": True,
@@ -339,6 +340,7 @@ class GLCodeBulkUploadAPIView(APIView):
                         fields=[
                             "vertical_name",
                             "description",
+                            "short_description",
                             "sorting_no",
                             "is_active",
                         ],

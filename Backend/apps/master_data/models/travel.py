@@ -7,12 +7,13 @@ class GLCodeMaster(models.Model):
     """
     vertical_name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
+    short_description = models.CharField(max_length=100, null=True, blank=True)
     sorting_no = models.PositiveIntegerField(null=True, blank=True)
     gl_code = models.CharField(max_length=20, unique=True)
     is_active = models.BooleanField(default=True)
     
     def __str__(self):
-        return f"{self.gl_code} - {self.vertical_name}"
+        return f"{self.gl_code} - {self.vertical_name} ({self.short_description})"
 
 class TravelModeMaster(models.Model):
     """

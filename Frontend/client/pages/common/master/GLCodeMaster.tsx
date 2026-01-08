@@ -115,10 +115,22 @@ export default function GLCodeMasterPage() {
   };
 
   const fields = [
-        { name: "vertical_name", label: "Vertical Name", type: "text", required: true, maxLength: 100 },
-    { name: "description", label: "Description", type: "textarea" },
-        { name: "sorting_no", label: "Sorting No.", type: "number", required: true },
     { name: "gl_code", label: "GL Code", type: "text", required: true },
+    {
+      name: "vertical_name",
+      label: "Vertical Name",
+      type: "text",
+      required: true,
+      maxLength: 100,
+    },
+    { name: "description", label: "Description", type: "textarea" },
+    { name: "short_description", label: "Short Description", type: "text" },
+    {
+      name: "sorting_no",
+      label: "Sorting No.",
+      type: "number",
+      required: true,
+    },
     { name: "is_active", label: "Active", type: "checkbox" },
   ];
 
@@ -156,6 +168,7 @@ export default function GLCodeMasterPage() {
                 <TableHead>GL Code</TableHead>
                 <TableHead>Vertical Name</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Short Description</TableHead>
                 <TableHead className="text-center">is Active</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
               </TableRow>
@@ -168,6 +181,7 @@ export default function GLCodeMasterPage() {
                     <TableCell>{gl.gl_code}</TableCell>
                     <TableCell>{gl.vertical_name}</TableCell>
                     <TableCell>{gl.description}</TableCell>
+                    <TableCell>{gl.short_description}</TableCell>
                     <TableCell className="text-center">
                       <input
                         type="checkbox"
