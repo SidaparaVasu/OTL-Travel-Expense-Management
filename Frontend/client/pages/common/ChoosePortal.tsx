@@ -47,13 +47,13 @@ const ROLE_CONFIG: Record<
     route: ROUTES.adminDashboard,
   },
   ceo: {
-    title: "Executive Portal",
+    title: "Executive Portal (CEO)",
     desc: "Strategic overview and executive-level approvals.",
     icon: ShieldCheck,
     route: ROUTES.adminDashboard,
   },
   chro: {
-    title: "HR Portal",
+    title: "CHRO Portal",
     desc: "Human resources oversight and policy-level approvals.",
     icon: ShieldCheck,
     route: ROUTES.adminDashboard,

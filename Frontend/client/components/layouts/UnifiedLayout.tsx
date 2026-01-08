@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { authAPI } from "@/src/api/auth";
@@ -73,40 +73,26 @@ const getPrimaryDashboard = (): string => {
 
 type UserRoleType = "admin" | "travel_desk" | "booking_agent" | "employee";
 
-const detectUserRoleType = (): UserRoleType => {
-  const roleTypes = getRoleTypes();
-
-  // Check admin roles first
-  if (roleTypes.some((r) => ["admin", "ceo", "chro"].includes(r))) {
+const detectActivePortal = (pathname: string): UserRoleType => {
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/masters") ||
+    pathname.startsWith("/settings")
+  ) {
     return "admin";
   }
-  // Then travel desk
-  if (roleTypes.includes("travel_desk")) {
+  if (pathname.startsWith("/travel_desk")) {
     return "travel_desk";
   }
-  // Then booking agent
-  if (roleTypes.includes("booking_agent")) {
+  // Check both variations just in case
+  if (
+    pathname.startsWith("/booking_agent") ||
+    pathname.startsWith("/booking-agent")
+  ) {
     return "booking_agent";
   }
-  // Default to employee
+  // Default fallback for /employee, /travel, /expense, /profile
   return "employee";
-};
-
-const getSidebarSections = (
-  roleType: UserRoleType,
-  primaryDashboard: string,
-): SidebarSection[] => {
-  switch (roleType) {
-    case "admin":
-      return getAdminSidebar(primaryDashboard);
-    case "travel_desk":
-      return getTravelDeskSidebar();
-    case "booking_agent":
-      return getBookingAgentSidebar();
-    case "employee":
-    default:
-      return getEmployeeSidebar(primaryDashboard);
-  }
 };
 
 // ------------------------------------------------------
@@ -128,13 +114,27 @@ const Logo = ({ expanded }: { expanded: boolean }) => (
   </div>
 );
 
-// ------------------------------------------------------
-// Layout Component
-// ------------------------------------------------------
-
-interface UnifiedLayoutProps {
+type UnifiedLayoutProps = {
   children: React.ReactNode;
-}
+};
+
+const getSidebarSections = (
+  role: UserRoleType,
+  primaryDashboard: string,
+): SidebarSection[] => {
+  switch (role) {
+    case "admin":
+      return getAdminSidebar(primaryDashboard);
+    case "travel_desk":
+      return getTravelDeskSidebar();
+    case "booking_agent":
+      return getBookingAgentSidebar();
+    case "employee":
+    default:
+      // Pass primaryDashboard to employee sidebar if needed
+      return getEmployeeSidebar(primaryDashboard);
+  }
+};
 
 export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   const navigate = useNavigate();
@@ -145,8 +145,15 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   const [activeSection, setActiveSection] = useState<string>("");
 
   const user = useMemo(() => getUser(), []);
-  const roleType = useMemo(() => detectUserRoleType(), []);
+
+  // DETERMINE ACTIVE PORTAL based on current URL path
+  const roleType = useMemo(
+    () => detectActivePortal(location.pathname),
+    [location.pathname],
+  );
+
   const primaryDashboard = useMemo(() => getPrimaryDashboard(), []);
+
   const sections = useMemo(
     () => getSidebarSections(roleType, primaryDashboard),
     [roleType, primaryDashboard],
