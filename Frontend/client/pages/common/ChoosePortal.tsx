@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, User, ShieldCheck, Briefcase } from "lucide-react";
+import { UserStar, User, ShieldCheck, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ROLE_CONFIG: Record<
@@ -25,13 +25,13 @@ const ROLE_CONFIG: Record<
   travel_desk: {
     title: "Travel Desk Portal",
     desc: "Process travel requests, manage itineraries, and coordinate with booking agents.",
-    icon: LayoutDashboard,
+    icon: UserStar,
     route: ROUTES.deskAgentDashboard,
   },
   booking_agent: {
     title: "Booking Agent Portal",
     desc: "Handle ticket bookings, hotel reservations, and travel logistics.",
-    icon: Briefcase,
+    icon: Ticket,
     route: ROUTES.bookingAgentDashboard,
   },
   employee: {
@@ -87,7 +87,7 @@ const ChoosePortal: React.FC = () => {
           const config = ROLE_CONFIG[role.role_type?.toLowerCase()] || {
             title: role.role_name || "Unknown Role",
             desc: "Access your dashboard.",
-            icon: LayoutDashboard,
+            icon: UserStar,
             route: ROUTES.employeeDashboard,
           };
           const Icon = config.icon;
