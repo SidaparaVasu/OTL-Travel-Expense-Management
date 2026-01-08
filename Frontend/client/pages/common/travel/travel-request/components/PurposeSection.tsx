@@ -193,7 +193,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Internal Order (IO Number) <span className="text-destructive">*</span>
+            Internal Order (IO Number){" "}
+            <span className="text-destructive">*</span>
           </label>
           <CurrencyInput
             value={formData.internal_order}
@@ -219,7 +220,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
             { value: "", label: "Select GL Code" },
             ...glCodes.map((gl) => ({
               value: String(gl.id),
-              label: `${gl.gl_code} - ${gl.vertical_name}`,
+              label: `${gl.gl_code} - ${gl.vertical_name} (${gl.short_description})`,
             })),
           ]}
           error={errors.general_ledger}
