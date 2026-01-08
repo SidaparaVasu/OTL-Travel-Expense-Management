@@ -225,7 +225,7 @@ export const TravelApplicationForm: React.FC = () => {
           arcHotelsData,
         ] = await Promise.all([
           locationAPI.getAllCities(),
-          travelAPI.getGLCodes(),
+          travelAPI.getActiveGLCodes(),
           travelAPI.getAllowedTravelModes(),
           travelAPI.getGuestHouses(),
           travelAPI.getARCHotels(),

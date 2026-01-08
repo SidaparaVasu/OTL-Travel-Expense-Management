@@ -50,6 +50,7 @@ urlpatterns = [
     path('allowed-travel-modes/', AllowedTravelModesView.as_view(), name='entitlement-based-allowed-mode'),
     path('gl-codes/', GLCodeListCreateView.as_view(), name='gl-code-list'),
     path('gl-codes/<int:pk>/', GLCodeDetailView.as_view(), name='gl-code-detail'),
+    path('active-gl-codes/', ActiveGLCodeListView.as_view(), name='active-gl-code-list'),
     path("gl-code/bulk-upload/", GLCodeBulkUploadAPIView.as_view()),
 
     # Accommodation URLs

@@ -70,6 +70,17 @@ export const travelAPI = {
       return data.data.results || data;
     } catch (error) {
       console.error("Failed to fetch GL codes:", error);
+      return { results: [], count: 0 };
+    }
+  },
+
+  // Active GL Codes (Non-paginated for Dropdowns)
+  getActiveGLCodes: async (): Promise<GLCode[]> => {
+    try {
+      const { data } = await apiClient.get("/master/active-gl-codes/");
+      return data.data || data || [];
+    } catch (error) {
+      console.error("Failed to fetch active GL codes:", error);
       return [];
     }
   },

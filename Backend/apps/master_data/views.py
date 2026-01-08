@@ -200,6 +200,17 @@ class GLCodeDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
     pagination_class = LargePagination
 
+class ActiveGLCodeListView(ListAPIView):
+    """
+    Returns only active GL codes (for user dropdown) without pagination
+    """
+    serializer_class = GLCodeSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = NoPagination
+
+    def get_queryset(self):
+        return GLCodeMaster.objects.filter(is_active=True).order_by('sorting_no')
+
 class GLCodeBulkUploadAPIView(APIView):
     """
     Bulk upload GL Code Master with:

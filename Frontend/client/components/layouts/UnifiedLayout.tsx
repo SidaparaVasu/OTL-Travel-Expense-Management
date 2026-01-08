@@ -73,7 +73,10 @@ const getPrimaryDashboard = (): string => {
 
 type UserRoleType = "admin" | "travel_desk" | "booking_agent" | "employee";
 
-const detectActivePortal = (pathname: string): UserRoleType => {
+const detectActivePortal = (
+  pathname: string,
+  primaryDashboard: string,
+): UserRoleType => {
   if (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/masters") ||
@@ -91,6 +94,16 @@ const detectActivePortal = (pathname: string): UserRoleType => {
   ) {
     return "booking_agent";
   }
+
+  // Fallback based on Primary Dashboard (User Context)
+  if (primaryDashboard.startsWith("/admin")) return "admin";
+  if (primaryDashboard.startsWith("/travel_desk")) return "travel_desk";
+  if (
+    primaryDashboard.startsWith("/booking_agent") ||
+    primaryDashboard.startsWith("/booking-agent")
+  )
+    return "booking_agent";
+
   // Default fallback for /employee, /travel, /expense, /profile
   return "employee";
 };
@@ -146,13 +159,13 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
 
   const user = useMemo(() => getUser(), []);
 
+  const primaryDashboard = useMemo(() => getPrimaryDashboard(), []);
+
   // DETERMINE ACTIVE PORTAL based on current URL path
   const roleType = useMemo(
-    () => detectActivePortal(location.pathname),
-    [location.pathname],
+    () => detectActivePortal(location.pathname, primaryDashboard),
+    [location.pathname, primaryDashboard],
   );
-
-  const primaryDashboard = useMemo(() => getPrimaryDashboard(), []);
 
   const sections = useMemo(
     () => getSidebarSections(roleType, primaryDashboard),
