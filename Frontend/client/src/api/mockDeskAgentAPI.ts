@@ -23,7 +23,7 @@ function seed() {
     const sample = [
       {
         id: 101,
-        application_id: "TR-2024-00101",
+        application_id: "TR/TSF/2025/0000101",
         employee_name: "Rohan Gupta",
         purpose: "Client Visit – Delhi",
         from_location: "Jamshedpur",
@@ -35,7 +35,7 @@ function seed() {
       },
       {
         id: 102,
-        application_id: "TR-2024-00102",
+        application_id: "TR/TSF/2025/0000102",
         employee_name: "Sneha Patel",
         purpose: "CSR Site Audit",
         from_location: "Ranchi",
@@ -47,7 +47,7 @@ function seed() {
       },
       {
         id: 103,
-        application_id: "TR-2024-00103",
+        application_id: "TR/TSF/2025/0000103",
         employee_name: "Arjun Mehta",
         purpose: "Training Workshop",
         from_location: "Kolkata",
@@ -56,7 +56,7 @@ function seed() {
         departure_date: "2025-02-06T06:00:00Z",
         approved_date: "2025-02-03T11:00:00Z",
         status: "approved_by_manager",
-      }
+      },
     ];
     localStorage.setItem(LS_KEY_PENDING, JSON.stringify(sample));
   }
@@ -65,18 +65,18 @@ function seed() {
     const recent = [
       {
         id: 1,
-        application_id: "TR-2024-00088",
+        application_id: "TR/TSF/2025/0000088",
         employee_name: "Amit Sharma",
         booking_type: "Flight Booking",
         vendor: "Eastern Travels",
       },
       {
         id: 2,
-        application_id: "TR-2024-00090",
+        application_id: "TR/TSF/2025/0000090",
         employee_name: "Kavita Rao",
         booking_type: "Hotel Booking",
         vendor: "Clarks Inn",
-      }
+      },
     ];
     localStorage.setItem(LS_KEY_RECENT, JSON.stringify(recent));
   }

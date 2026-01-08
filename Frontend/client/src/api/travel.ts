@@ -182,9 +182,12 @@ export const travelAPI = {
   },
 
   // GL code endpoints
-  getGLCodes: async (): Promise<GLCode[]> => {
-    const { data } = await apiClient.get("/master/gl-codes/");
-    return data.data;
+  // GL code endpoints
+  getGLCodes: async (page = 1, pageSize = 10): Promise<any> => {
+    const { data } = await apiClient.get(
+      `/master/gl-codes/?page=${page}&page_size=${pageSize}`,
+    );
+    return data;
   },
 
   createGLCodes: async (payload: any): Promise<GLCode[]> => {
@@ -199,6 +202,22 @@ export const travelAPI = {
 
   deleteGLCode: async (id: number): Promise<GLCode[]> => {
     const { data } = await apiClient.delete(`/master/gl-codes/${id}/`);
+    return data;
+  },
+
+  bulkUploadGLCodes: async (
+    formData: FormData,
+    validateOnly: boolean = false,
+  ) => {
+    const { data } = await apiClient.post(
+      `/master/gl-code/bulk-upload/?validate_only=${validateOnly}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
     return data;
   },
 

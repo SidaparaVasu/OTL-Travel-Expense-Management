@@ -320,8 +320,12 @@ export default function TravelApplicationList() {
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return "N/A";
+
     const start = new Date(startDate);
     const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return "N/A";
 
     const formatDate = (date: Date) => {
       return date.toLocaleDateString("en-US", {
@@ -570,7 +574,7 @@ export default function TravelApplicationList() {
                                       handleSubmitApplication(app.id)
                                     }
                                   >
-                                    <SendHorizontal />
+                                    <SendHorizontal /> Submit
                                   </Button>
                                 )}
                                 {app.status === "draft" && (
@@ -582,7 +586,7 @@ export default function TravelApplicationList() {
                                       handleDeleteApplication(app.id)
                                     }
                                   >
-                                    <Trash2 className="w-2 h-2" />
+                                    <Trash2 className="w-2 h-2" /> Delete
                                   </Button>
                                 )}
                                 <Button

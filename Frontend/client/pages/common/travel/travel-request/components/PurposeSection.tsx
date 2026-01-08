@@ -180,15 +180,35 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           />
         </div>
 
-        <FormInput
+        {/* <FormInput
           label="Internal Order (IO Number)"
           required
+          type="number"
           value={formData.internal_order}
           onChange={(e) => handleFieldChange("internal_order", e.target.value)}
           placeholder="Enter IO number"
-          maxLength={19}
+          maxLength={9}
           error={errors.internal_order}
-        />
+        /> */}
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            Internal Order (IO Number) <span className="text-destructive">*</span>
+          </label>
+          <CurrencyInput
+            value={formData.internal_order}
+            onValueChange={(value) =>
+              handleFieldChange("internal_order", value?.toString() || "")
+            }
+            placeholder="Enter IO number"
+            maxLength={9}
+            className={errors.internal_order ? "border-destructive" : ""}
+            required
+          />
+          {errors.internal_order && (
+            <p className="text-sm text-destructive">{errors.internal_order}</p>
+          )}
+        </div>
 
         <FormSelect
           label="GL Code"

@@ -36,6 +36,7 @@ export const ROUTES = {
 
   // ---------------- ADMIN: MASTER PAGES ----------------
   master: "/masters",
+  importExport: "/masters/import-export",
 
   // User Management Master
   userManagement: "/masters/user-management",

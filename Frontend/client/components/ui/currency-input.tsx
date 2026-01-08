@@ -9,6 +9,7 @@ export interface CurrencyInputProps
   > {
   onValueChange?: (value: number | null) => void;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  maxLength?: number;
 }
 
 /**
@@ -56,6 +57,11 @@ export const CurrencyInput = React.forwardRef<
       value = parts[0] + "." + parts[1].substring(0, 2);
     }
 
+    // Handle maxLength if provided
+    if (props.maxLength && value.length > props.maxLength) {
+      value = value.slice(0, props.maxLength);
+    }
+
     target.value = value;
   };
 
@@ -85,7 +91,8 @@ export const CurrencyInput = React.forwardRef<
       ref={ref}
       type="number"
       min="0"
-      step="0.01"
+      step="1"
+      max={props.max}
       className={cn(className)}
       onKeyDown={handleKeyDown}
       onInput={handleInput}

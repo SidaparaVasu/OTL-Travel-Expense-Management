@@ -10,16 +10,19 @@ class ExpenseTypeMaster(models.Model):
     Docstring for ExpenseTypeMaster
 
     example status choices:
-        CLAIM_STATUS = [
-        ('draft', 'Draft'),
-        ('submitted', 'Submitted'),
-        ('manager_pending', 'Manager Pending'),
-        ('finance_pending', 'Finance Pending'),
-        ('chro_pending', 'CHRO Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-        ('paid', 'Paid'),
-        ('closed', 'Closed'),
+        EXPENSE_TYPES = [
+        ('taxi', 'Taxi'),
+        ('auto', 'Auto / Local Travel'),
+        ('bus', 'Bus'),
+        ('train', 'Train'),
+        ('flight', 'Flight'),
+        ('hotel', 'Hotel'),
+        ('personal_car', 'Personal Car'),
+        ('meal', 'Meals'),
+        ('fuel', 'Fuel'),
+        ('toll', 'Toll'),
+        ('parking', 'Parking'),
+        ('misc', 'Miscellaneous'),
     ]
     '''
     code = models.CharField(max_length=50, unique=True)   # e.g., taxi, hotel, meal
@@ -36,18 +39,16 @@ class ClaimStatusMaster(models.Model):
     Docstring for ClaimStatusMaster
 
     example status choices:
-        EXPENSE_TYPES = [
-        ('taxi', 'Taxi'),
-        ('auto', 'Auto / Local Travel'),
-        ('bus', 'Bus'),
-        ('train', 'Train'),
-        ('flight', 'Flight'),
-        ('hotel', 'Hotel'),
-        ('meal', 'Meals'),
-        ('fuel', 'Fuel'),
-        ('toll', 'Toll'),
-        ('parking', 'Parking'),
-        ('misc', 'Miscellaneous'),
+        CLAIM_STATUS = [
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted'),
+        ('manager_pending', 'Manager Pending'),
+        ('finance_pending', 'Finance Pending'),
+        ('chro_pending', 'CHRO Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('paid', 'Paid'),
+        ('closed', 'Closed'),
     ]
     '''
     code = models.CharField(max_length=50, unique=True)     # e.g., draft, submitted, approved

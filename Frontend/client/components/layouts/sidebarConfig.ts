@@ -110,7 +110,10 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
     title: "Settings",
     icon: Settings,
     collapsible: true,
-    items: [{ label: "Masters", path: ROUTES.master, Icon: Database }],
+    items: [
+      { label: "Masters", path: ROUTES.master, Icon: Database },
+      { label: "Import/Export", path: ROUTES.importExport, Icon: FileText },
+    ],
   },
 ];
 

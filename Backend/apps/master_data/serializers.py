@@ -106,6 +106,18 @@ class GradeSerializer(serializers.ModelSerializer):
     def get_glcode_name(self, obj):
         return obj.glcode.vertical_name if obj.glcode else None
 
+
+class GLCodeBulkUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GLCodeMaster
+        fields = (
+            "vertical_name",
+            "description",
+            "gl_code",
+            "sorting_no",
+            "is_active",
+        )
+
 class TravelModeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelModeMaster

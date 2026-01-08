@@ -7,11 +7,16 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Q
+import csv
+import pandas as pd
+import io
+from django.db import transaction
 
 from .models import *
 from .serializers import *
 from apps.authentication.permissions import IsAdminUser
 from utils.pagination import *
+from utils.response_formatter import *
 
 # Company Views
 class CompanyListCreateView(ListCreateAPIView):
@@ -177,11 +182,211 @@ class GLCodeListCreateView(ListCreateAPIView):
     queryset = GLCodeMaster.objects.filter(is_active=True).order_by('sorting_no')
     serializer_class = GLCodeSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return paginated_response(serializer.data, self.paginator, message="GL Codes fetched successfully")
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class GLCodeDetailView(RetrieveUpdateDestroyAPIView):
     queryset = GLCodeMaster.objects.all()
     serializer_class = GLCodeSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
+    pagination_class = LargePagination
+
+class GLCodeBulkUploadAPIView(APIView):
+    """
+    Bulk upload GL Code Master with:
+    - Dry-run (validation-only) mode
+    - UPSERT behavior
+    - Batched database operations
+    """
+
+    REQUIRED_COLUMNS = {"Vertical", "G/L Account", "G/L Acct Long Text"}
+    BATCH_SIZE = 100
+
+    def post(self, request):
+        validate_only = (
+            request.query_params.get("validate_only", "false").lower() == "true"
+        )
+
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response(
+                {"message": "File is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ext = uploaded_file.name.split(".")[-1].lower()
+        if ext not in {"csv", "xlsx"}:
+            return Response(
+                {"message": "Only CSV or XLSX files are supported."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            rows = self._read_file(uploaded_file, ext)
+        except Exception as exc:
+            return Response(
+                {
+                    "message": "Failed to read file.",
+                    "error": str(exc),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not rows:
+            return Response(
+                {"message": "Uploaded file is empty."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        missing_columns = self.REQUIRED_COLUMNS - set(rows[0].keys())
+        if missing_columns:
+            return Response(
+                {
+                    "message": "Missing required columns.",
+                    "missing_columns": list(missing_columns),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        existing_map = {
+            obj.gl_code: obj
+            for obj in GLCodeMaster.objects.all()
+        }
+
+        to_create = []
+        to_update = []
+        success_rows = []
+        failed_rows = []
+
+        for index, row in enumerate(rows, start=2):
+            payload = {
+                "vertical_name": row.get("Vertical"),
+                "description": row.get("G/L Acct Long Text"),
+                "gl_code": row.get("G/L Account"),
+                "sorting_no": 1,
+                "is_active": True,
+            }
+
+            serializer = GLCodeBulkUploadSerializer(data=payload)
+            if not serializer.is_valid():
+                failed_rows.append(
+                    {
+                        "row": index,
+                        "gl_code": payload.get("gl_code"),
+                        "status": "FAILED",
+                        "errors": serializer.errors,
+                    }
+                )
+                continue
+
+            gl_code = serializer.validated_data["gl_code"]
+
+            if gl_code in existing_map:
+                obj = existing_map[gl_code]
+                for field, value in serializer.validated_data.items():
+                    setattr(obj, field, value)
+                to_update.append(obj)
+                action = "UPDATED"
+            else:
+                to_create.append(GLCodeMaster(**serializer.validated_data))
+                action = "CREATED"
+
+            success_rows.append(
+                {
+                    "row": index,
+                    "gl_code": gl_code,
+                    "status": action,
+                }
+            )
+
+        if validate_only:
+            return Response(
+                {
+                    "message": "Dry-run validation completed. No data saved.",
+                    "summary": {
+                        "total_rows": len(rows),
+                        "valid": len(success_rows),
+                        "failed": len(failed_rows),
+                    },
+                    "row_wise_result": {
+                        "success": success_rows,
+                        "failed": failed_rows,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        try:
+            with transaction.atomic():
+                if to_create:
+                    GLCodeMaster.objects.bulk_create(
+                        to_create,
+                        batch_size=self.BATCH_SIZE,
+                    )
+
+                if to_update:
+                    GLCodeMaster.objects.bulk_update(
+                        to_update,
+                        fields=[
+                            "vertical_name",
+                            "description",
+                            "sorting_no",
+                            "is_active",
+                        ],
+                        batch_size=self.BATCH_SIZE,
+                    )
+
+        except Exception as exc:
+            return Response(
+                {
+                    "message": "Database error while saving data.",
+                    "error": str(exc),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {
+                "message": "Bulk upload completed successfully.",
+                "summary": {
+                    "total_rows": len(rows),
+                    "created": len(to_create),
+                    "updated": len(to_update),
+                    "failed": len(failed_rows),
+                },
+                "row_wise_result": {
+                    "success": success_rows,
+                    "failed": failed_rows,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def _read_file(self, uploaded_file, ext):
+        if ext == "csv":
+            raw = uploaded_file.read()
+
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                text = raw.decode("latin-1")
+
+            csv_file = io.StringIO(text)
+            reader = csv.DictReader(csv_file)
+            return list(reader)
+
+        df = pd.read_excel(uploaded_file)
+        df = df.fillna("")
+        return df.to_dict(orient="records")
 
 class GradeListCreateView(ListCreateAPIView):
     queryset = GradeMaster.objects.filter(is_active=True)

@@ -7,7 +7,7 @@ class GLCodeMaster(models.Model):
     """
     vertical_name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
-    sorting_no = models.PositiveIntegerField(unique=True)
+    sorting_no = models.PositiveIntegerField(null=True, blank=True)
     gl_code = models.CharField(max_length=20, unique=True)
     is_active = models.BooleanField(default=True)
     

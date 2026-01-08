@@ -165,11 +165,12 @@ class TravelApplication(models.Model):
         ]
     
     def __str__(self):
-        return f"TR-{self.id} - {self.employee.username} ({self.status})"
+        return f"{self.get_travel_request_id()} - {self.employee.username} ({self.status})"
     
     def get_travel_request_id(self):
         """Generate formatted travel request ID"""
-        return f"TSF-TR-{self.created_at.year}-{self.id:06d}"
+        # Format: TR/TSF/YYYY/0000000 (7 digit sequence)
+        return f"TR/TSF/{self.created_at.year}/{self.id:07d}"
     
     def calculate_estimated_cost(self):
         """Calculate estimated cost from trip details"""

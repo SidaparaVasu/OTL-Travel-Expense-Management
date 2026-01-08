@@ -43,6 +43,9 @@ import ClaimDetailPage from "./pages/common/expense/ClaimDetailPage";
 import CreateClaimApplicationPage from "./pages/common/expense/CreateClaimApplicationPage";
 import ClaimApprovalPage from "./pages/common/expense/ClaimApprovalPage";
 
+// Master Import/Export
+import ImportExportMaster from "./pages/common/master/ImportExportMaster";
+
 // Master Pages (Admin Only)
 import MasterPage from "./pages/common/master/MasterIndex";
 import UsersPage from "./pages/common/master/users/Index";
@@ -317,6 +320,18 @@ const App = () => (
                   <ClaimApprovalPage />
                 </UnifiedLayout>
               </AuthOnly>
+            }
+          />
+
+          {/* MASTER IMPORT/EXPORT PAGES */}
+          <Route
+            path={ROUTES.importExport}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <ImportExportMaster />
+                </UnifiedLayout>
+              </ProtectedRoute>
             }
           />
 

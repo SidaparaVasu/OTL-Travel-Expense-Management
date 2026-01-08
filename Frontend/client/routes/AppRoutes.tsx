@@ -21,7 +21,7 @@ import MyApplicationsPage from "../pages/common/travel/ApplicationView";
 // Common
 import Login from "../pages/common/Login";
 import NotFound from "../pages/common/NotFound";
-import Profile from '../pages/common/Profile'
+import Profile from "../pages/common/Profile";
 
 export default function AppRoutes() {
   return (

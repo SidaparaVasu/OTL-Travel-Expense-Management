@@ -1,6 +1,6 @@
-import React from 'react';
-import { Eye, Send, XCircle, ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { Eye, Send, XCircle, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,10 +8,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { StatusBadge } from '@/components/StatusBadge';
-import { formatFullDate, formatCurrency } from '../utils/format';
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { StatusBadge } from "@/components/StatusBadge";
+import { formatFullDate, formatCurrency } from "../utils/format";
 
 const TableRowSkeleton = () => (
   <TableRow>
@@ -25,7 +29,7 @@ const TableRowSkeleton = () => (
 
 const getBookingProgress = (bookings: any[]) => {
   const total = bookings.length;
-  const completed = bookings.filter(b => b.status === "completed").length;
+  const completed = bookings.filter((b) => b.status === "completed").length;
   return { total, completed };
 };
 
@@ -40,7 +44,6 @@ export const ApplicationsTable = ({
 }) => {
   return (
     <div className="bg-white rounded-md border shadow-[0_2px_2px_0_rgba(59,130,247,0.30)] overflow-hidden">
-
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -61,14 +64,16 @@ export const ApplicationsTable = ({
               [...Array(5)].map((_, i) => <TableRowSkeleton key={i} />)
             ) : applications.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                <TableCell
+                  colSpan={8}
+                  className="text-center py-10 text-muted-foreground"
+                >
                   No applications found
                 </TableCell>
               </TableRow>
             ) : (
               applications.map((app) => (
                 <React.Fragment key={app.id}>
-
                   <TableRow className="hover:bg-muted/50 transition">
                     {/* <TableCell>
                       <Button
@@ -86,11 +91,12 @@ export const ApplicationsTable = ({
 
                     <TableCell>
                       <span className="font-mono text-sm font-medium">
-                        {`TSF-TR-2025-${String(app.id).padStart(6, '0')}`}
+                        {app.travel_request_id ||
+                          `TR/TSF/2025/${String(app.id).padStart(7, "0")}`}
                       </span>
                     </TableCell>
 
-                    <TableCell className='flex flex-col'>
+                    <TableCell className="flex flex-col">
                       <p className="font-medium">{app.employee_name}</p>
                       <div className="text-sm">
                         <p>
@@ -112,7 +118,9 @@ export const ApplicationsTable = ({
                     </TableCell> */}
 
                     <TableCell>
-                      <span className="text-sm">{formatFullDate(app.departure_date)}</span>
+                      <span className="text-sm">
+                        {formatFullDate(app.departure_date)}
+                      </span>
                     </TableCell>
 
                     <TableCell className="text-center">
@@ -126,10 +134,11 @@ export const ApplicationsTable = ({
                           {app.booked_bookings} / {app.total_bookings}
                         </span>
                         <span
-                          className={`text-[11px] ${app.pending_bookings > 0
-                              ? 'text-blue-400'
-                              : 'text-muted-foreground'
-                            }`}
+                          className={`text-[11px] ${
+                            app.pending_bookings > 0
+                              ? "text-blue-400"
+                              : "text-muted-foreground"
+                          }`}
                         >
                           Completed
                         </span>
@@ -140,9 +149,12 @@ export const ApplicationsTable = ({
                       <div className="flex justify-center gap-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm"
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="bg-blue-100 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
-                              onClick={() => onView(app)}>
+                              onClick={() => onView(app)}
+                            >
                               <Eye className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
@@ -179,7 +191,6 @@ export const ApplicationsTable = ({
                       <TableCell colSpan={8} className="bg-muted/30 p-4">
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-
                             {app.trip_details?.[0]?.bookings?.map((booking) => (
                               <div
                                 key={booking.id}
@@ -187,29 +198,32 @@ export const ApplicationsTable = ({
                               >
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
-                                    <p className="font-medium text-sm">{booking.booking_type_name}</p>
-                                    <p className="text-xs text-muted-foreground">{booking.sub_option_name}</p>
+                                    <p className="font-medium text-sm">
+                                      {booking.booking_type_name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {booking.sub_option_name}
+                                    </p>
                                   </div>
 
                                   <p className="text-sm font-semibold">
-                                    ₹{parseFloat(booking.estimated_cost).toLocaleString()}
+                                    ₹
+                                    {parseFloat(
+                                      booking.estimated_cost,
+                                    ).toLocaleString()}
                                   </p>
                                 </div>
                               </div>
                             ))}
-
                           </div>
-
                         </div>
                       </TableCell>
                     </TableRow>
                   )}
-
                 </React.Fragment>
               ))
             )}
           </TableBody>
-
         </Table>
       </div>
     </div>
