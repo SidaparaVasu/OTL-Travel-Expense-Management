@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Q
 import csv
-import pandas as pd
 import io
 from django.db import transaction
 
@@ -385,6 +384,7 @@ class GLCodeBulkUploadAPIView(APIView):
         )
 
     def _read_file(self, uploaded_file, ext):
+        import pandas as pd
         if ext == "csv":
             raw = uploaded_file.read()
 
