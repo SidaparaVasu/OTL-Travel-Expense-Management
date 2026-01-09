@@ -47,6 +47,13 @@ services:
     build:
       context: ./Backend
       dockerfile: Dockerfile.prod.new
+      args:
+        _LOCATION_API_KEY: ${_LOCATION_API_KEY}
+        _LOCATION_API_BASE_URL: ${_LOCATION_API_BASE_URL}
+        _GEODB_API_KEY: ${_GEODB_API_KEY}
+        _GEODB_BASE_URL: ${_GEODB_BASE_URL}
+        SSO_AES_KEY: ${SSO_AES_KEY}
+        SSO_AES_IV: ${SSO_AES_IV}
     container_name: prod_backend
     restart: unless-stopped
     # command: python manage.py runserver 0.0.0.0:8000

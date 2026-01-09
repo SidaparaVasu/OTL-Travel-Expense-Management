@@ -414,12 +414,12 @@ else:
     }
 
 # API Key of 'countrystatecity.in'  
-LOCATION_API_KEY = env("_LOCATION_API_KEY")
-LOCATION_API_BASE_URL = env("_LOCATION_API_BASE_URL") # get free key from countrystatecity.in
+LOCATION_API_KEY = env("_LOCATION_API_KEY", default='WmJZbzFZRTgwSHZ2ZlRNcmhaV0lyME1kakxWUTV3bkFYZG1WQk9wSw==')
+LOCATION_API_BASE_URL = env("_LOCATION_API_BASE_URL", default='https://api.countrystatecity.in/v1') # get free key from countrystatecity.in
 
 # API of 'http://geodb-cities-api.wirefreethought.com/'
-GEODB_API_KEY = env("_GEODB_API_KEY")
-GEODB_BASE_URL = env("_GEODB_BASE_URL")
+GEODB_API_KEY = env("_GEODB_API_KEY", default='')
+GEODB_BASE_URL = env("_GEODB_BASE_URL", default='')
 
 # SSO Configuration
 SSO_AES_KEY = env.str('SSO_AES_KEY', default='12345678901234567890123456789012')
