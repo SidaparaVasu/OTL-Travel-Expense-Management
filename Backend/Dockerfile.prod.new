@@ -1,7 +1,7 @@
 # =========================
 # Production Dockerfile
 # =========================
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim
 
 # ---- Python runtime flags ----
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -10,14 +10,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# ---- System dependencies (minimal, runtime only) ----
+# ---- System dependencies ----
+# Added build-essential, gcc, and dev libraries for mysqlclient and pyodbc
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
+    gcc \
+    g++ \
+    pkg-config \
+    default-libmysqlclient-dev \
+    unixodbc-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# ---- Install Python dependencies (cached layer) ----
+# ---- Install Python dependencies ----
 COPY requirements.txt .
 
 RUN pip install --upgrade pip \
@@ -30,10 +36,12 @@ RUN pip install --upgrade pip \
 # ---- Copy application code ----
 COPY . .
 
-# ---- Collect static files (Django) ----
+# ---- Collect static files ----
 RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
 # ---- Production server ----
+# Note: Keep gunicorn for prod, but you have 'runserver' in your docker-compose. 
+# I recommend using this CMD and removing the 'command' override in docker-compose.
 CMD ["gunicorn", "Main.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]

@@ -46,10 +46,10 @@ services:
   backend:
     build:
       context: ./Backend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile.prod.new
     container_name: prod_backend
     restart: unless-stopped
-    command: python manage.py runserver 0.0.0.0:8000
+    # command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./Backend:/app
       - static_volume:/app/staticfiles
@@ -78,7 +78,7 @@ services:
   celery_worker:
     build:
       context: ./Backend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile.prod.new
     container_name: prod_celery_worker
     restart: unless-stopped
     # command: celery -A Main worker -l info
@@ -108,7 +108,7 @@ services:
   celery_beat:
     build:
       context: ./Backend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile.prod.new
     container_name: prod_celery_beat
     restart: unless-stopped
     command: celery -A Main beat -l info
