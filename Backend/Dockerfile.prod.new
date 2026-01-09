@@ -1,0 +1,39 @@
+# =========================
+# Production Dockerfile
+# =========================
+FROM python:3.11-slim-bookworm
+
+# ---- Python runtime flags ----
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# ---- System dependencies (minimal, runtime only) ----
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# ---- Install Python dependencies (cached layer) ----
+COPY requirements.txt .
+
+RUN pip install --upgrade pip \
+ && pip install \
+    --no-cache-dir \
+    --default-timeout=120 \
+    --retries=10 \
+    -r requirements.txt
+
+# ---- Copy application code ----
+COPY . .
+
+# ---- Collect static files (Django) ----
+RUN python manage.py collectstatic --noinput
+
+EXPOSE 8000
+
+# ---- Production server ----
+CMD ["gunicorn", "Main.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
