@@ -34,7 +34,7 @@ export const SSOHandler = () => {
         //   /\/+$/,
         //   "",
         // );
-        const ssoUrl = `${API_BASE_URL}/api/sso/login/`;
+        const ssoUrl = `${API_BASE_URL}/sso/login/`;
 
         const response = await axios.get(ssoUrl, {
           params: { auth: authToken },
