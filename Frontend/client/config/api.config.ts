@@ -40,7 +40,7 @@ export const getApiBaseUrl = (): string => {
 
   // Production: Use direct backend URL on port 8000
   // return "/api";
-  return "http://50.17.4.22:8000/api";
+  return "/api";
 };
 
 // Export the API base URL as a constant
