@@ -207,16 +207,16 @@ export const travelAPI = {
 
   bulkUploadGLCodes: async (
     formData: FormData,
-    validateOnly: boolean = false,
+    dryRun: boolean = true,
   ) => {
+    // Append dry_run if not already present
+    if (!formData.has("dry_run")) {
+      formData.append("dry_run", String(dryRun));
+    }
+    
     const { data } = await apiClient.post(
-      `/master/gl-code/bulk-upload/?validate_only=${validateOnly}`,
+      `/master/gl-code/bulk-upload/`,
       formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      },
     );
     return data;
   },

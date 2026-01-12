@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     'apps.expenses',
     'apps.notifications',
     'apps.sso_auth',
+    'apps.bulk_service',
 ]
 
 MIDDLEWARE = [

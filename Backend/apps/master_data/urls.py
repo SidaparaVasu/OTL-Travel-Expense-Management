@@ -51,7 +51,7 @@ urlpatterns = [
     path('gl-codes/', GLCodeListCreateView.as_view(), name='gl-code-list'),
     path('gl-codes/<int:pk>/', GLCodeDetailView.as_view(), name='gl-code-detail'),
     path('active-gl-codes/', ActiveGLCodeListView.as_view(), name='active-gl-code-list'),
-    path("gl-code/bulk-upload/", GLCodeBulkUploadAPIView.as_view()),
+    path("gl-code/bulk-upload/", GLCodeBulkImportView.as_view()),
 
     # Accommodation URLs
     path('arc-hotels/', ARCHotelListCreateView.as_view(), name='arc-hotel-list-create'),
