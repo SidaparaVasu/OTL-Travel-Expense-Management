@@ -5,7 +5,7 @@ export const ROUTES = {
   root: "/",
 
   // ---------------- DASHBOARDS ----------------
-  adminDashboard: "/admin/dashboard",
+  adminDashboard: "/admin_fe/dashboard",
   employeeDashboard: "/employee/dashboard",
   deskAgentDashboard: "/travel_desk/dashboard",
   bookingAgentDashboard: "/booking_agent/dashboard",

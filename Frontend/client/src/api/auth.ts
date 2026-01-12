@@ -24,7 +24,7 @@ export const authAPI = {
       
       // Determine primary dashboard from roles
       const primaryRole = data.data.roles.find(r => r.is_primary);
-      const dashboard = primaryRole?.role_type || 'employee';
+      const dashboard = primaryRole?.role_type+'_fe' || 'employee';
       localStorage.setItem('primary_dashboard', `/${dashboard}/dashboard`);
     }
 
