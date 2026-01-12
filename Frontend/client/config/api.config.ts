@@ -38,8 +38,9 @@ export const getApiBaseUrl = (): string => {
     return import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
   }
 
-  // Production: Use relative URL
-  return "http://50.17.4.22/api";
+  // Production: Use direct backend URL on port 8000
+  // return "/api";
+  return "http://50.17.4.22:8000/api";
 };
 
 // Export the API base URL as a constant
