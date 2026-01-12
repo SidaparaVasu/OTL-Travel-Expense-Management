@@ -175,10 +175,10 @@ class HRMSSyncService:
 
     @staticmethod
     def _resolve_username(data: dict) -> str:
-        if data.get("Work_Email"):
-            return data["Work_Email"].strip().lower()
         if data.get("Alpha_Emp_Code"):
             return f"{data['Alpha_Emp_Code'].strip().lower()}@hrms"
+        if data.get("Work_Email"):
+            return data["Work_Email"].strip().lower()
         if data.get("Employee_ID"):
             return f"hrms_{data['Employee_ID']}"
         return ""
