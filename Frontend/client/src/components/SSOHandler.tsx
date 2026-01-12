@@ -30,11 +30,11 @@ export const SSOHandler = () => {
         setIsSyncing(true);
 
         // Use centralized API config and construct SSO URL
-        const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, "").replace(
-          /\/+$/,
-          "",
-        );
-        const ssoUrl = `${backendBaseUrl}/sso/login/`;
+        // const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, "").replace(
+        //   /\/+$/,
+        //   "",
+        // );
+        const ssoUrl = `${API_BASE_URL}/api/sso/login/`;
 
         const response = await axios.get(ssoUrl, {
           params: { auth: authToken },

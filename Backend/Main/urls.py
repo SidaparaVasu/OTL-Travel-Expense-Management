@@ -13,7 +13,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # SSO Authentication
-    path('sso/', include('apps.sso_auth.urls')),
+    path('api/sso/', include('apps.sso_auth.urls')),
     
     # App URLs
     path('api/', include('apps.authentication.urls')),
