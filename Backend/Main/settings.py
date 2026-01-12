@@ -134,8 +134,8 @@ CORS_ALLOWED_ORIGINS = [
         "http://192.168.1.90:5173",
         "https://hrms.orangetechnolab.com:8596",
         "https://hrms.orangetechnolab.com:5173",
-        "50.17.4.22",
-        "50.17.4.22:5173"
+        "http://50.17.4.22",
+        "http://50.17.4.22:5173"
   ]
 CORS_ALLOW_ALL_ORIGINS = True   # allows any frontend
 CORS_ALLOW_CREDENTIALS = True
