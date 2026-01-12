@@ -39,7 +39,7 @@ export const getApiBaseUrl = (): string => {
   }
 
   // Production: Use relative URL
-  return "/api";
+  return "http://50.17.4.22/api";
 };
 
 // Export the API base URL as a constant
