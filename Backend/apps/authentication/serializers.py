@@ -56,11 +56,16 @@ class OrganizationalProfileSerializer(serializers.ModelSerializer):
     
     def get_reporting_manager_details(self, obj):
         if obj.reporting_manager:
+            manager = obj.reporting_manager
+            manager_profile = getattr(manager, 'organizational_profile', None)
+            
             return {
-                'id': obj.reporting_manager.id,
-                'username': obj.reporting_manager.username,
-                'name': obj.reporting_manager.get_full_name(),
-                'email': obj.reporting_manager.email,
+                'id': manager.id,
+                'username': manager.username,
+                'name': manager.get_full_name(),
+                'email': manager.email,
+                'grade': manager_profile.grade.name if manager_profile and manager_profile.grade else None,
+                'employee_code': manager_profile.employee_id if manager_profile else manager.employee_code,
             }
         return None
 

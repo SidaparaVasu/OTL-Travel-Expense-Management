@@ -58,7 +58,7 @@ services:
     restart: unless-stopped
     # command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./Backend:/app
+      # - ./Backend:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     ports:
