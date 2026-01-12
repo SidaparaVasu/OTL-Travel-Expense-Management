@@ -58,17 +58,17 @@ const getRoleTypes = (): string[] => {
 const getPrimaryDashboard = (): string => {
   const roleTypes = getRoleTypes();
   if (roleTypes.some((r) => ["admin", "manager", "chro", "ceo"].includes(r))) {
-    return "/admin/dashboard";
+    return ROUTES.adminDashboard;
   }
   if (roleTypes.includes("travel_desk")) {
-    return "/travel_desk/dashboard";
+    return ROUTES.deskAgentDashboard;
   }
   if (roleTypes.includes("booking_agent")) {
-    return "/desk-agent/travel-bookings";
+    return ROUTES.bookingAgentDashboard;
   }
   const stored = localStorage.getItem("primary_dashboard");
   if (stored) return stored.startsWith("/") ? stored : `/${stored}`;
-  return "/employee/dashboard";
+  return ROUTES.employeeDashboard;
 };
 
 type UserRoleType = "admin" | "travel_desk" | "booking_agent" | "employee";

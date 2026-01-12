@@ -5,10 +5,10 @@ export const ROUTES = {
   root: "/",
 
   // ---------------- DASHBOARDS ----------------
-  adminDashboard: "/admin/dashboard",
-  employeeDashboard: "/employee/dashboard",
-  deskAgentDashboard: "/travel_desk/dashboard",
-  bookingAgentDashboard: "/booking_agent/dashboard",
+  adminDashboard: "/admin_fe/dashboard",
+  employeeDashboard: "/employee_fe/dashboard",
+  deskAgentDashboard: "/travel_desk_fe/dashboard",
+  bookingAgentDashboard: "/booking_agent_fe/dashboard",
 
   // ---------------- PROFILE ----------------
   profile: "/profile",
@@ -32,7 +32,7 @@ export const ROUTES = {
   claimApprovalPage: "/expense/claim-approvals",
 
   // ---------------- BOOKING AGENT ----------------
-  pendingBookingsPage: "/booking-agent/pending-requests",
+  pendingBookingsPage: "/booking_agent_fe/pending-requests",
 
   // ---------------- ADMIN: MASTER PAGES ----------------
   master: "/masters",

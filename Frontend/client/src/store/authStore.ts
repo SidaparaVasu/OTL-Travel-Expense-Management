@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authAPI } from '@/src/api/auth';
 import { UserProfile } from '@/src/types/auth.types';
+import { ROUTES } from '@/routes/routes';
 
 interface AuthState {
   user: UserProfile | null;
@@ -26,12 +27,12 @@ function getPrimaryDashboard(roles: Array<{ role_type: string }>): string {
   const isBookingAgent = roleTypes.includes("booking_agent");
   const isEmployee = roleTypes.includes("employee");
 
-  if (isAdminType) return "/admin/dashboard";
-  if (isTravelDesk) return "/travel_desk/dashboard";
-  if (isBookingAgent) return "/booking_agent/dashboard";
-  if (isEmployee) return "/employee/dashboard";
+  if (isAdminType) return ROUTES.adminDashboard;
+  if (isTravelDesk) return ROUTES.deskAgentDashboard;
+  if (isBookingAgent) return ROUTES.bookingAgentDashboard;
+  if (isEmployee) return ROUTES.employeeDashboard;
 
-  return "/employee/dashboard";
+  return ROUTES.employeeDashboard;
 }
 
 /** -------------------------------------------------- **/
