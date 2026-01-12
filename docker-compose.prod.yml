@@ -72,7 +72,7 @@ services:
       - DB_PORT=3306
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DJANGO_ALLOWED_HOSTS=main.settings
+      - DJANGO_ALLOWED_HOSTS=${ALLOWED_HOSTS}
     depends_on:
       mysql:
         condition: service_healthy

@@ -13,6 +13,7 @@ import {
   Save,
   Check,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   travelAPI,
   locationAPI,
@@ -105,6 +111,14 @@ export const TravelApplicationForm: React.FC = () => {
   const [guestHouses, setGuestHouses] = useState<GuestHouse[]>([]);
   const [arcHotels, setARCHotels] = useState<ARCHotel[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Mock approver data - TODO: Fetch from API
+  const [approverData] = useState({
+    full_name: "John Doe",
+    email: "john.doe@company.com",
+    grade: "B-3",
+    employee_code: "EMP001",
+  });
 
   // Purpose form state
   const [purposeData, setPurposeData] = useState(getEmptyPurposeForm);
@@ -830,6 +844,51 @@ export const TravelApplicationForm: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Approver Info */}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mr-2">
+                <span>Approver</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted hover:bg-muted/80 transition-colors">
+                      <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="end">
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm text-foreground border-b pb-2">
+                        Approver Details
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Name:</span>
+                          <span className="font-semibold text-foreground">
+                            {approverData.full_name}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Email:</span>
+                          <span className="font-semibold text-foreground">
+                            {approverData.email}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Grade:</span>
+                          <span className="font-semibold text-foreground">
+                            {approverData.grade}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Employee Code:</span>
+                          <span className="font-semibold text-foreground">
+                            {approverData.employee_code}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               <Button
                 variant="outline"
                 onClick={() => setShowClearDialog(true)}

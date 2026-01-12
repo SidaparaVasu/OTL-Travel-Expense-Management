@@ -105,12 +105,19 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   if (isSelfArranged) {
     const selectedCity = cities.find((c) => String(c.id) === form.place);
     derivedCityCategory = selectedCity?.category_name;
-  } else if (isGuestHouseSelected && form.guest_house_preferences.length > 0) {
-    const gh = guestHouses.find(
-      (g) => g.id === form.guest_house_preferences[0],
-    );
-    console.log(gh, gh?.city, gh?.city_category);
-    derivedCityCategory = gh?.city_category;
+  } else if (isGuestHouseSelected) {
+    // For guest house, try to get category from selection or require place selection
+    if (form.guest_house_preferences.length > 0) {
+      const gh = guestHouses.find(
+        (g) => g.id === form.guest_house_preferences[0],
+      );
+      console.log(gh, gh?.city, gh?.city_category);
+      derivedCityCategory = gh?.city_category;
+    } else if (form.place) {
+      // Fallback to place selection if no guest house selected
+      const selectedCity = cities.find((c) => String(c.id) === form.place);
+      derivedCityCategory = selectedCity?.category_name;
+    }
   } else if (isARCHotelSelected && form.arc_hotel_preferences.length > 0) {
     const hotel = arcHotels.find((h) => h.id === form.arc_hotel_preferences[0]);
     derivedCityCategory = hotel?.city_category;
@@ -225,6 +232,16 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         "At least one hotel preference is required";
     }
 
+    // Place required for Guest House to determine city category
+    if (isGuestHouseSelected && !form.place) {
+      newErrors.place = "Location is required to determine entitlement limit";
+    }
+
+    // Place required for self-arranged accommodation
+    if (isSelfArranged && !form.place) {
+      newErrors.place = "Location is required";
+    }
+
     // Date range validation
     if (form.check_in_date && tripStartDate && tripEndDate) {
       if (!isDateInRange(form.check_in_date, tripStartDate, tripEndDate)) {
@@ -248,18 +265,23 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     }
 
     // Validate estimated cost against entitlement
-    if (selectedLimit?.max_amount && form.estimated_cost) {
+    if (form.estimated_cost && form.estimated_cost.trim() !== "") {
       const cost = Number(form.estimated_cost);
-
-      if (cost > selectedLimit.max_amount) {
-        newErrors.estimated_cost = `Maximum allowed is ₹${selectedLimit.max_amount} for ${selectedCity?.name}`;
-      }
-    }
-
-    // Cost validation
-    if (form.estimated_cost.trim() !== "") {
+      
+      // First check if cost is a valid number
       const costError = validateEstimatedCost(form.estimated_cost);
-      if (costError) newErrors.estimated_cost = costError;
+      if (costError) {
+        newErrors.estimated_cost = costError;
+      } else if (form.accommodation_sub_option && !derivedCityCategory) {
+        // Cannot determine limit without city category
+        newErrors.estimated_cost = "Please select accommodation location to determine entitlement limit";
+      } else if (maxAllowed === undefined && form.accommodation_sub_option) {
+        // Limit should be defined but isn't found
+        newErrors.estimated_cost = "Cannot determine entitlement limit. Please contact support.";
+      } else if (maxAllowed !== undefined && cost > maxAllowed) {
+        // Cost exceeds limit
+        newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowed.toLocaleString('en-IN')} for ${derivedCityCategory}`;
+      }
     }
 
     // Special instructions
@@ -278,6 +300,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         ...form,
         estimated_cost: String(maxAllowed),
       });
+      toast.warning(`Amount capped to maximum allowed: ₹${maxAllowed.toLocaleString('en-IN')}`);
     }
   };
 
@@ -297,22 +320,16 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     return limit || null;
   }, [form.accommodation_sub_option, derivedCityCategory, currentSubOptions]);
 
-  const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const cost = Number(value);
+  const handleCostChange = (value: number | undefined) => {
+    const valueStr = value?.toString() || "";
+    setForm({ ...form, estimated_cost: valueStr });
 
-    setForm({ ...form, estimated_cost: value });
-
-    if (maxAllowed && cost > maxAllowed) {
+    // Clear error when user is typing
+    if (errors.estimated_cost) {
       setErrors((prev) => ({
         ...prev,
-        estimated_cost: `Maximum allowed is ₹${maxAllowed}`,
-      }));
-    } else {
-      setErrors({
-        ...errors,
         estimated_cost: "",
-      });
+      }));
     }
   };
 
@@ -322,12 +339,13 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       return;
     }
 
-    if (!isAmountWithinLimit(maxAllowed, form.estimated_cost)) {
-      setErrors((prev) => ({
-        ...prev,
-        estimated_cost: `Maximum allowed is ₹${maxAllowed} for ${selectedCity?.city_name}`,
-      }));
-      return; // BLOCK ADD
+    // Additional check: ensure limit is enforced (should already be caught by validateForm)
+    if (form.estimated_cost && maxAllowed !== undefined) {
+      const cost = Number(form.estimated_cost);
+      if (cost > maxAllowed) {
+        toast.error(`Amount exceeds maximum allowed: ₹${maxAllowed.toLocaleString('en-IN')}`);
+        return; // BLOCK ADD
+      }
     }
 
     if (editIndex !== null) {
@@ -529,10 +547,24 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 error={errors.accommodation_sub_option}
               />
 
-              {isGuestHouseSelected ? //   guestHouses={guestHouses} //   } //     setForm({ ...form, guest_house_preferences: prefs }) //   setSelectedPreferences={(prefs) => //   selectedPreferences={form.guest_house_preferences} // <GuestHouseSelector
-              //   error={errors.guest_house_preferences}
-              // />
-              null : isARCHotelSelected ? (
+              {isGuestHouseSelected ? (
+                <CityCombobox
+                  label="Place/Location"
+                  required
+                  cities={cities}
+                  value={form.place ? parseInt(form.place) : null}
+                  displayValue={form.place_label}
+                  onChange={(id, label) =>
+                    setForm({
+                      ...form,
+                      place: id ? String(id) : "",
+                      place_label: label,
+                    })
+                  }
+                  placeholder="Enter location for entitlement calculation"
+                  error={errors.place}
+                />
+              ) : isARCHotelSelected ? (
                 <ARCHotelSelector
                   selectedPreferences={form.arc_hotel_preferences}
                   setSelectedPreferences={(prefs) =>
@@ -556,7 +588,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                     })
                   }
                   placeholder="Enter location"
-                  error={errors.from_location}
+                  error={errors.place}
                 />
               )}
 
@@ -603,23 +635,28 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
               <div className="space-y-2">
                 <label className="text-sm font-medium">
                   Estimated Cost (₹)
+                  {maxAllowed !== undefined && (
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">
+                      (Max: ₹{maxAllowed.toLocaleString('en-IN')})
+                    </span>
+                  )}
                 </label>
                 <CurrencyInput
                   value={form.estimated_cost}
-                  onValueChange={(value) =>
-                    setForm({
-                      ...form,
-                      estimated_cost: value?.toString() || "",
-                    })
-                  }
+                  onValueChange={handleCostChange}
                   onBlur={handleCostBlur}
                   placeholder={
-                    maxAllowed
-                      ? `Max allowed ₹${maxAllowed}`
+                    maxAllowed !== undefined
+                      ? `Max allowed ₹${maxAllowed.toLocaleString('en-IN')}`
                       : "Enter estimated cost"
                   }
                   className={errors.estimated_cost ? "border-destructive" : ""}
                 />
+                {/* {maxAllowed !== undefined && !errors.estimated_cost && derivedCityCategory && (
+                  <p className="text-xs text-muted-foreground">
+                    Maximum allowed: ₹{maxAllowed.toLocaleString('en-IN')} for {derivedCityCategory}
+                  </p>
+                )} */}
                 {errors.estimated_cost && (
                   <p className="text-sm text-destructive">
                     {errors.estimated_cost}

@@ -157,10 +157,10 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       }
     }
 
-    // Location validation
-    if (form.from_location === form.to_location && form.from_location) {
-      newErrors.to_location = "From and To locations cannot be the same";
-    }
+    // Location validation - DISABLED: Allow same location for from and to
+    // if (form.from_location === form.to_location && form.from_location) {
+    //   newErrors.to_location = "From and To locations cannot be the same";
+    // }
 
     // Conveyance location validation (residence/hotel <-> airport/station)
     const conveyanceError = validateConveyanceLocations(form.report_at, form.drop_location);
