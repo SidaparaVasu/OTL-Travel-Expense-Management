@@ -3,8 +3,8 @@ import { Calendar } from "lucide-react";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { FormInput } from "./FormInput";
 import { FormTextarea } from "./FormTextarea";
-import { FormSelect } from "./FormSelect";
 import { CityCombobox } from "./CityCombobox";
+import { GLCodeCombobox } from "./GLCodeCombobox";
 import { TimePickerField } from "./TimePickerField";
 import { DatePickerField } from "./DatePickerField";
 import { CITIES, GL_CODES } from "../lib/travel-constants";
@@ -151,6 +151,22 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
     }
   };
 
+  const handleGLCodeChange = (id: number | null, label: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      general_ledger: id ? String(id) : "",
+    }));
+
+    // Clear error
+    if (errors.general_ledger) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.general_ledger;
+        return newErrors;
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto animate-fade-in">
       <div className="flex items-center gap-3 mb-6">
@@ -211,18 +227,24 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           )}
         </div>
 
-        <FormSelect
+        <GLCodeCombobox
           label="GL Code"
           required
-          value={formData.general_ledger}
-          onChange={(value) => handleFieldChange("general_ledger", value)}
-          options={[
-            { value: "", label: "Select GL Code" },
-            ...glCodes.map((gl) => ({
-              value: String(gl.id),
-              label: `${gl.gl_code} - ${gl.vertical_name} (${gl.short_description})`,
-            })),
-          ]}
+          glCodes={glCodes}
+          value={
+            formData.general_ledger
+              ? parseInt(formData.general_ledger)
+              : null
+          }
+          displayValue={
+            formData.general_ledger
+              ? glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))
+                  ? `${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.gl_code} - ${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.vertical_name}`
+                  : ""
+              : ""
+          }
+          onChange={handleGLCodeChange}
+          placeholder="Search GL Code or Vertical..."
           error={errors.general_ledger}
         />
 

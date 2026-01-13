@@ -107,8 +107,16 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error("Logout error:", error);
         } finally {
+          // Check if HRMS user before clearing storage
+          const isHrmsUser = localStorage.getItem("is_hrms_user") === "true";
+          
           localStorage.clear();
           set({ user: null, isAuthenticated: false });
+          
+          // Redirect HRMS users to HRMS portal
+          if (isHrmsUser) {
+            window.location.href = "https://hrms.orangetechnolab.com/tscsr_uat/";
+          }
         }
       },
 

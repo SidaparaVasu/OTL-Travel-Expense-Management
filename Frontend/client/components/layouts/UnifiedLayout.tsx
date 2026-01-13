@@ -196,10 +196,8 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
 
     const isHrmsUser = localStorage.getItem("is_hrms_user") === "true";
     if (isHrmsUser) {
-      // Redirect to HRMS portal if defined, otherwise fallback to login
-      const hrmsUrl =
-        import.meta.env.VITE_HRMS_PORTAL_URL || "https://hrms.tatasteel.com"; // Example placeholder
-      window.location.href = hrmsUrl;
+      // Redirect HRMS users back to HRMS portal
+      window.location.href = "https://hrms.orangetechnolab.com/tscsr_uat/";
     } else {
       navigate(ROUTES.login);
     }

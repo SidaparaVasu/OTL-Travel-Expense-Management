@@ -156,6 +156,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
     employee_grade = serializers.CharField(source='employee.grade.name', read_only=True)
     gl_code_name = serializers.CharField(source='general_ledger.vertical_name', read_only=True)
+    gl_code = serializers.CharField(source='general_ledger.gl_code', read_only=True)
+    gl_code_description = serializers.CharField(source='general_ledger.short_description', read_only=True)
     travel_request_id = serializers.SerializerMethodField()
     total_duration_days = serializers.SerializerMethodField()
     
@@ -163,7 +165,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         model = TravelApplication
         fields = [
             'id', 'employee', 'employee_name', 'employee_grade', 'purpose',
-            'internal_order', 'general_ledger', 'gl_code_name', 'sanction_number',
+            'internal_order', 'general_ledger', 'gl_code_name', 'gl_code', 'gl_code_description', 'sanction_number',
             'advance_amount', 'estimated_total_cost', 'status', 'is_settled',
             'settlement_due_date', 'travel_request_id', 'total_duration_days',
             'created_at', 'updated_at', 'submitted_at', 'trip_details',

@@ -18,7 +18,7 @@ export default function Profile() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    // Redirection is handled by authStore (HRMS users go to HRMS portal, others to login)
   };
 
   if (isLoading) {

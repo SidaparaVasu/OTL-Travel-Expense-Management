@@ -303,7 +303,14 @@ const InfoCard = ({ application }: any) => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <InfoItem label="Employee Grade" value={application.employee_grade} />
-          <InfoItem label="GL Code" value={application.gl_code_name} />
+          <InfoItem 
+            label="GL Code" 
+            value={
+              application.gl_code && application.gl_code_name
+                ? `${application.gl_code} - ${application.gl_code_name}${application.gl_code_description ? ` (${application.gl_code_description})` : ''}`
+                : application.gl_code_name || 'N/A'
+            } 
+          />
           <InfoItem label="Internal Order" value={application.internal_order} />
           <InfoItem
             label="Sanction Number"
