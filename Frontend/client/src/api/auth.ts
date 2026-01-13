@@ -36,7 +36,8 @@ export const authAPI = {
     try {
       await apiClient.post('/auth/logout/', { refresh_token: refreshToken });
     } finally {
-      localStorage.clear();
+      // localStorage.clear();
+      console.log("Logout successful");
     }
   },
 

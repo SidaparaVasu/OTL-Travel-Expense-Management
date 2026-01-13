@@ -196,9 +196,11 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
 
     const isHrmsUser = localStorage.getItem("is_hrms_user") === "true";
     if (isHrmsUser) {
+      localStorage.clear();
       // Redirect HRMS users back to HRMS portal
       window.location.href = "https://hrms.orangetechnolab.com/tscsr_uat/";
     } else {
+      localStorage.clear();
       navigate(ROUTES.login);
     }
   };
