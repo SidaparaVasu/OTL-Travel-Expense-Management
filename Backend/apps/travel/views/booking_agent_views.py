@@ -11,7 +11,7 @@ from apps.authentication.permissions import IsTravelDesk, IsAdminUser
 from apps.travel.models import Booking, BookingAssignment, BookingNote, TravelApplication
 from apps.travel.serializers.booking_agent_serializers import *
 from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
-from apps.authentication.permissions import IsBookingAgent
+from apps.authentication.permissions import IsBookingAgent, IsEmployee
 from apps.travel.models.audit import AuditLog
 from utils.response_formatter import success_response, error_response, paginated_response
 from utils.pagination import StandardResultsSetPagination
@@ -159,7 +159,7 @@ class BookingAgentBookingsListView(APIView):
     List bookings assigned to the logged-in booking agent.
     """
 
-    permission_classes = [IsAuthenticated, IsBookingAgent]
+    permission_classes = [IsAuthenticated, IsBookingAgent | IsAdminUser]
 
     def get(self, request):
         user = request.user
