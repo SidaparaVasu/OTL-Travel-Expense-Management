@@ -22,7 +22,8 @@ class HRMSSyncService:
     HRMS remains the source of truth for employee and reporting hierarchy.
     """
 
-    BASE_URL = os.getenv('HRMS_API_BASE_URL', 'http://192.168.1.251:8583')
+    # BASE_URL = os.getenv('HRMS_API_BASE_URL', 'http://192.168.1.251:8583')
+    BASE_URL = os.getenv('HRMS_API_BASE_URL', 'https://hrms.orangetechnolab.com:8598')
 
     # ------------------------------------------------------------------
     # HTTP helpers
