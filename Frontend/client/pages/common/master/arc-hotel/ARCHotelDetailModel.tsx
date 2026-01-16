@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Star } from 'lucide-react';
+import { toast } from "sonner";
+import { accommodationAPI } from "@/src/api/master_accommodation";
 
 const ARCHotelDetailModal = ({ hotelId, onClose }) => {
   const [data, setData] = useState(null);
@@ -12,67 +14,68 @@ const ARCHotelDetailModal = ({ hotelId, onClose }) => {
   const fetchHotelData = async () => {
     try {
       setLoading(true);
-      // Replace with actual API call
-      // const response = await arcHotelAPI.get(hotelId);
-      // setData(response.data);
+      const response = await accommodationAPI.arcHotel.get(hotelId);
+      setData(response.data.data);
+      setLoading(false);
       
       // Mock data
-      setTimeout(() => {
-        setData({
-          id: hotelId,
-          name: 'Taj Mahal Palace',
-          hotel_type: 'resort',
-          star_rating: 5,
-          group_name: 'Taj Hotels',
-          category: '5_star',
-          is_active: true,
-          gstin: '27AABCT1332L1ZK',
-          pan: 'AABCT1332L',
-          operating_since: 1903,
-          address: 'Apollo Bunder, Colaba',
-          city_name: 'Mumbai',
-          state_name: 'Maharashtra',
-          country_name: 'India',
-          postal_code: '400001',
-          phone_number: '+91 22 6665 3366',
-          email: 'reservations@tajhotels.com',
-          website: 'https://www.tajhotels.com',
-          social_media: {
-            Facebook: 'https://facebook.com/tajhotels',
-            Instagram: 'https://instagram.com/tajhotels'
-          },
-          total_rooms: 285,
-          room_types: [
-            { type: 'Deluxe Room', count: 100 },
-            { type: 'Palace Room', count: 85 },
-            { type: 'Grand Presidential Suite', count: 10 }
-          ],
-          check_in_time: '14:00',
-          check_out_time: '12:00',
-          facilities: {
-            'Swimming Pool': true,
-            'Gym': true,
-            'Spa': true,
-            'Restaurant': true,
-            'Bar': true,
-            'Room Service': true,
-            'WiFi': true,
-            'Parking': true,
-            'Conference Hall': true,
-            'Business Center': true
-          },
-          rate_per_night: 15000.00,
-          tax_percentage: 12.00,
-          contract_start_date: '2024-01-01',
-          contract_end_date: '2024-12-31',
-          created_at: '2024-01-01T10:00:00Z',
-          updated_at: '2024-01-15T14:30:00Z'
-        });
-        setLoading(false);
-      }, 500);
+      // setTimeout(() => {
+      //   setData({
+      //     id: hotelId,
+      //     name: 'Taj Mahal Palace',
+      //     hotel_type: 'resort',
+      //     star_rating: 5,
+      //     group_name: 'Taj Hotels',
+      //     category: '5_star',
+      //     is_active: true,
+      //     gstin: '27AABCT1332L1ZK',
+      //     pan: 'AABCT1332L',
+      //     operating_since: 1903,
+      //     address: 'Apollo Bunder, Colaba',
+      //     city_name: 'Mumbai',
+      //     state_name: 'Maharashtra',
+      //     country_name: 'India',
+      //     postal_code: '400001',
+      //     phone_number: '+91 22 6665 3366',
+      //     email: 'reservations@tajhotels.com',
+      //     website: 'https://www.tajhotels.com',
+      //     social_media: {
+      //       Facebook: 'https://facebook.com/tajhotels',
+      //       Instagram: 'https://instagram.com/tajhotels'
+      //     },
+      //     total_rooms: 285,
+      //     room_types: [
+      //       { type: 'Deluxe Room', count: 100 },
+      //       { type: 'Palace Room', count: 85 },
+      //       { type: 'Grand Presidential Suite', count: 10 }
+      //     ],
+      //     check_in_time: '14:00',
+      //     check_out_time: '12:00',
+      //     facilities: {
+      //       'Swimming Pool': true,
+      //       'Gym': true,
+      //       'Spa': true,
+      //       'Restaurant': true,
+      //       'Bar': true,
+      //       'Room Service': true,
+      //       'WiFi': true,
+      //       'Parking': true,
+      //       'Conference Hall': true,
+      //       'Business Center': true
+      //     },
+      //     rate_per_night: 15000.00,
+      //     tax_percentage: 12.00,
+      //     contract_start_date: '2024-01-01',
+      //     contract_end_date: '2024-12-31',
+      //     created_at: '2024-01-01T10:00:00Z',
+      //     updated_at: '2024-01-15T14:30:00Z'
+      //   });
+      //   setLoading(false);
+      // }, 500);
     } catch (error) {
       console.error('Error fetching hotel:', error);
-      alert('Failed to load hotel details');
+      toast.error("Failed to load hotel details");
+      setLoading(false);
       onClose();
     }
   };

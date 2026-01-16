@@ -511,23 +511,61 @@ class ARCHotelListCreateView(ListCreateAPIView):
     - star_rating: Filter by star rating
     
     Supports searching by:
-    - name, group_name, address, email
+    - name, group_name, address, email, phone_number, gstin, pan
     """
     queryset = ARCHotelMaster.objects.select_related(
         'city', 'state', 'country', 'created_by', 'updated_by'
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['city', 'state', 'category', 'hotel_type', 'star_rating']
-    search_fields = ['name', 'group_name', 'address', 'email']
+    filterset_fields = ['city', 'state', 'category', 'hotel_type', 'star_rating', 'is_active']
+    search_fields = ['name', 'group_name', 'address', 'email', 'phone_number', 'gstin', 'pan']
     ordering_fields = ['name', 'rate_per_night', 'star_rating', 'created_at']
-    ordering = ['city', 'category', 'rate_per_night']
+    ordering = ['name']
+    pagination_class = StandardResultsSetPagination
     
     def get_serializer_class(self):
         """Use lightweight serializer for list view"""
         if self.request.method == 'GET':
             return ARCHotelListSerializer
         return ARCHotelSerializer
+    
+    def get_queryset(self):
+        """Enhanced queryset with comprehensive search"""
+        queryset = super().get_queryset()
+        search = self.request.query_params.get('search', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(group_name__icontains=search) |
+                Q(address__icontains=search) |
+                Q(phone_number__icontains=search) |
+                Q(email__icontains=search) |
+                Q(gstin__icontains=search) |
+                Q(pan__icontains=search) |
+                Q(city__city_name__icontains=search) |
+                Q(state__state_name__icontains=search) |
+                Q(country__country_name__icontains=search)
+            )
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        """Return paginated response with metadata"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return paginated_response(
+                serializer.data, 
+                self.paginator, 
+                message="ARC Hotels fetched successfully"
+            )
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return success_response(data=serializer.data, message="ARC Hotels fetched successfully")
 
 
 class ARCHotelDetailView(RetrieveUpdateDestroyAPIView):
@@ -547,6 +585,15 @@ class ARCHotelDetailView(RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [IsAuthenticated(), IsAdminUser()]
         return [IsAuthenticated()]
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Return hotel details with success_response format"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return success_response(
+            data=serializer.data,
+            message="ARC Hotel details fetched successfully"
+        )
     
     def perform_destroy(self, instance):
         """Soft delete by setting is_active to False"""

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Edit, Trash2, Plus, Eye, X, ToggleLeft, ToggleRight, Star } from 'lucide-react';
 import { toast } from "sonner";
-// import {Layout} from "@/components/Layout";
 import ARCHotelDetailModal from './ARCHotelDetailModel';
 import { accommodationAPI } from "@/src/api/master_accommodation";
 
@@ -11,69 +10,62 @@ const ARCHotelList = ({ onEdit }) => {
     const [loading, setLoading] = useState(true);
     const [viewId, setViewId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [pagination, setPagination] = useState({
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+        totalCount: 0,
+    });
 
     useEffect(() => {
         fetchData();
     }, []);
 
-    const fetchData = async (search = '') => {
+    const fetchData = async (search = '', page = 1) => {
         try {
             setLoading(true);
-            // Replace with actual API call
-            const response = await accommodationAPI.arcHotel.getAll(search);
-            setData(response.data.data.results || []);
-
-            // Mock data for demonstration
-            // setTimeout(() => {
-            //     setData([
-            //         {
-            //             id: 1,
-            //             name: 'Taj Mahal Palace',
-            //             hotel_type: 'resort',
-            //             star_rating: 5,
-            //             category: '5_star',
-            //             city_name: 'Mumbai',
-            //             state_name: 'Maharashtra',
-            //             phone_number: '+91 22 6665 3366',
-            //             email: 'reservations@tajhotels.com',
-            //             total_rooms: 285,
-            //             rate_per_night: 15000.00,
-            //             tax_percentage: 12.00,
-            //             contract_start_date: '2024-01-01',
-            //             contract_end_date: '2024-12-31',
-            //             is_active: true
-            //         },
-            //         {
-            //             id: 2,
-            //             name: 'ITC Grand Central',
-            //             hotel_type: 'business',
-            //             star_rating: 5,
-            //             category: '5_star',
-            //             city_name: 'Mumbai',
-            //             state_name: 'Maharashtra',
-            //             phone_number: '+91 22 2410 1010',
-            //             email: 'reservations@itchotels.in',
-            //             total_rooms: 251,
-            //             rate_per_night: 12000.00,
-            //             tax_percentage: 12.00,
-            //             contract_start_date: '2024-01-01',
-            //             contract_end_date: '2024-12-31',
-            //             is_active: true
-            //         }
-            //     ]);
-            //     setLoading(false);
-            // }, 500);
+            const response = await accommodationAPI.arcHotel.getAll(search, page, pagination.pageSize);
+            
+            // Check if using paginated_response format (has meta at root level)
+            if (response.data.meta && response.data.meta.pagination) {
+                setData(response.data.data || []);
+                setPagination((prev) => ({
+                    ...prev,
+                    page: response.data.meta.pagination.current_page,
+                    totalCount: response.data.meta.pagination.count,
+                    totalPages: response.data.meta.pagination.total_pages,
+                }));
+            } else if (response.data.data && response.data.data.results) {
+                // Handle StandardResultsSetPagination format (standard DRF)
+                const responseData = response.data.data;
+                setData(responseData.results || []);
+                setPagination((prev) => ({
+                    ...prev,
+                    page: page,
+                    totalCount: responseData.count,
+                    totalPages: Math.ceil(responseData.count / prev.pageSize),
+                }));
+            } else {
+                // Fallback for non-paginated response
+                setData(response.data.data || response.data || []);
+            }
         } catch (error) {
             console.error('Error fetching data:', error);
             toast.error("Failed to load ARC Hotels");
             setLoading(false);
-        }finally {
-      setLoading(false);
-    }
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSearch = () => {
-        fetchData(searchTerm);
+        fetchData(searchTerm, 1); // Reset to page 1 on new search
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= pagination.totalPages) {
+            fetchData(searchTerm, newPage);
+        }
     };
 
     const handleToggleActive = async (id, currentStatus, name) => {
@@ -82,7 +74,7 @@ const ARCHotelList = ({ onEdit }) => {
 
         try {
             await accommodationAPI.arcHotel.toggleActive(id, !currentStatus);
-            fetchData(searchTerm);
+            fetchData(searchTerm, pagination.page);
         } catch (error) {
             console.error('Toggle error:', error);
             toast.error(`Failed to ${action} hotel`);            
@@ -95,7 +87,7 @@ const ARCHotelList = ({ onEdit }) => {
         try {
             await accommodationAPI.arcHotel.delete(id);
             toast.success('Hotel deleted permanently');
-            fetchData(searchTerm);
+            fetchData(searchTerm, pagination.page);
         } catch (error) {
             console.error('Delete error:', error);
             toast.error('Failed to delete hotel');
@@ -124,7 +116,6 @@ const ARCHotelList = ({ onEdit }) => {
     };
 
     return (
-        // <Layout>
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
@@ -152,7 +143,7 @@ const ARCHotelList = ({ onEdit }) => {
                                 Search
                             </button> */}
                             {searchTerm && (
-                                <button onClick={() => { setSearchTerm(''); fetchData(); }}
+                                <button onClick={() => { setSearchTerm(''); fetchData('', 1); }}
                                     className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                                     title="Clear Search">
                                     <X size={20} />
@@ -184,12 +175,12 @@ const ARCHotelList = ({ onEdit }) => {
                                 <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hotel Name</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category & Rating</th>
+                                        {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category & Rating</th> */}
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rooms</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate (incl. tax)</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contract</th>
+                                        {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rooms</th> */}
+                                        {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate (incl. tax)</th> */}
+                                        {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contract</th> */}
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                                     </tr>
@@ -201,7 +192,7 @@ const ARCHotelList = ({ onEdit }) => {
                                                 <div className="font-medium text-gray-900">{item.name}</div>
                                                 <div className="text-sm text-gray-500 capitalize">{item.hotel_type?.replace('_', ' ')}</div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            {/* <td className="px-6 py-4">
                                                 <div className="font-medium text-gray-900 capitalize">{item.category?.replace('_', ' ')}</div>
                                                 <div className="flex items-center gap-1 text-sm text-yellow-600">
                                                     {item.star_rating && (
@@ -211,7 +202,7 @@ const ARCHotelList = ({ onEdit }) => {
                                                         </>
                                                     )}
                                                 </div>
-                                            </td>
+                                            </td> */}
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-900">{item.city_name}</div>
                                                 <div className="text-sm text-gray-500">{item.state_name}</div>
@@ -220,7 +211,7 @@ const ARCHotelList = ({ onEdit }) => {
                                                 <div className="text-sm text-gray-900">{item.phone_number}</div>
                                                 <div className="text-sm text-gray-500">{item.email}</div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-700">
+                                            {/* <td className="px-6 py-4 text-sm text-gray-700">
                                                 {item.total_rooms || '-'}
                                             </td>
                                             <td className="px-6 py-4">
@@ -230,10 +221,10 @@ const ARCHotelList = ({ onEdit }) => {
                                                 <div className="text-xs text-gray-500">
                                                     Base: ₹{item.rate_per_night} + {item.tax_percentage}%
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4">
+                                            </td> */}
+                                            {/* <td className="px-6 py-4">
                                                 {getContractStatus(item.contract_start_date, item.contract_end_date)}
-                                            </td>
+                                            </td> */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-1">
                                                     <button onClick={() => handleToggleActive(item.id, item.is_active, item.name)}
@@ -271,6 +262,31 @@ const ARCHotelList = ({ onEdit }) => {
                             </table>
                         </div>
                     )}
+
+                    {/* Pagination Controls */}
+                    {!loading && data.length > 0 && (
+                        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                            <div className="text-sm text-gray-500">
+                                Showing page {pagination.page} of {pagination.totalPages} ({pagination.totalCount} total hotels)
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handlePageChange(pagination.page - 1)}
+                                    disabled={pagination.page <= 1}
+                                    className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => handlePageChange(pagination.page + 1)}
+                                    disabled={pagination.page >= pagination.totalPages}
+                                    className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {viewId && (
@@ -281,7 +297,6 @@ const ARCHotelList = ({ onEdit }) => {
                 )}
             </div>
         </div>
-        // </Layout>
     );
 };
 

@@ -46,9 +46,12 @@ export const accommodationAPI = {
         // },
     },
     arcHotel: {
-        getAll: (search = '') => {
-            const params = search ? `?search=${encodeURIComponent(search)}` : '';
-            return apiClient.get(`/master/arc-hotels/${params}`);
+        getAll: (search = '', page = 1, pageSize = 10) => {
+            const params = new URLSearchParams();
+            if (search) params.append('search', search);
+            params.append('page', page.toString());
+            params.append('page_size', pageSize.toString());
+            return apiClient.get(`/master/arc-hotels/?${params.toString()}`);
         },
         get: (id) => apiClient.get(`/master/arc-hotels/${id}/`),
         create: (data) => apiClient.post('/master/arc-hotels/', data),
