@@ -39,10 +39,9 @@ const BookingAgentBookings: React.FC = () => {
     queryKey: ['booking-agent-bookings', filters],
     queryFn: async () => {
       const response = await bookingAgentAPI.bookings.list(filters);
-      console.log(response.data);
       return {
-        bookings: response.data,                 // Booking[]
-        pagination: response.meta?.pagination ?? null,
+        bookings: response.data,
+        pagination: response.data.meta?.pagination ?? null,
       };
     },
   });
