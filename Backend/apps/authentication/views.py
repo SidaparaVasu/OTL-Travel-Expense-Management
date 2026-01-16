@@ -102,7 +102,7 @@ class LoginView(APIView):
                     } if profile.reporting_manager else None
                 }
         elif user.user_type == 'external':
-            profile = getattr(user, 'external_profile', None)
+            profile = getattr(user, 'booking_agent_profile', None)
             if profile:
                 profile_data = {
                     'type': 'external',
@@ -208,7 +208,7 @@ class UserListCreateView(ListCreateAPIView):
     serializer_class = UserListSerializer
     queryset = User.objects.filter(is_superuser=False).select_related(
         "organizational_profile",
-        "external_profile",
+        "booking_agent_profile",
         "company",
         "department",
         "designation",
@@ -244,7 +244,7 @@ class UserListCreateView(ListCreateAPIView):
         "organizational_profile__company__name",
         "organizational_profile__department__name",
         "designation__name",
-        "external_profile__organization_name",
+        "booking_agent_profile__organization_name",
     ]
 
     # Ordering
@@ -279,7 +279,7 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return User.objects.prefetch_related(
             'organizational_profile',
-            'external_profile',
+            'booking_agent_profile',
             'userrole_set__role'
         ).all()
     

@@ -30,8 +30,8 @@ class BookingAgentsListView(APIView):
             # Get all users who are booking agents
             agents = (
                 User.objects
-                .filter(external_profile__profile_type="booking_agent", is_active=True)
-                .select_related("external_profile")
+                .filter(booking_agent_profile__profile_type="booking_agent", is_active=True)
+                .select_related("booking_agent_profile")
             )
 
             serializer = BookingAgentSerializer(agents, many=True)

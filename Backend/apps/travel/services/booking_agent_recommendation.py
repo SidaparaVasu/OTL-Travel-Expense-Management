@@ -40,11 +40,11 @@ def get_recommended_booking_agents(application: TravelApplication):
     central_agent = (
         User.objects
         .filter(
-            external_profile__profile_type="booking_agent",
-            external_profile__service_categories__contains=["flight_booking"],
+            booking_agent_profile__profile_type="booking_agent",
+            booking_agent_profile__service_categories__contains=["flight_booking"],
             is_active=True,
         )
-        .select_related("external_profile")
+        .select_related("booking_agent_profile")
         .first()
     )
 
@@ -62,7 +62,7 @@ def get_recommended_booking_agents(application: TravelApplication):
             "agent": {
                 "id": central_agent.id,
                 "name": central_agent.get_full_name() or central_agent.username,
-                "organization": central_agent.external_profile.organization_name,
+                "organization": central_agent.booking_agent_profile.organization_name,
             },
             "booking_ids": [b.id for b in flight_train_bookings],
         }
@@ -84,15 +84,14 @@ def get_recommended_booking_agents(application: TravelApplication):
         city_hotel_agents = (
             User.objects
             .filter(
-                external_profile__profile_type="booking_agent",
-                external_profile__service_categories__contains=["hotel_booking"],
+                booking_agent_profile__profile_type="booking_agent",
+                booking_agent_profile__service_categories__contains=["hotel_booking"],
                 is_active=True,
             )
             .filter(
-                Q(external_profile__serves_all_cities=True) |
-                Q(external_profile__service_cities=city)
+                Q(booking_agent_profile__service_cities=city)
             )
-            .select_related("external_profile")
+            .select_related("booking_agent_profile")
             .distinct()
         )
 
@@ -104,11 +103,11 @@ def get_recommended_booking_agents(application: TravelApplication):
             agents = (
                 User.objects
                 .filter(
-                    external_profile__profile_type="booking_agent",
-                    external_profile__service_categories__contains=["hotel_booking"],
+                    booking_agent_profile__profile_type="booking_agent",
+                    booking_agent_profile__service_categories__contains=["hotel_booking"],
                     is_active=True,
                 )
-                .select_related("external_profile")
+                .select_related("booking_agent_profile")
                 .distinct()
             )
             is_recommended = False
@@ -123,7 +122,7 @@ def get_recommended_booking_agents(application: TravelApplication):
                     {
                         "id": agent.id,
                         "name": agent.get_full_name() or agent.username,
-                        "organization": agent.external_profile.organization_name,
+                        "organization": agent.booking_agent_profile.organization_name,
                         "is_recommended": is_recommended,
                     }
                     for agent in agents

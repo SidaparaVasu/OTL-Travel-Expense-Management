@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-from apps.authentication.models import ExternalProfile 
+from apps.authentication.models import BookingAgentProfile 
 
 class IsAdminUser(BasePermission):
     """
@@ -124,7 +124,7 @@ class IsTravelDesk(BasePermission):
 
 class IsBookingAgent(BasePermission):
     """
-    Allow only external users whose external profile is booking_agent.
+    Allow only booking agent users.
     """
 
     def has_permission(self, request, view):
@@ -132,16 +132,14 @@ class IsBookingAgent(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        # If you have helper: user.is_external(), use that.
         if hasattr(user, "user_type") and user.user_type != "external":
             return False
 
-        profile = getattr(user, "external_profile", None)
+        profile = getattr(user, "booking_agent_profile", None)
         if not profile:
-            # if you use a generic profile relation, adapt this line accordingly
             profile = (
-                ExternalProfile.objects.filter(user=user).first()
-                if ExternalProfile is not None
+                BookingAgentProfile.objects.filter(user=user).first()
+                if BookingAgentProfile is not None
                 else None
             )
 

@@ -106,8 +106,8 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         }
 
         # Fetch external profile details if available
-        if hasattr(user, 'external_profile'):
-            profile = user.external_profile
+        if hasattr(user, 'booking_agent_profile'):
+            profile = user.booking_agent_profile
             data.update({
                 "organization_name": profile.organization_name,
                 "contact_person": profile.contact_person,

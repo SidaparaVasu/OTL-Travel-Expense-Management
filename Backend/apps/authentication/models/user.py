@@ -122,7 +122,7 @@ class User(AbstractUser):
         if self.user_type == 'organizational':
             return getattr(self, 'organizational_profile', None)
         elif self.user_type == 'external':
-            return getattr(self, 'external_profile', None)
+            return getattr(self, 'booking_agent_profile', None)
         return None
     
     def is_organizational(self):

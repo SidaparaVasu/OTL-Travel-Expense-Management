@@ -1,6 +1,6 @@
 from .user import User
 from .roles import Role, Permission, UserRole, RolePermission
-from .profiles import OrganizationalProfile, ExternalProfile
+from .profiles import OrganizationalProfile, BookingAgentProfile
 
 __all__ = [
     'User',
@@ -9,5 +9,5 @@ __all__ = [
     'UserRole',
     'RolePermission',
     'OrganizationalProfile',
-    'ExternalProfile',
+    'BookingAgentProfile',
 ]

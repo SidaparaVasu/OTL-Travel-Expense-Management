@@ -33,9 +33,9 @@ class OrganizationalProfileInline(admin.StackedInline):
     )
 
 
-# Inline for ExternalProfile
-class ExternalProfileInline(admin.StackedInline):
-    model = ExternalProfile
+# Inline for BookingAgentProfile
+class BookingAgentProfileInline(admin.StackedInline):
+    model = BookingAgentProfile
     can_delete = False
     verbose_name = 'External Profile'
     verbose_name_plural = 'External Profile'
@@ -71,7 +71,7 @@ class UserAdmin(BaseUserAdmin):
         if obj.user_type == 'organizational':
             return [OrganizationalProfileInline, UserRoleInline]
         elif obj.user_type == 'external':
-            return [ExternalProfileInline, UserRoleInline]
+            return [BookingAgentProfileInline, UserRoleInline]
         
         return [UserRoleInline]
 
@@ -118,9 +118,9 @@ class OrganizationalProfileAdmin(admin.ModelAdmin):
     get_user_name.short_description = 'User Name'
 
 
-class ExternalProfileAdminForm(forms.ModelForm):
+class BookingAgentProfileAdminForm(forms.ModelForm):
     class Meta:
-        model = ExternalProfile
+        model = BookingAgentProfile
         fields = "__all__"
 
     def clean(self):
@@ -135,8 +135,8 @@ class ExternalProfileAdminForm(forms.ModelForm):
 
         return cleaned_data
     
-@admin.register(ExternalProfile)
-class ExternalProfileAdmin(admin.ModelAdmin):
+@admin.register(BookingAgentProfile)
+class BookingAgentProfileAdmin(admin.ModelAdmin):
     list_display = ('organization_name', 'profile_type', 'contact_person', 'is_verified', 'is_active')
     list_filter = ('profile_type', 'is_verified', 'is_active')
     search_fields = ('organization_name', 'contact_person', 'user__username')

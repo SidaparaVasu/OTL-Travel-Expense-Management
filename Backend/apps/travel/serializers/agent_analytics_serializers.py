@@ -1,13 +1,13 @@
 from rest_framework import serializers
-from apps.authentication.models import User, ExternalProfile
+from apps.authentication.models import User, BookingAgentProfile
 from apps.travel.models import Booking
 
 class AgentAnalyticsListSerializer(serializers.ModelSerializer):
     """Serializer for agent list with summary stats"""
-    organization_name = serializers.CharField(source='external_profile.organization_name', read_only=True)
-    contact_person = serializers.CharField(source='external_profile.contact_person', read_only=True)
-    phone = serializers.CharField(source='external_profile.phone', read_only=True)
-    email = serializers.CharField(source='external_profile.email', read_only=True)
+    organization_name = serializers.CharField(source='booking_agent_profile.organization_name', read_only=True)
+    contact_person = serializers.CharField(source='booking_agent_profile.contact_person', read_only=True)
+    phone = serializers.CharField(source='booking_agent_profile.phone', read_only=True)
+    email = serializers.CharField(source='booking_agent_profile.email', read_only=True)
     
     # Computed fields
     active_bookings = serializers.IntegerField(read_only=True)
@@ -24,8 +24,8 @@ class AgentAnalyticsListSerializer(serializers.ModelSerializer):
 
 class AgentAnalyticsDetailSerializer(AgentAnalyticsListSerializer):
     """Detailed analytics for a specific agent"""
-    address = serializers.CharField(source='external_profile.address', read_only=True)
-    profile_type = serializers.CharField(source='external_profile.profile_type', read_only=True)
+    address = serializers.CharField(source='booking_agent_profile.address', read_only=True)
+    profile_type = serializers.CharField(source='booking_agent_profile.profile_type', read_only=True)
     
     # Additional stats
     today_assignments = serializers.IntegerField(read_only=True)

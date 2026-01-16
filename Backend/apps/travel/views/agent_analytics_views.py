@@ -23,9 +23,9 @@ class AgentAnalyticsListView(APIView):
     def get(self, request):
         # Base query for booking agents
         agents = User.objects.filter(
-            external_profile__profile_type='booking_agent',
+            booking_agent_profile__isnull=False,
             is_active=True
-        ).select_related('external_profile')
+        ).select_related('booking_agent_profile')
         
         # Filters
         search = request.query_params.get('search')
@@ -34,14 +34,14 @@ class AgentAnalyticsListView(APIView):
                 Q(username__icontains=search) |
                 Q(first_name__icontains=search) |
                 Q(last_name__icontains=search) |
-                Q(external_profile__organization_name__icontains=search)
+                Q(booking_agent_profile__organization_name__icontains=search)
             )
 
         city_id = request.query_params.get('city')
         if city_id:
             agents = agents.filter(
-                Q(external_profile__serves_all_cities=True) |
-                Q(external_profile__service_cities__id=city_id)
+                Q(booking_agent_profile__serves_all_cities=True) |
+                Q(booking_agent_profile__service_cities__id=city_id)
             ).distinct()
 
         # Annotate with stats
@@ -93,9 +93,9 @@ class AgentAnalyticsDetailView(APIView):
     
     def get(self, request, pk):
         try:
-            agent = User.objects.select_related('external_profile').get(
+            agent = User.objects.select_related('booking_agent_profile').get(
                 id=pk, 
-                external_profile__profile_type='booking_agent'
+                booking_agent_profile__profile_type='booking_agent'
             )
         except User.DoesNotExist:
             return error_response(message="Agent not found")

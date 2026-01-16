@@ -9,7 +9,7 @@ from apps.travel.models import TravelApplication, Booking, BookingAssignment, Bo
 from apps.travel.serializers.travel_desk_serializers import *
 from apps.travel.models.audit import AuditLog
 from apps.authentication.permissions import IsTravelDesk
-from apps.authentication.models import User, ExternalProfile
+from apps.authentication.models import User, BookingAgentProfile
 from utils.response_formatter import success_response, error_response, paginated_response
 from utils.pagination import StandardResultsSetPagination
 from apps.notifications.notifications import *
@@ -324,7 +324,7 @@ class TravelDeskReassignBookingView(APIView):
             return error_response(message="Cannot reassign self-arranged booking")
 
         new_agent = User.objects.filter(id=new_agent_id, is_active=True).first()
-        if not new_agent or not hasattr(new_agent, "external_profile"):
+        if not new_agent or not hasattr(new_agent, "booking_agent_profile"):
             return error_response(message="Invalid booking agent")
 
         with transaction.atomic():
@@ -446,8 +446,8 @@ class ForwardApplicationView(APIView):
             return error_response(message="Booking agent not provided")
 
         try:
-            agent_profile = ExternalProfile.objects.select_related("user").get(user_id=agent_id)
-        except ExternalProfile.DoesNotExist:
+            agent_profile = BookingAgentProfile.objects.select_related("user").get(user_id=agent_id)
+        except BookingAgentProfile.DoesNotExist:
             return error_response(message="Invalid booking agent")
 
         # Fetch all bookings belonging to the application

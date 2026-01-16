@@ -70,13 +70,15 @@ class OrganizationalProfileSerializer(serializers.ModelSerializer):
         return None
 
 
-class ExternalProfileSerializer(serializers.ModelSerializer):
-    """Serializer for external user profiles"""
+class BookingAgentProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for booking agent profile information
+    """
     
     profile_type_display = serializers.CharField(source='get_profile_type_display', read_only=True)
     
     class Meta:
-        model = ExternalProfile
+        model = BookingAgentProfile
         fields = [
             'profile_type', 'profile_type_display',
             'organization_name',
@@ -164,9 +166,9 @@ class UserProfileResponseSerializer(serializers.Serializer):
                 return OrganizationalProfileSerializer(profile).data
 
         if obj.user_type == "external":
-            profile = getattr(obj, "external_profile", None)
+            profile = getattr(obj, "booking_agent_profile", None)
             if profile:
-                return ExternalProfileSerializer(profile).data
+                return BookingAgentProfileSerializer(profile).data
 
         return None
 
@@ -236,7 +238,7 @@ class UserListSerializer(serializers.ModelSerializer):
     # 🔵 EXTERNAL PROFILE ACCESSOR
     # -------------------------------------------
     def _ext(self, obj):
-        return getattr(obj, "external_profile", None)
+        return getattr(obj, "booking_agent_profile", None)
 
     # -------------------------------------------
     # ORGANIZATIONAL MAPPINGS
@@ -546,7 +548,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if user.user_type == 'organizational':
             OrganizationalProfile.objects.create(user=user, **profile_fields_org)
         elif user.user_type == 'external':
-            ExternalProfile.objects.create(
+            BookingAgentProfile.objects.create(
                 user=user,
                 email=user.email,  # Copy from user
                 **profile_fields_ext
@@ -642,7 +644,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                         setattr(profile, attr, value)
                 profile.save()
         elif instance.user_type == 'external':
-            profile = getattr(instance, 'external_profile', None)
+            profile = getattr(instance, 'booking_agent_profile', None)
             if profile:
                 for attr, value in profile_fields_ext.items():
                     if value is not None:

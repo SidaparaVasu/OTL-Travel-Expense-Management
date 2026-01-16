@@ -97,9 +97,9 @@ class OrganizationalProfile(models.Model):
 
 
 
-class ExternalProfile(models.Model):
+class BookingAgentProfile(models.Model):
     """
-    Profile for external users (booking agents, vendors, etc.)
+    Profile for booking agents and external service providers
     """
     PROFILE_TYPE_CHOICES = [
         ('booking_agent', 'Booking Agent'),
@@ -113,7 +113,7 @@ class ExternalProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='external_profile',
+        related_name='booking_agent_profile',
         primary_key=True
     )
     
@@ -164,8 +164,8 @@ class ExternalProfile(models.Model):
     
     class Meta:
         db_table = 'external_profiles'
-        verbose_name = 'External Profile'
-        verbose_name_plural = 'External Profiles'
+        verbose_name = 'Booking Agent Profile'
+        verbose_name_plural = 'Booking Agent Profiles'
     
     def __str__(self):
         return f"{self.organization_name} ({self.get_profile_type_display()})"

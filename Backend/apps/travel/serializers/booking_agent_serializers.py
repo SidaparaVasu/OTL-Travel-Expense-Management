@@ -14,7 +14,7 @@ class BookingAgentSerializer(serializers.ModelSerializer):
         return obj.get_full_name() or obj.username
 
     def get_organization_name(self, obj):
-        profile = getattr(obj, "external_profile", None)
+        profile = getattr(obj, "booking_agent_profile", None)
         return profile.organization_name if profile else None
 
 
@@ -90,14 +90,14 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
         assignment = (
             BookingAssignment.objects
             .filter(booking=obj)
-            .select_related("assigned_to__external_profile")
+            .select_related("assigned_to__booking_agent_profile")
             .first()
         )
         if not assignment or not assignment.assigned_to:
             return None
 
         user = assignment.assigned_to
-        ext = getattr(user, "external_profile", None)
+        ext = getattr(user, "booking_agent_profile", None)
 
         return {
             "id": user.id,
