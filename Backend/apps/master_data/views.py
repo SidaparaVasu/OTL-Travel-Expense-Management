@@ -182,6 +182,8 @@ class GLCodeListCreateView(ListCreateAPIView):
     serializer_class = GLCodeSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['gl_code', 'vertical_name', 'description', 'short_description']
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

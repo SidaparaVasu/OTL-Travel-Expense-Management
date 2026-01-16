@@ -13,12 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Save, Edit2, Trash2, X, UploadCloud } from "lucide-react";
+import { Plus, Save, Edit2, Trash2, X, UploadCloud, Search } from "lucide-react";
 import { check } from "prettier";
 
 export default function GLCodeMasterPage() {
   const navigate = useNavigate();
   const [glCode, setGLCode] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedGLCode, setSelectedGLCode] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -29,11 +30,10 @@ export default function GLCodeMasterPage() {
     totalCount: 0,
   });
 
-  const fetchGLCodes = async (page = 1) => {
+  const fetchGLCodes = async (page = 1, search = "") => {
     try {
-      const data = await travelAPI.getGLCodes(page, pagination.pageSize);
+      const data = await travelAPI.getGLCodes(page, pagination.pageSize, search);
       if (data.results) {
-        // Handle StandardResultsSetPagination format (standard DRF)
         setGLCode(data.results);
         setPagination((prev) => ({
           ...prev,
@@ -42,7 +42,6 @@ export default function GLCodeMasterPage() {
           totalPages: Math.ceil(data.count / prev.pageSize),
         }));
       } else if (data.data && data.meta) {
-        // Handle custom paginated_response format
         setGLCode(data.data);
         setPagination((prev) => ({
           ...prev,
@@ -51,8 +50,8 @@ export default function GLCodeMasterPage() {
           totalPages: data.meta.pagination.total_pages,
         }));
       } else {
-        // Fallback for non-paginated / legacy
-        setGLCode(Array.isArray(data) ? data : data.results || []);
+        const codes = Array.isArray(data) ? data : data.results || [];
+        setGLCode(codes);
       }
     } catch (err) {
       console.error("Failed to fetch GL codes", err);
@@ -60,12 +59,20 @@ export default function GLCodeMasterPage() {
   };
 
   useEffect(() => {
-    fetchGLCodes(pagination.page);
+    fetchGLCodes(pagination.page, searchTerm);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchGLCodes(1, searchTerm);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchGLCodes(newPage);
+      fetchGLCodes(newPage, searchTerm);
     }
   };
 
@@ -156,6 +163,28 @@ export default function GLCodeMasterPage() {
         </div>
       </header>
 
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by GL Code, Vertical Name, Description..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>GL Code List</CardTitle>
@@ -164,7 +193,7 @@ export default function GLCodeMasterPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Sort no.</TableHead>
+                <TableHead>Sr No.</TableHead>
                 <TableHead>GL Code</TableHead>
                 <TableHead>Vertical Name</TableHead>
                 <TableHead>Description</TableHead>
@@ -175,9 +204,9 @@ export default function GLCodeMasterPage() {
             </TableHeader>
             <TableBody>
               {glCode.length > 0 ? (
-                glCode.map((gl) => (
+                glCode.map((gl, index) => (
                   <TableRow key={gl.id} className="border-b last:border-none">
-                    <TableCell>{gl.sorting_no}</TableCell>
+                    <TableCell>{(pagination.page - 1) * pagination.pageSize + index + 1}</TableCell>
                     <TableCell>{gl.gl_code}</TableCell>
                     <TableCell>{gl.vertical_name}</TableCell>
                     <TableCell>{gl.description}</TableCell>

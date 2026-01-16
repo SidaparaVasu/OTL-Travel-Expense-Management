@@ -182,11 +182,14 @@ export const travelAPI = {
   },
 
   // GL code endpoints
-  // GL code endpoints
-  getGLCodes: async (page = 1, pageSize = 10): Promise<any> => {
-    const { data } = await apiClient.get(
-      `/master/gl-codes/?page=${page}&page_size=${pageSize}`,
-    );
+  getGLCodes: async (page = 1, pageSize = 10, search = ""): Promise<any> => {
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("page_size", pageSize.toString());
+    if (search) {
+      params.append("search", search);
+    }
+    const { data } = await apiClient.get(`/master/gl-codes/?${params.toString()}`);
     return data;
   },
 
