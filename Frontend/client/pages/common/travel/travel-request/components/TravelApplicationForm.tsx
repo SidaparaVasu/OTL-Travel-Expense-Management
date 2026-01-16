@@ -273,6 +273,7 @@ export const TravelApplicationForm: React.FC = () => {
     const fetchApproverData = async () => {
       try {
         const profileData = await authAPI.getProfile();
+        console.log("Profile Data:", profileData);
         
         // Extract reporting_manager_details from organizational profile
         if (profileData?.profile?.reporting_manager_details) {
@@ -281,7 +282,7 @@ export const TravelApplicationForm: React.FC = () => {
             full_name: manager.name || 'N/A',
             email: manager.email || 'N/A',
             grade: manager.grade || null,
-            employee_code: manager.employee_code || manager.username || 'N/A',
+            employee_code: manager.employee_code || manager.employee_id || 'N/A',
           });
         }
       } catch (error) {

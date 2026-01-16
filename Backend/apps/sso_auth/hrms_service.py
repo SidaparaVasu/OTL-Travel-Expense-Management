@@ -115,21 +115,38 @@ class HRMSSyncService:
                     "last_name", "mobile_no", "is_active"
                 ])
 
-            company, _ = CompanyInformation.objects.get_or_create(
-                id=company_id,
-                defaults={"name": f"Company-{company_id}"}
-            )
+            company = CompanyInformation.objects.filter(
+                name="Tata Steel Foundation"
+            ).first()
+            
+            if not company:
+                company = CompanyInformation.objects.create(
+                    name="Tata Steel Foundation"
+                )
 
-            department, _ = DepartmentMaster.objects.get_or_create(
+            department = DepartmentMaster.objects.filter(
                 dept_name=data.get("Department"),
-                company=company,
-                defaults={"dept_code": cls._safe_code(data.get("Department"))},
-            )
+                company=company
+            ).first()
+            
+            if not department:
+                department = DepartmentMaster.objects.create(
+                    dept_name=data.get("Department"),
+                    company=company,
+                    dept_code=cls._safe_code(data.get("Department"))
+                )
 
-            designation, _ = DesignationMaster.objects.get_or_create(
+            designation = DesignationMaster.objects.filter(
                 designation_name=data.get("Designation"),
-                defaults={"designation_code": cls._safe_code(data.get("Designation"))},
-            )
+                department=department
+            ).first()
+            
+            if not designation:
+                designation = DesignationMaster.objects.create(
+                    designation_name=data.get("Designation"),
+                    department=department,
+                    designation_code=cls._safe_code(data.get("Designation"))
+                )
 
             grade = GradeMaster.objects.filter(name=data.get("Grade")).first()
             if not grade:
@@ -143,7 +160,7 @@ class HRMSSyncService:
             location = cls._sync_location(data, company)
 
             profile, _ = OrganizationalProfile.objects.get_or_create(user=user)
-            profile.employee_id = hrms_id
+            profile.employee_id = data.get("Alpha_Emp_Code")
             profile.employee_code = data.get("Alpha_Emp_Code")
             profile.company = company
             profile.department = department
@@ -153,15 +170,19 @@ class HRMSSyncService:
 
             rm_emp_id = data.get("RM_Emp_id")
             if rm_emp_id:
-                rm_data = cls.fetch_employee_by_hrms_id(rm_emp_id, company_id)
-                if rm_data:
-                    manager = cls.sync_user(
-                        emp_id=str(rm_data.get("Employee_ID")),
-                        company_id=company_id,
-                        _depth=_depth + 1
-                    )
-                    if manager:
-                        profile.reporting_manager = manager
+                manager = User.objects.filter(hrms_id=rm_emp_id).first()
+                
+                if not manager:
+                    rm_data = cls.fetch_employee_by_hrms_id(rm_emp_id, company_id)
+                    if rm_data:
+                        manager = cls.sync_user(
+                            emp_id=str(rm_data.get("Employee_ID")),
+                            company_id=company_id,
+                            _depth=_depth + 1
+                        )
+                
+                if manager:
+                    profile.reporting_manager = manager
 
             profile.save()
 
@@ -177,11 +198,9 @@ class HRMSSyncService:
     @staticmethod
     def _resolve_username(data: dict) -> str:
         if data.get("Alpha_Emp_Code"):
-            return f"{data['Alpha_Emp_Code'].strip().lower()}@hrms"
-        if data.get("Work_Email"):
-            return data["Work_Email"].strip().lower()
+            return f"{data['Alpha_Emp_Code'].strip().lower()}@tsf.com"
         if data.get("Employee_ID"):
-            return f"hrms_{data['Employee_ID']}"
+            return f"{data['Employee_ID']}_hrms@tsf.com"
         return ""
 
     @staticmethod
@@ -206,46 +225,55 @@ class HRMSSyncService:
 
     @classmethod
     def _sync_location(cls, data: dict, company):
-        location_name = data.get("Branch")
-        location_code = cls._safe_code(location_name)
-
-        country, _ = CountryMaster.objects.get_or_create(
-            country_name="India",
-            defaults={"country_code": "IND"},
-        )
-
-        state, _ = StateMaster.objects.get_or_create(
-            state_name="Jharkhand",
-            country=country,
-        )
-
-        city, _ = CityMaster.objects.get_or_create(
-            city_name=data.get("Branch_City"),
-            state=state,
-            defaults={"category_id": 1},
-        )
-
-        location = LocationMaster.objects.filter(
-            location_name=location_name,
+        branch_name = data.get("Branch")
+        branch_city = data.get("Branch_City")
+        branch_address = data.get("Branch_Address", "")
+        
+        if not branch_name:
+            return None
+        
+        existing_location = LocationMaster.objects.filter(
+            location_name=branch_name,
             company=company
         ).first()
-
-        if location:
-            return location
-
-        location = LocationMaster.objects.filter(
-            location_code=location_code
-        ).first()
-
-        if location:
-            return location
-
+        
+        if existing_location:
+            return existing_location
+        
+        city = CityMaster.objects.filter(city_name=branch_city).first()
+        if not city:
+            country = CountryMaster.objects.filter(country_name="India").first()
+            if not country:
+                country = CountryMaster.objects.create(
+                    country_name="India",
+                    country_code="IND"
+                )
+            
+            state = StateMaster.objects.filter(state_name="Jharkhand", country=country).first()
+            if not state:
+                state = StateMaster.objects.create(
+                    state_name="Jharkhand",
+                    country=country
+                )
+            
+            city = CityMaster.objects.create(
+                city_name=branch_city,
+                state=state,
+                category_id=1
+            )
+        
+        state = city.state
+        country = state.country if state else None
+        
+        location_code = f"{cls._safe_code(branch_name, 20)}-{cls._safe_code(branch_city, 10)}"
+        
         return LocationMaster.objects.create(
-            location_name=location_name,
-            company=company,
+            location_name=branch_name,
             location_code=location_code,
+            company=company,
             city=city,
             state=state,
             country=country,
-            address=data.get("Branch_Address", ""),
+            address=branch_address,
+            is_active=True
         )
