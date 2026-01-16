@@ -66,7 +66,7 @@ import DAIncidentalMasterPage from "./pages/common/master/DAIncidentalsMaster";
 import ConveyanceRateMasterPage from "./pages/common/master/ConveyanceRateMaster";
 import ExpenseTypesMasterPage from "./pages/common/master/ExpenseTypeMaster";
 import ClaimStatusMasterPage from "./pages/common/master/ClaimStatusMaster";
-import BookingAgentList from "./pages/common/master/BookingAgentList";
+import BookingAgentList from "./pages/common/master/booking-agent/BookingAgentList";
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";

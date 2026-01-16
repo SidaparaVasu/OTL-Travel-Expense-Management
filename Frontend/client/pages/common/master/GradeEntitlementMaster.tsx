@@ -32,13 +32,14 @@ import {
   CheckCircle,
   XCircle,
   ChevronDown,
+  CircleAlert,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const MODE_ICONS = {
   Flight: Plane,
   Train: Train,
-  Car: Car,
+  Conveyance: Car,
   Accommodation: Hotel,
 };
 
@@ -630,7 +631,7 @@ export default function GradeEntitlementMaster() {
                         <tbody className="divide-y divide-gray-200">
                           {items.map((item) => {
                             const ModeIcon =
-                              MODE_ICONS[item.mode_name] || Plane;
+                              MODE_ICONS[item.mode_name] || Car;
                             return (
                               <tr
                                 key={item.id}
