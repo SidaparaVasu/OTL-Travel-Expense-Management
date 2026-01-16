@@ -203,11 +203,6 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
                   <CardTitle className="text-xl font-semibold text-slate-800 truncate">
                     {application.travel_request_id}
                   </CardTitle>
-
-                  <StatusBadge
-                    statusType="travel"
-                    status={application.status}
-                  />
                 </div>
 
                 <p className="text-xs text-slate-500">
@@ -227,7 +222,12 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
                 </p>
               </div>
             </div>
-            <div className="flex justify-end items-center">
+            <div className="flex gap-1 flex-col justify-end items-center">
+              <StatusBadge
+                  statusType="travel"
+                  status={application.status}
+                  />
+
               {!application.is_settled ? (
                 <>
                   {application.settlement_due_date !== null && (
