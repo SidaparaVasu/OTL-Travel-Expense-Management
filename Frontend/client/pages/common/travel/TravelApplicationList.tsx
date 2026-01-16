@@ -35,7 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Plus, SendHorizontal, Eye, Trash2 } from "lucide-react";
+import { Plus, SendHorizontal, Eye, Trash2, Edit } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/routes/routes";
@@ -587,6 +587,20 @@ export default function TravelApplicationList() {
                                     }
                                   >
                                     <Trash2 className="w-2 h-2" /> Delete
+                                  </Button>
+                                )}
+                                {app.can_edit && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                                    onClick={() =>
+                                      navigate(
+                                        ROUTES.editTravelApplication(app.id)
+                                      )
+                                    }
+                                  >
+                                    <Edit className="w-4 h-4" />
                                   </Button>
                                 )}
                                 <Button

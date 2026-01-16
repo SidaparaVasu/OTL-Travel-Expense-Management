@@ -24,6 +24,7 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  Edit,
 } from "lucide-react";
 import {
   Tooltip,
@@ -222,38 +223,54 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
                 </p>
               </div>
             </div>
-            <div className="flex gap-1 flex-col justify-end items-center">
-              <StatusBadge
-                  statusType="travel"
-                  status={application.status}
-                  />
-
-              {!application.is_settled ? (
-                <>
-                  {application.settlement_due_date !== null && (
-                    <>
-                      <p className="text-sm">
-                        Settlement due date:
-                        <span className="font-medium text-slate-800">
-                          {" "}
-                          {formatDateToDDMMYYYY(
-                            application.settlement_due_date,
-                          )}
-                        </span>
-                      </p>
-                    </>
-                  )}
-                </>
-              ) : (
+            <div className="flex gap-3 items-center">
+              <div className="flex gap-1 flex-col justify-end items-center">
                 <StatusBadge
-                  statusType="booking"
-                  status={application.status_code}
-                />
+                    statusType="travel"
+                    status={application.status}
+                    />
+
+                {!application.is_settled ? (
+                  <>
+                    {application.settlement_due_date !== null && (
+                      <>
+                        <p className="text-sm">
+                          Settlement due date:
+                          <span className="font-medium text-slate-800">
+                            {" "}
+                            {formatDateToDDMMYYYY(
+                              application.settlement_due_date,
+                            )}
+                          </span>
+                        </p>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <StatusBadge
+                    statusType="booking"
+                    status={application.status_code}
+                  />
+                )}
+              </div>
+              
+              {/* Edit button next to status */}
+              {application.can_edit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => window.location.href = ROUTES.editTravelApplication(application.id)}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
               )}
             </div>
           </div>
         </div>
 
+        {/* Action buttons based on status */}
         {application.status === "draft" && (
           <div className="flex gap-2">
             <Button

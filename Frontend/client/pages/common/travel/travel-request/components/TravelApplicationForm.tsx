@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { EditModeContext } from "@/src/contexts/EditModeContext";
 import {
   Calendar,
   Plane,
@@ -89,6 +90,7 @@ interface TravelSubOptionsGrouped {
 
 export const TravelApplicationForm: React.FC = () => {
   const navigate = useNavigate();
+  const { setEditMode } = useContext(EditModeContext);
 
   const [activeTab, setActiveTab] = useState("purpose");
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -97,6 +99,26 @@ export const TravelApplicationForm: React.FC = () => {
   const [draftApplicationId, setDraftApplicationId] = useState<number | null>(
     null,
   );
+
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editApplicationId, setEditApplicationId] = useState<number | null>(null);
+  const [isLoadingEditData, setIsLoadingEditData] = useState(false);
+  const [originalStatus, setOriginalStatus] = useState<string | null>(null);
+
+  // Detect edit mode from URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const editId = searchParams.get('edit');
+    
+    if (editId) {
+      setIsEditMode(true);
+      setEditApplicationId(Number(editId));
+    }
+  }, []);
+  
+  // Register cancel function with context when in edit mode
+
 
   // API Data
   const [cities, setCities] = useState<City[]>([]);
@@ -273,7 +295,6 @@ export const TravelApplicationForm: React.FC = () => {
     const fetchApproverData = async () => {
       try {
         const profileData = await authAPI.getProfile();
-        console.log("Profile Data:", profileData);
         
         // Extract reporting_manager_details from organizational profile
         if (profileData?.profile?.reporting_manager_details) {
@@ -293,6 +314,138 @@ export const TravelApplicationForm: React.FC = () => {
 
     fetchApproverData();
   }, []);
+
+  // Fetch application data for editing
+  useEffect(() => {
+    if (isEditMode && editApplicationId && !isLoadingData) {
+      const fetchApplicationForEdit = async () => {
+        setIsLoadingEditData(true);
+        try {
+          const response = await travelAPI.getApplicationForEdit(editApplicationId);
+          
+          if (!response.data.can_edit) {
+            toast.error(response.data.reason || "Cannot edit this application");
+            navigate(ROUTES.travelApplicationList);
+            return;
+          }
+
+          const app = response.data.application;
+          
+          // Store original status to determine if we need to call submit later
+          setOriginalStatus(app.status);
+          
+          // Pre-fill purpose data
+          if (app.trip_details && app.trip_details.length > 0) {
+            const trip = app.trip_details[0];
+            setPurposeData({
+              purpose: app.purpose || "",
+              internal_order: app.internal_order || "",
+              general_ledger: app.general_ledger || null,
+              sanction_number: app.sanction_number || "",
+              advance_amount: app.advance_amount ? String(app.advance_amount) : "",
+              trip_from_location: trip.from_location || null,
+              trip_to_location: trip.to_location || null,
+              departure_date: trip.departure_date || "",
+              start_time: trip.start_time || "",
+              return_date: trip.return_date || "",
+              end_time: trip.end_time || "",
+            });
+
+            // Pre-fill bookings
+            if (trip.bookings && trip.bookings.length > 0) {
+              const ticketingData: any[] = [];
+              const accommodationData: any[] = [];
+              const conveyanceData: any[] = [];
+
+              trip.bookings.forEach((booking: any) => {
+                const modeName = travelModes.find(m => m.id === booking.booking_type)?.name || "";
+
+                if (modeName === "Flight" || modeName === "Train") {
+                  // Ticketing
+                  ticketingData.push({
+                    booking_type: String(booking.booking_type),
+                    sub_option: String(booking.sub_option),
+                    estimated_cost: booking.estimated_cost || "",
+                    special_instruction: booking.special_instruction || "",
+                    ticket_number: booking.booking_details?.ticket_number || "",
+                    from_location: booking.booking_details?.from_location || null,
+                    from_label: booking.booking_details?.from_location_name || "",
+                    to_location: booking.booking_details?.to_location || null,
+                    to_label: booking.booking_details?.to_location_name || "",
+                    departure_date: booking.booking_details?.departure_date || "",
+                    departure_time: booking.booking_details?.departure_time || "",
+                    arrival_date: booking.booking_details?.arrival_date || "",
+                    arrival_time: booking.booking_details?.arrival_time || "",
+                    meal_preference: booking.booking_details?.meal_preference || "",
+                  });
+                } else if (modeName === "Accommodation") {
+                  // Accommodation
+                  accommodationData.push({
+                    accommodation_type: booking.booking_type,
+                    accommodation_sub_option: String(booking.sub_option),
+                    estimated_cost: booking.estimated_cost || "",
+                    special_instruction: booking.special_instruction || "",
+                    place: booking.booking_details?.place || null,
+                    check_in_date: booking.booking_details?.check_in_date || "",
+                    check_in_time: booking.booking_details?.check_in_time || "",
+                    check_out_date: booking.booking_details?.check_out_date || "",
+                    check_out_time: booking.booking_details?.check_out_time || "",
+                    meal_preference: booking.booking_details?.meal_preference || "",
+                  });
+                } else {
+                  // Conveyance
+                  conveyanceData.push({
+                    vehicle_type: String(booking.booking_type),
+                    vehicle_sub_option: String(booking.sub_option),
+                    estimated_cost: booking.estimated_cost || "",
+                    special_instruction: booking.special_instruction || "",
+                    from_location: booking.booking_details?.from_location || null,
+                    to_location: booking.booking_details?.to_location || null,
+                    report_at: booking.booking_details?.report_at || "",
+                    drop_location: booking.booking_details?.drop_location || "",
+                    start_date: booking.booking_details?.start_date || "",
+                    start_time: booking.booking_details?.start_time || "",
+                    club_booking: booking.booking_details?.club_booking || false,
+                    club_reason: booking.booking_details?.club_reason || "",
+                    not_required: booking.booking_details?.not_required || false,
+                    has_six_airbags: booking.booking_details?.has_six_airbags || false,
+                    distance_km: booking.booking_details?.distance_km || "",
+                    guests: (booking.booking_details?.guests || []).map((g: any) => ({
+                      id: g.id || null,
+                      full_name: g.name || "",
+                      employee_id: g.employee_id || null,
+                    })),
+                  });
+                }
+              });
+
+              setTicketing(ticketingData);
+              setAccommodation(accommodationData);
+              setConveyance(conveyanceData);
+
+              // Set "not required" flags if no bookings in that category
+              setTicketingNotRequired(ticketingData.length === 0 && trip.no_bookings_required);
+              setAccommodationNotRequired(accommodationData.length === 0 && trip.no_bookings_required);
+              setConveyanceNotRequired(conveyanceData.length === 0 && trip.no_bookings_required);
+            }
+          }
+
+          // Set the application ID for updating
+          setDraftApplicationId(app.id);
+          
+          toast.success("Application loaded for editing");
+        } catch (error: any) {
+          console.error("Failed to load application for editing:", error);
+          toast.error(error.response?.data?.message || "Failed to load application");
+          navigate(ROUTES.travelApplicationList);
+        } finally {
+          setIsLoadingEditData(false);
+        }
+      };
+
+      fetchApplicationForEdit();
+    }
+  }, [isEditMode, editApplicationId, isLoadingData, travelModes, navigate]);
 
   // Load saved data on mount
   useEffect(() => {
@@ -410,6 +563,24 @@ export const TravelApplicationForm: React.FC = () => {
     // toast.success("Form cleared successfully");
     setShowClearDialog(false);
   };
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditMode(false);
+    setEditApplicationId(null);
+    clearForm();
+    navigate(ROUTES.travelApplicationList);
+  }, [navigate]);
+
+  // Register cancel function with context when in edit mode
+  useEffect(() => {
+    if (isEditMode) {
+      setEditMode(true, handleCancelEdit);
+    } else {
+      setEditMode(false, null);
+    }
+    
+    return () => setEditMode(false, null);
+  }, [isEditMode, setEditMode, handleCancelEdit]);
 
   // Tab validation status
   const isPurposeValid = () => {
@@ -550,10 +721,10 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const buildPayload = (isDraft: boolean = false) => {
-    console.log("purposeData: ", purposeData);
-    console.log("ticketingData: ", ticketing);
-    console.log("accommodationData: ", accommodation);
-    console.log("conveyanceData: ", conveyance);
+    // console.log("purposeData: ", purposeData);
+    // console.log("ticketingData: ", ticketing);
+    // console.log("accommodationData: ", accommodation);
+    // console.log("conveyanceData: ", conveyance);
 
     return {
       purpose: purposeData.purpose,
@@ -795,10 +966,21 @@ export const TravelApplicationForm: React.FC = () => {
         applicationId = result.data?.id || result.id;
       }
 
-      // Submit the application
+      // Submit the application only if it was originally a draft
+      // For already-submitted applications, the update operation handles re-approval internally
       if (applicationId) {
-        await travelAPI.submitApplication(applicationId);
-        toast.success("Travel application submitted successfully!");
+        // Only call submit if original status was draft (new submission or draft being submitted)
+        // For non-draft edits, the update already handled re-approval logic
+        const shouldCallSubmit = !isEditMode || originalStatus === 'draft';
+        
+        if (shouldCallSubmit) {
+          await travelAPI.submitApplication(applicationId);
+        }
+        
+        const successMessage = isEditMode 
+          ? "Travel application updated successfully!" 
+          : "Travel application submitted successfully!";
+        toast.success(successMessage);
         clearForm();
         navigate(ROUTES.travelApplicationList);
       } else {
@@ -861,10 +1043,12 @@ export const TravelApplicationForm: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-foreground">
-                  Travel Application
+                  {isEditMode ? "Update Travel Application" : "Travel Application"}
                 </h1>
                 <p className="text-xs text-black">
-                  {draftApplicationId
+                  {isEditMode
+                    ? "Editing Application"
+                    : draftApplicationId
                     ? `Draft #${draftApplicationId}`
                     : "Create new request"}
                 </p>
@@ -927,25 +1111,57 @@ export const TravelApplicationForm: React.FC = () => {
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Clear
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleSaveAsDraft}
-                disabled={isSaving}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isSaving ? "Saving..." : "Save Draft"}
-              </Button>
+              
+              {/* Cancel Edit button - only in edit mode */}
+              {isEditMode && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (confirm("Cancel editing? All unsaved changes will be lost.")) {
+                      clearForm();
+                      navigate(ROUTES.travelApplicationList);
+                    }
+                  }}
+                  className="text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Cancel Edit
+                </Button>
+              )}
+              
+              {/* Save Draft button - hide in edit mode */}
+              {!isEditMode && (
+                <Button
+                  variant="outline"
+                  onClick={handleSaveAsDraft}
+                  disabled={isSaving}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? "Saving..." : "Save Draft"}
+                </Button>
+              )}
+              
+              {/* Submit/Update button */}
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting || !isFormValid}
                 title={
                   !isFormValid
                     ? "Please complete all required fields and fix any errors"
-                    : "Submit application"
+                    : isEditMode ? "Update application" : "Submit application"
                 }
               >
-                <Send className="w-4 h-4 mr-2" />
-                {isSubmitting ? "Submitting..." : "Submit"}
+                {isEditMode ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    {isSubmitting ? "Updating..." : "Update"}
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    {isSubmitting ? "Submitting..." : "Submit"}
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -160,6 +160,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     gl_code_description = serializers.CharField(source='general_ledger.short_description', read_only=True)
     travel_request_id = serializers.SerializerMethodField()
     total_duration_days = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
     
     class Meta:
         model = TravelApplication
@@ -169,11 +170,11 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             'advance_amount', 'estimated_total_cost', 'status', 'is_settled',
             'settlement_due_date', 'travel_request_id', 'total_duration_days',
             'created_at', 'updated_at', 'submitted_at', 'trip_details',
-            'cancellation_reason', 'cancellation_requested_at'
+            'cancellation_reason', 'cancellation_requested_at', 'can_edit'
         ]
         read_only_fields = [
             'employee', 'status', 'is_settled', 'estimated_total_cost',
-            'created_at', 'updated_at', 'submitted_at'
+            'created_at', 'updated_at', 'submitted_at', 'can_edit'
         ]
     
     def get_travel_request_id(self, obj):
@@ -181,6 +182,18 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     
     def get_total_duration_days(self, obj):
         return obj.get_travel_duration_days()
+    
+    def get_can_edit(self, obj):
+        """Dynamically check if application can be edited"""
+        from apps.travel.services.edit_helpers import can_edit_application
+        
+        request = self.context.get('request')
+        
+        if not request or not request.user:
+            return False
+        
+        can_edit, _ = can_edit_application(obj, request.user)
+        return can_edit
     
     def validate(self, data):
         """Enhanced validation with better error messages"""

@@ -200,6 +200,12 @@ export const travelAPI = {
     const { data } = await apiClient.get(`/travel/applications/${id}/`);
     return data;
   },
+
+  // Get Application for editing with eligibility check
+  getApplicationForEdit: async (id: number) => {
+    const { data } = await apiClient.get(`/travel/applications/${id}/edit/`);
+    return data;
+  },
 };
 
 export const locationAPI = {

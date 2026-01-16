@@ -17,6 +17,8 @@ export const ROUTES = {
   makeTravelApplicationOld: "/travel/make-travel-application-old",
   // makeTravelApplication: (id?:number | string) => id ? `/travel/make-travel-application/${id}` : `/travel/make-travel-application`,
   makeTravelApplicationNew: "/travel/create-travel-application",
+  editTravelApplication: (id: number | string) =>
+    `/travel/create-travel-application?edit=${id}`,
   travelApplicationList: "/travel/travel-application-list",
   travelApplicationView: (id: number | string) =>
     `/travel/travel-application/${id}/`,

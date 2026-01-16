@@ -209,6 +209,145 @@ class TravelApplicationDetailView(RetrieveUpdateDestroyAPIView):
     
     def get_queryset(self):
         return TravelApplication.objects.select_related('employee', 'general_ledger')
+    
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        """Override update to handle re-approval logic"""
+        from apps.travel.services.edit_helpers import can_edit_application, determine_reapproval_needed, reset_approval_flows
+        from apps.travel.models.audit import AuditLog
+        from django.contrib.contenttypes.models import ContentType
+        
+        instance = self.get_object()
+        
+        # Check if user can edit
+        can_edit, message = can_edit_application(instance, request.user)
+        if not can_edit:
+            return error_response(
+                message=message,
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Store original data for comparison
+        original_status = instance.status
+        
+        # Perform the update
+        serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
+        
+        if not serializer.is_valid():
+            return validation_error_response(serializer.errors)
+        
+        # Determine if re-approval is needed
+        needs_reapproval, reason, new_status = determine_reapproval_needed(instance, request.data)
+        
+        # Save the updated application
+        self.perform_update(serializer)
+        
+        # Handle re-approval if needed
+        if needs_reapproval:
+            reset_approval_flows(instance, request.user)
+            
+            # Create audit log for edit with re-approval
+            AuditLog.objects.create(
+                user=request.user,
+                action='edit_with_reapproval',
+                content_type=ContentType.objects.get_for_model(instance),
+                object_id=instance.id,
+                changes={
+                    'edited_by': request.user.get_full_name(),
+                    'changes_made': reason,
+                    'previous_status': original_status,
+                    'new_status': new_status,
+                    'reapproval_required': True
+                }
+            )
+            
+            # Send notification about re-approval
+            try:
+                from apps.notifications.center import NotificationCenter
+                NotificationCenter.notify(
+                    event_name="travel.edited_reapproval",
+                    reference={"type": "TravelRequest", "id": instance.id},
+                    payload={
+                        "employee_id": instance.employee.id,
+                        "request_id": instance.get_travel_request_id(),
+                        "employee_name": instance.employee.get_full_name(),
+                        "changes": reason,
+                        "message": "Your travel request has been updated and requires re-approval"
+                    }
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send re-approval notification: {e}")
+        else:
+            # Create audit log for minor edit
+            AuditLog.objects.create(
+                user=request.user,
+                action='edit',
+                content_type=ContentType.objects.get_for_model(instance),
+                object_id=instance.id,
+                changes={
+                    'edited_by': request.user.get_full_name(),
+                    'changes_made': reason,
+                    'status': instance.status,
+                    'reapproval_required': False
+                }
+            )
+        
+        return success_response(
+            data=serializer.data,
+            message=f"Travel application updated successfully{' - Re-approval required' if needs_reapproval else ''}",
+            status_code=status.HTTP_200_OK
+        )
+
+
+class TravelApplicationEditView(APIView):
+    """
+    Get travel application data for editing with eligibility check
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, pk):
+        from apps.travel.services.edit_helpers import can_edit_application
+        
+        try:
+            application = TravelApplication.objects.select_related(
+                'employee',
+                'general_ledger',
+                'current_approver'
+            ).prefetch_related(
+                'trip_details__from_location',
+                'trip_details__to_location',
+                'trip_details__bookings__booking_type',
+                'trip_details__bookings__sub_option'
+            ).get(pk=pk)
+        except TravelApplication.DoesNotExist:
+            return error_response(
+                message="Travel application not found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if user can edit
+        can_edit, message = can_edit_application(application, request.user)
+        
+        if not can_edit:
+            return success_response(
+                data={
+                    'can_edit': False,
+                    'reason': message
+                },
+                message=message
+            )
+        
+        # Serialize the application data
+        serializer = TravelApplicationSerializer(application)
+        
+        return success_response(
+            data={
+                'can_edit': True,
+                'application': serializer.data
+            },
+            message="Application data fetched for editing"
+        )
+
 
 
 class TravelApplicationSubmitView(APIView):
@@ -222,11 +361,12 @@ class TravelApplicationSubmitView(APIView):
     def post(self, request, pk):
 
         # 1) Load travel application
+        # Only accept draft status (including applications reset to draft after re-approval)
         try:
             travel_app = TravelApplication.objects.get(
                 pk=pk,
                 employee=request.user,
-                status="draft"
+                status='draft'
             )
         except TravelApplication.DoesNotExist:
             return error_response(
@@ -930,7 +1070,8 @@ class MyTravelApplicationsView(APIView):
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)
 
-        serializer = TravelApplicationSerializer(page, many=True)
+        # Pass context to serializer for can_edit field
+        serializer = TravelApplicationSerializer(page, many=True, context={'request': request})
 
         # Statistics
         stats = {

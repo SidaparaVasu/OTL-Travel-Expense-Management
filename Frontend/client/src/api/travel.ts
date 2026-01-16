@@ -74,6 +74,12 @@ export const travelAPI = {
     return data;
   },
 
+  // Get application for editing with eligibility check
+  getApplicationForEdit: async (id: number) => {
+    const { data } = await apiClient.get(`/travel/applications/${id}/edit/`);
+    return data;
+  },
+
   getCostEstimate: async (id: number) => {
     const { data } = await apiClient.get(
       `/travel/applications/${id}/cost-estimate/`,

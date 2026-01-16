@@ -18,6 +18,7 @@ urlpatterns = [
     path('my-applications/', MyTravelApplicationsView.as_view(), name='my-travel-applications'),
     path('applications/', TravelApplicationListCreateView.as_view(), name='travel-application-list'),
     path('applications/<int:pk>/', TravelApplicationDetailView.as_view(), name='travel-application-detail'),
+    path('applications/<int:pk>/edit/', TravelApplicationEditView.as_view(), name='travel-application-edit'),
     path('applications/<int:pk>/submit/', TravelApplicationSubmitView.as_view(), name='travel-application-submit'),
     path('applications/<int:pk>/validate/', TravelApplicationValidationView.as_view(), name='travel-application-validate'),
     path('applications/<int:application_id>/request-accommodation/', RequestAccommodationBookingView.as_view()),

@@ -96,7 +96,7 @@ def schedule_travel_completion(travel_app):
         clocked_time=run_datetime
     )
 
-    PeriodicTask.objects.create(
+    PeriodicTask.objects.update_or_create(
         name=f"travel_complete_{travel_app.id}",
         task="notifications.tasks.mark_travel_as_completed",
         one_off=True,

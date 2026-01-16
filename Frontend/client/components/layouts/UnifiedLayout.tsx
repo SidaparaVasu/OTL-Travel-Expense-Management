@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { authAPI } from "@/src/api/auth";
 import { ROUTES } from "@/routes/routes";
+import { EditModeContext } from "@/src/contexts/EditModeContext";
 import OrangeLogo from "@/assets/logo-otl-e1576143457585.png";
 
 import {
@@ -152,6 +153,7 @@ const getSidebarSections = (
 export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isEditMode, cancelEdit } = useContext(EditModeContext);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -205,7 +207,16 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
     }
   };
 
-  const navigateTo = (path: string) => navigate(path);
+  const navigateTo = (path: string) => {
+    if (isEditMode && cancelEdit) {
+      // Cancel edit first (clears form)
+      cancelEdit();
+      // Then navigate after a brief delay to ensure state is cleared
+      setTimeout(() => navigate(path), 0);
+    } else {
+      navigate(path);
+    }
+  };
 
   const toggleSection = (title: string) => {
     setOpenSections((prev) => ({

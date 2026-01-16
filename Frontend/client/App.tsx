@@ -72,6 +72,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SSOHandler } from "@/src/components/SSOHandler";
+import { EditModeProvider } from "@/src/contexts/EditModeContext";
 
 const queryClient = new QueryClient();
 
@@ -99,8 +100,9 @@ const App = () => (
       <Toaster />
       <Sonner />
 
-      <BrowserRouter>
-        <SSOHandler />
+      <EditModeProvider>
+        <BrowserRouter>
+          <SSOHandler />
         <Routes>
           {/* ---------------- UNAUTHORIZED / 404 ---------------- */}
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -558,8 +560,9 @@ const App = () => (
           />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </EditModeProvider>
+  </TooltipProvider>
+</QueryClientProvider>
 );
 
 import { HelmetProvider } from "react-helmet-async";
