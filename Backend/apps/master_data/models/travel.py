@@ -59,28 +59,63 @@ class GradeEntitlementMaster(models.Model):
         return f"{self.grade.name} - {self.sub_option.name} ({city})"
     
 
+class VehicleCategoryMaster(models.Model):
+    """
+    Dynamic vehicle categories instead of static choices.
+    """
+    code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "vehicle_category_master"
+        verbose_name = "Vehicle Category Master"
+        verbose_name_plural = "Vehicle Category Master"
+        indexes = [
+            models.Index(fields=["code"]),
+            models.Index(fields=["is_active"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
 class VehicleTypeMaster(models.Model):
     """
     Types of vehicles available for booking
     """
-    VEHICLE_CATEGORY_CHOICES = [
-        ('sedan', 'Sedan'),
-        ('suv', 'SUV'),
-        ('hatchback', 'Hatchback'),
-        ('bus', 'Bus'),
-        ('tempo', 'Tempo Traveller'),
-    ]
-    
     name = models.CharField(max_length=100)
-    category = models.CharField(max_length=20, choices=VEHICLE_CATEGORY_CHOICES)
+    category = models.ForeignKey(
+        VehicleCategoryMaster,
+        on_delete=models.PROTECT,
+        related_name="vehicle_types"
+    )
     capacity = models.IntegerField(validators=[MinValueValidator(1)])
+    
     rate_per_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     rate_per_day = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     minimum_charge = models.DecimalField(max_digits=8, decimal_places=2, default=0)
-    is_active = models.BooleanField(default=True)
     
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "vehicle_type_master"
+        verbose_name = "Vehicle Type Master"
+        verbose_name_plural = "Vehicle Type Master"
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["category"]),
+            models.Index(fields=["capacity"]),
+            models.Index(fields=["is_active"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["name", "category", "capacity"], name="uniq_vehicle_type_name_cat_cap_travel")
+        ]
+
     def __str__(self):
-        return f"{self.name} ({self.category}) - {self.capacity} seater"
+        return f"{self.name} ({self.category.name}) - {self.capacity} seater"
 
 class TravelPolicyMaster(models.Model):
     """

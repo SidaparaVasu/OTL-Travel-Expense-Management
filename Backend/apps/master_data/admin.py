@@ -75,8 +75,16 @@ class GradeEntitlementMasterAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related("grade","sub_option","sub_option__mode","city_category",)
 
-admin.site.register(travel.VehicleTypeMaster)
-admin.site.register(travel.TravelPolicyMaster)
+@admin.register(travel.VehicleCategoryMaster)
+class VehicleCategoryMasterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'is_active')
+    search_fields = ('name', 'code')
+
+@admin.register(travel.VehicleTypeMaster)
+class VehicleTypeMasterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'capacity', 'is_active')
+    list_filter = ('category', 'is_active')
+    search_fields = ('name', 'category__name')
 
 admin.site.register(workflow.ApprovalWorkflowMaster)
 admin.site.register(workflow.PermissionTypeMaster)

@@ -333,7 +333,15 @@ class ConveyanceRateSerializer(serializers.ModelSerializer):
         return True
 
 # Additional travel serializers
+class VehicleCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCategoryMaster
+        fields = '__all__'
+
 class VehicleTypeSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_code = serializers.CharField(source='category.code', read_only=True)
+
     class Meta:
         model = VehicleTypeMaster
         fields = '__all__'

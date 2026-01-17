@@ -656,15 +656,27 @@ class ConveyanceRateDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = ConveyanceRateSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+class VehicleCategoryListCreateView(ListCreateAPIView):
+    queryset = VehicleCategoryMaster.objects.filter(is_active=True)
+    serializer_class = VehicleCategorySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['code']
+
+class VehicleCategoryDetailView(RetrieveUpdateDestroyAPIView):
+    queryset = VehicleCategoryMaster.objects.all()
+    serializer_class = VehicleCategorySerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
 class VehicleTypeListCreateView(ListCreateAPIView):
-    queryset = VehicleTypeMaster.objects.filter(is_active=True)
+    queryset = VehicleTypeMaster.objects.filter(is_active=True).select_related('category')
     serializer_class = VehicleTypeSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['category']
+    filterset_fields = ['category', 'category__code']
 
 class VehicleTypeDetailView(RetrieveUpdateDestroyAPIView):
-    queryset = VehicleTypeMaster.objects.all()
+    queryset = VehicleTypeMaster.objects.select_related('category').all()
     serializer_class = VehicleTypeSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
 
