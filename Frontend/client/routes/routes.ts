@@ -90,6 +90,10 @@ export const ROUTES = {
   expenseTypeMaster: "/masters/expense-type",
   claimStatusMaster: "/masters/claim-status",
 
+  // Vehicle Category Master
+  vehicleCategoryMaster: "/masters/vehicle-category",
+  vehicleTypeMaster: "/masters/vehicle-type",
+
   // ---------------- SETTINGS / REPORTS ----------------
   settings: "/settings",
   reports: "/reports",

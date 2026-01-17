@@ -657,7 +657,7 @@ class ConveyanceRateDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
 class VehicleCategoryListCreateView(ListCreateAPIView):
-    queryset = VehicleCategoryMaster.objects.filter(is_active=True)
+    queryset = VehicleCategoryMaster.objects.all()
     serializer_class = VehicleCategorySerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -680,7 +680,7 @@ class VehicleCategoryDropdownView(ListAPIView):
     pagination_class = None
 
 class VehicleTypeListCreateView(ListCreateAPIView):
-    queryset = VehicleTypeMaster.objects.filter(is_active=True).select_related('category')
+    queryset = VehicleTypeMaster.objects.all().select_related('category')
     serializer_class = VehicleTypeSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]

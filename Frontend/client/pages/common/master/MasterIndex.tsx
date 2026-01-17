@@ -15,6 +15,7 @@ import {
     UserLock,
     ChevronRight,
     IndianRupeeIcon,
+    Car,
 } from 'lucide-react';
 import { ROUTES } from "@/routes/routes";
 
@@ -108,6 +109,15 @@ const MASTER_CATEGORIES = [
             {id: 'users', title: "Users", route: ROUTES.users},
             {id: 'booking-agents', title: "Booking Agents", route: ROUTES.bookingAgents},
         ]
+    },
+    {
+        id: 'vehicle',
+        title: 'Vehicle',
+        icon: Car,
+        items: [
+            { id: 'vehicle-category', title: 'Vehicle Category', route: ROUTES.vehicleCategoryMaster },
+            { id: 'vehicle-type', title: 'Vehicle Type', route: ROUTES.vehicleTypeMaster },
+        ],
     },
     // {
     //     id: 'roles',

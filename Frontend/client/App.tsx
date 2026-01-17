@@ -67,6 +67,8 @@ import ConveyanceRateMasterPage from "./pages/common/master/ConveyanceRateMaster
 import ExpenseTypesMasterPage from "./pages/common/master/ExpenseTypeMaster";
 import ClaimStatusMasterPage from "./pages/common/master/ClaimStatusMaster";
 import BookingAgentList from "./pages/common/master/booking-agent/BookingAgentList";
+import VehicleCategoryMasterPage from "./pages/common/master/VehicleCategoryMaster";
+import VehicleTypeMasterPage from "./pages/common/master/VehicleTypeMaster";
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -554,6 +556,28 @@ const App = () => (
               <ProtectedRoute requiredDashboard="admin_or_desk">
                 <UnifiedLayout>
                   <BookingAgentList />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.vehicleCategoryMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <VehicleCategoryMasterPage />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.vehicleTypeMaster}
+            element={
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <VehicleTypeMasterPage />
                 </UnifiedLayout>
               </ProtectedRoute>
             }
