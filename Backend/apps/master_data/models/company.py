@@ -42,7 +42,7 @@ class DesignationMaster(models.Model):
     Designation master data
     """
     designation_id = models.AutoField(primary_key=True)
-    designation_name = models.CharField(max_length=255, unique=True)
+    designation_name = models.CharField(max_length=255)
     designation_code = models.CharField(max_length=50)
     description = models.CharField(max_length=200, null=True, blank=True)
     department = models.ForeignKey(
