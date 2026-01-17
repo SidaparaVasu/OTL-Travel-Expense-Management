@@ -219,6 +219,6 @@ export const getTravelDeskSidebar = (): SidebarSection[] => [
   {
     title: "Booking Agents",
     icon: User,
-    path: ROUTES.bookingAgents,
+    path: ROUTES.bookingAgentsFromTravelDesk,
   },
 ];

@@ -553,7 +553,18 @@ const App = () => (
           <Route
             path={ROUTES.bookingAgents}
             element={
-              <ProtectedRoute requiredDashboard="admin_or_desk">
+              <ProtectedRoute requiredDashboard="admin">
+                <UnifiedLayout>
+                  <BookingAgentList />
+                </UnifiedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path={ROUTES.bookingAgentsFromTravelDesk}
+            element={
+              <ProtectedRoute requiredDashboard="travel_desk">
                 <UnifiedLayout>
                   <BookingAgentList />
                 </UnifiedLayout>

@@ -44,6 +44,7 @@ export const ROUTES = {
   userManagement: "/masters/user-management",
   users: "/masters/users",
   bookingAgents: "/masters/booking-agents",
+  bookingAgentsFromTravelDesk: "/agents/booking-agents",
 
   // Employee Master
   employeeMasterPage: "/masters/employees",
