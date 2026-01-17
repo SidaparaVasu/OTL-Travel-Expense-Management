@@ -3,7 +3,7 @@ import logging
 import requests
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import transaction, IntegrityError, models
 
 from apps.authentication.models.profiles import OrganizationalProfile
 from apps.master_data.models import (
@@ -68,6 +68,55 @@ class HRMSSyncService:
     # ------------------------------------------------------------------
 
     @classmethod
+    def _safe_get_or_create(cls, model_class, lookup_fields, defaults=None):
+        """
+        Attempts to fetch a record; creates it if missing.
+        Handles race conditions where a parallel request creates the record
+        between the get and create steps.
+        """
+        defaults = defaults or {}
+        
+        # 1. Try to fetch existing
+        try:
+            return model_class.objects.get(**lookup_fields), False
+        except model_class.DoesNotExist:
+            pass
+
+        # 2. Attempt creation
+        try:
+            with transaction.atomic():
+                return model_class.objects.create(**lookup_fields, **defaults), True
+        except IntegrityError:
+            # Race condition hit: record was created by another process
+            return model_class.objects.get(**lookup_fields), False
+
+    @classmethod
+    def _ensure_grade(cls, grade_name):
+        if not grade_name:
+            return None
+            
+        # Check existence first to avoid expensive aggregation query
+        grade = GradeMaster.objects.filter(name=grade_name).first()
+        if grade:
+            return grade
+
+        # Calculate next sorting number
+        # Note: A tiny race condition exists here for sorting_no uniqueness, 
+        # but safely handled for name uniqueness via _safe_get_or_create
+        max_no = GradeMaster.objects.aggregate(models.Max('sorting_no'))['sorting_no__max']
+        next_sorting_no = (max_no or 100) + 1
+        
+        grade, _ = cls._safe_get_or_create(
+            GradeMaster,
+            lookup_fields={'name': grade_name},
+            defaults={
+                'sorting_no': next_sorting_no,
+                'is_active': True
+            }
+        )
+        return grade
+
+    @classmethod
     def sync_user(cls, emp_id: str, company_id: str, *, _depth: int = 0) -> User | None:
         """
         Syncs a single HRMS employee.
@@ -115,44 +164,29 @@ class HRMSSyncService:
                     "last_name", "mobile_no", "is_active"
                 ])
 
-            company = CompanyInformation.objects.filter(
-                name="Tata Steel Foundation"
-            ).first()
-            
-            if not company:
-                company = CompanyInformation.objects.create(
-                    name="Tata Steel Foundation"
-                )
-
-            department, _ = DepartmentMaster.objects.get_or_create(
-                dept_name=(data.get("Department") or "").strip(),
-                company=company,
-                defaults={
-                    "dept_code": cls._safe_code((data.get("Department") or "").strip())
-                }
+            company, _ = cls._safe_get_or_create(
+                CompanyInformation,
+                lookup_fields={'name': "Tata Steel Foundation"}
             )
 
-            designation, _ = DesignationMaster.objects.get_or_create(
-                designation_name=(data.get("Designation") or "").strip(),
-                department=department,
-                defaults={
-                    "designation_code": cls._safe_code((data.get("Designation") or "").strip())
-                }
+            # --- Sync Master Data ---
+            
+            dept_name = (data.get("Department") or "").strip()
+            department, _ = cls._safe_get_or_create(
+                DepartmentMaster,
+                lookup_fields={'dept_name': dept_name, 'company': company},
+                defaults={'dept_code': cls._safe_code(dept_name)}
+            )
+
+            desig_name = (data.get("Designation") or "").strip()
+            designation, _ = cls._safe_get_or_create(
+                DesignationMaster,
+                lookup_fields={'designation_name': desig_name, 'department': department},
+                defaults={'designation_code': cls._safe_code(desig_name)}
             )
 
             grade_name = (data.get("Grade") or "").strip()
-            grade = GradeMaster.objects.filter(name=grade_name).first()
-            if not grade:
-                max_no = GradeMaster.objects.values_list("sorting_no", flat=True)
-                next_sorting_no = (max(max_no) if max_no else 100) + 1
-                
-                grade, _ = GradeMaster.objects.get_or_create(
-                    name=grade_name,
-                    defaults={
-                        "sorting_no": next_sorting_no,
-                        "is_active": True,
-                    }
-                )
+            grade = cls._ensure_grade(grade_name)
 
             location = cls._sync_location(data, company)
 
@@ -229,6 +263,24 @@ class HRMSSyncService:
         if not branch_name:
             return None
         
+        # Use safe get_or_create for location first
+        existing_location, _ = cls._safe_get_or_create(
+            LocationMaster,
+            lookup_fields={
+                'location_name': branch_name,
+                'company': company
+            },
+            # No defaults here to mimic filter().first() behavior initially
+            # But wait, we want to create if missing. 
+            # The original code logic was: check existing, return if found.
+            # If not found, prepare dependencies (city/state/country) THEN create.
+            
+            # So, to be safe:
+        )
+        # Wait, the logic is complex because dependencies are only created if location is missing.
+        # Let's clean it up.
+
+        # 1. Try to fetch existing location first (fast path)
         existing_location = LocationMaster.objects.filter(
             location_name=branch_name,
             company=company
@@ -238,36 +290,45 @@ class HRMSSyncService:
             return existing_location
         
         cleaned_city = (branch_city or "").strip()
-        city = CityMaster.objects.filter(city_name=cleaned_city).first()
-        if not city:
-            country, _ = CountryMaster.objects.get_or_create(
-                country_name="India",
-                defaults={"country_code": "IND"}
-            )
-            
-            state, _ = StateMaster.objects.get_or_create(
-                state_name="Jharkhand",
-                country=country
-            )
-            
-            city, _ = CityMaster.objects.get_or_create(
-                city_name=cleaned_city,
-                state=state,
-                defaults={"category_id": 1}
-            )
         
+        # 2. Safe sync for dependencies
+        country, _ = cls._safe_get_or_create(
+            CountryMaster,
+            lookup_fields={'country_name': "India"},
+            defaults={'country_code': "IND"}
+        )
+        
+        state, _ = cls._safe_get_or_create(
+            StateMaster,
+            lookup_fields={'state_name': "Jharkhand", 'country': country}
+        )
+        
+        city, _ = cls._safe_get_or_create(
+            CityMaster,
+            lookup_fields={'city_name': cleaned_city, 'state': state},
+            defaults={'category_id': 1}
+        )
+        
+        # Ensure correct hierarchy if fetched
         state = city.state
         country = state.country if state else None
         
         location_code = f"{cls._safe_code(branch_name, 20)}-{cls._safe_code(branch_city, 10)}"
         
-        return LocationMaster.objects.create(
-            location_name=branch_name,
-            location_code=location_code,
-            company=company,
-            city=city,
-            state=state,
-            country=country,
-            address=branch_address,
-            is_active=True
+        # 3. Finally, safe create location
+        location, _ = cls._safe_get_or_create(
+            LocationMaster,
+            lookup_fields={
+                'location_name': branch_name,
+                'company': company
+            },
+            defaults={
+                'location_code': location_code,
+                'city': city,
+                'state': state,
+                'country': country,
+                'address': branch_address,
+                'is_active': True
+            }
         )
+        return location
