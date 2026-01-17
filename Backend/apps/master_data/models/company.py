@@ -24,14 +24,14 @@ class DepartmentMaster(models.Model):
     """
     department_id = models.AutoField(primary_key=True)
     dept_name = models.CharField(max_length=255, unique=True)
-    dept_code = models.CharField(max_length=50, unique=True)
+    dept_code = models.CharField(max_length=50)
     description = models.CharField(max_length=200, null=True, blank=True)
     company = models.ForeignKey(CompanyInformation, on_delete=models.CASCADE)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['company', 'dept_name'], name='unique_department_name_per_company'),
-            models.UniqueConstraint(fields=['company', 'dept_code'], name='unique_department_code_per_company')
+            # models.UniqueConstraint(fields=['company', 'dept_code'], name='unique_department_code_per_company')
         ]
 
     def __str__(self):
@@ -43,7 +43,7 @@ class DesignationMaster(models.Model):
     """
     designation_id = models.AutoField(primary_key=True)
     designation_name = models.CharField(max_length=255, unique=True)
-    designation_code = models.CharField(max_length=50, unique=True)
+    designation_code = models.CharField(max_length=50)
     description = models.CharField(max_length=200, null=True, blank=True)
     department = models.ForeignKey(
         'DepartmentMaster', 

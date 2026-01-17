@@ -132,9 +132,15 @@ class HRMSSyncService:
         hrms_id = data.get("Employee_ID")
         username = cls._resolve_username(data)
         email = data.get("Work_Email") or ""
-        full_name = data.get("Name", "").strip()
+        
+        # Use direct fields for names if available, else fallback
+        first_name = (data.get("Emp_First_Name") or "").strip()
+        last_name = (data.get("Emp_Last_Name") or "").strip()
+        
+        if not first_name:
+            full_name = data.get("Name", "").strip()
+            first_name, last_name = cls._split_name(full_name)
 
-        first_name, last_name = cls._split_name(full_name)
         is_active = (data.get("Emp_Status") or "").lower() == "active"
 
         with transaction.atomic():
@@ -172,17 +178,22 @@ class HRMSSyncService:
             # --- Sync Master Data ---
             
             dept_name = (data.get("Department") or "").strip()
+            # Generate code using acronyms (no uniqueness constraint now)
+            dept_code = cls._generate_acronym(dept_name)
+            
             department, _ = cls._safe_get_or_create(
                 DepartmentMaster,
                 lookup_fields={'dept_name': dept_name, 'company': company},
-                defaults={'dept_code': cls._safe_code(dept_name)}
+                defaults={'dept_code': dept_code}
             )
 
             desig_name = (data.get("Designation") or "").strip()
+            desig_code = cls._generate_acronym(desig_name)
+            
             designation, _ = cls._safe_get_or_create(
                 DesignationMaster,
                 lookup_fields={'designation_name': desig_name, 'department': department},
-                defaults={'designation_code': cls._safe_code(desig_name)}
+                defaults={'designation_code': desig_code}
             )
 
             grade_name = (data.get("Grade") or "").strip()
@@ -254,32 +265,28 @@ class HRMSSyncService:
     def _safe_code(value: str | None, length: int = 10) -> str:
         return (value or "")[:length].upper()
 
+    @staticmethod
+    def _generate_acronym(text: str) -> str:
+        """
+        Generates acronym from the first letter of each word.
+        Example: "Assistant Manager" -> "AM"
+        """
+        if not text:
+            return ""
+        # Filter out empty strings from split and take first char of each word
+        acronym = "".join(word[0].upper() for word in text.split() if word)
+        return acronym[:50]  # Ensure it fits in db field
+
     @classmethod
     def _sync_location(cls, data: dict, company):
         branch_name = data.get("Branch")
         branch_city = data.get("Branch_City")
+        branch_state = data.get("Branch_State")
         branch_address = data.get("Branch_Address", "")
         
         if not branch_name:
             return None
         
-        # Use safe get_or_create for location first
-        existing_location, _ = cls._safe_get_or_create(
-            LocationMaster,
-            lookup_fields={
-                'location_name': branch_name,
-                'company': company
-            },
-            # No defaults here to mimic filter().first() behavior initially
-            # But wait, we want to create if missing. 
-            # The original code logic was: check existing, return if found.
-            # If not found, prepare dependencies (city/state/country) THEN create.
-            
-            # So, to be safe:
-        )
-        # Wait, the logic is complex because dependencies are only created if location is missing.
-        # Let's clean it up.
-
         # 1. Try to fetch existing location first (fast path)
         existing_location = LocationMaster.objects.filter(
             location_name=branch_name,
@@ -290,6 +297,7 @@ class HRMSSyncService:
             return existing_location
         
         cleaned_city = (branch_city or "").strip()
+        cleaned_state = (branch_state or "Jharkhand").strip()
         
         # 2. Safe sync for dependencies
         country, _ = cls._safe_get_or_create(
@@ -300,7 +308,7 @@ class HRMSSyncService:
         
         state, _ = cls._safe_get_or_create(
             StateMaster,
-            lookup_fields={'state_name': "Jharkhand", 'country': country}
+            lookup_fields={'state_name': cleaned_state, 'country': country}
         )
         
         city, _ = cls._safe_get_or_create(
