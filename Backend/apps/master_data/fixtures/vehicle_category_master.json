@@ -1,0 +1,137 @@
+[
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "sedan",
+      "name": "Sedan",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "suv",
+      "name": "SUV",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "muv",
+      "name": "MUV",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "mpv",
+      "name": "MPV",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "ev",
+      "name": "EV",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "traveller",
+      "name": "Traveller",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "bus",
+      "name": "Bus",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "motor_coach",
+      "name": "Motor Coach",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "ambulance",
+      "name": "Ambulance",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "truck",
+      "name": "Truck",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "pickup",
+      "name": "Pick Up",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "mini_truck",
+      "name": "Mini Truck",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "camper",
+      "name": "Camper",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "luxury",
+      "name": "Luxury Vehicle",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehiclecategorymaster",
+    "fields": {
+      "code": "water_tanker",
+      "name": "Water Tanker",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  }
+]

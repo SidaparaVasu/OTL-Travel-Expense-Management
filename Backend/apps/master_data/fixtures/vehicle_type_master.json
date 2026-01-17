@@ -1,0 +1,835 @@
+[
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Sedan 2AB",
+      "category": 1,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Sedan 4AB",
+      "category": 1,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Sedan 6AB",
+      "category": 1,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Sedan",
+      "category": 1,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Swift Dezire",
+      "category": 1,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Indigo",
+      "category": 1,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "D-SEDAN 4AB",
+      "category": 1,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Crysta/HYCROSS 6AB",
+      "category": 2,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUV High End 6AB",
+      "category": 2,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUV Mid Range 6AB",
+      "category": 2,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUV Mid Range 2AB",
+      "category": 2,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUV 2AB Mid Range",
+      "category": 2,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Fortuner 7AB",
+      "category": 2,
+      "capacity": 7,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Scorpio 2AB",
+      "category": 2,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Scorpio",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Bolero 2AB",
+      "category": 2,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Bolero",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Safari",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Hexa",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Aria",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "XUV 300",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "XUV 3XO",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "TUV",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUVs",
+      "category": 2,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUVs 4AB",
+      "category": 2,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUVs 6AB",
+      "category": 2,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Sedan EV 2AB",
+      "category": 5,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Sedan EV 6AB",
+      "category": 5,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUV EV 2AB",
+      "category": 5,
+      "capacity": 2,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "SUV EV 6AB",
+      "category": 5,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "E-SUV 4AB",
+      "category": 5,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "E-SUV 6AB",
+      "category": 5,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "E-SUVs",
+      "category": 5,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MUV 4AB",
+      "category": 3,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MUVs",
+      "category": 3,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MUVs 4AB",
+      "category": 3,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "D-MUV 4AB",
+      "category": 3,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MPV 4AB",
+      "category": 4,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MPV 6AB",
+      "category": 4,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MPVs",
+      "category": 4,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MPVs 4AB",
+      "category": 4,
+      "capacity": 4,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "MPVs 6AB",
+      "category": 4,
+      "capacity": 6,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "8 MPVs",
+      "category": 4,
+      "capacity": 8,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Innova",
+      "category": 4,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Maruti Ertiga",
+      "category": 4,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "AC 13+D SEAT TRAVELLER",
+      "category": 6,
+      "capacity": 13,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "AC 18+D SEAT TRAVELLER",
+      "category": 6,
+      "capacity": 18,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "NON-AC 13+D SEAT TRAVELLER",
+      "category": 6,
+      "capacity": 13,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "NON-AC 18+D SEAT TRAVELLER",
+      "category": 6,
+      "capacity": 18,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "AC 35-SEATER BUS",
+      "category": 7,
+      "capacity": 35,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "NON-AC 35-SEATER BUS",
+      "category": 7,
+      "capacity": 35,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "AC 52-SEATER BUS",
+      "category": 7,
+      "capacity": 52,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "NON-AC 52-SEATER BUS",
+      "category": 7,
+      "capacity": 52,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Motor Coach-50",
+      "category": 8,
+      "capacity": 50,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "AC AMBULANCE-MARUTI ECCO",
+      "category": 9,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "AC AMBULANCE-TATA WINGER",
+      "category": 9,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "LPT 407 Truck",
+      "category": 10,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Truck Cap-10 Ton",
+      "category": 10,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Pick Up Van",
+      "category": 11,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Mini Truck Cap-1000",
+      "category": 12,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Camper with 3 Seat",
+      "category": 13,
+      "capacity": 3,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Luxury Vehicle",
+      "category": 14,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  },
+
+  {
+    "model": "master_data.vehicletypemaster",
+    "fields": {
+      "name": "Water Tanker 2000L",
+      "category": 15,
+      "capacity": 1,
+      "rate_per_km": null,
+      "rate_per_day": null,
+      "minimum_charge": "0.00",
+      "is_active": true,
+      "created_at": "2026-01-17T10:00:00Z"
+    }
+  }
+]
