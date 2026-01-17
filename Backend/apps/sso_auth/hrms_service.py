@@ -124,37 +124,34 @@ class HRMSSyncService:
                     name="Tata Steel Foundation"
                 )
 
-            department = DepartmentMaster.objects.filter(
-                dept_name=data.get("Department"),
-                company=company
-            ).first()
-            
-            if not department:
-                department = DepartmentMaster.objects.create(
-                    dept_name=data.get("Department"),
-                    company=company,
-                    dept_code=cls._safe_code(data.get("Department"))
-                )
+            department, _ = DepartmentMaster.objects.get_or_create(
+                dept_name=(data.get("Department") or "").strip(),
+                company=company,
+                defaults={
+                    "dept_code": cls._safe_code((data.get("Department") or "").strip())
+                }
+            )
 
-            designation = DesignationMaster.objects.filter(
-                designation_name=data.get("Designation"),
-                department=department
-            ).first()
-            
-            if not designation:
-                designation = DesignationMaster.objects.create(
-                    designation_name=data.get("Designation"),
-                    department=department,
-                    designation_code=cls._safe_code(data.get("Designation"))
-                )
+            designation, _ = DesignationMaster.objects.get_or_create(
+                designation_name=(data.get("Designation") or "").strip(),
+                department=department,
+                defaults={
+                    "designation_code": cls._safe_code((data.get("Designation") or "").strip())
+                }
+            )
 
-            grade = GradeMaster.objects.filter(name=data.get("Grade")).first()
+            grade_name = (data.get("Grade") or "").strip()
+            grade = GradeMaster.objects.filter(name=grade_name).first()
             if not grade:
                 max_no = GradeMaster.objects.values_list("sorting_no", flat=True)
-                grade = GradeMaster.objects.create(
-                    name=data.get("Grade"),
-                    sorting_no=(max(max_no) if max_no else 100) + 1,
-                    is_active=True,
+                next_sorting_no = (max(max_no) if max_no else 100) + 1
+                
+                grade, _ = GradeMaster.objects.get_or_create(
+                    name=grade_name,
+                    defaults={
+                        "sorting_no": next_sorting_no,
+                        "is_active": True,
+                    }
                 )
 
             location = cls._sync_location(data, company)
@@ -240,26 +237,23 @@ class HRMSSyncService:
         if existing_location:
             return existing_location
         
-        city = CityMaster.objects.filter(city_name=branch_city).first()
+        cleaned_city = (branch_city or "").strip()
+        city = CityMaster.objects.filter(city_name=cleaned_city).first()
         if not city:
-            country = CountryMaster.objects.filter(country_name="India").first()
-            if not country:
-                country = CountryMaster.objects.create(
-                    country_name="India",
-                    country_code="IND"
-                )
+            country, _ = CountryMaster.objects.get_or_create(
+                country_name="India",
+                defaults={"country_code": "IND"}
+            )
             
-            state = StateMaster.objects.filter(state_name="Jharkhand", country=country).first()
-            if not state:
-                state = StateMaster.objects.create(
-                    state_name="Jharkhand",
-                    country=country
-                )
+            state, _ = StateMaster.objects.get_or_create(
+                state_name="Jharkhand",
+                country=country
+            )
             
-            city = CityMaster.objects.create(
-                city_name=branch_city,
+            city, _ = CityMaster.objects.get_or_create(
+                city_name=cleaned_city,
                 state=state,
-                category_id=1
+                defaults={"category_id": 1}
             )
         
         state = city.state
