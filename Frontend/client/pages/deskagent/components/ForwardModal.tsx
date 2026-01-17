@@ -1,19 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import type { RecommendedAgentsResponse } from '@/src/types/travel-desk.types';
+import React, { useEffect, useState } from "react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { travelDeskAPI } from "@/src/api/travel-desk";
+import type { BookingAgent } from "@/src/types/travel-desk.types";
 
 interface ForwardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (agentId: number, note: string) => void;
   title: string;
-  recommendations?: RecommendedAgentsResponse | null;
   isLoading?: boolean;
-  bookingTypes: Set<string>;
-  type?: 'forward' | 'reassign';
+  type?: "forward" | "reassign";
 }
 
 export const ForwardModal: React.FC<ForwardModalProps> = ({
@@ -21,51 +34,42 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
   onClose,
   onConfirm,
   title,
-  recommendations,
   isLoading,
-  bookingTypes,
-  type = 'forward',
+  type = "forward",
 }) => {
+  const [agents, setAgents] = useState<BookingAgent[]>([]);
+  const [fetchingAgents, setFetchingAgents] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [openCombobox, setOpenCombobox] = useState(false);
 
-  const showFlightTrain =
-  bookingTypes.has('flight') || bookingTypes.has('train');
-
-const showAccommodation =
-  bookingTypes.has('accommodation') ||
-  bookingTypes.has('guest house') ||
-  bookingTypes.has('hotel');
-
-  /* --------------------------------------------------
-     Preselect recommended accommodation agent
-     Fallback to flight/train agent if needed
-  -------------------------------------------------- */
+  // Fetch all agents when modal opens
   useEffect(() => {
-    if (!isOpen || !recommendations) return;
-
-    for (const group of recommendations.accommodation || []) {
-      const recommended = group.agents.find(a => a.is_recommended);
-      if (recommended) {
-        setSelectedAgentId(recommended.id);
-        return;
-      }
+    if (isOpen) {
+      const loadAgents = async () => {
+        setFetchingAgents(true);
+        try {
+          const res = await travelDeskAPI.agents.list();
+          setAgents(res.data || []);
+        } catch (err) {
+          console.error("Failed to load agents", err);
+          setError("Failed to load booking agents list.");
+        } finally {
+          setFetchingAgents(false);
+        }
+      };
+      loadAgents();
     }
+  }, [isOpen]);
 
-    if (recommendations.flight_train?.agent?.id) {
-      setSelectedAgentId(recommendations.flight_train.agent.id);
-    }
-  }, [isOpen, recommendations]);
-
-  /* --------------------------------------------------
-     Reset state on close
-  -------------------------------------------------- */
+  // Reset state on close
   useEffect(() => {
     if (!isOpen) {
       setSelectedAgentId(null);
-      setNote('');
+      setNote("");
       setError(null);
+      setOpenCombobox(false);
     }
   }, [isOpen]);
 
@@ -73,7 +77,7 @@ const showAccommodation =
 
   const handleConfirm = () => {
     if (!selectedAgentId) {
-      setError('Please select a booking agent');
+      setError("Please select a booking agent");
       return;
     }
 
@@ -85,6 +89,8 @@ const showAccommodation =
     setError(null);
     onClose();
   };
+
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
 
   return (
     <div
@@ -105,62 +111,67 @@ const showAccommodation =
 
         {/* Body */}
         <div className="p-4 space-y-4">
-
-          {/* Flight / Train (read-only info) */}
-          {showFlightTrain && recommendations?.flight_train && (
-            <div className="p-3 border rounded bg-muted">
-              <p className="text-sm font-semibold">Flight / Train</p>
-              <p className="text-sm">
-                {recommendations.flight_train.agent.name}
-                <span className="text-muted-foreground ml-1">
-                  ({recommendations.flight_train.agent.organization})
-                </span>
-              </p>
-            </div>
-          )}
-
-          {/* Accommodation (city-wise selection) */}
-          {recommendations?.accommodation.map(group => (
-            <div key={group.city.id} className="p-3 border rounded space-y-2">
-              <div>
-                <p className="text-sm font-semibold">
-                  Accommodation - {group.city.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {group.agents.length > 1
-                    ? 'Recommended agent is preselected. You may choose another if required.'
-                    : 'Only one eligible booking agent is available for this location.'}
-                </p>
-              </div>
-
-              {group.agents.map(agent => (
-                <label
-                  key={agent.id}
-                  // className="flex items-center gap-2 text-sm cursor-pointer"
-                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 p-1 rounded"
+          <div className="space-y-2">
+            <Label>Select Booking Agent</Label>
+            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openCombobox}
+                  className="w-full justify-between"
+                  disabled={fetchingAgents}
                 >
-                  <input
-                    type="radio"
-                    name="accommodation-agent"
-                    checked={selectedAgentId === agent.id}
-                    onChange={() => setSelectedAgentId(agent.id)}
-                  />
-                  <span>{agent.name}</span>
-                  <span className="text-muted-foreground">
-                    ({agent.organization})
-                  </span>
-                  {agent.is_recommended && (
-                    <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full
-                           bg-green-50 text-green-700 border border-green-200">
-                      Recommended
-                    </span>
-                  )}
-                </label>
-              ))}
-            </div>
-          ))}
+                  {selectedAgent
+                    ? `${selectedAgent.organization_name} - ${selectedAgent.full_name || "No Contact"}`
+                    : fetchingAgents
+                      ? "Loading agents..."
+                      : "Search & Select Agent..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder="Search agent name or organization..." className="hover:bg-slate-50 " />
+                  <CommandList>
+                    <CommandEmpty>No agent found.</CommandEmpty>
+                    <CommandGroup>
+                      {agents.map((agent) => (
+                        <CommandItem
+                          key={agent.id}
+                          value={`${agent.organization_name} ${agent.full_name}`}
+                          onSelect={() => {
+                            setSelectedAgentId(agent.id);
+                            setOpenCombobox(false);
+                            setError(null);
+                          }}
+                          className="hover:bg-blue-50 hover:text-blue-500"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedAgentId === agent.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {agent.organization_name}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {agent.full_name}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-          {/* Note */}
           <div className="space-y-2">
             <Label>Note (Optional)</Label>
             <Textarea
@@ -179,8 +190,15 @@ const showAccommodation =
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={isLoading}>
-            {isLoading ? 'Processing...' : type === 'forward' ? 'Forward' : 'Reassign'}
+          <Button
+            onClick={handleConfirm}
+            disabled={isLoading || !selectedAgentId}
+          >
+            {isLoading
+              ? "Processing..."
+              : type === "forward"
+                ? "Forward"
+                : "Reassign"}
           </Button>
         </div>
       </div>

@@ -31,15 +31,25 @@ export const formatDateTime = (dateTimeString: string | null | undefined): strin
   }
 };
 
-export const formatCurrency = (amount: string | number | null | undefined): string => {
-  if (amount === null || amount === undefined || amount === '') return '—';
+// export const formatCurrency = (amount: string | number | null | undefined): string => {
+//   if (amount === null || amount === undefined || amount === '') return '—';
+//   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+//   if (isNaN(numAmount)) return '—';
+//   return `₹${numAmount.toLocaleString('en-IN', {
+//     minimumFractionDigits: 0,
+//     maximumFractionDigits: 2,
+//   })}`;
+// };
+
+export function formatCurrency(amount: string | number | null | undefined): string {
+  if (amount === null || amount === undefined) return "N/A";
+  
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(numAmount)) return '—';
-  return `₹${numAmount.toLocaleString('en-IN', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
-};
+  
+  if (isNaN(numAmount)) return "N/A";
+  
+  return `₹${numAmount.toLocaleString('en-IN')}`;
+}
 
 export const formatHours = (hours: number | null | undefined): string => {
   if (hours === null || hours === undefined) return '—';

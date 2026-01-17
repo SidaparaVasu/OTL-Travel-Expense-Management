@@ -42,7 +42,6 @@ import type {
   Application,
   Booking,
   BookingAgent,
-  RecommendedAgentsResponse,
 } from "@/src/types/travel-desk.types";
 
 interface ApplicationDrawerProps {
@@ -86,8 +85,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
   const [selectedBookings, setSelectedBookings] = useState<number[]>([]);
   const [agents, setAgents] = useState<BookingAgent[]>([]);
-  const [recommendedAgents, setRecommendedAgents] =
-    useState<RecommendedAgentsResponse | null>(null);
 
   const [forwardModalOpen, setForwardModalOpen] = useState(false);
   const [forwardType, setForwardType] = useState<"forward" | "reassign">(
@@ -121,21 +118,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
       toast.error("Failed to load application details");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchRecommendedAgents = async () => {
-    if (!applicationId) return;
-
-    try {
-      const res =
-        await travelDeskAPI.agents.getRecommendedAgents(applicationId);
-
-      console.log("Recommended Agents (Drawer):", res.data);
-      setRecommendedAgents(res.data);
-    } catch (e) {
-      setAgents([]);
-      toast.error("Failed to load recommended agents");
     }
   };
 
@@ -182,7 +164,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const handleForwardBooking = async (booking: Booking) => {
     setSelectedBookingForAction(booking);
     setForwardType(booking.status === "pending" ? "forward" : "reassign");
-    await fetchRecommendedAgents();
     setForwardModalOpen(true);
   };
 
@@ -203,7 +184,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     }
     setSelectedBookingForAction(null);
     setForwardType("forward");
-    await fetchRecommendedAgents();
     setForwardModalOpen(true);
   };
 
@@ -915,7 +895,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         isOpen={forwardModalOpen}
         onClose={() => {
           setForwardModalOpen(false);
-          setRecommendedAgents(null);
         }}
         onConfirm={confirmForward}
         title={
@@ -925,9 +904,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
               : `Reassign Booking #${selectedBookingForAction.id}`
             : `Forward ${selectedBookings.length} Booking(s)`
         }
-        bookingTypes={getSelectedBookingTypes()}
-        agents={agents}
-        recommendations={recommendedAgents}
         isLoading={actionLoading}
         type={forwardType}
       />

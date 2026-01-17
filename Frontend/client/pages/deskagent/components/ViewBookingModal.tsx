@@ -89,8 +89,12 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               <Icon className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">{booking.booking_type_name}</h3>
-              <p className="text-sm text-muted-foreground">{booking.sub_option_name}</p>
+              <h3 className="text-lg font-semibold">
+                {booking.booking_type_name}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {booking.sub_option_name}
+              </p>
             </div>
           </div>
 
@@ -110,11 +114,23 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
           <div className="flex items-center justify-between">
             {/* <StatusBadge status={booking.status} /> */}
             <StatusBadge statusType="booking" status={booking.status} />
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Estimated Cost</p>
-              <p className="text-xl font-semibold">
-                {formatCurrency(booking.estimated_cost)}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Estimated Cost</p>
+                <p className="text-xl font-semibold">
+                  {formatCurrency(booking.estimated_cost)}
+                </p>
+              </div>
+              <div className="text-right">
+                {booking.actual_cost && (
+                  <>
+                    <p className="text-xs text-muted-foreground">Actual Cost</p>
+                    <p className="text-xl font-semibold text-green-600">
+                      {formatCurrency(booking.actual_cost)}
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -125,7 +141,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 <User className="w-4 h-4 text-primary" />
                 <p className="text-sm font-medium">Assigned Agent</p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Name</p>
@@ -133,13 +149,19 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 </div>
                 {booking.assigned_agent.organization_name && (
                   <div>
-                    <p className="text-xs text-muted-foreground">Organization</p>
-                    <p className="font-medium">{booking.assigned_agent.organization_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Organization
+                    </p>
+                    <p className="font-medium">
+                      {booking.assigned_agent.organization_name}
+                    </p>
                   </div>
                 )}
                 {booking.assigned_agent.contact_person && (
                   <div>
-                    <p className="text-xs text-muted-foreground">Contact Person</p>
+                    <p className="text-xs text-muted-foreground">
+                      Contact Person
+                    </p>
                     <p>{booking.assigned_agent.contact_person}</p>
                   </div>
                 )}
@@ -155,15 +177,18 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                     <p>{booking.assigned_agent.email}</p>
                   </div>
                 )}
-                 {booking.assigned_agent.address && (
+                {booking.assigned_agent.address && (
                   <div className="md:col-span-2">
                     <p className="text-xs text-muted-foreground">Address</p>
-                    <p className="whitespace-pre-wrap">{booking.assigned_agent.address}</p>
+                    <p className="whitespace-pre-wrap">
+                      {booking.assigned_agent.address}
+                    </p>
                   </div>
                 )}
                 <div className="md:col-span-2 pt-1 border-t border-dashed border-border mt-1">
                   <p className="text-xs text-muted-foreground">
-                    Assigned at: {formatDateTime(booking.assigned_agent.assigned_at)}
+                    Assigned at:{" "}
+                    {formatDateTime(booking.assigned_agent.assigned_at)}
                   </p>
                 </div>
               </div>
@@ -191,14 +216,25 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             </h4>
 
             <div className="bg-card border rounded-lg p-3 space-y-2">
-
               {/* FLIGHT / TRAIN */}
               {(details.departure_date || details.arrival_date) && (
                 <>
-                  {renderRow("Ticket Name/No.", details?.ticket_number || "Not Provided")}
-                  {renderRow("Departure Date", formatDateToDDMMYYYY(details.departure_date))}
-                  {renderRow("Departure Time", formatTime(details.departure_time))}
-                  {renderRow("Arrival Date", formatDateToDDMMYYYY(details.arrival_date))}
+                  {renderRow(
+                    "Ticket Name/No.",
+                    details?.ticket_number || "Not Provided",
+                  )}
+                  {renderRow(
+                    "Departure Date",
+                    formatDateToDDMMYYYY(details.departure_date),
+                  )}
+                  {renderRow(
+                    "Departure Time",
+                    formatTime(details.departure_time),
+                  )}
+                  {renderRow(
+                    "Arrival Date",
+                    formatDateToDDMMYYYY(details.arrival_date),
+                  )}
                   {renderRow("Arrival Time", formatTime(details.arrival_time))}
                 </>
               )}
@@ -206,21 +242,35 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               {/* ACCOMMODATION */}
               {(details.check_in_date || details.check_out_date) && (
                 <>
-                  {renderRow("Check-In Date", formatDateToDDMMYYYY(details.check_in_date))}
-                  {renderRow("Check-In Time", formatTime(details.check_in_time))}
-                  {renderRow("Check-Out Date", formatDateToDDMMYYYY(details.check_out_date))}
-                  {renderRow("Check-Out Time", formatTime(details.check_out_time))}
+                  {renderRow(
+                    "Check-In Date",
+                    formatDateToDDMMYYYY(details.check_in_date),
+                  )}
+                  {renderRow(
+                    "Check-In Time",
+                    formatTime(details.check_in_time),
+                  )}
+                  {renderRow(
+                    "Check-Out Date",
+                    formatDateToDDMMYYYY(details.check_out_date),
+                  )}
+                  {renderRow(
+                    "Check-Out Time",
+                    formatTime(details.check_out_time),
+                  )}
                 </>
               )}
 
               {/* CONVEYANCE */}
               {(details.start_date || details.start_time) && (
                 <>
-                  {renderRow("Start Date", formatDateToDDMMYYYY(details.start_date))}
+                  {renderRow(
+                    "Start Date",
+                    formatDateToDDMMYYYY(details.start_date),
+                  )}
                   {renderRow("Start Time", formatTime(details.start_time))}
                 </>
               )}
-
             </div>
           </div>
 
@@ -229,22 +279,22 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             details.report_at ||
             details.drop_location ||
             details.meal_preference) && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Additional Details
-                </h4>
-                <div className="bg-card border rounded-lg p-3">
-                  {renderRow("Ticket Number", details.ticket_number)}
-                  {renderRow("Report At", details.report_at)}
-                  {renderRow("Drop Location", details.drop_location)}
-                  {renderRow("Club Booking", details.club_booking ? "Yes" : null)}
-                  {renderRow("Club Reason", details.club_reason)}
-                  {renderRow("Distance (km)", details.distance_km)}
-                  {renderRow("Meal Preference", details.meal_preference)}
-                </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                Additional Details
+              </h4>
+              <div className="bg-card border rounded-lg p-3">
+                {renderRow("Ticket Number", details.ticket_number)}
+                {renderRow("Report At", details.report_at)}
+                {renderRow("Drop Location", details.drop_location)}
+                {renderRow("Club Booking", details.club_booking ? "Yes" : null)}
+                {renderRow("Club Reason", details.club_reason)}
+                {renderRow("Distance (km)", details.distance_km)}
+                {renderRow("Meal Preference", details.meal_preference)}
               </div>
-            )}
+            </div>
+          )}
 
           {/* Guests List */}
           {details.guests && details.guests.length > 0 && (
