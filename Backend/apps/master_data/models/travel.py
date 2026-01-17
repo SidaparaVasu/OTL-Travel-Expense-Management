@@ -70,7 +70,7 @@ class VehicleCategoryMaster(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "vehicle_category_master"
+        # db_table = "vehicle_category_master"
         verbose_name = "Vehicle Category Master"
         verbose_name_plural = "Vehicle Category Master"
         indexes = [
@@ -101,7 +101,7 @@ class VehicleTypeMaster(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        db_table = "vehicle_type_master"
+        # db_table = "vehicle_type_master"
         verbose_name = "Vehicle Type Master"
         verbose_name_plural = "Vehicle Type Master"
         indexes = [
