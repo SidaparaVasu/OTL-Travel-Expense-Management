@@ -338,6 +338,11 @@ class VehicleCategorySerializer(serializers.ModelSerializer):
         model = VehicleCategoryMaster
         fields = '__all__'
 
+class VehicleCategoryDropdownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleCategoryMaster
+        fields = ['id', 'name', 'code']
+
 class VehicleTypeSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_code = serializers.CharField(source='category.code', read_only=True)
@@ -345,6 +350,12 @@ class VehicleTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleTypeMaster
         fields = '__all__'
+
+class VehicleTypeDropdownSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    class Meta:
+        model = VehicleTypeMaster
+        fields = ['id', 'name', 'category_name']
 
 class TravelPolicySerializer(serializers.ModelSerializer):
     travel_mode_name = serializers.CharField(source='travel_mode.name', read_only=True)

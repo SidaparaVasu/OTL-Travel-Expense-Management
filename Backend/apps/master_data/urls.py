@@ -69,8 +69,10 @@ urlpatterns = [
     
     # Additional Travel URLs
     path('vehicle-categories/', VehicleCategoryListCreateView.as_view(), name='vehiclecategory-list'),
+    path('vehicle-categories/dropdown/', VehicleCategoryDropdownView.as_view(), name='vehiclecategory-dropdown'),
     path('vehicle-categories/<int:pk>/', VehicleCategoryDetailView.as_view(), name='vehiclecategory-detail'),
     path('vehicle-types/', VehicleTypeListCreateView.as_view(), name='vehicletype-list'),
+    path('vehicle-types/dropdown/', VehicleTypeDropdownView.as_view(), name='vehicletype-dropdown'),
     path('vehicle-types/<int:pk>/', VehicleTypeDetailView.as_view(), name='vehicletype-detail'),
     path('travel-policies/', TravelPolicyListCreateView.as_view(), name='travelpolicy-list'),
     path('travel-policies/<int:pk>/', TravelPolicyDetailView.as_view(), name='travelpolicy-detail'),

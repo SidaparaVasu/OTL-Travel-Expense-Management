@@ -660,25 +660,47 @@ class VehicleCategoryListCreateView(ListCreateAPIView):
     queryset = VehicleCategoryMaster.objects.filter(is_active=True)
     serializer_class = VehicleCategorySerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['code']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['code', 'is_active']
+    search_fields = ['name', 'code']
 
 class VehicleCategoryDetailView(RetrieveUpdateDestroyAPIView):
     queryset = VehicleCategoryMaster.objects.all()
     serializer_class = VehicleCategorySerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
 
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+
+class VehicleCategoryDropdownView(ListAPIView):
+    queryset = VehicleCategoryMaster.objects.filter(is_active=True)
+    serializer_class = VehicleCategoryDropdownSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
 class VehicleTypeListCreateView(ListCreateAPIView):
     queryset = VehicleTypeMaster.objects.filter(is_active=True).select_related('category')
     serializer_class = VehicleTypeSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['category', 'category__code']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['category', 'category__code', 'is_active']
+    search_fields = ['name', 'category__name']
 
 class VehicleTypeDetailView(RetrieveUpdateDestroyAPIView):
     queryset = VehicleTypeMaster.objects.select_related('category').all()
     serializer_class = VehicleTypeSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+
+class VehicleTypeDropdownView(ListAPIView):
+    queryset = VehicleTypeMaster.objects.filter(is_active=True).select_related('category')
+    serializer_class = VehicleTypeDropdownSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 class TravelPolicyListCreateView(ListCreateAPIView):
     queryset = TravelPolicyMaster.objects.select_related('travel_mode', 'employee_grade').filter(is_active=True)
