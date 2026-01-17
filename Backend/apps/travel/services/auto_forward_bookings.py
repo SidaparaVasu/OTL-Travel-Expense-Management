@@ -125,7 +125,9 @@ def auto_confirm_self_arranged_bookings(application: TravelApplication, system_u
     confirmed_count = 0
     for booking in bookings:
         sub_option = booking.sub_option
-        if sub_option and 'self' in sub_option.name.lower():
+        if sub_option and ('self' in sub_option.name.lower() 
+        or 'friends' in sub_option.name.lower()
+        or 'family' in sub_option.name.lower()):
             booking.status = "confirmed"
             booking.save(update_fields=["status"])
             confirmed_count += 1

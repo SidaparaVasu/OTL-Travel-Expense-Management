@@ -107,17 +107,19 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     derivedCityCategory = selectedCity?.category_name;
   } else if (isGuestHouseSelected) {
     // For guest house, try to get category from selection or require place selection
-    if (form.guest_house_preferences.length > 0) {
-      const gh = guestHouses.find(
-        (g) => g.id === form.guest_house_preferences[0],
-      );
-      console.log(gh, gh?.city, gh?.city_category);
-      derivedCityCategory = gh?.city_category;
-    } else if (form.place) {
-      // Fallback to place selection if no guest house selected
-      const selectedCity = cities.find((c) => String(c.id) === form.place);
-      derivedCityCategory = selectedCity?.category_name;
-    }
+    // if (form.guest_house_preferences.length > 0) {
+    //   const gh = guestHouses.find(
+    //     (g) => g.id === form.guest_house_preferences[0],
+    //   );
+    //   console.log(gh, gh?.city, gh?.city_category);
+    //   derivedCityCategory = gh?.city_category;
+    // } else if (form.place) {
+    //   // Fallback to place selection if no guest house selected
+    //   const selectedCity = cities.find((c) => String(c.id) === form.place);
+    //   derivedCityCategory = selectedCity?.category_name;
+    // }
+    const selectedCity = cities.find((c) => String(c.id) === form.place);
+    derivedCityCategory = selectedCity?.category_name;
   } else if (isARCHotelSelected && form.arc_hotel_preferences.length > 0) {
     const hotel = arcHotels.find((h) => h.id === form.arc_hotel_preferences[0]);
     derivedCityCategory = hotel?.city_category;
@@ -405,42 +407,8 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       },
     },
     {
-      label: "Accommodation",
-      render: (row: AccommodationFormData) => {
-        // 1. Guest House selected
-        // 1. Guest House selected
-        if (
-          row.accommodation_sub_option_label?.toLowerCase().includes("guest")
-          // && row.guest_house_preferences?.length > 0
-        ) {
-          // return row.guest_house_preferences
-          //   .map((id) => guestHouses.find((gh) => gh.id === id)?.name)
-          //   .filter(Boolean)
-          //   .join(", ");
-          return "Guest House";
-        }
-
-        // 2. ARC / Company-tied Hotels
-        if (
-          row.accommodation_sub_option_label?.toLowerCase().includes("hotel") &&
-          row.arc_hotel_preferences?.length > 0
-        ) {
-          return row.arc_hotel_preferences
-            .map((id) => arcHotels.find((h) => h.id === id)?.name)
-            .filter(Boolean)
-            .join(", ");
-        }
-
-        // 3. Self-arranged Stay
-        if (
-          row.accommodation_sub_option_label?.toLowerCase().includes("self")
-        ) {
-          return row.place_label || "N/A";
-        }
-
-        // 4. Default
-        return "-";
-      },
+      label: "Place",
+      render: (row: AccommodationFormData) => row.place_label || "N/A",
     },
     {
       label: "Check-in",
