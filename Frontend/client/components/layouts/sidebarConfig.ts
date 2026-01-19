@@ -192,7 +192,7 @@ export const getEmployeeSidebar = (
 ];
 
 // ------------------------------------------------------
-// Travel Desk Sidebar
+// Booking Agent Sidebar
 // ------------------------------------------------------
 export const getBookingAgentSidebar = (): SidebarSection[] => [
   // { title: "Travel Bookings", icon: Plane, path: "/booking-agent/travel-bookings" },
@@ -208,7 +208,7 @@ export const getBookingAgentSidebar = (): SidebarSection[] => [
 ];
 
 // ------------------------------------------------------
-// Booking Agent Sidebar (alias for travel desk)
+// Travel Desk Sidebar
 // ------------------------------------------------------
 export const getTravelDeskSidebar = (): SidebarSection[] => [
   {

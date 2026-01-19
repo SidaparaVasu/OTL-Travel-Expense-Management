@@ -165,6 +165,7 @@ export const getEmptyConveyance = () => ({
   club_booking_reason: "",
   guests: [] as { id?: number; full_name: string; is_colleague: boolean }[],
   distance_km: "",
+  passenger_count: "1",
   has_six_airbags: true,
 });
 

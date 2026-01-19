@@ -225,10 +225,7 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
             </div>
             <div className="flex gap-3 items-center">
               <div className="flex gap-1 flex-col justify-end items-center">
-                <StatusBadge
-                    statusType="travel"
-                    status={application.status}
-                    />
+                <StatusBadge statusType="travel" status={application.status} />
 
                 {!application.is_settled ? (
                   <>
@@ -253,7 +250,7 @@ const HeaderCard = ({ application, onSubmit, onDelete }: any) => {
                   />
                 )}
               </div>
-              
+
               {/* Edit button next to status */}
               {application.can_edit && (
                 <Button
@@ -320,13 +317,13 @@ const InfoCard = ({ application }: any) => {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <InfoItem label="Employee Grade" value={application.employee_grade} />
-          <InfoItem 
-            label="GL Code" 
+          <InfoItem
+            label="GL Code"
             value={
               application.gl_code && application.gl_code_name
                 ? `${application.gl_code} - ${application.gl_code_name}${application.gl_code_description ? ` (${application.gl_code_description})` : ''}`
                 : application.gl_code_name || 'N/A'
-            } 
+            }
           />
           <InfoItem label="Internal Order" value={application.internal_order} />
           <InfoItem
@@ -746,6 +743,14 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
             <DetailRow
               label="Club Booking"
               value={details.club_booking ? "Yes" : "No"}
+            />
+            <DetailRow
+              label="No. of Person"
+              value={details.passenger_count || "1"}
+            />
+            <DetailRow
+              label="Approx. K.M."
+              value={details.distance_km || "N/A"}
             />
           </div>
 

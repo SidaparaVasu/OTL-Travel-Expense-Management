@@ -133,79 +133,125 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
           </div>
 
           {/* Basic Info */}
-          {renderSection("Basic Information", Tag, (
+          {renderSection(
+            "Basic Information",
+            Tag,
             <>
-              {renderRow("Booking ID", `BK-${String(booking.id).padStart(5, '0')}`)}
+              {renderRow(
+                "Booking ID",
+                `BK-${String(booking.id).padStart(5, "0")}`,
+              )}
               {renderRow("Travel Request", booking.travel_request_id)}
               {renderRow("Employee", booking.employee_name)}
               {renderRow("Grade", booking.employee_grade)}
               {renderRow("Meal Preference", details.meal_preference)}
-            </>
-          ))}
+            </>,
+          )}
 
           {/* Route */}
-          {(details.from_location_name && details.to_location_name) && (
+          {details.from_location_name && details.to_location_name && (
             <div className="bg-muted/40 border rounded-lg p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium">Route</span>
               </div>
-              <p className="text-sm">{details.from_location_name} → {details.to_location_name}</p>
+              <p className="text-sm">
+                {details.from_location_name} → {details.to_location_name}
+              </p>
             </div>
           )}
 
           {/* Schedule - Flight/Train */}
-          {(details.departure_date || details.arrival_date) && (
+          {(details.departure_date || details.arrival_date) &&
             // renderSection("Flight/Train Name/No.", Calendar, (
             //   <>
             //   </>
             // )),
-            renderSection("Schedule", Calendar, (
+            renderSection(
+              "Schedule",
+              Calendar,
               <>
-                {renderRow("Ticket Name/No.", details?.ticket_number || "Not Provided")}
-                {renderRow("Departure Date", formatDateToDDMMYYYY(details.departure_date))}
-                {renderRow("Departure Time", formatTime(details.departure_time))}
-                {renderRow("Arrival Date", formatDateToDDMMYYYY(details.arrival_date))}
+                {renderRow(
+                  "Ticket Name/No.",
+                  details?.ticket_number || "Not Provided",
+                )}
+                {renderRow(
+                  "Departure Date",
+                  formatDateToDDMMYYYY(details.departure_date),
+                )}
+                {renderRow(
+                  "Departure Time",
+                  formatTime(details.departure_time),
+                )}
+                {renderRow(
+                  "Arrival Date",
+                  formatDateToDDMMYYYY(details.arrival_date),
+                )}
                 {renderRow("Arrival Time", formatTime(details.arrival_time))}
-              </>
-            ))
-          )}
+              </>,
+            )}
 
           {/* Schedule - Accommodation */}
-          {(details.check_in_date || details.check_out_date) && (
-            renderSection("Schedule", Calendar, (
+          {(details.check_in_date || details.check_out_date) &&
+            renderSection(
+              "Schedule",
+              Calendar,
               <>
                 {renderRow("Place", details.place)}
-                {renderRow("Check-In Date", formatDateToDDMMYYYY(details.check_in_date))}
+                {renderRow(
+                  "Check-In Date",
+                  formatDateToDDMMYYYY(details.check_in_date),
+                )}
                 {renderRow("Check-In Time", formatTime(details.check_in_time))}
-                {renderRow("Check-Out Date", formatDateToDDMMYYYY(details.check_out_date))}
-                {renderRow("Check-Out Time", formatTime(details.check_out_time))}
-              </>
-            ))
-          )}
+                {renderRow(
+                  "Check-Out Date",
+                  formatDateToDDMMYYYY(details.check_out_date),
+                )}
+                {renderRow(
+                  "Check-Out Time",
+                  formatTime(details.check_out_time),
+                )}
+              </>,
+            )}
 
           {/* Schedule - Conveyance */}
-          {(details.start_date || details.start_time) && (
-            renderSection("Schedule", Clock, (
+          {(details.start_date || details.start_time) &&
+            renderSection(
+              "Schedule",
+              Clock,
               <>
-                {renderRow("Start Date", formatDateToDDMMYYYY(details.start_date))}
+                {renderRow(
+                  "Start Date",
+                  formatDateToDDMMYYYY(details.start_date),
+                )}
                 {renderRow("Start Time", formatTime(details.start_time))}
                 {renderRow("Report At", details.report_at)}
                 {renderRow("Drop Location", details.drop_location)}
-                {renderRow("Distance (km)", details.distance_km?.toString())}
-              </>
-            ))
-          )}
+                {renderRow(
+                  "No. of Person",
+                  details.passenger_count?.toString(),
+                )}
+                {renderRow("Approx. K.M.", details.distance_km?.toString())}
+              </>,
+            )}
 
           {/* Financial */}
-          {renderSection("Financial", IndianRupee, (
+          {renderSection(
+            "Financial",
+            IndianRupee,
             <>
-              {renderRow("Estimated Cost", formatCurrency(booking.estimated_cost) || "Not Provided")}
-              {renderRow("Actual Cost", formatCurrency(booking.actual_cost) || "Not Provided")}
+              {renderRow(
+                "Estimated Cost",
+                formatCurrency(booking.estimated_cost) || "Not Provided",
+              )}
+              {renderRow(
+                "Actual Cost",
+                formatCurrency(booking.actual_cost) || "Not Provided",
+              )}
               {renderRow("Booking Reference", booking.booking_reference)}
               {renderRow("Vendor Reference", booking.vendor_reference)}
-            </>
-          ))}
+            </>,
+          )}
 
           {/* Assigned Agent */}
           {booking.assigned_agent && (
@@ -216,10 +262,14 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </p>
               <p className="text-sm">{booking.assigned_agent.name}</p>
               <p className="text-xs text-muted-foreground">
-                Scope: {booking.assigned_agent.scope === 'single_booking' ? 'Single Booking' : 'Full Application'}
+                Scope:{" "}
+                {booking.assigned_agent.scope === "single_booking"
+                  ? "Single Booking"
+                  : "Full Application"}
               </p>
               <p className="text-xs text-muted-foreground">
-                Assigned at: {formatDateTime(booking.assigned_agent.assigned_at)}
+                Assigned at:{" "}
+                {formatDateTime(booking.assigned_agent.assigned_at)}
               </p>
             </div>
           )}

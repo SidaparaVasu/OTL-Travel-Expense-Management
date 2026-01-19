@@ -52,6 +52,7 @@ interface ConveyanceFormData {
   club_booking_reason: string;
   guests: Guest[];
   distance_km?: string;
+  passenger_count?: string;
   has_six_airbags?: boolean;
 }
 
@@ -81,6 +82,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   const [form, setForm] = useState<ConveyanceFormData>({
     ...getEmptyConveyance(),
     distance_km: "",
+    passenger_count: "1",
     has_six_airbags: true,
   });
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -129,32 +131,38 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!form.vehicle_type) newErrors.vehicle_type = "Vehicle type is required";
-    if (!form.vehicle_sub_option) newErrors.vehicle_sub_option = "Sub-option is required";
-    if (!form.from_location) newErrors.from_location = "From location is required";
+    if (!form.vehicle_sub_option)
+      newErrors.vehicle_sub_option = "Sub-option is required";
+    if (!form.from_location)
+      newErrors.from_location = "From location is required";
     if (!form.to_location) newErrors.to_location = "To location is required";
     if (!form.report_at) newErrors.report_at = "Report at is required";
-    if (!form.drop_location) newErrors.drop_location = "Drop location is required";
+    if (!form.drop_location)
+      newErrors.drop_location = "Drop location is required";
     if (!form.start_date) newErrors.start_date = "Start date is required";
     if (!form.end_date) newErrors.end_date = "End date is required";
     if (!form.start_time) newErrors.start_time = "Start time is required";
     if (!form.end_time) newErrors.end_time = "End time is required";
     // if (!form.estimated_cost) newErrors.estimated_cost = "Estimated cost is required";
 
-    // Own Car specific validations
-    if (isOwnCar) {
-      if (!form.distance_km) {
-        newErrors.distance_km = "Distance is required for own car";
-      } else {
-        const distance = parseFloat(form.distance_km);
-        if (isNaN(distance) || distance <= 0) {
-          newErrors.distance_km = "Please enter a valid distance";
-        } else if (distance > 150) {
-          // Show CHRO approval toast but allow submission
-          toast.warning("CHRO approval required for distance exceeding 150 km", {
-              duration: 5000,
-          });
-        }
+    // Distance validation (Required for all types now)
+    if (!form.distance_km) {
+      newErrors.distance_km = "Distance is required";
+    } else {
+      const distance = parseFloat(form.distance_km);
+      if (isNaN(distance) || distance <= 0) {
+        newErrors.distance_km = "Enter valid distance";
+      } else if (isOwnCar && distance > 150) {
+        // Show CHRO approval toast but allow submission
+        toast.warning("CHRO approval required for distance exceeding 150 km", {
+          duration: 5000,
+        });
       }
+    }
+
+    // Passenger count validation
+    if (!form.passenger_count || parseInt(form.passenger_count) < 1) {
+      newErrors.passenger_count = "At least 1 passenger required";
     }
 
     // Location validation - DISABLED: Allow same location for from and to
@@ -163,7 +171,10 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     // }
 
     // Conveyance location validation (residence/hotel <-> airport/station)
-    const conveyanceError = validateConveyanceLocations(form.report_at, form.drop_location);
+    const conveyanceError = validateConveyanceLocations(
+      form.report_at,
+      form.drop_location,
+    );
     if (conveyanceError && !isCarAtDisposal) {
       newErrors.drop_location = conveyanceError;
     }
@@ -187,7 +198,8 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
     // Club booking reason required if not club booking
     if (!form.club_booking && !form.club_booking_reason.trim()) {
-      newErrors.club_booking_reason = "Reason is required when not club booking";
+      newErrors.club_booking_reason =
+        "Reason is required when not club booking";
     }
 
     // Cost validation
@@ -197,7 +209,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     }
 
     // Special instructions
-    const instructionError = validateSpecialInstructions(form.special_instruction);
+    const instructionError = validateSpecialInstructions(
+      form.special_instruction,
+    );
     if (instructionError) newErrors.special_instruction = instructionError;
 
     setErrors(newErrors);
@@ -212,9 +226,12 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
     // Show Car at Disposal warning on submit
     if (isCarAtDisposal) {
-      toast.info("Car at Disposal: Full shift will be applied from start time to end time.", {
+      toast.info(
+        "Car at Disposal: Full shift will be applied from start time to end time.",
+        {
           duration: 5000,
-      });
+        },
+      );
     }
 
     if (editIndex !== null) {
@@ -230,6 +247,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     setForm({
       ...getEmptyConveyance(),
       distance_km: "",
+      passenger_count: "1",
       has_six_airbags: true,
     });
 
@@ -266,15 +284,19 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       vehicle_type: typeId,
       vehicle_type_label: type?.name || "",
       distance_km: "",
+      passenger_count: "1",
       has_six_airbags: true,
     });
     setErrors({});
 
     // Show Car at Disposal warning immediately
     if (isCarAtDisposal) {
-      toast.warning("Car at Disposal: Full shift will be applied from start time to end time.", {
+      toast.warning(
+        "Car at Disposal: Full shift will be applied from start time to end time.",
+        {
           duration: 5000,
-      });
+        },
+      );
     }
     setErrors({});
   };
@@ -292,11 +314,13 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     },
     {
       label: "Route",
-      render: (row: ConveyanceFormData) => `${row.from_location} → ${row.to_location}`,
+      render: (row: ConveyanceFormData) =>
+        `${row.from_location} → ${row.to_location}`,
     },
     {
       label: "Pick-up / Drop",
-      render: (row: ConveyanceFormData) => `${row.report_at} → ${row.drop_location}`,
+      render: (row: ConveyanceFormData) =>
+        `${row.report_at} → ${row.drop_location}`,
     },
     {
       label: "Date & Time",
@@ -323,8 +347,12 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
           <Car className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Local Conveyance</h2>
-          <p className="text-sm text-muted-foreground">Add your local travel requirements</p>
+          <h2 className="text-xl font-semibold text-foreground">
+            Local Conveyance
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Add your local travel requirements
+          </p>
         </div>
       </div>
 
@@ -357,7 +385,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800 dark:text-amber-200">
-                  <strong>Own Car Policy:</strong> Maximum 150 km allowed. Distance exceeding 150 km requires CHRO approval. Car must have 6 airbags.
+                  <strong>Own Car Policy:</strong> Maximum 150 km allowed.
+                  Distance exceeding 150 km requires CHRO approval. Car must
+                  have 6 airbags.
                 </AlertDescription>
               </Alert>
             )}
@@ -367,7 +397,8 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               <Alert className="mb-4 border-destructive/50 bg-destructive/10">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
                 <AlertDescription className="text-destructive">
-                  <strong>Warning:</strong> Your car does not have 6 airbags. This may affect your reimbursement eligibility.
+                  <strong>Warning:</strong> Your car does not have 6 airbags.
+                  This may affect your reimbursement eligibility.
                 </AlertDescription>
               </Alert>
             )}
@@ -377,7 +408,8 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900">
                 <AlertTriangle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800 dark:text-blue-200">
-                  <strong>Car at Disposal:</strong> This booking applies from start time to end time (full shift).
+                  <strong>Car at Disposal:</strong> This booking applies from
+                  start time to end time (full shift).
                 </AlertDescription>
               </Alert>
             )}
@@ -428,32 +460,54 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 error={errors.vehicle_sub_option}
               />
 
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">No. of Person <span className="text-destructive">*</span></label>
+                <CurrencyInput
+                  value={form.passenger_count}
+                  onValueChange={(value) =>
+                    setForm({
+                      ...form,
+                      passenger_count: value?.toString() || "",
+                    })
+                  }
+                  placeholder="Passenger count"
+                  className={errors.passenger_count ? "border-destructive" : ""}
+                />
+                {errors.passenger_count && (
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.passenger_count}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  Approx. K.M. <span className="text-destructive">*</span>
+                </label>
+                <CurrencyInput
+                  value={form.distance_km || ""}
+                  onValueChange={(value) => {
+                    const valStr = value?.toString() || "";
+                    setForm({ ...form, distance_km: valStr });
+                    if (isOwnCar && value && value > 150) {
+                      toast.warning(
+                        "CHRO approval required for distance exceeding 150 km",
+                      );
+                    }
+                  }}
+                  placeholder="Enter distance"
+                  className={errors.distance_km ? "border-destructive" : ""}
+                />
+                {errors.distance_km && (
+                  <p className="text-sm text-destructive">
+                    {errors.distance_km}
+                  </p>
+                )}
+              </div>
+
               {/* Own Car specific fields */}
               {isOwnCar && (
                 <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Distance (km)</label>
-                    <CurrencyInput
-                      value={form.distance_km || ""}
-                      onValueChange={(value) => {
-                        const valStr = value?.toString() || "";
-                        setForm({ ...form, distance_km: valStr });
-                        if (value && value > 150) {
-                          toast.warning(
-                            "CHRO approval required for distance exceeding 150 km",
-                          );
-                        }
-                      }}
-                      placeholder="Enter distance in km"
-                      className={errors.distance_km ? "border-destructive" : ""}
-                    />
-                    {errors.distance_km && (
-                      <p className="text-sm text-destructive">
-                        {errors.distance_km}
-                      </p>
-                    )}
-                  </div>
-
                   <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/30">
                     <Checkbox
                       id="has_six_airbags"
@@ -654,6 +708,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                     setForm({
                       ...getEmptyConveyance(),
                       distance_km: "",
+                      passenger_count: "1",
                       has_six_airbags: true,
                     });
                     setEditIndex(null);

@@ -290,7 +290,8 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 {renderRow("Drop Location", details.drop_location)}
                 {renderRow("Club Booking", details.club_booking ? "Yes" : null)}
                 {renderRow("Club Reason", details.club_reason)}
-                {renderRow("Distance (km)", details.distance_km)}
+                {renderRow("No. of Person", details.passenger_count)}
+                {renderRow("Approx. K.M.", details.distance_km)}
                 {renderRow("Meal Preference", details.meal_preference)}
               </div>
             </div>
