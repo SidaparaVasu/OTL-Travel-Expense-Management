@@ -92,7 +92,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
               <TableHead>Route</TableHead>
               <TableHead>Booking Type</TableHead>
               <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Estimated Cost</TableHead>
+              <TableHead className="text-right">Actual Cost</TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
