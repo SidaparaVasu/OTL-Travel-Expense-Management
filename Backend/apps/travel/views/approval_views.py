@@ -177,6 +177,41 @@ class ApprovalActionView(APIView):
         notes = serializer.validated_data.get('notes', '')
         
         try:
+            # When status is 'cancellation_requested', standard approval actions should
+            # trigger cancellation workflows, not standard approval workflows.
+            if travel_app.status == 'cancellation_requested':
+                if action == 'approve':
+                    # Approve the cancellation -> App becomes 'cancelled'
+                    travel_app.approve_cancellation(approved_by=request.user, notes=notes)
+                    
+                    # Mark the approval flow as approved/closed so it leaves pending state
+                    approval_flow.status = 'approved'
+                    approval_flow.notes = f"Approved cancellation request: {notes}"
+                    approval_flow.approved_at = timezone.now()
+                    approval_flow.save()
+                    
+                    message = f"Cancellation for {travel_app.get_travel_request_id()} approved"
+
+                elif action == 'reject':
+                    # Reject the cancellation -> App reverts to PREVIOUS status
+                    try:
+                        travel_app.reject_cancellation(rejected_by=request.user, reason=notes)
+                        message = f"Cancellation request rejected. Application restored."
+                    except Exception as e:
+                        raise e
+                
+                return success_response(
+                    data={
+                        'travel_request_id': travel_app.get_travel_request_id(),
+                        'new_status': travel_app.status,
+                        'action': action,
+                        'approver': request.user.get_full_name(),
+                        'approved_at': timezone.now()
+                    },
+                    message=message
+                )
+
+            # Standard Flow
             if action == 'approve':
                 approval_flow.approve(notes)
                 log_action( 
@@ -186,7 +221,7 @@ class ApprovalActionView(APIView):
                 )
                 message = f"Travel request {travel_app.get_travel_request_id()} approved successfully"
                 
-                # Send notification email (implement in notifications module)
+                # Send notification email
                 self.send_approval_notification(travel_app, approval_flow, 'approved')
             
             elif action == 'reject':
