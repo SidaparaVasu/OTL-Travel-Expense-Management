@@ -323,147 +323,162 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
               {editIndex !== null ? "Edit Ticket" : "Add New Ticket"}
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormSelect
-                label="Travel Mode"
-                required
-                value={form.booking_type}
-                onChange={handleModeChange}
-                options={[
-                  { value: "", label: "Select travel mode" },
-                  ...travelModes.map((m) => ({
-                    value: String(m.id),
-                    label: m.name,
-                  })),
-                ]}
-                error={errors.booking_type}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* Row 1: Travel Mode, Class, Ticket No */}
+              <div className="md:col-span-2">
+                <FormSelect
+                  label="Travel Mode"
+                  required
+                  value={form.booking_type}
+                  onChange={handleModeChange}
+                  options={[
+                    { value: "", label: "Select travel mode" },
+                    ...travelModes.map((m) => ({
+                      value: String(m.id),
+                      label: m.name,
+                    })),
+                  ]}
+                  error={errors.booking_type}
+                />
+              </div>
 
-              <FormSelect
-                label="Class"
-                required
-                value={form.sub_option}
-                onChange={(value) => setForm({ ...form, sub_option: value })}
-                options={[
-                  {
-                    value: "",
-                    label: form.booking_type
-                      ? "Select sub-option"
-                      : "Select mode first",
-                  },
-                  ...currentSubOptions.map((s) => ({
-                    value: String(s.id),
-                    label: s.name,
-                  })),
-                ]}
-                disabled={!form.booking_type}
-                error={errors.sub_option}
-              />
+              <div className="md:col-span-2">
+                <FormSelect
+                  label="Class"
+                  required
+                  value={form.sub_option}
+                  onChange={(value) => setForm({ ...form, sub_option: value })}
+                  options={[
+                    {
+                      value: "",
+                      label: form.booking_type
+                        ? "Select sub-option"
+                        : "Select mode first",
+                    },
+                    ...currentSubOptions.map((s) => ({
+                      value: String(s.id),
+                      label: s.name,
+                    })),
+                  ]}
+                  disabled={!form.booking_type}
+                  error={errors.sub_option}
+                />
+              </div>
 
-              <FormInput
-                label={getTicketLabel()}
-                required
-                value={form.ticket_number || ""}
-                onChange={(e) =>
-                  setForm({ ...form, ticket_number: e.target.value })
-                }
-                placeholder={
-                  getModeNameById(form.booking_type) === "Flight"
-                    ? "e.g., AI-302 / Air India"
-                    : "e.g., 12301 / Rajdhani Express"
-                }
-                error={errors.ticket_number}
-              />
+              <div className="md:col-span-2">
+                <FormInput
+                  label={getTicketLabel()}
+                  required
+                  value={form.ticket_number || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, ticket_number: e.target.value })
+                  }
+                  placeholder={
+                    getModeNameById(form.booking_type) === "Flight"
+                      ? "e.g., AI-302 / Air India"
+                      : "e.g., 12301 / Rajdhani Express"
+                  }
+                  error={errors.ticket_number}
+                />
+              </div>
 
-              <CityCombobox
-                label="From"
-                required
-                cities={cities}
-                value={form.from_location ? parseInt(form.from_location) : null}
-                displayValue={form.from_label}
-                onChange={(id, label) =>
-                  setForm({
-                    ...form,
-                    from_location: id ? String(id) : "",
-                    from_label: label,
-                  })
-                }
-                placeholder="Departure city"
-                error={errors.from_location}
-              />
+              {/* Row 2: From, To */}
+              <div className="md:col-span-3">
+                <CityCombobox
+                  label="From"
+                  required
+                  cities={cities}
+                  value={
+                    form.from_location ? parseInt(form.from_location) : null
+                  }
+                  displayValue={form.from_label}
+                  onChange={(id, label) =>
+                    setForm({
+                      ...form,
+                      from_location: id ? String(id) : "",
+                      from_label: label,
+                    })
+                  }
+                  placeholder="Departure city"
+                  error={errors.from_location}
+                />
+              </div>
 
-              <CityCombobox
-                label="To"
-                required
-                cities={cities}
-                value={form.to_location ? parseInt(form.to_location) : null}
-                displayValue={form.to_label}
-                onChange={(id, label) =>
-                  setForm({
-                    ...form,
-                    to_location: id ? String(id) : "",
-                    to_label: label,
-                  })
-                }
-                placeholder="Arrival city"
-                error={errors.to_location}
-              />
+              <div className="md:col-span-3">
+                <CityCombobox
+                  label="To"
+                  required
+                  cities={cities}
+                  value={form.to_location ? parseInt(form.to_location) : null}
+                  displayValue={form.to_label}
+                  onChange={(id, label) =>
+                    setForm({
+                      ...form,
+                      to_location: id ? String(id) : "",
+                      to_label: label,
+                    })
+                  }
+                  placeholder="Arrival city"
+                  error={errors.to_location}
+                />
+              </div>
 
-              <DatePickerField
-                label="Departure Date"
-                required
-                value={form.departure_date}
-                onChange={(value) =>
-                  setForm({ ...form, departure_date: value })
-                }
-                min={tripStartDate}
-                max={tripEndDate}
-                error={errors.departure_date}
-              />
+              {/* Row 3: Departure Date, Departure Time */}
+              <div className="md:col-span-3">
+                <DatePickerField
+                  label="Departure Date"
+                  required
+                  value={form.departure_date}
+                  onChange={(value) =>
+                    setForm({ ...form, departure_date: value })
+                  }
+                  min={tripStartDate}
+                  max={tripEndDate}
+                  error={errors.departure_date}
+                />
+              </div>
 
-              <TimePickerField
-                label="Departure Time"
-                required
-                value={form.departure_time}
-                onChange={(value) =>
-                  setForm({ ...form, departure_time: value })
-                }
-                error={errors.departure_time}
-              />
+              <div className="md:col-span-3">
+                <TimePickerField
+                  label="Departure Time"
+                  required
+                  value={form.departure_time}
+                  onChange={(value) =>
+                    setForm({ ...form, departure_time: value })
+                  }
+                  error={errors.departure_time}
+                />
+              </div>
 
-              {/* <FormInput
-                label="Departure Time"
-                type="time"
-                value={form.departure_time}
-                onChange={(e) => setForm({ ...form, departure_time: e.target.value })}
-              /> */}
+              {/* Row 4: Arrival Date, Arrival Time */}
+              <div className="md:col-span-3">
+                <DatePickerField
+                  label="Arrival Date"
+                  required
+                  value={form.arrival_date}
+                  onChange={(value) =>
+                    setForm({ ...form, arrival_date: value })
+                  }
+                  min={tripStartDate}
+                  max={tripEndDate}
+                  error={errors.arrival_date}
+                />
+              </div>
 
-              <DatePickerField
-                label="Arrival Date"
-                required
-                value={form.arrival_date}
-                onChange={(value) => setForm({ ...form, arrival_date: value })}
-                min={tripStartDate}
-                max={tripEndDate}
-                error={errors.arrival_date}
-              />
+              <div className="md:col-span-3">
+                <TimePickerField
+                  label="Arrival Time"
+                  required
+                  value={form.arrival_time}
+                  onChange={(value) =>
+                    setForm({ ...form, arrival_time: value })
+                  }
+                  error={errors.arrival_time}
+                />
+              </div>
 
-              <TimePickerField
-                label="Arrival Time"
-                required
-                value={form.arrival_time}
-                onChange={(value) => setForm({ ...form, arrival_time: value })}
-                error={errors.arrival_time}
-              />
-
-              {/* <FormInput
-                label="Arrival Time"
-                type="time"
-                value={form.arrival_time}
-                onChange={(e) => setForm({ ...form, arrival_time: e.target.value })}
-              /> */}
-
-              <div className="space-y-2">
+              {/* Row 5: Estimated Cost, Meal Preference */}
+              <div className="md:col-span-3 space-y-2">
                 <label className="text-sm font-medium">
                   Estimated Cost (₹)
                 </label>
@@ -485,24 +500,27 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 )}
               </div>
 
-              <FormSelect
-                label="Meal Preference"
-                value={form.meal_preference || ""}
-                onChange={(value) =>
-                  setForm({ ...form, meal_preference: value })
-                }
-                options={[
-                  { value: "", label: "Select Meal Preference" },
-                  { value: "Vegeterian Food", label: "Vegeterian Food" },
-                  {
-                    value: "Non. Vegeterian Food",
-                    label: "Non. Vegeterian Food",
-                  },
-                  { value: "No Food", label: "No Food" },
-                ]}
-              />
-
               <div className="md:col-span-3">
+                <FormSelect
+                  label="Meal Preference"
+                  value={form.meal_preference || ""}
+                  onChange={(value) =>
+                    setForm({ ...form, meal_preference: value })
+                  }
+                  options={[
+                    { value: "", label: "Select Meal Preference" },
+                    { value: "Vegeterian Food", label: "Vegeterian Food" },
+                    {
+                      value: "Non. Vegeterian Food",
+                      label: "Non. Vegeterian Food",
+                    },
+                    { value: "No Food", label: "No Food" },
+                  ]}
+                />
+              </div>
+
+              {/* Row 6: Special Instructions */}
+              <div className="md:col-span-6">
                 <FormTextarea
                   label="Special Instructions"
                   value={form.special_instruction}

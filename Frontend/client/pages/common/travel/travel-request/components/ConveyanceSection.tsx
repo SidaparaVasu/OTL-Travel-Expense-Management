@@ -414,54 +414,182 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               </Alert>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormSelect
-                label="Vehicle Type"
-                required
-                value={form.vehicle_type}
-                onChange={handleTypeChange}
-                options={[
-                  { value: "", label: "Select vehicle type" },
-                  ...travelModes.map((m) => ({
-                    value: String(m.id),
-                    label: m.name,
-                  })),
-                ]}
-                error={errors.vehicle_type}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* Row 1: Vehicle Type, Sub-Option, Airbags (if own car) */}
+              <div className={isOwnCar ? "md:col-span-2" : "md:col-span-3"}>
+                <FormSelect
+                  label="Vehicle Type"
+                  required
+                  value={form.vehicle_type}
+                  onChange={handleTypeChange}
+                  options={[
+                    { value: "", label: "Select vehicle type" },
+                    ...travelModes.map((m) => ({
+                      value: String(m.id),
+                      label: m.name,
+                    })),
+                  ]}
+                  error={errors.vehicle_type}
+                />
+              </div>
 
-              <FormSelect
-                label="Vehicle Sub-Option"
-                required
-                value={form.vehicle_sub_option}
-                onChange={(value) => {
-                  const sub = currentSubOptions.find(
-                    (s) => String(s.id) === value,
-                  );
-                  setForm({
-                    ...form,
-                    vehicle_sub_option: value,
-                    vehicle_sub_option_label: sub?.name || "",
-                  });
-                }}
-                options={[
-                  {
-                    value: "",
-                    label: form.vehicle_type
-                      ? "Select sub-option"
-                      : "Select type first",
-                  },
-                  ...currentSubOptions.map((s) => ({
-                    value: String(s.id),
-                    label: s.name,
-                  })),
-                ]}
-                disabled={!form.vehicle_type}
-                error={errors.vehicle_sub_option}
-              />
+              <div className={isOwnCar ? "md:col-span-2" : "md:col-span-3"}>
+                <FormSelect
+                  label="Vehicle Sub-Option"
+                  required
+                  value={form.vehicle_sub_option}
+                  onChange={(value) => {
+                    const sub = currentSubOptions.find(
+                      (s) => String(s.id) === value,
+                    );
+                    setForm({
+                      ...form,
+                      vehicle_sub_option: value,
+                      vehicle_sub_option_label: sub?.name || "",
+                    });
+                  }}
+                  options={[
+                    {
+                      value: "",
+                      label: form.vehicle_type
+                        ? "Select sub-option"
+                        : "Select type first",
+                    },
+                    ...currentSubOptions.map((s) => ({
+                      value: String(s.id),
+                      label: s.name,
+                    })),
+                  ]}
+                  disabled={!form.vehicle_type}
+                  error={errors.vehicle_sub_option}
+                />
+              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">No. of Person <span className="text-destructive">*</span></label>
+              {/* Own Car specific fields (Airbag checkbox) */}
+              {isOwnCar && (
+                <div className="md:col-span-2 flex items-end">
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 w-full h-[42px]">
+                    <Checkbox
+                      id="has_six_airbags"
+                      checked={form.has_six_airbags}
+                      onCheckedChange={(checked) =>
+                        setForm({ ...form, has_six_airbags: !!checked })
+                      }
+                    />
+                    <label
+                      htmlFor="has_six_airbags"
+                      className="text-sm font-medium text-foreground cursor-pointer truncate"
+                      title="Car has 6 airbags (required for reimbursement)"
+                    >
+                      Car has 6 airbags
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Row 2: From, To */}
+              <div className="md:col-span-3">
+                <FormInput
+                  label="From Location"
+                  required
+                  value={form.from_location}
+                  onChange={(e) =>
+                    setForm({ ...form, from_location: e.target.value })
+                  }
+                  placeholder="Enter from location"
+                  error={errors.from_location}
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <FormInput
+                  label="To Location"
+                  required
+                  value={form.to_location}
+                  onChange={(e) =>
+                    setForm({ ...form, to_location: e.target.value })
+                  }
+                  placeholder="Enter to location"
+                  error={errors.to_location}
+                />
+              </div>
+
+              {/* Row 3: Report At, Drop Location */}
+              <div className="md:col-span-3">
+                <FormSelect
+                  label="Report At"
+                  required
+                  value={form.report_at}
+                  onChange={(value) => setForm({ ...form, report_at: value })}
+                  options={locationOptions}
+                  error={errors.report_at}
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <FormSelect
+                  label="Drop Location"
+                  required
+                  value={form.drop_location}
+                  onChange={(value) =>
+                    setForm({ ...form, drop_location: value })
+                  }
+                  options={locationOptions}
+                  error={errors.drop_location}
+                />
+              </div>
+
+              {/* Row 4: Start Date, Start Time */}
+              <div className="md:col-span-3">
+                <DatePickerField
+                  label="Start Date"
+                  required
+                  value={form.start_date}
+                  onChange={(value) => setForm({ ...form, start_date: value })}
+                  min={tripStartDate}
+                  max={tripEndDate}
+                  error={errors.start_date}
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <TimePickerField
+                  label="Start Time"
+                  required
+                  value={form.start_time}
+                  onChange={(value) => setForm({ ...form, start_time: value })}
+                  error={errors.start_time}
+                />
+              </div>
+
+              {/* Row 5: End Date, End Time */}
+              <div className="md:col-span-3">
+                <DatePickerField
+                  label="End Date"
+                  required
+                  value={form.end_date}
+                  onChange={(value) => setForm({ ...form, end_date: value })}
+                  min={form.start_date || tripStartDate}
+                  max={tripEndDate}
+                  error={errors.end_date}
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <TimePickerField
+                  label="End Time"
+                  required
+                  value={form.end_time}
+                  onChange={(value) => setForm({ ...form, end_time: value })}
+                  error={errors.end_time}
+                />
+              </div>
+
+              {/* Row 6: No. of Person, Approx KM, Estimated Cost */}
+              <div className="md:col-span-2 space-y-1.5 align-bottom">
+                <label className="text-sm font-medium">
+                  No. of Person <span className="text-destructive">*</span>
+                </label>
                 <CurrencyInput
                   value={form.passenger_count}
                   onValueChange={(value) =>
@@ -480,7 +608,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 )}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="md:col-span-2 space-y-1.5">
                 <label className="text-sm font-medium">
                   Approx. K.M. <span className="text-destructive">*</span>
                 </label>
@@ -505,122 +633,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 )}
               </div>
 
-              {/* Own Car specific fields */}
-              {isOwnCar && (
-                <>
-                  <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/30">
-                    <Checkbox
-                      id="has_six_airbags"
-                      checked={form.has_six_airbags}
-                      onCheckedChange={(checked) =>
-                        setForm({ ...form, has_six_airbags: !!checked })
-                      }
-                    />
-                    <label
-                      htmlFor="has_six_airbags"
-                      className="text-sm font-medium text-foreground cursor-pointer"
-                    >
-                      Car has 6 airbags (required for reimbursement)
-                    </label>
-                  </div>
-                </>
-              )}
-
-              <FormInput
-                label="From Location"
-                required
-                value={form.from_location}
-                onChange={(e) =>
-                  setForm({ ...form, from_location: e.target.value })
-                }
-                placeholder="Enter from location"
-                error={errors.from_location}
-              />
-
-              <FormInput
-                label="To Location"
-                required
-                value={form.to_location}
-                onChange={(e) =>
-                  setForm({ ...form, to_location: e.target.value })
-                }
-                placeholder="Enter to location"
-                error={errors.to_location}
-              />
-
-              <FormSelect
-                label="Report At"
-                required
-                value={form.report_at}
-                onChange={(value) => setForm({ ...form, report_at: value })}
-                options={locationOptions}
-                error={errors.report_at}
-              />
-
-              <FormSelect
-                label="Drop Location"
-                required
-                value={form.drop_location}
-                onChange={(value) => setForm({ ...form, drop_location: value })}
-                options={locationOptions}
-                error={errors.drop_location}
-              />
-
-              <DatePickerField
-                label="Start Date"
-                required
-                value={form.start_date}
-                onChange={(value) => setForm({ ...form, start_date: value })}
-                min={tripStartDate}
-                max={tripEndDate}
-                error={errors.start_date}
-              />
-
-              <TimePickerField
-                label="Start Time"
-                required
-                value={form.start_time}
-                onChange={(value) => setForm({ ...form, start_time: value })}
-                error={errors.start_time}
-              />
-
-              {/* <FormInput
-                label="Start Time"
-                required
-                type="time"
-                value={form.start_time}
-                onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-                error={errors.start_time}
-              /> */}
-
-              <DatePickerField
-                label="End Date"
-                required
-                value={form.end_date}
-                onChange={(value) => setForm({ ...form, end_date: value })}
-                min={form.start_date || tripStartDate}
-                max={tripEndDate}
-                error={errors.end_date}
-              />
-
-              <TimePickerField
-                label="End Time"
-                required
-                value={form.end_time}
-                onChange={(value) => setForm({ ...form, end_time: value })}
-                error={errors.end_time}
-              />
-
-              {/* <FormInput
-                label="End Time"
-                required
-                type="time"
-                value={form.end_time}
-                onChange={(e) => setForm({ ...form, end_time: e.target.value })}
-                error={errors.end_time}
-              /> */}
-
-              <div className="space-y-2">
+              <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-medium">
                   Estimated Cost (₹)
                 </label>
@@ -643,7 +656,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               </div>
 
               {/* Club Booking */}
-              <div className="md:col-span-3 space-y-4">
+              <div className="md:col-span-6 space-y-4">
                 <div className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/30">
                   <Checkbox
                     id="club_booking"
@@ -679,14 +692,15 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               </div>
 
               {/* Guests */}
-              <div className="md:col-span-3">
+              <div className="md:col-span-6">
                 <GuestSelector
                   selectedGuests={form.guests}
                   setSelectedGuests={(guests) => setForm({ ...form, guests })}
                 />
               </div>
 
-              <div className="md:col-span-3">
+              {/* Special Instructions */}
+              <div className="md:col-span-6">
                 <FormTextarea
                   label="Special Instructions"
                   value={form.special_instruction}

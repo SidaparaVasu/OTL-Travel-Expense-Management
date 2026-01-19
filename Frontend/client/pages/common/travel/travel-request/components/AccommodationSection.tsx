@@ -269,20 +269,22 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     // Validate estimated cost against entitlement
     if (form.estimated_cost && form.estimated_cost.trim() !== "") {
       const cost = Number(form.estimated_cost);
-      
+
       // First check if cost is a valid number
       const costError = validateEstimatedCost(form.estimated_cost);
       if (costError) {
         newErrors.estimated_cost = costError;
       } else if (form.accommodation_sub_option && !derivedCityCategory) {
         // Cannot determine limit without city category
-        newErrors.estimated_cost = "Please select accommodation location to determine entitlement limit";
+        newErrors.estimated_cost =
+          "Please select accommodation location to determine entitlement limit";
       } else if (maxAllowed === undefined && form.accommodation_sub_option) {
         // Limit should be defined but isn't found
-        newErrors.estimated_cost = "Cannot determine entitlement limit. Please contact support.";
+        newErrors.estimated_cost =
+          "Cannot determine entitlement limit. Please contact support.";
       } else if (maxAllowed !== undefined && cost > maxAllowed) {
         // Cost exceeds limit
-        newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowed.toLocaleString('en-IN')} for ${derivedCityCategory}`;
+        newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowed.toLocaleString("en-IN")} for ${derivedCityCategory}`;
       }
     }
 
@@ -302,7 +304,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         ...form,
         estimated_cost: String(maxAllowed),
       });
-      toast.warning(`Amount capped to maximum allowed: ₹${maxAllowed.toLocaleString('en-IN')}`);
+      toast.warning(
+        `Amount capped to maximum allowed: ₹${maxAllowed.toLocaleString("en-IN")}`,
+      );
     }
   };
 
@@ -345,7 +349,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     if (form.estimated_cost && maxAllowed !== undefined) {
       const cost = Number(form.estimated_cost);
       if (cost > maxAllowed) {
-        toast.error(`Amount exceeds maximum allowed: ₹${maxAllowed.toLocaleString('en-IN')}`);
+        toast.error(
+          `Amount exceeds maximum allowed: ₹${maxAllowed.toLocaleString("en-IN")}`,
+        );
         return; // BLOCK ADD
       }
     }
@@ -466,146 +472,168 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 : "Add New Accommodation"}
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormSelect
-                label="Accommodation Type"
-                required
-                value={form.accommodation_type}
-                onChange={handleTypeChange}
-                options={[
-                  { value: "", label: "Select type" },
-                  ...travelModes.map((m) => ({
-                    value: String(m.id),
-                    label: m.name,
-                  })),
-                ]}
-                error={errors.accommodation_type}
-              />
-
-              <FormSelect
-                label="Accommodation Mode"
-                required
-                value={form.accommodation_sub_option}
-                onChange={(value) => {
-                  const subOption = currentSubOptions.find(
-                    (s) => String(s.id) === value,
-                  );
-                  setForm({
-                    ...form,
-                    accommodation_sub_option: value,
-                    accommodation_sub_option_label: subOption?.name || "",
-                    guest_house_preferences: [],
-                    arc_hotel_preferences: [],
-                    place: "",
-                  });
-                }}
-                options={[
-                  {
-                    value: "",
-                    label: form.accommodation_type
-                      ? "Select sub-option"
-                      : "Select type first",
-                  },
-                  ...currentSubOptions.map((s) => ({
-                    value: String(s.id),
-                    label: s.name,
-                  })),
-                ]}
-                disabled={!form.accommodation_type}
-                error={errors.accommodation_sub_option}
-              />
-
-              {isGuestHouseSelected ? (
-                <CityCombobox
-                  label="Place/Location"
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* Row 1: Type, Mode, Place */}
+              <div className="md:col-span-2">
+                <FormSelect
+                  label="Accommodation Type"
                   required
-                  cities={cities}
-                  value={form.place ? parseInt(form.place) : null}
-                  displayValue={form.place_label}
-                  onChange={(id, label) =>
+                  value={form.accommodation_type}
+                  onChange={handleTypeChange}
+                  options={[
+                    { value: "", label: "Select type" },
+                    ...travelModes.map((m) => ({
+                      value: String(m.id),
+                      label: m.name,
+                    })),
+                  ]}
+                  error={errors.accommodation_type}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <FormSelect
+                  label="Accommodation Mode"
+                  required
+                  value={form.accommodation_sub_option}
+                  onChange={(value) => {
+                    const subOption = currentSubOptions.find(
+                      (s) => String(s.id) === value,
+                    );
                     setForm({
                       ...form,
-                      place: id ? String(id) : "",
-                      place_label: label,
-                    })
-                  }
-                  placeholder="Enter location for entitlement calculation"
-                  error={errors.place}
+                      accommodation_sub_option: value,
+                      accommodation_sub_option_label: subOption?.name || "",
+                      guest_house_preferences: [],
+                      arc_hotel_preferences: [],
+                      place: "",
+                    });
+                  }}
+                  options={[
+                    {
+                      value: "",
+                      label: form.accommodation_type
+                        ? "Select sub-option"
+                        : "Select type first",
+                    },
+                    ...currentSubOptions.map((s) => ({
+                      value: String(s.id),
+                      label: s.name,
+                    })),
+                  ]}
+                  disabled={!form.accommodation_type}
+                  error={errors.accommodation_sub_option}
                 />
-              ) : isARCHotelSelected ? (
-                <ARCHotelSelector
-                  selectedPreferences={form.arc_hotel_preferences}
-                  setSelectedPreferences={(prefs) =>
-                    setForm({ ...form, arc_hotel_preferences: prefs })
-                  }
-                  arcHotels={arcHotels}
-                  error={errors.arc_hotel_preferences}
-                />
-              ) : (
-                <CityCombobox
-                  label="Place/Location"
+              </div>
+
+              <div className="md:col-span-2">
+                {isGuestHouseSelected ? (
+                  <CityCombobox
+                    label="Place/Location"
+                    required
+                    cities={cities}
+                    value={form.place ? parseInt(form.place) : null}
+                    displayValue={form.place_label}
+                    onChange={(id, label) =>
+                      setForm({
+                        ...form,
+                        place: id ? String(id) : "",
+                        place_label: label,
+                      })
+                    }
+                    placeholder="Enter location for entitlement calculation"
+                    error={errors.place}
+                  />
+                ) : isARCHotelSelected ? (
+                  <ARCHotelSelector
+                    selectedPreferences={form.arc_hotel_preferences}
+                    setSelectedPreferences={(prefs) =>
+                      setForm({ ...form, arc_hotel_preferences: prefs })
+                    }
+                    arcHotels={arcHotels}
+                    error={errors.arc_hotel_preferences}
+                  />
+                ) : (
+                  <CityCombobox
+                    label="Place/Location"
+                    required
+                    cities={cities}
+                    value={form.place ? parseInt(form.place) : null}
+                    displayValue={form.place_label}
+                    onChange={(id, label) =>
+                      setForm({
+                        ...form,
+                        place: id ? String(id) : "",
+                        place_label: label,
+                      })
+                    }
+                    placeholder="Enter location"
+                    error={errors.place}
+                  />
+                )}
+              </div>
+
+              {/* Row 2: Check-in Date, Check-in Time */}
+              <div className="md:col-span-3">
+                <DatePickerField
+                  label="Check-in Date"
                   required
-                  cities={cities}
-                  value={form.place ? parseInt(form.place) : null}
-                  displayValue={form.place_label}
-                  onChange={(id, label) =>
-                    setForm({
-                      ...form,
-                      place: id ? String(id) : "",
-                      place_label: label,
-                    })
+                  value={form.check_in_date}
+                  onChange={(value) =>
+                    setForm({ ...form, check_in_date: value })
                   }
-                  placeholder="Enter location"
-                  error={errors.place}
+                  min={tripStartDate}
+                  max={tripEndDate}
+                  error={errors.check_in_date}
                 />
-              )}
+              </div>
 
-              <DatePickerField
-                label="Check-in Date"
-                required
-                value={form.check_in_date}
-                onChange={(value) => setForm({ ...form, check_in_date: value })}
-                min={tripStartDate}
-                max={tripEndDate}
-                error={errors.check_in_date}
-              />
+              <div className="md:col-span-3">
+                <TimePickerField
+                  label="Check-in Time"
+                  required
+                  value={form.check_in_time}
+                  onChange={(value) =>
+                    setForm({ ...form, check_in_time: value })
+                  }
+                  error={errors.check_in_time}
+                />
+              </div>
 
-              <TimePickerField
-                label="Check-in Time"
-                required
-                value={form.check_in_time}
-                onChange={(value) => setForm({ ...form, check_in_time: value })}
-                error={errors.check_in_time}
-              />
+              {/* Row 3: Check-out Date, Check-out Time */}
+              <div className="md:col-span-3">
+                <DatePickerField
+                  label="Check-out Date"
+                  required
+                  value={form.check_out_date}
+                  onChange={(value) =>
+                    setForm({ ...form, check_out_date: value })
+                  }
+                  min={form.check_in_date || tripStartDate}
+                  max={tripEndDate}
+                  error={errors.check_out_date}
+                />
+              </div>
 
-              <DatePickerField
-                label="Check-out Date"
-                required
-                value={form.check_out_date}
-                onChange={(value) =>
-                  setForm({ ...form, check_out_date: value })
-                }
-                min={form.check_in_date || tripStartDate}
-                max={tripEndDate}
-                error={errors.check_out_date}
-              />
+              <div className="md:col-span-3">
+                <TimePickerField
+                  label="Check-out Time"
+                  required
+                  value={form.check_out_time}
+                  onChange={(value) =>
+                    setForm({ ...form, check_out_time: value })
+                  }
+                  error={errors.check_out_time}
+                />
+              </div>
 
-              <TimePickerField
-                label="Check-out Time"
-                required
-                value={form.check_out_time}
-                onChange={(value) =>
-                  setForm({ ...form, check_out_time: value })
-                }
-                error={errors.check_out_time}
-              />
-
-              <div className="space-y-2">
+              {/* Row 4: Estimated Cost, Meal Preference */}
+              <div className="md:col-span-3 space-y-2">
                 <label className="text-sm font-medium">
                   Estimated Cost (₹)
                   {maxAllowed !== undefined && (
                     <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      (Max: ₹{maxAllowed.toLocaleString('en-IN')})
+                      (Max: ₹{maxAllowed.toLocaleString("en-IN")})
                     </span>
                   )}
                 </label>
@@ -615,16 +643,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   onBlur={handleCostBlur}
                   placeholder={
                     maxAllowed !== undefined
-                      ? `Max allowed ₹${maxAllowed.toLocaleString('en-IN')}`
+                      ? `Max allowed ₹${maxAllowed.toLocaleString("en-IN")}`
                       : "Enter estimated cost"
                   }
                   className={errors.estimated_cost ? "border-destructive" : ""}
                 />
-                {/* {maxAllowed !== undefined && !errors.estimated_cost && derivedCityCategory && (
-                  <p className="text-xs text-muted-foreground">
-                    Maximum allowed: ₹{maxAllowed.toLocaleString('en-IN')} for {derivedCityCategory}
-                  </p>
-                )} */}
                 {errors.estimated_cost && (
                   <p className="text-sm text-destructive">
                     {errors.estimated_cost}
@@ -632,24 +655,27 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 )}
               </div>
 
-              <FormSelect
-                label="Meal Preference"
-                value={form.meal_preference || ""}
-                onChange={(value) =>
-                  setForm({ ...form, meal_preference: value })
-                }
-                options={[
-                  { value: "", label: "Select Meal Preference" },
-                  { value: "Vegeterian Food", label: "Vegeterian Food" },
-                  {
-                    value: "Non. Vegeterian Food",
-                    label: "Non. Vegeterian Food",
-                  },
-                  // { value: "No Food", label: "No Food" },
-                ]}
-              />
-
               <div className="md:col-span-3">
+                <FormSelect
+                  label="Meal Preference"
+                  value={form.meal_preference || ""}
+                  onChange={(value) =>
+                    setForm({ ...form, meal_preference: value })
+                  }
+                  options={[
+                    { value: "", label: "Select Meal Preference" },
+                    { value: "Vegeterian Food", label: "Vegeterian Food" },
+                    {
+                      value: "Non. Vegeterian Food",
+                      label: "Non. Vegeterian Food",
+                    },
+                    // { value: "No Food", label: "No Food" },
+                  ]}
+                />
+              </div>
+
+              {/* Row 5: Special Instructions */}
+              <div className="md:col-span-6">
                 <FormTextarea
                   label="Special Instructions"
                   value={form.special_instruction}
