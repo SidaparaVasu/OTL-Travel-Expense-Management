@@ -326,14 +326,14 @@ export default function TravelRequestApprovals() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="gap-2">
+          {/* <Button variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
             Export
           </Button>
           <Button className="gap-2">
             <Filter className="h-4 w-4" />
             Filters
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -499,9 +499,9 @@ export default function TravelRequestApprovals() {
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Status
                   </TableHead>
-                  <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
+                  {/* <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Priority
-                  </TableHead>
+                  </TableHead> */}
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Action
                   </TableHead>
@@ -555,9 +555,9 @@ export default function TravelRequestApprovals() {
                       <TableCell>
                         <StatusBadge statusType="travel" status={request.status} />
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <StatusBadge statusType="approval" status="HIGH" />
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <div className="flex gap-2">
                           {canUserApprove(request) && (
