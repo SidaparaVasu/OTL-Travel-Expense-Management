@@ -177,10 +177,7 @@ export default function TravelApplicationList() {
 
   const fetchPendingCancellations = async () => {
     try {
-      const res: any = await travelAPI.getMyApplications(
-        "cancellation_requested",
-        1,
-      );
+      const res: any = await travelAPI.getMyApplications("cancellations", 1);
       const apps = res?.data?.applications || res || [];
       setPendingCancellations(Array.isArray(apps) ? apps : []);
     } catch (err) {
@@ -476,14 +473,6 @@ export default function TravelApplicationList() {
                     className="flex items-center gap-2 px-4"
                   >
                     Cancellations
-                    {pendingCancellations.length > 0 && (
-                      <Badge
-                        variant="secondary"
-                        className="px-1.5 py-0.5 text-[10px] font-bold"
-                      >
-                        {pendingCancellations.length}
-                      </Badge>
-                    )}
                   </TabsTrigger>
                 </TabsList>
               </div>

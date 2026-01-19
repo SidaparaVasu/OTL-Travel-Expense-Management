@@ -1063,6 +1063,10 @@ class MyTravelApplicationsView(APIView):
                 queryset = queryset.filter(status='draft')
             elif status_filter == 'completed':
                 queryset = queryset.filter(status='completed')
+            elif status_filter == 'cancellations':
+                queryset = queryset.filter(status__in=[
+                    'cancellation_requested', 'cancelled', 
+                ])
 
         queryset = queryset.select_related('general_ledger').order_by('-created_at')
 
