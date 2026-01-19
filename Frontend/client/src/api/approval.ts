@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export interface ApprovalApplication {
   id: number;
@@ -35,27 +35,35 @@ export interface ApprovalStats {
 export const approvalAPI = {
   // Get pending approvals
   getPendingApprovals: async (): Promise<ApprovalApplication[]> => {
-    const { data } = await apiClient.get('/travel/approvals/pending/');
+    const { data } = await apiClient.get("/travel/approvals/pending/");
     return data;
   },
 
-  getApprovals: async (status: string = 'pending', page: number): Promise<ApprovalApplication[]> => {
-    const { data } = await apiClient.get(`/travel/manager-approvals/?status=${status}&page=${page}`);
+  getApprovals: async (
+    status: string = "pending",
+    page: number,
+    search: string = "",
+    startDate: string = "",
+    endDate: string = "",
+  ): Promise<ApprovalApplication[]> => {
+    let url = `/travel/manager-approvals/?status=${status}&page=${page}&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&departure_after=${startDate}`;
+    if (endDate) url += `&departure_before=${endDate}`;
+    const { data } = await apiClient.get(url);
     return data;
   },
-
 
   // Get statistics
   getStats: async (): Promise<ApprovalStats> => {
-    const { data } = await apiClient.get('/travel/approvals/stats/');
+    const { data } = await apiClient.get("/travel/approvals/stats/");
     return data;
   },
 
   // Approve application
   approve: async (id: number, notes?: string) => {
     const { data } = await apiClient.post(`/travel/approvals/${id}/action/`, {
-      action: 'approve',
-      notes: notes || '',
+      action: "approve",
+      notes: notes || "",
     });
     return data;
   },
@@ -63,8 +71,8 @@ export const approvalAPI = {
   // Reject application
   reject: async (id: number, notes?: string) => {
     const { data } = await apiClient.post(`/travel/approvals/${id}/action/`, {
-      action: 'reject',
-      notes: notes || '',
+      action: "reject",
+      notes: notes || "",
     });
     return data;
   },
@@ -77,7 +85,7 @@ export const approvalAPI = {
 
   // Get approval dashboard
   getDashboard: async () => {
-    const { data } = await apiClient.get('/travel/approvals/dashboard/');
+    const { data } = await apiClient.get("/travel/approvals/dashboard/");
     return data;
   },
 };

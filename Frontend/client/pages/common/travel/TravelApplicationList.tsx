@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   Calendar,
   MapPin,
+  CalendarClock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,12 @@ import { useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ROUTES } from "@/routes/routes";
 import { travelAPI } from "@/src/api/travel";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 function Pagination({ pagination, onPageChange }) {
   if (!pagination) return null;
@@ -164,10 +171,23 @@ export default function TravelApplicationList() {
   const [pendingCancellations, setPendingCancellations] = useState<any[]>([]);
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
 
+  // Search state
+  const [searchInput, setSearchInput] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [appliedStartDate, setAppliedStartDate] = useState("");
+  const [appliedEndDate, setAppliedEndDate] = useState("");
+
   useEffect(() => {
-    loadApplications(statusFilter, page);
+    loadApplications(
+      statusFilter,
+      page,
+      searchQuery,
+      appliedStartDate,
+      appliedEndDate,
+    );
     loadStats();
-  }, [statusFilter, page]);
+  }, [statusFilter, page, searchQuery, appliedStartDate, appliedEndDate]);
 
   useEffect(() => {
     if (activeTab === "pending_cancellation") {
@@ -197,7 +217,8 @@ export default function TravelApplicationList() {
       await travelAPI.withdrawCancellation(applicationId);
       toast.success("Cancellation request withdrawn successfully");
       fetchPendingCancellations();
-      loadApplications(statusFilter, page); // Refresh main list
+      fetchPendingCancellations();
+      loadApplications(statusFilter, page, searchQuery); // Refresh main list
     } catch (err: any) {
       toast.error(
         err.response?.data?.message ||
@@ -440,14 +461,82 @@ export default function TravelApplicationList() {
         <Card className="bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search by employee name or request ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex-1 relative flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search by employee name or request ID..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    className="pl-10"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setSearchQuery(searchInput);
+                        setAppliedStartDate(startDate);
+                        setAppliedEndDate(endDate);
+                      }
+                    }}
+                  />
+                </div>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={
+                        startDate || endDate
+                          ? "bg-blue-50 border-blue-200 text-blue-700"
+                          : ""
+                      }
+                    >
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      {startDate || endDate ? "Dates Selected" : "Date Range"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4" align="end">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Start Date</Label>
+                        <Input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>End Date</Label>
+                        <Input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                      {(startDate || endDate) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setStartDate("");
+                            setEndDate("");
+                          }}
+                        >
+                          Clear Dates
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Button
+                  onClick={() => {
+                    setSearchQuery(searchInput);
+                    setAppliedStartDate(startDate);
+                    setAppliedEndDate(endDate);
+                  }}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 items-center">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -585,7 +674,7 @@ export default function TravelApplicationList() {
                                     className="text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-600"
                                     onClick={() =>
                                       navigate(
-                                        ROUTES.editTravelApplication(app.id)
+                                        ROUTES.editTravelApplication(app.id),
                                       )
                                     }
                                   >

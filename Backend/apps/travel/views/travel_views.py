@@ -18,6 +18,8 @@ from utils.response_formatter import success_response, error_response, validatio
 from django.core.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 from .filters import TravelApplicationFilter
 from utils.pagination import StandardResultsSetPagination
 
@@ -1065,8 +1067,19 @@ class MyTravelApplicationsView(APIView):
                 queryset = queryset.filter(status='completed')
             elif status_filter == 'cancellations':
                 queryset = queryset.filter(status__in=[
-                    'cancellation_requested', 'cancelled', 
+                    'cancellation_requested', 'cancelled', 'cancellation_rejected'
                 ])
+
+        # Apply advanced filters (Search, Dates, Locations) using the FilterSet
+        # We create a copy and remove 'status' because we handled it manually above,
+        # and 'all' or grouped statuses might cause validation errors in the FilterSet.
+        filter_params = request.GET.copy()
+        if 'status' in filter_params:
+            del filter_params['status']
+
+        filterset = TravelApplicationFilter(filter_params, queryset=queryset)
+        if filterset.is_valid():
+            queryset = filterset.qs
 
         queryset = queryset.select_related('general_ledger').order_by('-created_at')
 

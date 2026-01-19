@@ -19,10 +19,14 @@ export const travelAPI = {
   getMyApplications: async (
     filter: string,
     page: number,
+    search: string = "",
+    startDate: string = "",
+    endDate: string = "",
   ): Promise<TravelApplicationResponse> => {
-    const { data } = await apiClient.get(
-      `/travel/my-applications/?status=${filter}&page=${page}`,
-    );
+    let url = `/travel/my-applications/?status=${filter}&page=${page}&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&departure_after=${startDate}`;
+    if (endDate) url += `&departure_before=${endDate}`;
+    const { data } = await apiClient.get(url);
     return data;
   },
 
@@ -195,7 +199,9 @@ export const travelAPI = {
     if (search) {
       params.append("search", search);
     }
-    const { data } = await apiClient.get(`/master/gl-codes/?${params.toString()}`);
+    const { data } = await apiClient.get(
+      `/master/gl-codes/?${params.toString()}`,
+    );
     return data;
   },
 
@@ -214,15 +220,12 @@ export const travelAPI = {
     return data;
   },
 
-  bulkUploadGLCodes: async (
-    formData: FormData,
-    dryRun: boolean = true,
-  ) => {
+  bulkUploadGLCodes: async (formData: FormData, dryRun: boolean = true) => {
     // Append dry_run if not already present
     if (!formData.has("dry_run")) {
       formData.append("dry_run", String(dryRun));
     }
-    
+
     const { data } = await apiClient.post(
       `/master/gl-code/bulk-upload/`,
       formData,

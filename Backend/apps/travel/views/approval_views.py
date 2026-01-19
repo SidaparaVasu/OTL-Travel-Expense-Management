@@ -11,6 +11,7 @@ from ..serializers.approval_serializers import (
     TravelApprovalFlowSerializer, ApprovalActionSerializer,
     ManagerApprovalListSerializer
 )
+from .filters import TravelApplicationFilter
 from apps.expenses.models import ExpenseClaim, ClaimApprovalFlow
 from django.db.models import Sum
 from datetime import timedelta
@@ -55,6 +56,15 @@ class ManagerApprovalsView(ListAPIView):
         elif status_filter == 'all':
             pass  # no filter applied — show all approvals
 
+        # Apply advanced filters
+        filter_params = self.request.GET.copy()
+        if 'status' in filter_params:
+            del filter_params['status']
+
+        filterset = TravelApplicationFilter(filter_params, queryset=queryset)
+        if filterset.is_valid():
+            queryset = filterset.qs
+
         return queryset.order_by('-submitted_at')
     
     def list(self, request, *args, **kwargs):
@@ -84,7 +94,7 @@ class ManagerPendingApprovalsView(ListAPIView):
     
     def get_queryset(self):
         # return TravelApplication.objects.all()
-        return TravelApplication.objects.filter(
+        queryset = TravelApplication.objects.filter(
             approval_flows__approver=self.request.user,
             approval_flows__status='pending',
             approval_flows__can_approve=True
@@ -92,7 +102,18 @@ class ManagerPendingApprovalsView(ListAPIView):
             'employee__grade', 'employee__department'
         ).prefetch_related(
             'trip_details__from_location', 'trip_details__to_location'
-        ).distinct().order_by('-submitted_at')
+        ).distinct()
+
+        # Apply advanced filters
+        filter_params = self.request.GET.copy()
+        if 'status' in filter_params:
+            del filter_params['status']
+
+        filterset = TravelApplicationFilter(filter_params, queryset=queryset)
+        if filterset.is_valid():
+            queryset = filterset.qs
+            
+        return queryset.order_by('-submitted_at')
     
     def list(self, request, *args, **kwargs):
         """Override to use standard response"""
@@ -291,11 +312,21 @@ class CHROPendingApprovalsView(ListAPIView):
     permission_required = 'travel_request_approve_all'
     
     def get_queryset(self):
-        return TravelApplication.objects.filter(
+        queryset = TravelApplication.objects.filter(
             status='pending_chro'
         ).select_related(
             'employee__grade', 'employee__department'
-        ).order_by('-submitted_at')
+        )
+
+        filter_params = self.request.GET.copy()
+        if 'status' in filter_params:
+            del filter_params['status']
+
+        filterset = TravelApplicationFilter(filter_params, queryset=queryset)
+        if filterset.is_valid():
+            queryset = filterset.qs
+
+        return queryset.order_by('-submitted_at')
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -312,11 +343,21 @@ class CEOPendingApprovalsView(ListAPIView):
     permission_required = 'travel_request_approve_all'
     
     def get_queryset(self):
-        return TravelApplication.objects.filter(
+        queryset = TravelApplication.objects.filter(
             status='pending_ceo'
         ).select_related(
             'employee__grade', 'employee__department'  
-        ).order_by('-submitted_at')
+        )
+
+        filter_params = self.request.GET.copy()
+        if 'status' in filter_params:
+            del filter_params['status']
+
+        filterset = TravelApplicationFilter(filter_params, queryset=queryset)
+        if filterset.is_valid():
+            queryset = filterset.qs
+
+        return queryset.order_by('-submitted_at')
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

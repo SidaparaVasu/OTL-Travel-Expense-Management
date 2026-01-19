@@ -1,6 +1,12 @@
-import { create } from 'zustand';
-import { travelAPI } from '@/src/api/travel';
-import { TravelApplication, TravelStats, Location, TravelMode, GLCode } from '@/src/types/travel.types';
+import { create } from "zustand";
+import { travelAPI } from "@/src/api/travel";
+import {
+  TravelApplication,
+  TravelStats,
+  Location,
+  TravelMode,
+  GLCode,
+} from "@/src/types/travel.types";
 
 interface TravelState {
   applications: TravelApplication[];
@@ -13,7 +19,13 @@ interface TravelState {
   guestHouses: any[];
   arcHotels: any[];
 
-  loadApplications: (filter: string, page?: number) => Promise<void>;
+  loadApplications: (
+    filter: string,
+    page?: number,
+    search?: string,
+    startDate?: string,
+    endDate?: string,
+  ) => Promise<void>;
   loadStats: () => Promise<void>;
   loadMasterData: () => Promise<void>;
   loadGuestHouses: () => Promise<void>;
@@ -44,12 +56,21 @@ export const useTravelStore = create<TravelState>((set, get) => ({
     set({ arcHotels: data });
   },
 
-  loadApplications: async (filter: string, page = 1) => {
+  loadApplications: async (
+    filter: string,
+    page = 1,
+    search: string = "",
+    startDate: string = "",
+    endDate: string = "",
+  ) => {
     set({ isLoading: true });
     try {
       const fetched_applications = await travelAPI.getMyApplications(
         filter,
         page,
+        search,
+        startDate,
+        endDate,
       );
       const applications = fetched_applications.data.applications;
       const stats = fetched_applications.data.statistics;

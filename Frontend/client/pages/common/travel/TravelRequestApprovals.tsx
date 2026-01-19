@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { StatusBadge } from '@/components/StatusBadge';
+import { StatusBadge } from "@/components/StatusBadge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -28,10 +28,16 @@ import {
   CheckCircle,
   IndianRupeeIcon,
   XCircle,
-
+  CalendarClock,
 } from "lucide-react";
 import { approvalAPI } from "@/src/api/approval";
 import { ROUTES } from "@/routes/routes";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 interface ApprovalStats {
   pendingApproval: number;
@@ -85,7 +91,8 @@ function Pagination({ pagination, onPageChange }) {
   };
 
   return (
-    <div className="
+    <div
+      className="
       sticky bottom-0 left-0 right-0 
       bg-white 
       border-t 
@@ -95,8 +102,8 @@ function Pagination({ pagination, onPageChange }) {
       flex flex-col gap-3 
       md:flex-row md:items-center md:justify-between
       z-20
-    ">
-
+    "
+    >
       {/* LEFT — Jump to page */}
       <div className="flex items-center gap-2">
         <span className="text-sm text-gray-600">Jump to:</span>
@@ -123,7 +130,6 @@ function Pagination({ pagination, onPageChange }) {
 
       {/* CENTER — Page Numbers (Responsive) */}
       <div className="flex flex-wrap justify-center gap-2">
-
         <Button
           variant="outline"
           size="sm"
@@ -141,10 +147,11 @@ function Pagination({ pagination, onPageChange }) {
               key={page}
               size="sm"
               variant={page === current_page ? "default" : "outline"}
-              className={`h-8 px-3 ${page === current_page
-                ? "bg-blue-600 text-white"
-                : "border-gray-300"
-                }`}
+              className={`h-8 px-3 ${
+                page === current_page
+                  ? "bg-blue-600 text-white"
+                  : "border-gray-300"
+              }`}
               onClick={() => onPageChange(page)}
             >
               {page}
@@ -175,14 +182,21 @@ export default function TravelRequestApprovals() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<ApprovalStats | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [appliedStartDate, setAppliedStartDate] = useState("");
+  const [appliedEndDate, setAppliedEndDate] = useState("");
+
   const [statusFilter, setStatusFilter] = useState("pending"); // Default status 'pending'
-  const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState();
 
-  const [applications, setApplications] = useState<PaginatedResponse<TravelApplication>>({
+  const [applications, setApplications] = useState<
+    PaginatedResponse<TravelApplication>
+  >({
     count: 0,
     next: null,
     previous: null,
@@ -190,32 +204,49 @@ export default function TravelRequestApprovals() {
   });
 
   useEffect(() => {
-    fetchApprovals(statusFilter, page);
+    fetchApprovals(
+      statusFilter,
+      page,
+      searchQuery,
+      appliedStartDate,
+      appliedEndDate,
+    );
     fetchStatistics();
-  }, [statusFilter, page]);
+  }, [statusFilter, page, searchQuery, appliedStartDate, appliedEndDate]);
 
   const canUserApprove = (request) => {
-    const pendingStatuses = [
-      "pending_manager",
-      "pending_chro",
-      "pending_ceo"
-    ];
+    const pendingStatuses = ["pending_manager", "pending_chro", "pending_ceo"];
 
     // If request is not pending – cannot approve
     if (!pendingStatuses.includes(request.status)) return false;
 
     // Must match backend current approver
-    if (request.current_approval !== null && request.current_approval.can_approve) {
+    if (
+      request.current_approval !== null &&
+      request.current_approval.can_approve
+    ) {
       return true;
     } else {
       return false;
     }
   };
 
-  const fetchApprovals = async (filter: string, page: number) => {
+  const fetchApprovals = async (
+    filter: string,
+    page: number,
+    search: string,
+    startDate: string = "",
+    endDate: string = "",
+  ) => {
     setLoading(true);
     try {
-      const res = await approvalAPI.getApprovals(filter, page);
+      const res = await approvalAPI.getApprovals(
+        filter,
+        page,
+        search,
+        startDate,
+        endDate,
+      );
       setApplications({
         count: res.meta.pagination.count,
         next: res.meta.pagination.next,
@@ -224,7 +255,6 @@ export default function TravelRequestApprovals() {
       });
 
       setPagination(res.meta.pagination);
-
     } catch (err) {
       console.error("Failed to load pending approvals!", err);
     } finally {
@@ -246,7 +276,10 @@ export default function TravelRequestApprovals() {
 
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const handleStatusUpdate = async (id: number, action: "approve" | "reject") => {
+  const handleStatusUpdate = async (
+    id: number,
+    action: "approve" | "reject",
+  ) => {
     try {
       setUpdatingId(id); // disable buttons for this request
       if (action === "approve") {
@@ -262,7 +295,7 @@ export default function TravelRequestApprovals() {
       }
 
       // Re-fetch data to reflect changes
-      await fetchApprovals(statusFilter, page);
+      await fetchApprovals(statusFilter, page, searchQuery);
       fetchStatistics();
     } catch (error) {
       console.error("Failed to update status:", error);
@@ -276,10 +309,10 @@ export default function TravelRequestApprovals() {
     const end = new Date(endDate);
 
     const formatDate = (date: Date) => {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       });
     };
 
@@ -311,7 +344,6 @@ export default function TravelRequestApprovals() {
       </div>
     );
   }
-
 
   return (
     <div className="space-y-6">
@@ -404,9 +436,7 @@ export default function TravelRequestApprovals() {
                   <div className="text-2xl font-bold text-foreground">
                     {stats.data.rejected}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Rejected
-                  </div>
+                  <div className="text-sm text-muted-foreground">Rejected</div>
                 </div>
               </div>
             </CardContent>
@@ -418,14 +448,82 @@ export default function TravelRequestApprovals() {
       <Card className="bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search by employee name or request ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex-1 relative flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search by employee name or request ID..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-10"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setSearchQuery(searchInput);
+                      setAppliedStartDate(startDate);
+                      setAppliedEndDate(endDate);
+                    }
+                  }}
+                />
+              </div>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={
+                      startDate || endDate
+                        ? "bg-blue-50 border-blue-200 text-blue-700"
+                        : ""
+                    }
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    {startDate || endDate ? "Dates Selected" : "Date Range"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4" align="end">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>End Date</Label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    {(startDate || endDate) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          setStartDate("");
+                          setEndDate("");
+                        }}
+                      >
+                        Clear Dates
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Button
+                onClick={() => {
+                  setSearchQuery(searchInput);
+                  setAppliedStartDate(startDate);
+                  setAppliedEndDate(endDate);
+                }}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -437,30 +535,6 @@ export default function TravelRequestApprovals() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  <SelectItem value="engineering">Engineering</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="sales">Sales</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
-                <SelectTrigger className="w-full sm:w-[170px]">
-                  <SelectValue placeholder="Date Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Dates</SelectItem>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                  <SelectItem value="last-month">Last Month</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -508,103 +582,116 @@ export default function TravelRequestApprovals() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-
-                {
-
-                  applications.results.map((request) => (
-                    <TableRow key={request.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold shadow-lg">
-                            {request.employee_name?.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-medium text-foreground">
-                              {request.employee_name}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                            </div>
-                          </div>
+                {applications.results.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold shadow-lg">
+                          {request.employee_name?.charAt(0).toUpperCase()}
                         </div>
-                      </TableCell>
-                      <TableCell>
                         <div>
                           <div className="font-medium text-foreground">
-                            {request.trip_summary[0]?.from} → {request.trip_summary[0]?.to}
+                            {request.employee_name}
                           </div>
-                          <div className="text-sm text-muted-foreground line-clamp-1 max-w-[200px] truncate">
-                            {request.purpose}
-                          </div>
+                          <div className="text-sm text-muted-foreground"></div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-foreground">
-                            {formatDateRange(request.trip_summary[0]?.departure, request.trip_summary[0]?.return)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {request.trip_summary[0]?.duration} Days
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
                         <div className="font-medium text-foreground">
-                          &#x20b9;{request.estimated_total_cost}
+                          {request.trip_summary[0]?.from} →{" "}
+                          {request.trip_summary[0]?.to}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge statusType="travel" status={request.status} />
-                      </TableCell>
-                      {/* <TableCell>
+                        <div className="text-sm text-muted-foreground line-clamp-1 max-w-[200px] truncate">
+                          {request.purpose}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-foreground">
+                          {formatDateRange(
+                            request.trip_summary[0]?.departure,
+                            request.trip_summary[0]?.return,
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {request.trip_summary[0]?.duration} Days
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-foreground">
+                        &#x20b9;{request.estimated_total_cost}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge
+                        statusType="travel"
+                        status={request.status}
+                      />
+                    </TableCell>
+                    {/* <TableCell>
                         <StatusBadge statusType="approval" status="HIGH" />
                       </TableCell> */}
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {canUserApprove(request) && (
-                            <>
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                                onClick={() => handleStatusUpdate(request.id, "approve")}
-                                disabled={updatingId === request.id}
-                              >
-                                {updatingId === request.id ? (
-                                  <>
-                                    <Spinner size="sm" /> Processing
-                                  </>
-                                ) : (
-                                  "Approve"
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleStatusUpdate(request.id, "reject")}
-                                disabled={updatingId === request.id}
-                              >
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                          <Button size="sm" variant="outline"
-                            onClick={() => navigate(ROUTES.travelApplicationView(request.id))}
-                          >
-                            View
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                }
-
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {canUserApprove(request) && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                              onClick={() =>
+                                handleStatusUpdate(request.id, "approve")
+                              }
+                              disabled={updatingId === request.id}
+                            >
+                              {updatingId === request.id ? (
+                                <>
+                                  <Spinner size="sm" /> Processing
+                                </>
+                              ) : (
+                                "Approve"
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() =>
+                                handleStatusUpdate(request.id, "reject")
+                              }
+                              disabled={updatingId === request.id}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            navigate(ROUTES.travelApplicationView(request.id))
+                          }
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
             {applications.results.length === 0 && (
               <center className="m-5">
-                {statusFilter === "all" && "No travel applications for approval."}
-                {statusFilter === "pending" && "No pending applications for approval."}
-                {statusFilter === "approved" && "No approved applications for approval."}
-                {statusFilter === "rejected" && "No rejected applications for approval."}
+                {statusFilter === "all" &&
+                  "No travel applications for approval."}
+                {statusFilter === "pending" &&
+                  "No pending applications for approval."}
+                {statusFilter === "approved" &&
+                  "No approved applications for approval."}
+                {statusFilter === "rejected" &&
+                  "No rejected applications for approval."}
               </center>
             )}
           </div>
