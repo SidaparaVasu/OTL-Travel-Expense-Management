@@ -563,7 +563,7 @@ export default function CreateExpenseClaim() {
                     <span className="font-medium">{formatCurrency(validationData.computed.total_incidental)}</span>
                   </div>
                   <div className="flex justify-between px-4 py-3 text-sm">
-                    <span className="text-muted-foreground">Total Expenses</span>
+                    <span className="text-muted-foreground">Booking(s) Expenses + Other Expenses</span>
                     <span className="font-medium">{formatCurrency(validationData.computed.total_expenses)}</span>
                   </div>
                   <div className="flex justify-between px-4 py-3 text-sm">

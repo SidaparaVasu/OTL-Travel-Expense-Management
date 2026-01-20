@@ -269,7 +269,7 @@ export default function ClaimDetailPage() {
               <CardContent className="pt-4">
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Total Expenses:</span>
+                    <span className="text-slate-600">Booking(s) Expenses + Other Expenses:</span>
                     <span className="font-semibold text-slate-800">{formatCurrency(claim.total_expenses)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
