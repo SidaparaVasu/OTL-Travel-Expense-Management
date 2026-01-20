@@ -196,17 +196,6 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           />
         </div>
 
-        {/* <FormInput
-          label="Internal Order (IO Number)"
-          required
-          type="number"
-          value={formData.internal_order}
-          onChange={(e) => handleFieldChange("internal_order", e.target.value)}
-          placeholder="Enter IO number"
-          maxLength={9}
-          error={errors.internal_order}
-        /> */}
-
         <div className="space-y-2">
           <label className="text-sm font-medium">
             Internal Order (IO Number){" "}
@@ -219,6 +208,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
             }
             placeholder="Enter IO number"
             maxLength={9}
+            minLength={9}
             className={errors.internal_order ? "border-destructive" : ""}
             required
           />
@@ -313,15 +303,6 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           min={today}
           error={errors.departure_date}
         />
-
-        {/* <FormInput
-          label="Trip Start Time"
-          required
-          type="time"
-          value={formData.start_time}
-          onChange={(e) => handleFieldChange("start_time", e.target.value)}
-          error={errors.start_time}
-        /> */}
 
         <TimePickerField
           label="Trip Start Time"

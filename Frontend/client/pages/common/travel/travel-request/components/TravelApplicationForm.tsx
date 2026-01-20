@@ -717,11 +717,16 @@ export const TravelApplicationForm: React.FC = () => {
     }
   };
 
-  const validatePurpose = (): boolean => {
+  const validatePurpose = (): Record<string, string> => {
     const errors: Record<string, string> = {};
     if (!purposeData.purpose.trim()) errors.purpose = "Purpose is required";
-    if (!purposeData.internal_order.trim())
+
+    if (!purposeData.internal_order.trim()) {
       errors.internal_order = "IO number is required";
+    } else if (purposeData.internal_order.length !== 9) {
+      errors.internal_order = "IO Number must be exactly 9 digits";
+    }
+
     if (!purposeData.general_ledger)
       errors.general_ledger = "GL Code is required";
     if (!purposeData.trip_from_location)
@@ -735,7 +740,7 @@ export const TravelApplicationForm: React.FC = () => {
     if (!purposeData.end_time) errors.end_time = "End time is required";
 
     setPurposeErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   };
 
   const validateBookings = (): boolean => {
@@ -988,9 +993,16 @@ export const TravelApplicationForm: React.FC = () => {
    */
 
   const handleSubmit = async () => {
-    if (!validatePurpose()) {
+    const purposeErrors = validatePurpose();
+    if (Object.keys(purposeErrors).length > 0) {
       setActiveTab("purpose");
-      toast.error("Please fill all required fields in Purpose section");
+      if (
+        purposeErrors.internal_order === "IO Number must be exactly 9 digits"
+      ) {
+        toast.error("IO Number must be exactly 9 digits");
+      } else {
+        toast.error("Please fill all required fields in Purpose section");
+      }
       return;
     }
 
