@@ -32,12 +32,17 @@ class BookingAgentServiceCategoryInline(admin.TabularInline):
     model = BookingAgentServiceCategory
     extra = 1
 
+class BookingAgentVehicleTypeMapInline(admin.TabularInline):
+    model = BookingAgentVehicleTypeMap
+    extra = 1
+    autocomplete_fields = ['vehicle_type']
+
 @admin.register(BookingAgentService)
 class BookingAgentServiceAdmin(admin.ModelAdmin):
     list_display = ('booking_agent_profile', 'profile_type', 'serves_all_cities', 'is_active')
     list_filter = ('profile_type', 'serves_all_cities', 'is_active')
     search_fields = ('booking_agent_profile__organization_name',)
-    inlines = [BookingAgentServiceCategoryInline, BookingAgentContactInline]
+    inlines = [BookingAgentServiceCategoryInline, BookingAgentContactInline, BookingAgentVehicleTypeMapInline]
 
 @admin.register(BookingAgentAssignmentRule)
 class BookingAgentAssignmentRuleAdmin(admin.ModelAdmin):
@@ -45,3 +50,13 @@ class BookingAgentAssignmentRuleAdmin(admin.ModelAdmin):
     list_filter = ('service_category', 'is_active')
     search_fields = ('service_category__name', 'booking_agent_service__booking_agent_profile__organization_name')
     
+@admin.register(VehicleCategoryMaster)
+class VehicleCategoryMasterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'is_active')
+    search_fields = ('name', 'code')
+
+@admin.register(VehicleTypeMaster)
+class VehicleTypeMasterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'capacity', 'is_active')
+    list_filter = ('category', 'is_active')
+    search_fields = ('name', 'category__name')
