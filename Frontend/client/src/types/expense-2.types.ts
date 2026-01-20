@@ -47,6 +47,7 @@ export interface ExpenseClaim {
   id: number;
   claim_number: string;
   travel_application: number;
+  travel_request_id?: string;
   items: ExpenseItem[];
   status: string;
   total_amount: number;
@@ -96,7 +97,7 @@ export interface ExpenseClaimValidateRequest {
 }
 
 export interface ExpenseClaimActionRequest {
-  action: 'submit' | 'approve' | 'reject';
+  action: "submit" | "approve" | "reject";
   remarks?: string;
 }
 

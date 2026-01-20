@@ -1,18 +1,26 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ClipboardList, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { StatusBadge } from '@/components/StatusBadge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  Search,
+  Filter,
+  ClipboardList,
+  Clock,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,22 +28,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { expenseAPI } from '@/src/api/expense';
-import { ROUTES } from '@/routes/routes';
-import type { ClaimListParams } from '@/src/types/expense-2.types';
+} from "@/components/ui/table";
+import { expenseAPI } from "@/src/api/expense";
+import { ROUTES } from "@/routes/routes";
+import type { ClaimListParams } from "@/src/types/expense-2.types";
 
 export const formatISODate = (iso: string | null | undefined) => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "Invalid Date";
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).replace(",", "");
+  return d
+    .toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace(",", "");
 };
 
 function Pagination({ pagination, onPageChange }) {
@@ -68,12 +78,27 @@ function Pagination({ pagination, onPageChange }) {
           max={total_pages}
         />
 
-        <Button variant="default" size="sm" className="h-8 px-3" onClick={handleJump}>Go</Button>
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 px-3"
+          onClick={handleJump}
+        >
+          Go
+        </Button>
       </div>
 
       {/* CENTER — Page Numbers (Responsive) */}
       <div className="flex flex-wrap justify-center gap-2">
-        <Button variant="outline" size="sm" disabled={!previous} onClick={() => onPageChange(current_page - 1)} className="h-8">Previous</Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!previous}
+          onClick={() => onPageChange(current_page - 1)}
+          className="h-8"
+        >
+          Previous
+        </Button>
 
         {/* Page Numbers */}
         <div className="flex flex-wrap gap-1 justify-center">
@@ -82,10 +107,11 @@ function Pagination({ pagination, onPageChange }) {
               key={page}
               size="sm"
               variant={page === current_page ? "default" : "outline"}
-              className={`h-8 px-3 ${page === current_page
-                ? "bg-blue-600 text-white"
-                : "border-gray-300"
-                }`}
+              className={`h-8 px-3 ${
+                page === current_page
+                  ? "bg-blue-600 text-white"
+                  : "border-gray-300"
+              }`}
               onClick={() => onPageChange(page)}
             >
               {page}
@@ -93,7 +119,15 @@ function Pagination({ pagination, onPageChange }) {
           ))}
         </div>
 
-        <Button className="h-8" variant="outline" size="sm" disabled={!next} onClick={() => onPageChange(current_page + 1)}>Next</Button>
+        <Button
+          className="h-8"
+          variant="outline"
+          size="sm"
+          disabled={!next}
+          onClick={() => onPageChange(current_page + 1)}
+        >
+          Next
+        </Button>
       </div>
 
       {/* RIGHT — Total pages */}
@@ -108,10 +142,10 @@ export default function MyClaimsPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<ClaimListParams>({ page: 1 });
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   const { data: claimsResponse, isLoading } = useQuery({
-    queryKey: ['claims', filters, page],
+    queryKey: ["claims", filters, page],
     queryFn: () => expenseAPI.claims.getAll({ ...filters, page }),
   });
 
@@ -119,7 +153,7 @@ export default function MyClaimsPage() {
   const pagination = claimsResponse?.meta?.pagination;
 
   const { data: statusResponse } = useQuery({
-    queryKey: ['claim-status'],
+    queryKey: ["claim-status"],
     queryFn: () => expenseAPI.claimStatus.getAll(),
   });
 
@@ -128,9 +162,15 @@ export default function MyClaimsPage() {
   // Calculate stats from claims data
   const stats = {
     total_claims: pagination?.count || 0,
-    pending: claims?.filter((c: any) => c.status_code === 'pending' || c.status_code === 'submitted')?.length || 0,
-    approved: claims?.filter((c: any) => c.status_code === 'approved')?.length || 0,
-    rejected: claims?.filter((c: any) => c.status_code === 'rejected')?.length || 0,
+    pending:
+      claims?.filter(
+        (c: any) =>
+          c.status_code === "pending" || c.status_code === "submitted",
+      )?.length || 0,
+    approved:
+      claims?.filter((c: any) => c.status_code === "approved")?.length || 0,
+    rejected:
+      claims?.filter((c: any) => c.status_code === "rejected")?.length || 0,
   };
 
   const handleSearch = () => {
@@ -138,17 +178,17 @@ export default function MyClaimsPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
   };
 
@@ -257,7 +297,7 @@ export default function MyClaimsPage() {
                 placeholder="Search by Travel Request ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 className="pl-10"
               />
             </div>
@@ -330,16 +370,27 @@ export default function MyClaimsPage() {
               <TableBody>
                 {claims?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-gray-500">
-                      No claims found. Create your first expense claim to get started.
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-gray-500"
+                    >
+                      No claims found. Create your first expense claim to get
+                      started.
                     </TableCell>
                   </TableRow>
                 ) : (
                   claims?.map((claim: any) => (
                     <TableRow key={claim.id}>
-                      <TableCell className="font-medium">TR-{claim.travel_application}</TableCell>
+                      <TableCell className="font-medium">
+                        {claim.travel_request_id || claim.travel_application}
+                      </TableCell>
                       <TableCell>
-                        ₹{(Number(claim.total_expenses) + Number(claim.total_da) + Number(claim.total_incidental)).toLocaleString()}
+                        ₹
+                        {(
+                          Number(claim.total_expenses) +
+                          Number(claim.total_da) +
+                          Number(claim.total_incidental)
+                        ).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         ₹{Number(claim.advance_received).toLocaleString()}
@@ -354,10 +405,15 @@ export default function MyClaimsPage() {
                         ₹{Number(claim.final_amount_payable).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">
-                        <StatusBadge statusType="claim" status={claim.status_code} />
+                        <StatusBadge
+                          statusType="claim"
+                          status={claim.status_code}
+                        />
                       </TableCell>
                       <TableCell>
-                        {claim.created_on ? formatISODate(claim.created_on) : "-"}
+                        {claim.created_on
+                          ? formatISODate(claim.created_on)
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-center gap-2">
@@ -365,7 +421,9 @@ export default function MyClaimsPage() {
                             size="sm"
                             variant="outline"
                             className="hover:bg-dark-200 hover:text-dark-foreground"
-                            onClick={() => navigate(ROUTES.claimDetailPage(claim.id))}
+                            onClick={() =>
+                              navigate(ROUTES.claimDetailPage(claim.id))
+                            }
                           >
                             View
                           </Button>

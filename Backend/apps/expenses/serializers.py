@@ -126,6 +126,7 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
     approval_flow = ClaimApprovalFlowSerializer(many=True, read_only=True)
 
     employee_name = serializers.SerializerMethodField()
+    travel_request_id = serializers.SerializerMethodField()
     status_code = serializers.SerializerMethodField()
     status_label = serializers.SerializerMethodField()
     approval_history_count = serializers.SerializerMethodField()
@@ -138,6 +139,9 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             full = obj.employee.get_full_name()
             return full or obj.employee.username or obj.employee.email
         return None
+
+    def get_travel_request_id(self, obj):
+        return obj.travel_application.get_travel_request_id() if obj.travel_application else None
     
     def get_status_code(self, obj):
         return obj.status.code if obj.status else None
@@ -161,6 +165,7 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "travel_application",
+            "travel_request_id",
             "employee",
             "employee_name",
             "status",
