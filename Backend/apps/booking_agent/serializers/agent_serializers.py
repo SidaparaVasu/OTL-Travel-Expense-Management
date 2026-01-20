@@ -2,6 +2,11 @@ from rest_framework import serializers
 from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
 from apps.authentication.models import User
 
+# IMPORTANT: 
+# "BookingAgentSerializer" defines the Booking Agent ENTITY (User).
+# "AgentBookingSerializer" defines the Booking (Job) for the Agent.
+# Naming is tricky but historical.
+
 class BookingAgentSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     organization_name = serializers.SerializerMethodField()

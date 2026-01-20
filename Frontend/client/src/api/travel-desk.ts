@@ -99,7 +99,7 @@ export const travelDeskAPI = {
 
   agents: {
     list: async (): Promise<{ data: BookingAgent[] }> => {
-      const { data } = await apiClient.get(`/travel/booking-agents/`);
+      const { data } = await apiClient.get(`/booking_agent/booking-agents/`);
       return data;
     },
     getRecommendedAgents: async (applicationId: number) => {

@@ -9,7 +9,6 @@ from .views.cancellation import *
 from .views.dashboards import *
 from .views.analytics import TravelAnalyticsView, ComplianceReportView
 from .views.travel_desk_views import *
-from .views.booking_agent_views import *
 from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
 
@@ -47,16 +46,6 @@ urlpatterns = [
     path("travel-desk/analytics/agents/", AgentAnalyticsListView.as_view(), name="agent-analytics-list"),
     path("travel-desk/analytics/agents/<int:pk>/", AgentAnalyticsDetailView.as_view(), name="agent-analytics-detail"),
 
-    # Booking Agent
-    path("booking-agents/", BookingAgentsListView.as_view(), name="booking-agents"),
-    path("booking-agent/bookings/", BookingAgentBookingsListView.as_view(), name="agent-bookings-list"),
-    path("booking-agent/bookings/<int:pk>/", BookingAgentBookingDetailView.as_view(), name="agent-booking-detail"),
-    path("booking-agent/bookings/<int:pk>/status/", BookingAgentUpdateStatusView.as_view(), name="agent-booking-status"),
-    path("booking-agent/bookings/<int:pk>/upload-file/", BookingAgentFileUploadView.as_view(), name="agent-booking-upload-file"),
-    path("booking-agent/bookings/<int:pk>/notes/", BookingAgentNotesView.as_view(), name="agent-booking-notes"),
-    path("booking-agent/bookings/<int:pk>/accept/", BookingAgentAcceptBookingView.as_view(), name="agent-booking-accept"),
-    path("booking-agent/bookings/<int:pk>/complete/", BookingAgentCompleteBookingView.as_view(), name="agent-booking-complete"),
-
     # Booking
     path('bookings/', BookingListAPIView.as_view(), name='booking-list'),
     path('bookings/<int:pk>/', BookingDetailAPIView.as_view(), name='booking-detail'),
@@ -77,7 +66,6 @@ urlpatterns = [
     path('dashboard/employee/', EmployeeDashboardView.as_view(), name="employee-dashboard"),
     path('dashboard/manager/', ManagerDashboardView.as_view(), name="manager-dashboard"),
     path('dashboard/travel-desk/', TravelDeskDashboardView.as_view(), name="travel-desk-agent-dashboard"),
-    path("dashboard/booking-agent/", BookingAgentDashboardView.as_view(), name="booking-agent-dashboard"),
 
     # Analytics
     path('analytics/', TravelAnalyticsView.as_view()),

@@ -162,7 +162,7 @@ export const travelAPI = {
     try {
       const response = await apiClient.get("/master/arc-hotels/");
       // console.log('ARC Hotels: ', response);
-      return response.data.data.results || response.data || [];
+      return response.data.data || response.data || [];
     } catch (error) {
       console.error("Failed to fetch ARC hotels:", error);
       return [];

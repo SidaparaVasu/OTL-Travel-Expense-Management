@@ -5,9 +5,9 @@ from apps.travel.models import Booking
 class AgentAnalyticsListSerializer(serializers.ModelSerializer):
     """Serializer for agent list with summary stats"""
     organization_name = serializers.CharField(source='booking_agent_profile.organization_name', read_only=True)
-    contact_person = serializers.CharField(source='booking_agent_profile.contact_person', read_only=True)
-    phone = serializers.CharField(source='booking_agent_profile.phone', read_only=True)
-    email = serializers.CharField(source='booking_agent_profile.email', read_only=True)
+    contact_person = serializers.SerializerMethodField()
+    phone = serializers.SerializerMethodField()
+    email = serializers.CharField(read_only=True) # Use user email
     
     # Computed fields
     active_bookings = serializers.IntegerField(read_only=True)
@@ -22,10 +22,16 @@ class AgentAnalyticsListSerializer(serializers.ModelSerializer):
             'active_bookings', 'completed_bookings', 'avg_response_time'
         ]
 
+    def get_contact_person(self, obj):
+        return None
+
+    def get_phone(self, obj):
+        return None
+
 class AgentAnalyticsDetailSerializer(AgentAnalyticsListSerializer):
     """Detailed analytics for a specific agent"""
     address = serializers.CharField(source='booking_agent_profile.address', read_only=True)
-    profile_type = serializers.CharField(source='booking_agent_profile.profile_type', read_only=True)
+    profile_type = serializers.SerializerMethodField()
     
     # Additional stats
     today_assignments = serializers.IntegerField(read_only=True)
@@ -35,6 +41,13 @@ class AgentAnalyticsDetailSerializer(AgentAnalyticsListSerializer):
         fields = AgentAnalyticsListSerializer.Meta.fields + [
             'address', 'profile_type', 'today_assignments', 'pending_requests'
         ]
+
+    def get_profile_type(self, obj):
+        profile = getattr(obj, "booking_agent_profile", None)
+        if profile:
+             first_service = profile.services.first()
+             return first_service.profile_type.name if first_service else "Booking Agent"
+        return None
 
 class AgentRecentBookingSerializer(serializers.ModelSerializer):
     """Simple booking serializer for recent activity"""

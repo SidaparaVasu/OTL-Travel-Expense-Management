@@ -110,9 +110,9 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             profile = user.booking_agent_profile
             data.update({
                 "organization_name": profile.organization_name,
-                "contact_person": profile.contact_person,
-                "phone": profile.phone,
-                "email": profile.email,
+                "contact_person": None, # Removed
+                "phone": None, # Removed
+                "email": user.email, # Use user email
                 "address": profile.address,
             })
         

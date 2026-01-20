@@ -75,18 +75,13 @@ class BookingAgentProfileSerializer(serializers.ModelSerializer):
     Serializer for booking agent profile information
     """
     
-    profile_type_display = serializers.CharField(source='get_profile_type_display', read_only=True)
+
     
     class Meta:
         model = BookingAgentProfile
         fields = [
-            'profile_type', 'profile_type_display',
             'organization_name',
-            'contact_person',
-            'phone',
-            'email',
             'address',
-            'service_categories',
             'gst_number',
             'pan_number',
             'license_number',
@@ -281,20 +276,44 @@ class UserListSerializer(serializers.ModelSerializer):
         return p.organization_name if p else None
 
     def get_profile_category(self, obj):
+        # Fetch generic or specific from services
         p = self._ext(obj)
-        return p.get_profile_type_display() if p else None
+        if p:
+             first_service = p.services.first()
+             return first_service.profile_type.name if first_service else "Booking Agent"
+        return None
 
     def get_contact_person(self, obj):
+        # Fetch from Primary Contact
         p = self._ext(obj)
-        return p.contact_person if p else None
+        if p and p.services.exists():
+            # Try to get primary contact from first service
+            service = p.services.first()
+            if service:
+                contact = service.contacts.filter(role="PRIMARY").first()
+                if not contact:
+                    contact = service.contacts.first()
+                
+                if contact:
+                    return contact.name
+        return None
 
     def get_phone(self, obj):
         p = self._ext(obj)
-        return p.phone if p else None
+        if p and p.services.exists():
+            service = p.services.first()
+            if service:
+                contact = service.contacts.filter(role="PRIMARY").first()
+                if not contact:
+                    contact = service.contacts.first()
+                
+                if contact:
+                    return contact.phone
+        return None
 
     def get_vendor_email(self, obj):
         p = self._ext(obj)
-        return p.email if p else None
+        return p.user.email if p else None # Use user email as fallback
 
     # -------------------------------------------
     # SUMMARY OBJECT
@@ -318,8 +337,8 @@ class UserListSerializer(serializers.ModelSerializer):
             return {
                 "type": "external",
                 "organization": p.organization_name,
-                "profile": p.get_profile_type_display(),
-                "contact": p.contact_person,
+                "profile": "Booking Agent", # Simplified
+                "contact": None,
             }
 
     # -------------------------------------------
@@ -531,11 +550,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
         }
         
         profile_fields_ext = {
-            'profile_type': validated_data.pop('profile_type', 'other'),
             'organization_name': validated_data.pop('organization_name', ''),
-            'contact_person': validated_data.pop('contact_person', ''),
-            'phone': validated_data.pop('phone', ''),
-            'service_categories': validated_data.pop('service_categories', []),
+            # 'profile_type': validated_data.pop('profile_type', 'other'), # REMOVED
+            # 'contact_person': validated_data.pop('contact_person', ''), # REMOVED
+            # 'phone': validated_data.pop('phone', ''), # REMOVED
+            # 'service_categories': validated_data.pop('service_categories', []), # REMOVED
         }
         
         # Create user
@@ -548,11 +567,48 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if user.user_type == 'organizational':
             OrganizationalProfile.objects.create(user=user, **profile_fields_org)
         elif user.user_type == 'external':
-            BookingAgentProfile.objects.create(
+            # Create Profile
+            agent_profile = BookingAgentProfile.objects.create(
                 user=user,
-                email=user.email,  # Copy from user
                 **profile_fields_ext
             )
+            
+            # --- Restore Legacy Creation Flow ---
+            # 1. Handle Profile Type (Service)
+            profile_type_code = validated_data.get('profile_type', 'booking_agent')
+            
+            # Import dynamically to avoid circular dependency
+            from apps.booking_agent.models import (
+                ProfileTypeMaster, BookingAgentService, BookingAgentContact
+            )
+            
+            pt_obj = ProfileTypeMaster.objects.filter(code=profile_type_code).first()
+            if not pt_obj:
+                # Fallback or create default if missing (safety net)
+                pt_obj, _ = ProfileTypeMaster.objects.get_or_create(
+                    code='booking_agent', 
+                    defaults={'name': 'Booking Agent'}
+                )
+            
+            # 2. Create Default Service
+            service = BookingAgentService.objects.create(
+                booking_agent_profile=agent_profile,
+                profile_type=pt_obj,
+                serves_all_cities=True  # Default to PAN India for simple create
+            )
+            
+            # 3. Handle Contact Info
+            contact_name = validated_data.get('contact_person')
+            phone_no = validated_data.get('phone')
+            
+            if contact_name or phone_no:
+                BookingAgentContact.objects.create(
+                    booking_agent_service=service,
+                    name=contact_name or "Primary Contact",
+                    phone=phone_no or "",
+                    role="PRIMARY",
+                    email=user.email # Use main user email for contact
+                )
         
         return user
 
@@ -623,11 +679,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         }
         
         profile_fields_ext = {
-            'profile_type': validated_data.pop('profile_type', None),
             'organization_name': validated_data.pop('organization_name', None),
-            'contact_person': validated_data.pop('contact_person', None),
-            'phone': validated_data.pop('phone', None),
-            'service_categories': validated_data.pop('service_categories', None),
+            # 'profile_type': validated_data.pop('profile_type', None),
+            # 'contact_person': validated_data.pop('contact_person', None),
+            # 'phone': validated_data.pop('phone', None),
+            # 'service_categories': validated_data.pop('service_categories', None),
         }
         
         # Update user fields

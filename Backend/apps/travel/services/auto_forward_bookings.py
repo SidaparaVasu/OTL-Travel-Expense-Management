@@ -11,11 +11,12 @@ def get_central_flight_train_agent():
     return (
         User.objects
         .filter(
-            booking_agent_profile__profile_type="booking_agent",
-            booking_agent_profile__service_categories__contains=["flight_booking"],
+            user_type="external",
+            booking_agent_profile__services__service_categories__service_category__code="flight_booking",
             is_active=True
         )
         .select_related("booking_agent_profile")
+        .distinct()
         .first()
     )
 

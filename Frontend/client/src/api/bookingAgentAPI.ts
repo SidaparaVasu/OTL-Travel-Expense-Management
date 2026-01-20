@@ -118,7 +118,7 @@ export const bookingAgentAPI = {
       success: boolean;
       data: BookingAgentDashboardData;
     }> => {
-      const response = await apiClient.get("/travel/dashboard/booking-agent/");
+      const response = await apiClient.get("/booking_agent/dashboard/booking-agent/");
       return response.data;
     },
   },
@@ -133,7 +133,7 @@ export const bookingAgentAPI = {
       if (params.search) queryParams.append("search", params.search);
 
       const response = await apiClient.get(
-        `/travel/booking-agent/bookings/?${queryParams.toString()}`,
+        `/booking_agent/booking-agent/bookings/?${queryParams.toString()}`,
       );
       return response.data;
     },
@@ -142,7 +142,7 @@ export const bookingAgentAPI = {
       bookingId: number,
     ): Promise<{ success: boolean; data: Booking }> => {
       const response = await apiClient.get(
-        `/travel/booking-agent/bookings/${bookingId}/`,
+        `/booking_agent/booking-agent/bookings/${bookingId}/`,
       );
       return response.data;
     },
@@ -160,7 +160,7 @@ export const bookingAgentAPI = {
       };
     }> => {
       const response = await apiClient.post(
-        `/travel/booking-agent/bookings/${bookingId}/status/`,
+        `/booking_agent/booking-agent/bookings/${bookingId}/status/`,
         formData,
         {
           headers: {
@@ -176,7 +176,7 @@ export const bookingAgentAPI = {
       data: { note: string },
     ): Promise<{ success: boolean; message: string }> => {
       const response = await apiClient.post(
-        `/travel/booking-agent/bookings/${bookingId}/notes/`,
+        `/booking_agent/booking-agent/bookings/${bookingId}/notes/`,
         data,
       );
       return response.data;
@@ -187,7 +187,7 @@ export const bookingAgentAPI = {
       formData: FormData,
     ): Promise<{ success: boolean; message: string }> => {
       const response = await apiClient.post(
-        `/travel/booking-agent/bookings/${bookingId}/upload-file/`,
+        `/booking_agent/booking-agent/bookings/${bookingId}/upload-file/`,
         formData,
         {
           headers: {

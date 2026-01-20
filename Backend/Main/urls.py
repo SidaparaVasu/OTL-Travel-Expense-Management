@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/master/', include('apps.master_data.urls')),
     path('api/travel/', include('apps.travel.urls')),
     path('api/expense/', include('apps.expenses.urls')),
+    path('api/booking_agent/', include('apps.booking_agent.urls')),
 
     path("api/file/", view_document_by_path, name="view-file"),
     

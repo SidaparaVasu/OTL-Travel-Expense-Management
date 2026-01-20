@@ -6,34 +6,12 @@ class IsAdminUser(BasePermission):
     Permission for admin dashboard users only
     """
     def has_permission(self, request, view):
-        return (
-            request.user and 
-            request.user.is_authenticated and 
-            request.user.has_role('admin')
-        )
-    
-class IsAdminUser(BasePermission):
-    """
-    Permission for admin dashboard users only
-    """
-    def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         return request.user.has_role('admin')
     
     message = "Admin access required"
 
-class IsEmployee(BasePermission):
-    """
-    Permission for employee dashboard users
-    """
-    def has_permission(self, request, view):
-        return (
-            request.user and 
-            request.user.is_authenticated and 
-            request.user.has_role('employee')
-        )
-    
 class IsEmployee(BasePermission):
     """
     Permission for employee dashboard users
@@ -143,7 +121,8 @@ class IsBookingAgent(BasePermission):
                 else None
             )
 
-        return bool(profile and profile.profile_type == "booking_agent")
+        # Fix: Check user_type and profile existence instead of removed 'profile_type' field
+        return bool(request.user.user_type == 'external' and profile)
 
 class IsSPOC(BasePermission):
     """Permission for SPOC users"""

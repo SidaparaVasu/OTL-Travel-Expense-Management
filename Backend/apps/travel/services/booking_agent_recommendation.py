@@ -40,11 +40,12 @@ def get_recommended_booking_agents(application: TravelApplication):
     central_agent = (
         User.objects
         .filter(
-            booking_agent_profile__profile_type="booking_agent",
-            booking_agent_profile__service_categories__contains=["flight_booking"],
+            user_type="external",
+            booking_agent_profile__services__service_categories__service_category__code="flight_booking",
             is_active=True,
         )
         .select_related("booking_agent_profile")
+        .distinct()
         .first()
     )
 
@@ -81,15 +82,17 @@ def get_recommended_booking_agents(application: TravelApplication):
     for city, city_bookings in city_booking_map.items():
 
         # Preferred: hotel agents serving the city
+        # Logic: Find agents with 'hotel_booking' service AND (serves_all_cities=True OR service_cities=city)
         city_hotel_agents = (
             User.objects
             .filter(
-                booking_agent_profile__profile_type="booking_agent",
-                booking_agent_profile__service_categories__contains=["hotel_booking"],
+                user_type="external",
+                booking_agent_profile__services__service_categories__service_category__code__in=["hotel_booking", "arc_hotel_booking", "guest_house_booking"],
                 is_active=True,
             )
             .filter(
-                Q(booking_agent_profile__service_cities=city)
+                Q(booking_agent_profile__services__serves_all_cities=True) |
+                Q(booking_agent_profile__services__service_cities=city)
             )
             .select_related("booking_agent_profile")
             .distinct()
@@ -98,13 +101,14 @@ def get_recommended_booking_agents(application: TravelApplication):
         agents = city_hotel_agents
         is_recommended = True
 
-        # Fallback: all hotel agents (no city match)
+        # Fallback: all hotel agents (ignoring city if none found - though logic above covers wildcards)
         if not city_hotel_agents.exists():
+             # Strict fallback - getting any hotel agent
             agents = (
                 User.objects
                 .filter(
-                    booking_agent_profile__profile_type="booking_agent",
-                    booking_agent_profile__service_categories__contains=["hotel_booking"],
+                    user_type="external",
+                    booking_agent_profile__services__service_categories__service_category__code__in=["hotel_booking", "arc_hotel_booking", "guest_house_booking"],
                     is_active=True,
                 )
                 .select_related("booking_agent_profile")

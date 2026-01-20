@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     # Our apps
     'apps.authentication',
     'apps.master_data',
+    'apps.booking_agent',
     'apps.travel',
     'apps.expenses',
     'apps.notifications',

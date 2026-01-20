@@ -104,13 +104,19 @@ class LoginView(APIView):
         elif user.user_type == 'external':
             profile = getattr(user, 'booking_agent_profile', None)
             if profile:
+                # Fetch first active service for type display (if any)
+                # This is a temporary adaptation for the normalized model
+                first_service = profile.services.filter(is_active=True).first()
+                profile_type_code = first_service.profile_type.code if first_service else 'booking_agent'
+                profile_type_name = first_service.profile_type.name if first_service else 'Booking Agent'
+
                 profile_data = {
                     'type': 'external',
-                    'profile_type': profile.profile_type,
-                    'profile_type_display': profile.get_profile_type_display(),
+                    'profile_type': profile_type_code,
+                    'profile_type_display': profile_type_name,
                     'organization_name': profile.organization_name,
-                    'contact_person': profile.contact_person,
-                    'service_categories': profile.service_categories,
+                    'contact_person': None, # Contact info moved to BookingAgentContact
+                    'service_categories': [], # Moved to BookingAgentService
                     'is_verified': profile.is_verified
                 }
         

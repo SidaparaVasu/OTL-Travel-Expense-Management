@@ -95,7 +95,8 @@ class AgentAnalyticsDetailView(APIView):
         try:
             agent = User.objects.select_related('booking_agent_profile').get(
                 id=pk, 
-                booking_agent_profile__profile_type='booking_agent'
+                user_type='external',
+                booking_agent_profile__isnull=False
             )
         except User.DoesNotExist:
             return error_response(message="Agent not found")

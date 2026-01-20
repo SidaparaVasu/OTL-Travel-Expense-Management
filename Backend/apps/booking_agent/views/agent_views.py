@@ -7,16 +7,20 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
 from decimal import Decimal 
 
-from apps.authentication.permissions import IsTravelDesk, IsAdminUser
+from apps.authentication.permissions import IsTravelDesk, IsAdminUser, IsBookingAgent, IsEmployee
 from apps.travel.models import Booking, BookingAssignment, BookingNote, TravelApplication
-from apps.travel.serializers.booking_agent_serializers import *
+from apps.booking_agent.serializers.agent_serializers import *
 from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
-from apps.authentication.permissions import IsBookingAgent, IsEmployee
 from apps.travel.models.audit import AuditLog
 from utils.response_formatter import success_response, error_response, paginated_response
 from utils.pagination import StandardResultsSetPagination
 from apps.notifications.center import NotificationCenter
+from apps.authentication.models import User
 
+# =========================================================
+# TRAVEL DESK VIEWS (Originally here, kept for reference 
+# or use by Travel Desk to see agents)
+# =========================================================
 class BookingAgentsListView(APIView):
     """
     GET /booking-agents/
@@ -30,7 +34,7 @@ class BookingAgentsListView(APIView):
             # Get all users who are booking agents
             agents = (
                 User.objects
-                .filter(booking_agent_profile__profile_type="booking_agent", is_active=True)
+                .filter(user_type="external", is_active=True)
                 .select_related("booking_agent_profile")
             )
 
@@ -47,6 +51,10 @@ class BookingAgentsListView(APIView):
                 data={"detail": str(e)}
             )
 
+
+# =========================================================
+# BOOKING AGENT PORTAL VIEWS
+# =========================================================
 
 class BookingAgentDashboardView(APIView):
     permission_classes = [IsAuthenticated, IsBookingAgent]
@@ -572,11 +580,6 @@ class BookingAgentAcceptBookingView(APIView):
             }
         )
 
-        # Notify Travel Desk
-        # notify_travel_desk(
-        #     message=f"Booking #{booking.id} has been accepted by agent {user.get_full_name()}"
-        # )
-
         return success_response(
             message="Booking accepted successfully.",
             data={
@@ -592,13 +595,13 @@ class BookingAgentCompleteBookingView(APIView):
     POST /travel/booking-agent/bookings/<pk>/complete/
 
     Payload (multipart/form-data):
-      - remarks: optional text
-      - completion_file: optional file (ticket / final doc)
+        - remarks: optional text
+        - completion_file: optional file (ticket / final doc)
 
     Rules:
-      - Only the assigned booking agent can complete the booking
-      - Booking must currently be in 'confirmed' status
-      - When ALL bookings for the application are completed,
+        - Only the assigned booking agent can complete the booking
+        - Booking must currently be in 'confirmed' status
+        - When ALL bookings for the application are completed,
         application status is set to 'completed'
     """
 
@@ -698,15 +701,6 @@ class BookingAgentCompleteBookingView(APIView):
                 "remarks": remarks,
             },
         )
-
-        # 7) (Optional) Notifications – keep as hooks for later
-        # notify_travel_desk(
-        #     message=f"Booking #{booking.id} has been marked completed by {user.get_full_name() or user.username}"
-        # )
-        # notify_employee(
-        #     application.employee,
-        #     message=f"All bookings under your travel request {application.travel_request_id} are completed."
-        # )
 
         return success_response(
             message="Booking marked as completed successfully.",
