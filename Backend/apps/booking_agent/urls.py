@@ -1,5 +1,17 @@
-from django.urls import path
+from django.urls import path, include
 from .views.agent_views import *
+from .views.master_views import *
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r"profile-types", ProfileTypeMasterViewSet, basename="profile-types")
+router.register(r"service-categories", ServiceCategoryMasterViewSet, basename="service-categories")
+router.register(r"profile-type-service-maps", ProfileTypeServiceMapViewSet, basename="profile-type-service-maps")
+router.register(r"booking-agent-services", BookingAgentServiceViewSet, basename="booking-agent-services")
+router.register(r"booking-agent-service-categories", BookingAgentServiceCategoryViewSet, basename="booking-agent-service-categories")
+router.register(r"booking-agent-contacts", BookingAgentContactViewSet, basename="booking-agent-contacts")
+router.register(r"booking-agent-vehicle-type-maps", BookingAgentVehicleTypeMapViewSet, basename="booking-agent-vehicle-type-maps")
+router.register(r"booking-agent-assignment-rules", BookingAgentAssignmentRuleViewSet, basename="booking-agent-assignment-rules")
 
 urlpatterns = [
     # Booking Agent List
@@ -14,4 +26,7 @@ urlpatterns = [
     path("booking-agent/bookings/<int:pk>/notes/", BookingAgentNotesView.as_view(), name="agent-booking-notes"),
     path("booking-agent/bookings/<int:pk>/accept/", BookingAgentAcceptBookingView.as_view(), name="agent-booking-accept"),
     path("booking-agent/bookings/<int:pk>/complete/", BookingAgentCompleteBookingView.as_view(), name="agent-booking-complete"),
+
+    # Master Data
+    path("api/masters/", include(router.urls)),
 ]
