@@ -140,6 +140,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
     const otherValue = formData[otherField];
     const newValue = id ? String(id) : "";
 
+    /* 
+    // Validation: Origin != Destination check unlink
     if (newValue && otherValue) {
       const locationError = validateLocationPair(
         field === "trip_from_location" ? newValue : otherValue,
@@ -148,7 +150,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
       if (locationError) {
         setErrors((prev) => ({ ...prev, [field]: locationError }));
       }
-    }
+    } 
+    */
   };
 
   const handleGLCodeChange = (id: number | null, label: string) => {
@@ -229,8 +232,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           displayValue={
             formData.general_ledger
               ? glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))
-                  ? `${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.gl_code} - ${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.vertical_name}`
-                  : ""
+                ? `${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.gl_code} - ${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.vertical_name}`
+                : ""
               : ""
           }
           onChange={handleGLCodeChange}
