@@ -107,6 +107,10 @@ class ExpenseClaim(models.Model):
     # Exception flags handled by backend
     exceptions = models.JSONField(default=dict, blank=True)
 
+    # Finance action timestamps
+    paid_on = models.DateTimeField(null=True, blank=True)
+    closed_on = models.DateTimeField(null=True, blank=True)
+
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
 
@@ -214,4 +218,34 @@ class ClaimApprovalFlow(models.Model):
     def __str__(self):
         return f"Claim#{self.claim_id} - Level {self.level} - {self.status}"
 
+
+class ClaimFinanceActionLog(models.Model):
+    """
+    Log of finance actions performed on claims (mark as paid, closed, etc.)
+    """
+    claim = models.ForeignKey(
+        ExpenseClaim,
+        on_delete=models.CASCADE,
+        related_name='finance_action_logs'
+    )
+    
+    action_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='finance_actions_performed'
+    )
+    
+    action = models.CharField(max_length=50)  # mark_paid, mark_closed
+    previous_status_code = models.CharField(max_length=50, blank=True)
+    new_status_code = models.CharField(max_length=50)
+    remarks = models.TextField(blank=True)
+    action_date = models.DateTimeField()
+    
+    created_on = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-action_date']
+    
+    def __str__(self):
+        return f"Claim#{self.claim_id} - {self.action} by {self.action_by.username}"
 

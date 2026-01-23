@@ -97,7 +97,7 @@ export default function ClaimDetailPage() {
           message:
             status === "manager_pending"
               ? "Pending Manager Approval"
-              : "Pending Manager Approval",
+              : "Pending Finance Approval",
         };
       case "rejected":
         return {

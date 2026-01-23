@@ -12,8 +12,8 @@ import {
   Hotel,
   Car,
   Upload,
-  CheckCircle,
-  BarChart3,
+  Wallet,
+  ClipboardList,
   BadgeIndianRupee,
   User,
   FileX,
@@ -35,6 +35,11 @@ export type SidebarSection = {
   collapsible?: boolean;
   items?: SidebarItem[];
 };
+
+const roles = JSON.parse(localStorage.getItem("roles") || "[]");
+const roleTypes = roles.map((r: any) => r.role_type?.toLowerCase());
+
+const hasFinanceRole = roleTypes.includes("finance");
 
 // ------------------------------------------------------
 // Admin Sidebar
@@ -106,6 +111,22 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
       },
     ],
   },
+  ...(hasFinanceRole
+  ? [
+      {
+        title: "Finance",
+        icon: Wallet, // choose icon
+        collapsible: true,
+        items: [
+          {
+            label: "Claims Workspace",
+            path: ROUTES.financeActionPage,
+            Icon: ClipboardList,
+          },
+        ],
+      },
+    ]
+  : []),
   {
     title: "Settings",
     icon: Settings,
@@ -189,6 +210,22 @@ export const getEmployeeSidebar = (
       },
     ],
   },
+  ...(hasFinanceRole
+  ? [
+      {
+        title: "Finance",
+        icon: Wallet, // choose icon
+        collapsible: true,
+        items: [
+          {
+            label: "Claims Workspace",
+            path: ROUTES.financeActionPage,
+            Icon: ClipboardList,
+          },
+        ],
+      },
+    ]
+  : []),
 ];
 
 // ------------------------------------------------------

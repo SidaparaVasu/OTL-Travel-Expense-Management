@@ -49,13 +49,6 @@ const ROLE_CONFIG: Record<string, PortalConfig> = {
     route: ROUTES.adminDashboard,
     portalKey: "admin",
   },
-  finance: {
-    title: "Finance Portal",
-    desc: "Verify claims, disclose in SAP, and update claim status (Paid / Closed).",
-    icon: BriefcaseBusiness,
-    route: ROUTES.adminDashboard,
-    portalKey: "finance",
-  },
   travel_desk: {
     title: "Travel Desk Portal",
     desc: "Process travel requests, manage itineraries, and coordinate with booking agents.",
@@ -92,13 +85,28 @@ const ChoosePortal: React.FC = () => {
   const roles = JSON.parse(localStorage.getItem("roles") || "[]");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
+  // roles except finance for portal selection
+  const portalRoles = roles.filter(
+    (r: any) => r.role_type?.toLowerCase() !== "finance"
+  );
+
+  React.useEffect(() => {
+    if (portalRoles.length === 0) {
+      // Redirect to saved primary dashboard OR default employee dashboard
+      const primary =
+        localStorage.getItem("primary_dashboard") || ROUTES.employeeDashboard;
+
+      navigate(primary, { replace: true });
+    }
+  }, [navigate, portalRoles.length]);
+
   const handleSelect = (route: string) => {
     localStorage.setItem("primary_dashboard", route);
     navigate(route);
   };
 
   const portals: Array<PortalConfig & { isPrimary: boolean }> = Object.values(
-    roles.reduce((acc: any, role: any) => {
+    portalRoles.reduce((acc: any, role: any) => {
       const roleType = role.role_type?.toLowerCase();
       const config = ROLE_CONFIG[roleType];
 

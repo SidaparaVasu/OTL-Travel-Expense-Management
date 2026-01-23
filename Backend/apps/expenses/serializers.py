@@ -384,6 +384,14 @@ class ApprovalActionSerializer(serializers.Serializer):
     level = serializers.IntegerField(required=False)  # optional override of approver level
     
 
+# -------------------------
+# Finance Action Serializer
+# -------------------------
+class FinanceActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["mark_paid", "mark_closed"])
+    remarks = serializers.CharField(required=False, allow_blank=True)
+    
+
 # Re-export common serializers for clarity in views
 ClaimListSerializer = ExpenseClaimSerializer
 ClaimDetailSerializer = ExpenseClaimSerializer

@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 import type {
   DashboardResponse,
   ApplicationsListResponse,
@@ -10,13 +10,13 @@ import type {
   CancelApplicationPayload,
   BookingAgent,
   AgentAnalyticsSummary,
-  AgentAnalyticsResponse
-} from '@/src/types/travel-desk.types';
+  AgentAnalyticsResponse,
+} from "@/src/types/travel-desk.types";
 
 export const travelDeskAPI = {
   dashboard: {
     get: async (): Promise<DashboardResponse> => {
-      const { data } = await apiClient.get('/travel/dashboard/travel-desk/');
+      const { data } = await apiClient.get("/travel/dashboard/travel-desk/");
       return data;
     },
   },
@@ -29,43 +29,51 @@ export const travelDeskAPI = {
     }): Promise<ApplicationsListResponse> => {
       const queryParams = new URLSearchParams();
 
-      if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.search) queryParams.append('search', params.search);
-      if (params?.status) queryParams.append('status', params.status);
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.search) queryParams.append("search", params.search);
+      if (params?.status) queryParams.append("status", params.status);
 
       const { data } = await apiClient.get(
-        `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ''}`
+        `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ""}`,
       );
 
       return data;
     },
 
-    detail: async (applicationId: number): Promise<ApplicationDetailResponse> => {
+    detail: async (
+      applicationId: number,
+    ): Promise<ApplicationDetailResponse> => {
       const { data } = await apiClient.get(
-        `/travel/travel-desk/applications/${applicationId}/`
+        `/travel/travel-desk/applications/${applicationId}/`,
       );
       return data;
     },
 
     bookings: async (applicationId: number) => {
       const { data } = await apiClient.get(
-        `/travel/travel-desk/applications/${applicationId}/bookings/`
+        `/travel/travel-desk/applications/${applicationId}/bookings/`,
       );
       return data;
     },
 
-    cancel: async (applicationId: number, payload: CancelApplicationPayload) => {
+    cancel: async (
+      applicationId: number,
+      payload: CancelApplicationPayload,
+    ) => {
       const { data } = await apiClient.post(
         `/travel/travel-desk/applications/${applicationId}/cancel/`,
-        payload
+        payload,
       );
       return data;
     },
 
-    forward: async (applicationId: number, payload: ForwardApplicationPayload) => {
+    forward: async (
+      applicationId: number,
+      payload: ForwardApplicationPayload,
+    ) => {
       const { data } = await apiClient.post(
         `/travel/travel-desk/applications/${applicationId}/forward/`,
-        payload
+        payload,
       );
       return data;
     },
@@ -75,7 +83,7 @@ export const travelDeskAPI = {
     assign: async (payload: AssignBookingPayload) => {
       const { data } = await apiClient.post(
         `/travel/travel-desk/assign-bookings/`,
-        payload
+        payload,
       );
       return data;
     },
@@ -83,7 +91,7 @@ export const travelDeskAPI = {
     addNote: async (bookingId: number, payload: AddNotePayload) => {
       const { data } = await apiClient.post(
         `/travel/travel-desk/bookings/${bookingId}/notes/`,
-        payload
+        payload,
       );
       return data;
     },
@@ -91,7 +99,7 @@ export const travelDeskAPI = {
     reassign: async (bookingId: number, payload: ReassignBookingPayload) => {
       const { data } = await apiClient.post(
         `/travel/travel-desk/bookings/${bookingId}/reassign/`,
-        payload
+        payload,
       );
       return data;
     },
@@ -104,7 +112,7 @@ export const travelDeskAPI = {
     },
     getRecommendedAgents: async (applicationId: number) => {
       const { data } = await apiClient.get(
-        `/travel/travel-desk/applications/${applicationId}/recommended-agents/`
+        `/travel/travel-desk/applications/${applicationId}/recommended-agents/`,
       );
       console.log("Recommended Agents: ", data);
       return data;
@@ -115,21 +123,26 @@ export const travelDeskAPI = {
     agents: {
       list: async (search?: string, cityId?: number | null) => {
         const params = new URLSearchParams();
-        if (search) params.append('search', search);
-        if (cityId) params.append('city', cityId.toString());
-        
-        const { data } = await apiClient.get< {data: AgentAnalyticsSummary[]} >(
-          `/travel/travel-desk/analytics/agents/?${params.toString()}`
+        if (search) params.append("search", search);
+        if (cityId) params.append("city", cityId.toString());
+
+        const { data } = await apiClient.get<{ data: AgentAnalyticsSummary[] }>(
+          `/travel/travel-desk/analytics/agents/?${params.toString()}`,
         );
         return data.data;
       },
       detail: async (id: number) => {
-        const { data } = await apiClient.get< {data: AgentAnalyticsResponse} >(
-          `/travel/travel-desk/analytics/agents/${id}/`
+        const { data } = await apiClient.get<{ data: AgentAnalyticsResponse }>(
+          `/travel/travel-desk/analytics/agents/${id}/`,
         );
         return data.data;
-      }
-    }
-  }
-
+      },
+      getAgentCities: async () => {
+        const { data } = await apiClient.get<{
+          data: { id: number; city_name: string }[];
+        }>(`/travel/travel-desk/analytics/agents/cities/`);
+        return data.data;
+      },
+    },
+  },
 };

@@ -527,12 +527,142 @@ class ClaimActionView(APIView):
             pending_flow.approved_at = timezone.now()
             pending_flow.save()
 
-            new_status_code = "approved" if action == "approve" else "rejected"
+            new_status_code = "finance_pending" if action == "approve" else "rejected"
             new_status = ClaimStatusMaster.objects.filter(code=new_status_code).first()
             claim.status = new_status
             claim.save()
 
             return success_response(message=f"Claim {new_status_code}", data={"new_status": new_status.code})
+
+
+# -------------------------
+# Finance Action View - Mark as Paid/Closed
+# -------------------------
+class ClaimFinanceActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, claim_id):
+        """
+        Finance user can update claim status:
+        - finance_pending -> paid
+        - paid -> closed
+        """
+        try:
+            # Verify finance permissions
+            if not self._verify_finance_permissions(request.user):
+                return error_response(
+                    message='Permission denied',
+                    data={'detail': 'Finance role required to perform this action'},
+                    status_code=status.HTTP_403_FORBIDDEN
+                )
+
+            # Validate request data
+            serializer = FinanceActionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            action = serializer.validated_data["action"]
+            remarks = serializer.validated_data.get("remarks", "")
+
+            # Get claim
+            claim = ExpenseClaim.objects.select_related("status").filter(id=claim_id).first()
+            if not claim:
+                return error_response(
+                    message="Claim not found",
+                    data={"claim": ["Invalid claim ID"]}
+                )
+
+            # Validate action based on current status
+            current_status = claim.status.code if claim.status else None
+            
+            if action == "mark_paid":
+                if current_status != "finance_pending":
+                    return error_response(
+                        message="Invalid action",
+                        data={"action": ["Can only mark claims as paid when status is finance_pending"]}
+                    )
+                new_status_code = "paid"
+                
+            elif action == "mark_closed":
+                if current_status != "paid":
+                    return error_response(
+                        message="Invalid action", 
+                        data={"action": ["Can only close claims when status is paid"]}
+                    )
+                new_status_code = "closed"
+                
+            else:
+                return error_response(
+                    message="Invalid action",
+                    data={"action": ["Action must be 'mark_paid' or 'mark_closed'"]}
+                )
+
+            # Update claim status
+            with transaction.atomic():
+                new_status = ClaimStatusMaster.objects.filter(code=new_status_code).first()
+                if not new_status:
+                    return error_response(
+                        message="Status configuration error",
+                        data={"status": [f"Status '{new_status_code}' not found in system"]}
+                    )
+
+                claim.status = new_status
+                
+                # Update timestamps based on action
+                if action == "mark_paid":
+                    claim.paid_on = timezone.now()
+                elif action == "mark_closed":
+                    claim.closed_on = timezone.now()
+                
+                claim.save()
+
+                # Create finance action log
+                ClaimFinanceActionLog.objects.create(
+                    claim=claim,
+                    action_by=request.user,
+                    action=action,
+                    previous_status_code=current_status,
+                    new_status_code=new_status_code,
+                    remarks=remarks,
+                    action_date=timezone.now()
+                )
+
+            return success_response(
+                message=f"Claim status updated to {new_status.label}",
+                data={
+                    "claim_id": claim.id,
+                    "new_status": new_status_code,
+                    "status_label": new_status.label
+                }
+            )
+
+        except Exception as ex:
+            tb = traceback.format_exc()
+            return error_response(
+                message="Unexpected error",
+                data={"detail": str(ex), "trace": tb}
+            )
+
+    def _verify_finance_permissions(self, user):
+        """Check if user has finance role or appropriate permissions"""
+        if not user or not user.is_authenticated:
+            return False
+        
+        # Check if user has finance role
+        user_roles = [role.role_type for role in user.get_all_roles()]
+        if 'finance' in user_roles:
+            return True
+        
+        # Check if user is staff (admin access)
+        if user.is_staff or user.is_superuser:
+            return True
+        
+        # Check for specific finance permissions
+        user_permissions = user.get_user_permissions_list()
+        finance_permissions = ['expense_claim_approve', 'finance_dashboard_access']
+        if any(perm in user_permissions for perm in finance_permissions):
+            return True
+        
+        return False
 
 
 class ClaimableTravelApplicationsView(APIView):

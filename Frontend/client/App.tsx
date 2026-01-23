@@ -24,6 +24,9 @@ import EmployeeIndex from "./pages/employee/Index";
 import TravelDeskDashboard from "./pages/deskagent/TravelDeskDashboard";
 import BookingAgentDashboard from "./pages/booking-agent/BookingAgentDashboard";
 
+// Finance Page
+import FinancePage from "./pages/finance/FinancePage";
+
 // Booking Agent
 import BookingAgentBookings from "./pages/booking-agent/BookingAgentBookings";
 
@@ -188,6 +191,18 @@ const App = () => (
               <AuthOnly>
                 <UnifiedLayout>
                   <Profile />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
+          
+          {/* ---------------- FINANCE PAGE ---------------- */}
+          <Route
+            path={ROUTES.financeActionPage}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <FinancePage />
                 </UnifiedLayout>
               </AuthOnly>
             }

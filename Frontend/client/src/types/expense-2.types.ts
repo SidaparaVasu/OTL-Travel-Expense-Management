@@ -107,3 +107,50 @@ export interface ClaimListParams {
   page?: number;
   page_size?: number;
 }
+
+// Finance Dashboard Types
+export interface FinanceDashboardStatistics {
+  pending: number;
+  paid: number;
+  closed: number;
+  disclosed: number;
+}
+
+export interface FinanceDashboardClaim {
+  travel_application: number | null;
+  travel_request_id: string | null;
+  claim_application_id: number;
+  employee_name: string;
+  status_code: string | null;
+  status_label: string | null;
+  total_da: number;
+  total_incidental: number;
+  total_expenses: number;
+  advance_received: number;
+  final_amount_payable: number;
+}
+
+export interface FinanceDashboardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    statistics: FinanceDashboardStatistics;
+    results: FinanceDashboardClaim[];
+  };
+}
+
+// Finance Action Types
+export interface FinanceActionRequest {
+  action: 'mark_paid' | 'mark_closed';
+  remarks?: string;
+}
+
+export interface FinanceActionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    claim_id: number;
+    new_status: string;
+    status_label: string;
+  };
+}

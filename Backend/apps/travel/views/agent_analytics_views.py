@@ -12,6 +12,7 @@ from apps.travel.serializers.agent_analytics_serializers import (
     AgentAnalyticsDetailSerializer,
     AgentRecentBookingSerializer
 )
+from apps.master_data.models import CityMaster
 
 class AgentAnalyticsListView(APIView):
     """
@@ -40,8 +41,8 @@ class AgentAnalyticsListView(APIView):
         city_id = request.query_params.get('city')
         if city_id:
             agents = agents.filter(
-                Q(booking_agent_profile__serves_all_cities=True) |
-                Q(booking_agent_profile__service_cities__id=city_id)
+                Q(booking_agent_profile__services__serves_all_cities=True) |
+                Q(booking_agent_profile__services__service_cities__id=city_id)
             ).distinct()
 
         # Annotate with stats
@@ -159,3 +160,27 @@ class AgentAnalyticsDetailView(APIView):
             "agent": agent_data,
             "recent_bookings": booking_data
         })
+
+class AgentReferencedCitiesView(APIView):
+    """
+    GET /travel/desk/analytics/agents/cities/
+    Returns list of cities that are actively served by at least one booking agent.
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk | IsAdminUser]
+
+    def get(self, request):
+        cities = CityMaster.objects.filter(
+            booking_agent_services__isnull=False
+        ).distinct().values("id", "city_name", "city_code", "state__state_name")
+        
+        # Mapping to match frontend expected interface if needed
+        data = []
+        for c in cities:
+            data.append({
+                "id": c["id"],
+                "city_name": c["city_name"],
+                "city_code": c["city_code"],
+                "state_name": c["state__state_name"]
+            })
+
+        return success_response(data=data)

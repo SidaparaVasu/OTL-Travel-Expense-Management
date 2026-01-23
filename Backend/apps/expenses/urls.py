@@ -17,6 +17,9 @@ urlpatterns = [
     # Claim Approval (Approve / Reject)
     path("claims/<int:claim_id>/action/", ClaimActionView.as_view(), name="expense-claim-action"),
 
+    # Finance Action (Mark as Paid / Closed)
+    path("claims/<int:claim_id>/finance-action/", ClaimFinanceActionView.as_view(), name="expense-claim-finance-action"),
+
     # Pending Claim Approval
     path("claims/pending-approvals/",  ClaimPendingApprovalListView.as_view(), name="expense-claim-pending-approvals"),
 

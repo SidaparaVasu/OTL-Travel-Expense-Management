@@ -4,11 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Building2 } from "lucide-react";
 import { travelDeskAPI } from "@/src/api/travel-desk";
-import { locationAPI } from "@/src/api/master_location";
 import { AgentAnalyticsSummary } from "@/src/types/travel-desk.types";
 import { BookingAgentDetailModal } from "./BookingAgentDetailModal";
 import { BookingAgentCityFilter } from "./BookingAgentCityFilter";
-import { City } from "@/src/api/travel-api"; // Ensure City type is available or use from API file
 
 export default function BookingAgentList() {
   const [agents, setAgents] = useState<AgentAnalyticsSummary[]>([]);
@@ -17,7 +15,7 @@ export default function BookingAgentList() {
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
 
   // Filter States
-  const [cities, setCities] = useState<any[]>([]); // Using any for now to match API response if strict type unavailable
+  const [cities, setCities] = useState<any[]>([]);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -29,7 +27,7 @@ export default function BookingAgentList() {
     try {
       const [agentsData, citiesData] = await Promise.all([
         travelDeskAPI.analytics.agents.list("", null),
-        locationAPI.getAllCities(),
+        travelDeskAPI.analytics.agents.getAgentCities(),
       ]);
       setAgents(agentsData);
       // Handle explicit array or paginated response (results/data)

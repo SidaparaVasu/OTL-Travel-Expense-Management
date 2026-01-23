@@ -44,6 +44,7 @@ urlpatterns = [
     
     # Analytics
     path("travel-desk/analytics/agents/", AgentAnalyticsListView.as_view(), name="agent-analytics-list"),
+    path("travel-desk/analytics/agents/cities/", AgentReferencedCitiesView.as_view(), name="agent-analytics-cities"),
     path("travel-desk/analytics/agents/<int:pk>/", AgentAnalyticsDetailView.as_view(), name="agent-analytics-detail"),
 
     # Booking
@@ -66,6 +67,7 @@ urlpatterns = [
     path('dashboard/employee/', EmployeeDashboardView.as_view(), name="employee-dashboard"),
     path('dashboard/manager/', ManagerDashboardView.as_view(), name="manager-dashboard"),
     path('dashboard/travel-desk/', TravelDeskDashboardView.as_view(), name="travel-desk-agent-dashboard"),
+    path('dashboard/finance/', FinanceDashboardView.as_view(), name='finance-dashboard'),
 
     # Analytics
     path('analytics/', TravelAnalyticsView.as_view()),

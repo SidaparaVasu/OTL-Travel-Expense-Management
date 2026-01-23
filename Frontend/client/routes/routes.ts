@@ -10,6 +10,9 @@ export const ROUTES = {
   deskAgentDashboard: "/travel_desk_fe/dashboard",
   bookingAgentDashboard: "/booking_agent_fe/dashboard",
 
+  // ---------------- FINANCE ----------------
+  financeActionPage: "/dashboard/finance/",
+
   // ---------------- PROFILE ----------------
   profile: "/profile",
 
@@ -21,6 +24,8 @@ export const ROUTES = {
     `/travel/create-travel-application?edit=${id}`,
   travelApplicationList: "/travel/travel-application-list",
   travelApplicationView: (id: number | string) =>
+    `/travel/travel-application/${id}/`,
+  travelApplicationViewForFinance: (id: number | string) =>
     `/travel/travel-application/${id}/`,
   travelRequestApproval: "/travel/travel-request-approval",
   travelCancellationRequest: "/travel/cancellation-request",

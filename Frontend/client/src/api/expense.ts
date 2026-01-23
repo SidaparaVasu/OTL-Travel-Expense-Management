@@ -8,6 +8,9 @@ import type {
   ExpenseType,
   ClaimStatus,
   ClaimListParams,
+  FinanceDashboardResponse,
+  FinanceActionRequest,
+  FinanceActionResponse,
 } from '@/src/types/expense-2.types';
 
 export const expenseAPI = {
@@ -74,6 +77,10 @@ export const expenseAPI = {
       console.log(data);
       return data;
     },
+    financeAction: async (id: number, payload: FinanceActionRequest): Promise<FinanceActionResponse> => {
+      const { data } = await apiClient.post(`/expense/claims/${id}/finance-action/`, payload);
+      return data;
+    },
   },
   expenseTypes: {
     getAll: async () => {
@@ -120,6 +127,12 @@ export const expenseAPI = {
     },
     delete: async (id) => {
       const { data } = await apiClient.delete<ExpenseType[]>(`/expense/claim-status/${id}/`);
+      return data;
+    },
+  },
+  finance: {
+    getDashboard: async (params?: { status?: string; search?: string; page?: number; page_size?: number }): Promise<FinanceDashboardResponse> => {
+      const { data } = await apiClient.get('/travel/dashboard/finance/', { params });
       return data;
     },
   },
