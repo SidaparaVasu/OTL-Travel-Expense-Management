@@ -21,6 +21,7 @@ import {
   Check,
   AlertTriangle,
   Info,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import { TicketingSection } from "./TicketingSection";
 import { AccommodationSection } from "./AccommodationSection";
 import { ConveyanceSection } from "./ConveyanceSection";
 import { AdvanceSection } from "./AdvanceSection";
+import { TravelForSection } from "./TravelForSection";
 import {
   getEmptyPurposeForm,
   getEmptyTicketing,
@@ -69,6 +71,7 @@ import {
 } from "@/src/api/travel-api";
 import { authAPI } from "@/src/api/auth";
 import { ROUTES } from "@/routes/routes";
+import { GuestProfile } from "@/src/types/travel.types";
 
 const STORAGE_KEY = "travel_application_form";
 
@@ -79,6 +82,7 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
+  { id: "travel_for", label: "Traveller(s)", icon: Users },
   { id: "purpose", label: "Purpose", icon: Calendar },
   { id: "ticketing", label: "Ticketing", icon: Plane },
   { id: "accommodation", label: "Accommodation", icon: Home },
@@ -98,7 +102,7 @@ export const TravelApplicationForm: React.FC = () => {
   const navigate = useNavigate();
   const { setEditMode } = useContext(EditModeContext);
 
-  const [activeTab, setActiveTab] = useState("purpose");
+  const [activeTab, setActiveTab] = useState("travel_for");
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -114,6 +118,12 @@ export const TravelApplicationForm: React.FC = () => {
   const [isLoadingEditData, setIsLoadingEditData] = useState(false);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
 
+  // Guest Logic
+  const [travelFor, setTravelFor] = useState<"self" | "guest" | "self_guest">(
+    "self",
+  );
+  const [selectedGuests, setSelectedGuests] = useState<GuestProfile[]>([]);
+
   // Detect edit mode from URL parameters
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -125,13 +135,11 @@ export const TravelApplicationForm: React.FC = () => {
     }
   }, []);
 
-  // Register cancel function with context when in edit mode
-
   // API Data
   const [cities, setCities] = useState<City[]>([]);
   const [glCodes, setGLCodes] = useState<GLCode[]>([]);
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
-  // const [travelSubOptions, setTravelSubOptions] = useState<Record<string, TravelSubOption[]>>({});
+
   const [travelSubOptions, setTravelSubOptions] =
     useState<TravelSubOptionsGrouped>({
       ticketing: {},
@@ -157,16 +165,13 @@ export const TravelApplicationForm: React.FC = () => {
   );
 
   // Ticketing state
-  // const [ticketing, setTicketing] = useState<ReturnType<typeof getEmptyTicketing>[]>([]);
   const [ticketing, setTicketing] = useState<any[]>([]);
   const [ticketingNotRequired, setTicketingNotRequired] = useState(false);
-  const [ticketingTravelModes, setTicketingTravelModes] = useState<any[]>([]);
   const [ticketingErrors, setTicketingErrors] = useState<
     Record<number, string>
   >({});
 
   // Accommodation state
-  // const [accommodation, setAccommodation] = useState<ReturnType<typeof getEmptyAccommodation>[]>([]);
   const [accommodation, setAccommodation] = useState<any[]>([]);
   const [accommodationNotRequired, setAccommodationNotRequired] =
     useState(false);
@@ -175,7 +180,6 @@ export const TravelApplicationForm: React.FC = () => {
   >({});
 
   // Conveyance state
-  // const [conveyance, setConveyance] = useState<ReturnType<typeof getEmptyConveyance>[]>([]);
   const [conveyance, setConveyance] = useState<any[]>([]);
   const [conveyanceNotRequired, setConveyanceNotRequired] = useState(false);
   const [conveyanceErrors, setConveyanceErrors] = useState<
@@ -343,6 +347,27 @@ export const TravelApplicationForm: React.FC = () => {
           // Store original status to determine if we need to call submit later
           setOriginalStatus(app.status);
 
+          // Populate Travel For & Guests
+          if (app.travel_for) setTravelFor(app.travel_for);
+          if (app.travelers) {
+            const guests = app.travelers
+              .filter((t: any) => t.guest) // Only guest travelers
+              .map((t: any) => ({
+                id: t.guest,
+                first_name: t.first_name || "",
+                last_name: t.last_name || "",
+                email: t.email || "",
+                contact_number: t.contact_number || "",
+                gender: t.gender || "O",
+                age: t.age || undefined,
+                nationality_type: t.nationality_type || "indian",
+              }));
+            // Ideally we should have full guest profile, but for now map what we have
+            // Or fetch guest details if needed.
+            // Assuming basic display fields are present in traveler serializer response
+            setSelectedGuests(guests);
+          }
+
           // Pre-fill purpose data
           if (app.trip_details && app.trip_details.length > 0) {
             const trip = app.trip_details[0];
@@ -508,6 +533,10 @@ export const TravelApplicationForm: React.FC = () => {
         if (data.activeTab) setActiveTab(data.activeTab);
         if (data.draftApplicationId)
           setDraftApplicationId(data.draftApplicationId);
+
+        // Load Guest Data
+        if (data.travelFor) setTravelFor(data.travelFor);
+        if (data.selectedGuests) setSelectedGuests(data.selectedGuests);
       }
     } catch (error) {
       console.error("Error loading saved form data:", error);
@@ -526,6 +555,8 @@ export const TravelApplicationForm: React.FC = () => {
       conveyanceNotRequired,
       activeTab,
       draftApplicationId,
+      travelFor,
+      selectedGuests,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [
@@ -538,6 +569,8 @@ export const TravelApplicationForm: React.FC = () => {
     conveyanceNotRequired,
     activeTab,
     draftApplicationId,
+    travelFor,
+    selectedGuests,
   ]);
 
   // Warn on unsaved changes when leaving
@@ -599,10 +632,11 @@ export const TravelApplicationForm: React.FC = () => {
     setConveyance([]);
     setConveyanceNotRequired(false);
     setConveyanceErrors({});
-    setActiveTab("purpose");
+    setActiveTab("travel_for");
     setDraftApplicationId(null);
+    setTravelFor("self");
+    setSelectedGuests([]);
     localStorage.removeItem(STORAGE_KEY);
-    // toast.success("Form cleared successfully");
     setShowClearDialog(false);
   };
 
@@ -625,6 +659,11 @@ export const TravelApplicationForm: React.FC = () => {
   }, [isEditMode, setEditMode, handleCancelEdit]);
 
   // Tab validation status
+  const isTravelForValid = () => {
+    if (travelFor === "self") return true;
+    return selectedGuests.length > 0;
+  };
+
   const isPurposeValid = () => {
     return !!(
       purposeData.purpose.trim() &&
@@ -658,6 +697,7 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const isFormValid = useMemo(() => {
+    const travelForValid = isTravelForValid();
     const purposeValid = isPurposeValid();
     const ticketingValid = isTicketingValid();
     const accommodationValid = isAccommodationValid();
@@ -672,6 +712,7 @@ export const TravelApplicationForm: React.FC = () => {
         conveyanceNotRequired);
 
     return (
+      travelForValid &&
       purposeValid &&
       ticketingValid &&
       accommodationValid &&
@@ -680,6 +721,8 @@ export const TravelApplicationForm: React.FC = () => {
       !hasBookingErrors
     );
   }, [
+    travelFor,
+    selectedGuests,
     purposeData,
     ticketing,
     accommodation,
@@ -699,6 +742,8 @@ export const TravelApplicationForm: React.FC = () => {
     if (activeTab === tabId) return "active";
 
     switch (tabId) {
+      case "travel_for":
+        return isTravelForValid() ? "complete" : "incomplete";
       case "purpose":
         return isPurposeValid() ? "complete" : "incomplete";
       case "ticketing":
@@ -744,6 +789,12 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const validateBookings = (): boolean => {
+    // Validate Travel For First
+    if (!isTravelForValid()) {
+      toast.error("Please add at least one guest or select 'Self' travel.");
+      return false;
+    }
+
     const hasTicketing = ticketing.length > 0 || ticketingNotRequired;
     const hasAccommodation =
       accommodation.length > 0 || accommodationNotRequired;
@@ -768,13 +819,10 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const buildPayload = (isDraft: boolean = false) => {
-    // console.log("purposeData: ", purposeData);
-    // console.log("ticketingData: ", ticketing);
-    // console.log("accommodationData: ", accommodation);
-    // console.log("conveyanceData: ", conveyance);
-
     return {
       purpose: purposeData.purpose,
+      travel_for: travelFor,
+      travelers_data: selectedGuests.map((g) => ({ guest: g.id })),
       internal_order: purposeData.internal_order,
       general_ledger: purposeData.general_ledger,
       sanction_number: purposeData.sanction_number,
@@ -820,12 +868,7 @@ export const TravelApplicationForm: React.FC = () => {
               estimated_cost: parseFloat(a.estimated_cost),
               special_instruction: a.special_instruction || "",
               booking_details: {
-                // guest_house_id: parseInt(a.guest_house) || '',
-                // guest_house: a.guest_house || '',
-                // guest_house_id: parseInt(a.guest_house) || '',
-                // guest_house: a.guest_house || '',
-                // guest_house_preferences: a.guest_house_preferences || [],
-                guest_house_preferences: [], // Removed as per request
+                guest_house_preferences: [],
                 place: a.place,
                 check_in_date: a.check_in_date,
                 check_out_date: a.check_out_date,
@@ -866,59 +909,37 @@ export const TravelApplicationForm: React.FC = () => {
           ],
         },
       ],
-
-      // purpose: purposeData,
-      // ticketing: ticketingNotRequired ? [] : ticketing,
-      // accommodation: accommodationNotRequired ? [] : accommodation,
-      // conveyance: conveyanceNotRequired ? [] : conveyance,
-      // ticketingNotRequired,
-      // accommodationNotRequired,
-      // conveyanceNotRequired,
-      // is_draft: isDraft,
     };
   };
 
   function extractErrorMessage(error: any): string {
     if (!error) return "Something went wrong.";
-
-    // 1️⃣ If backend returned the nested error as a Python string
     if (typeof error === "string") {
       const msg = parsePythonErrorString(error);
       if (msg) return msg;
       return error;
     }
-
-    // 2️⃣ If it's an array
     if (Array.isArray(error)) {
       return extractErrorMessage(error[0]);
     }
-
-    // 3️⃣ If it's an object
     if (typeof error === "object") {
       const firstKey = Object.keys(error)[0];
       return extractErrorMessage(error[firstKey]);
     }
-
     return "Unexpected error occurred.";
   }
 
   function parsePythonErrorString(pyString: string): string | null {
-    // Extract content inside ErrorDetail(string='...')
     const regex = /ErrorDetail\(string='([^']+)'/;
     const match = pyString.match(regex);
-
     if (match && match[1]) {
       return match[1];
     }
-
-    // Extract plain text after "{'duplicate': "
     const altRegex = /'([^']+)'/;
     const altMatch = pyString.match(altRegex);
-
     if (altMatch && altMatch[1]) {
       return altMatch[1];
     }
-
     return null;
   }
 
@@ -953,14 +974,9 @@ export const TravelApplicationForm: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Failed to save draft:", error);
-      console.log("RAW ERROR:", error.response?.data);
-      console.log("RAW ERRORS:", error.response?.data?.errors);
-
       const responseData = error.response?.data;
       const backendErrors = responseData?.errors;
       let message = extractErrorMessage(backendErrors);
-
-      // Prioritize top-level message if detail extraction failed
       if (
         message === "Something went wrong." ||
         message === "Unexpected error occurred."
@@ -968,7 +984,6 @@ export const TravelApplicationForm: React.FC = () => {
         if (responseData?.message) {
           message = responseData.message;
         } else if (responseData && typeof responseData === "object") {
-          // Fallback: Try extracting from the root object (if response is unwrapped errors)
           const retry = extractErrorMessage(responseData);
           if (
             retry !== "Something went wrong." &&
@@ -978,21 +993,19 @@ export const TravelApplicationForm: React.FC = () => {
           }
         }
       }
-
       toast.error(message || "Failed to save draft. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  /*
-  response: 
-    "{\"success\":false,\"message\":\"Validation failed\",\"data\":null,\"errors\":{\"trip_0\":\"{'duplicate': ErrorDetail(string='You already have an active travel application overlapping this period.', code='invalid')}\"}}"
-  responseText: 
-    "{\"success\":false,\"message\":\"Validation failed\",\"data\":null,\"errors\":{\"trip_0\":\"{'duplicate': ErrorDetail(string='You already have an active travel application overlapping this period.', code='invalid')}\"}}"
-   */
-
   const handleSubmit = async () => {
+    if (!isTravelForValid()) {
+      toast.error("Please ensure travel guest details are correct.");
+      setActiveTab("travel_for");
+      return;
+    }
+
     const purposeErrors = validatePurpose();
     if (Object.keys(purposeErrors).length > 0) {
       setActiveTab("purpose");
@@ -1023,13 +1036,8 @@ export const TravelApplicationForm: React.FC = () => {
         applicationId = result.data?.id || result.id;
       }
 
-      // Submit the application only if it was originally a draft
-      // For already-submitted applications, the update operation handles re-approval internally
       if (applicationId) {
-        // Only call submit if original status was draft (new submission or draft being submitted)
-        // For non-draft edits, the update already handled re-approval logic
         const shouldCallSubmit = !isEditMode || originalStatus === "draft";
-
         if (shouldCallSubmit) {
           await travelAPI.submitApplication(applicationId);
         }
@@ -1049,7 +1057,6 @@ export const TravelApplicationForm: React.FC = () => {
       const backendErrors = responseData?.errors;
       let message = extractErrorMessage(backendErrors);
 
-      // Prioritize top-level message if detail extraction failed
       if (
         message === "Something went wrong." ||
         message === "Unexpected error occurred."
@@ -1057,7 +1064,6 @@ export const TravelApplicationForm: React.FC = () => {
         if (responseData?.message) {
           message = responseData.message;
         } else if (responseData && typeof responseData === "object") {
-          // Fallback: Try extracting from the root object (if response is unwrapped errors)
           const retry = extractErrorMessage(responseData);
           if (
             retry !== "Something went wrong." &&
@@ -1083,6 +1089,10 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const goToNextTab = () => {
+    if (activeTab === "travel_for" && !isTravelForValid()) {
+      toast.error("Please add at least one guest or select 'Self' travel.");
+      return;
+    }
     if (currentTabIndex < TABS.length - 1) {
       setActiveTab(TABS[currentTabIndex + 1].id);
     }
@@ -1251,7 +1261,7 @@ export const TravelApplicationForm: React.FC = () => {
       {/* Tab Navigation */}
       <nav className="bg-card border-b border-border sticky top-16 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex overflow-x-auto scrollbar-hide">
+          <div className="flex overflow-x-auto scrollbar-hide no-scrollbar">
             {TABS.map((tab, index) => {
               const Icon = tab.icon;
               const status = getTabStatus(tab.id);
@@ -1314,6 +1324,15 @@ export const TravelApplicationForm: React.FC = () => {
           </div>
         ) : (
           <div className="min-h-[60vh]">
+            {activeTab === "travel_for" && (
+              <TravelForSection
+                travelFor={travelFor}
+                setTravelFor={setTravelFor}
+                selectedGuests={selectedGuests}
+                setSelectedGuests={setSelectedGuests}
+              />
+            )}
+
             {activeTab === "purpose" && (
               <PurposeSection
                 formData={purposeData}

@@ -56,6 +56,20 @@ class TravelApplication(models.Model):
         on_delete=models.CASCADE, 
         related_name='travel_applications'
     )
+    
+    TRAVEL_FOR_CHOICES = [
+        ('self', 'Self'),
+        ('guest', 'Guest'),
+        ('self_guest', 'Self + Guest'),
+    ]
+    
+    travel_for = models.CharField(
+        max_length=20,
+        choices=TRAVEL_FOR_CHOICES,
+        default='self',
+        help_text="Who is travelling?"
+    )
+
     purpose = models.TextField(help_text="Purpose of travel")
     
     # TSF Required Fields

@@ -1,6 +1,8 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 from .views.travel_views import *
+from .views.guest_views import GuestProfileViewSet
 from .views.approval_views import *
 from .views.booking import *
 from .views.booking_calendar import GuestHouseAvailabilityView
@@ -11,6 +13,9 @@ from .views.analytics import TravelAnalyticsView, ComplianceReportView
 from .views.travel_desk_views import *
 from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
+
+router = DefaultRouter()
+router.register(r'guest-profiles', GuestProfileViewSet, basename='guest-profiles')
 
 urlpatterns = [
     # Travel Applications
@@ -100,4 +105,4 @@ urlpatterns = [
     
     # Travel Desk
     path('travel-desk/dashboard/', TravelDeskDashboardView.as_view(), name='travel-desk-dashboard'),
-]
+] + router.urls

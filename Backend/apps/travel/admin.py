@@ -4,6 +4,20 @@ from .models.booking import *
 from .models.approval import *
 from .models.booking_extended import *
 from .models.audit import *
+from .models.traveler import GuestProfile, ApplicationTraveler
+
+# Register your models here.
+@admin.register(GuestProfile)
+class GuestProfileAdmin(admin.ModelAdmin):
+    list_display = ('first_name', 'last_name', 'email', 'contact_number', 'company', 'created_by', 'is_active')
+    search_fields = ('first_name', 'last_name', 'email')
+    list_filter = ('is_active', 'nationality_type', 'gender')
+
+@admin.register(ApplicationTraveler)
+class ApplicationTravelerAdmin(admin.ModelAdmin):
+    list_display = ('travel_application', 'user', 'guest', 'is_primary')
+    list_filter = ('is_primary',)
+    search_fields = ('travel_application__id', 'user__username', 'guest__first_name')
 
 # Register your models here.
 class TripDetailsInline(admin.TabularInline):

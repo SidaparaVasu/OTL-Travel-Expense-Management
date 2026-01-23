@@ -151,8 +151,52 @@ class TripDetailsSerializer(serializers.ModelSerializer):
     def get_city_category(self, obj):
         return obj.get_city_category()
 
+class ApplicationTravelerSerializer(serializers.ModelSerializer):
+    guest_name = serializers.SerializerMethodField(read_only=True)
+    user_name = serializers.SerializerMethodField(read_only=True)
+    employee_id = serializers.CharField(source='guest.company_worker_id', read_only=True, required=False)
+    
+    # Expose Guest Details for Edit Mode
+    first_name = serializers.CharField(source='guest.first_name', read_only=True, allow_null=True)
+    last_name = serializers.CharField(source='guest.last_name', read_only=True, allow_null=True)
+    email = serializers.CharField(source='guest.email', read_only=True, allow_null=True)
+    contact_number = serializers.CharField(source='guest.contact_number', read_only=True, allow_null=True)
+    gender = serializers.CharField(source='guest.gender', read_only=True, allow_null=True)
+    age = serializers.IntegerField(source='guest.age', read_only=True, allow_null=True)
+    nationality_type = serializers.CharField(source='guest.nationality_type', read_only=True, allow_null=True)
+
+    class Meta:
+        from apps.travel.models.traveler import ApplicationTraveler
+        model = ApplicationTraveler
+        fields = [
+            'id', 'user', 'user_name', 
+            'guest', 'guest_name', 'is_primary', 'employee_id',
+            'first_name', 'last_name', 'email', 'contact_number',
+            'gender', 'age', 'nationality_type'
+        ]
+    
+    def get_guest_name(self, obj):
+        if obj.guest:
+            return f"{obj.guest.first_name} {obj.guest.last_name}"
+        return None
+
+    def get_user_name(self, obj):
+        if obj.user:
+            return obj.user.get_full_name()
+        return None
+
+
 class TravelApplicationSerializer(serializers.ModelSerializer):
     trip_details = TripDetailsSerializer(many=True)
+    travelers = ApplicationTravelerSerializer(source='display_travelers', many=True, read_only=True)
+    
+    # Write-only field to accept traveler list [ {guest: id}, {user: id} ]
+    travelers_data = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True,
+        required=False
+    )
+    
     employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
     employee_grade = serializers.CharField(source='employee.grade.name', read_only=True)
     gl_code_name = serializers.CharField(source='general_ledger.vertical_name', read_only=True)
@@ -166,6 +210,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         model = TravelApplication
         fields = [
             'id', 'employee', 'employee_name', 'employee_grade', 'purpose',
+            'travel_for', 'travelers', 'travelers_data',
             'internal_order', 'general_ledger', 'gl_code_name', 'gl_code', 'gl_code_description', 'sanction_number',
             'advance_amount', 'estimated_total_cost', 'status', 'is_settled',
             'settlement_due_date', 'travel_request_id', 'total_duration_days',
@@ -198,13 +243,19 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """Enhanced validation with better error messages"""
         trip_details_data = data.get('trip_details', [])
+        travel_for = data.get('travel_for', 'self')
+        travelers_data = data.get('travelers_data', [])
         
-        # Drafts flow allows partial data, so we relax the "trip_details required" check
-        # if not trip_details_data:
-        #     raise serializers.ValidationError({
-        #         'trip_details': 'At least one trip detail is required'
-        #     })
-        
+        # Validate Guest Data
+        if travel_for in ['guest', 'self_guest']:
+            if not travelers_data:
+                raise serializers.ValidationError({'travelers_data': 'Travelers list is required for Guest travel.'})
+            
+            # Check if guests are provided
+            has_guest = any('guest' in t for t in travelers_data)
+            if not has_guest:
+                raise serializers.ValidationError({'travelers_data': 'At least one guest must be selected.'})
+
         user = self.context['request'].user
         errors = {}
         
@@ -234,11 +285,6 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                     except Exception as e:
                         trip_errors['duplicate'] = str(e)
             
-            # Booking validation - Relaxed for functionality (enforced at Submission level)
-            # bookings_data = trip_data.get('bookings', [])
-            # if not bookings_data:
-            #     trip_errors['bookings'] = 'At least one booking is required per trip'
-            
             if trip_errors:
                 errors[f'trip_{idx}'] = trip_errors
         
@@ -248,13 +294,47 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         return data
     
+    def _handle_travelers(self, application, travelers_data, travel_for, user):
+        from apps.travel.models.traveler import ApplicationTraveler
+        
+        # Clear existing
+        application.display_travelers.all().delete()
+        
+        # Add Self if applicable
+        if travel_for in ['self', 'self_guest']:
+            ApplicationTraveler.objects.create(
+                travel_application=application,
+                user=user,
+                is_primary=True # User is always primary if traveling
+            )
+        
+        # Add Guests
+        if travel_for in ['guest', 'self_guest']:
+            for idx, t_data in enumerate(travelers_data):
+                guest_id = t_data.get('guest')
+                if guest_id:
+                     # If 'guest' only mode, the first guest is primary
+                    is_primary_guest = (travel_for == 'guest' and idx == 0)
+                    
+                    ApplicationTraveler.objects.create(
+                        travel_application=application,
+                        guest_id=guest_id,
+                        is_primary=is_primary_guest
+                    )
+
     @transaction.atomic
     def create(self, validated_data):
         trip_details_data = validated_data.pop('trip_details')
-        validated_data['employee'] = self.context['request'].user
+        travelers_data = validated_data.pop('travelers_data', [])
+        
+        user = self.context['request'].user
+        validated_data['employee'] = user
         
         travel_application = TravelApplication.objects.create(**validated_data)
         
+        # Handle Travelers
+        self._handle_travelers(travel_application, travelers_data, travel_application.travel_for, user)
+
         for trip_data in trip_details_data:
             bookings_data = trip_data.pop('bookings', [])
             trip_detail = TripDetails.objects.create(
@@ -307,12 +387,17 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         trip_details_data = validated_data.pop('trip_details', None)
+        travelers_data = validated_data.pop('travelers_data', [])
         
         # Update travel application fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
+        # Update travelers
+        if travelers_data or instance.travel_for != 'self': # Only if relevant changes
+             self._handle_travelers(instance, travelers_data, instance.travel_for, instance.employee)
+
         # Update trip details if provided
         if trip_details_data is not None:
             # Delete existing trip details and recreate

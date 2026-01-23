@@ -122,9 +122,38 @@ export interface TripWithCategories {
   travelAdvance: TravelAdvanceData;
 }
 
+// Guest Types
+export interface GuestProfile {
+  id?: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  gender: "M" | "F" | "O";
+  age?: number;
+  contact_number: string;
+  date_of_birth?: string;
+  nationality_type: "indian" | "foreign";
+  is_active?: boolean;
+}
+
+export interface ApplicationTraveler {
+  id?: number;
+  user?: number;
+  user_name?: string;
+  guest?: number;
+  guest_name?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  contact_number?: string;
+  is_primary?: boolean;
+}
+
 // Travel Applications
 export interface TravelApplicationRequest {
   purpose: string;
+  travel_for: "self" | "guest" | "self_guest";
+  travelers_data?: { guest?: number; user?: number }[];
   internal_order: string;
   general_ledger: number;
   sanction_number: string;
@@ -137,6 +166,8 @@ export interface TravelApplication {
   employee_name: string;
   employee_grade: string;
   purpose: string;
+  travel_for: "self" | "guest" | "self_guest";
+  travelers: ApplicationTraveler[];
   internal_order: string;
   general_ledger: number;
   gl_code_name: string;
