@@ -139,12 +139,12 @@ class ARCHotelMaster(models.Model):
     facilities = models.JSONField(default=dict, blank=True)
     
     # Rate Information (RESTORED)
-    rate_per_night = models.DecimalField(max_digits=8, decimal_places=2)
+    rate_per_night = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.00)
     
     # Contract Details (RESTORED)
-    contract_start_date = models.DateField()
-    contract_end_date = models.DateField()
+    contract_start_date = models.DateField(null=True, blank=True)
+    contract_end_date = models.DateField(null=True, blank=True)
     
     # Category for compatibility (ADDED)
     CATEGORY_CHOICES = [
@@ -154,7 +154,7 @@ class ARCHotelMaster(models.Model):
         ('budget', 'Budget'),
         ('deluxe', 'Deluxe'),
     ]
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, null=True, blank=True)
     
     # Audit
     created_at = models.DateTimeField(auto_now_add=True)
@@ -176,11 +176,15 @@ class ARCHotelMaster(models.Model):
     
     def is_contract_valid(self):
         """Check if contract is currently valid"""
+        if not self.contract_start_date or not self.contract_end_date:
+            return False
         today = timezone.now().date()
         return self.contract_start_date <= today <= self.contract_end_date
     
     def get_total_rate_with_tax(self):
         """Calculate total rate including tax"""
+        if not self.rate_per_night:
+            return Decimal('0.00')
         tax_amount = (self.rate_per_night * self.tax_percentage) / 100
         return self.rate_per_night + tax_amount
 
