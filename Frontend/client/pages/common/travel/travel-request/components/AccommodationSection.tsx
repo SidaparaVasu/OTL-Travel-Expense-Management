@@ -13,7 +13,10 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { TimePickerField } from "./TimePickerField";
 import { CityCombobox } from "./CityCombobox";
 import { DatePickerField } from "./DatePickerField";
-import { getEmptyAccommodation } from "../lib/travel-constants";
+import {
+  getEmptyAccommodation,
+  MAX_ADVANCE_AMOUNT,
+} from "../lib/travel-constants";
 import {
   isDateInRange,
   validateEstimatedCost,
@@ -90,7 +93,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     mode.includes("ARC") ||
     mode.includes("arc");
   const isSelfArranged =
-    mode.includes("self arranged") || mode.includes("self");
+    mode.includes("self arranged") ||
+    mode.includes("self") ||
+    mode.includes("stay with friends");
+  const isStayWithFriendsAndFamily =
+    mode.includes("stay with friends") || mode.includes("family");
 
   const selectedSubOption = form.accommodation_sub_option
     ? currentSubOptions.find(
@@ -122,6 +129,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     derivedCityCategory = selectedCity?.category_name;
   } else if (isARCHotelSelected && form.arc_hotel_preferences.length > 0) {
     const hotel = arcHotels.find((h) => h.id === form.arc_hotel_preferences[0]);
+    // The new serializer provides city_category directly
     derivedCityCategory = hotel?.city_category;
   }
 
@@ -274,15 +282,29 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       const costError = validateEstimatedCost(form.estimated_cost);
       if (costError) {
         newErrors.estimated_cost = costError;
-      } else if (form.accommodation_sub_option && !derivedCityCategory) {
-        // Cannot determine limit without city category
+      } else if (
+        form.accommodation_sub_option &&
+        !derivedCityCategory &&
+        !isStayWithFriendsAndFamily
+      ) {
+        // Cannot determine limit without city category - Skip for Friends & Family
         newErrors.estimated_cost =
           "Please select accommodation location to determine entitlement limit";
-      } else if (maxAllowed === undefined && form.accommodation_sub_option) {
-        // Limit should be defined but isn't found
-        newErrors.estimated_cost =
-          "Cannot determine entitlement limit. Please contact support.";
-      } else if (maxAllowed !== undefined && cost > maxAllowed) {
+      } else if (
+        maxAllowed === undefined &&
+        form.accommodation_sub_option &&
+        !isStayWithFriendsAndFamily
+      ) {
+        // If no entitlement limit found (e.g. self-arranged), use global max advance limit
+        // EXCEPTION: Friends & Family does not have entitlement check
+        if (cost > MAX_ADVANCE_AMOUNT) {
+          newErrors.estimated_cost = `Maximum allowed is ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+        }
+      } else if (
+        maxAllowed !== undefined &&
+        cost > maxAllowed &&
+        !isStayWithFriendsAndFamily
+      ) {
         // Cost exceeds limit
         newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowed.toLocaleString("en-IN")} for ${derivedCityCategory}`;
       }
@@ -299,6 +321,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   };
 
   const handleCostBlur = () => {
+    // Skip auto-capping for Friends & Family
+    if (isStayWithFriendsAndFamily) return;
+
     if (maxAllowed && Number(form.estimated_cost) > maxAllowed) {
       setForm({
         ...form,
@@ -306,6 +331,18 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       });
       toast.warning(
         `Amount capped to maximum allowed: ₹${maxAllowed.toLocaleString("en-IN")}`,
+      );
+    } else if (
+      maxAllowed === undefined &&
+      Number(form.estimated_cost) > MAX_ADVANCE_AMOUNT
+    ) {
+      // If no entitlement limit (e.g. self-arranged), check global cap
+      setForm({
+        ...form,
+        estimated_cost: String(MAX_ADVANCE_AMOUNT),
+      });
+      toast.warning(
+        `Amount capped to maximum allowed: ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
       );
     }
   };
@@ -346,7 +383,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     }
 
     // Additional check: ensure limit is enforced (should already be caught by validateForm)
-    if (form.estimated_cost && maxAllowed !== undefined) {
+    if (
+      form.estimated_cost &&
+      maxAllowed !== undefined &&
+      !isStayWithFriendsAndFamily
+    ) {
       const cost = Number(form.estimated_cost);
       if (cost > maxAllowed) {
         toast.error(
@@ -414,7 +455,16 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     },
     {
       label: "Place",
-      render: (row: AccommodationFormData) => row.place_label || "N/A",
+      render: (row: AccommodationFormData) => {
+        if (row.place_label) return row.place_label;
+        if (row.arc_hotel_preferences && row.arc_hotel_preferences.length > 0) {
+          const hotel = arcHotels.find(
+            (h) => h.id === row.arc_hotel_preferences[0],
+          );
+          return hotel ? hotel.city_name : "Unknown City";
+        }
+        return "N/A";
+      },
     },
     {
       label: "Check-in",

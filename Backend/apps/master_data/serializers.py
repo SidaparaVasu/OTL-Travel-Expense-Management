@@ -184,6 +184,7 @@ class GuestHouseMasterSerializer(serializers.ModelSerializer):
         validated_data['updated_by'] = self.context['request'].user
         return super().update(instance, validated_data)
 
+# Annual Rate Contract Hotels
 class ARCHotelSerializer(serializers.ModelSerializer):
     """Serializer for ARC Hotel Master with enhanced fields"""
     
@@ -240,6 +241,42 @@ class ARCHotelSerializer(serializers.ModelSerializer):
         validated_data['updated_by'] = self.context['request'].user
         return super().update(instance, validated_data)
 
+class ARCHotelListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for list views"""
+    
+    city_name = serializers.CharField(source='city.city_name', read_only=True)
+    state_name = serializers.CharField(source='state.state_name', read_only=True)
+    hotel_type_display = serializers.CharField(source='get_hotel_type_display', read_only=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    total_rate_with_tax = serializers.SerializerMethodField()
+    contract_valid = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ARCHotelMaster
+        fields = [
+            'id', 'name', 'hotel_type', 'hotel_type_display', 'star_rating',
+            'city', 'city_name', 'state_name', 'category', 'category_display',
+            'phone_number', 'email', 'total_rooms',
+            'rate_per_night', 'tax_percentage', 'total_rate_with_tax',
+            'contract_start_date', 'contract_end_date', 'contract_valid',
+            'is_active'
+        ]
+    
+    def get_total_rate_with_tax(self, obj):
+        return float(obj.get_total_rate_with_tax())
+    
+    def get_contract_valid(self, obj):
+        return obj.is_contract_valid()
+
+class ARCHotelDropdownSerializer(serializers.ModelSerializer):
+    # Read-only related fields
+    city_name = serializers.CharField(source='city.city_name', read_only=True)
+    state_name = serializers.CharField(source='state.state_name', read_only=True)
+    country_name = serializers.CharField(source='country.country_name', read_only=True)
+    city_category = serializers.CharField(source='city.category.name', read_only=True)
+    class Meta:
+        model = ARCHotelMaster
+        fields = ['id', 'name', 'city', 'city_name', 'state', 'state_name', 'country', 'country_name', 'city_category']
 
 class LocationSPOCSerializer(serializers.ModelSerializer):
     location_name = serializers.CharField(source='location.location_name', read_only=True)

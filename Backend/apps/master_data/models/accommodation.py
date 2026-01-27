@@ -127,16 +127,16 @@ class ARCHotelMaster(models.Model):
     phone_number = models.CharField(max_length=15)
     email = models.EmailField(null=True, blank=True)
     website = models.URLField(blank=True)
-    social_media = models.JSONField(default=dict)
+    social_media = models.JSONField(default=dict, blank=True)
     
     # Capacity
     total_rooms = models.PositiveIntegerField(null=True, blank=True)
-    room_types = models.JSONField(default=list)
+    room_types = models.JSONField(default=list, blank=True)
     check_in_time = models.TimeField(null=True, blank=True)
     check_out_time = models.TimeField(null=True, blank=True)
     
     # Facilities
-    facilities = models.JSONField(default=dict)
+    facilities = models.JSONField(default=dict, blank=True)
     
     # Rate Information (RESTORED)
     rate_per_night = models.DecimalField(max_digits=8, decimal_places=2)
@@ -172,7 +172,7 @@ class ARCHotelMaster(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.name} ({self.category}) - {self.city.city_name}"
+        return f"{self.name} ({self.category}) - {self.city}"
     
     def is_contract_valid(self):
         """Check if contract is currently valid"""

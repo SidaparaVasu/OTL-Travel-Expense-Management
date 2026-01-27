@@ -265,19 +265,14 @@ export const TravelApplicationForm: React.FC = () => {
     const fetchData = async () => {
       setIsLoadingData(true);
       try {
-        const [
-          citiesData,
-          glCodesData,
-          travelModesData,
-          guestHousesData,
-          arcHotelsData,
-        ] = await Promise.all([
-          locationAPI.getAllCities(),
-          travelAPI.getActiveGLCodes(),
-          travelAPI.getAllowedTravelModes(),
-          travelAPI.getGuestHouses(),
-          travelAPI.getARCHotels(),
-        ]);
+        const [citiesData, glCodesData, travelModesData, guestHousesData, arcHotelsData] =
+          await Promise.all([
+            locationAPI.getAllCities(),
+            travelAPI.getActiveGLCodes(),
+            travelAPI.getAllowedTravelModes(),
+            travelAPI.getGuestHouses(),
+            // travelAPI.getARCHotelsDropdown(),
+          ]);
 
         setCities(citiesData);
         setGLCodes(glCodesData);
@@ -289,7 +284,7 @@ export const TravelApplicationForm: React.FC = () => {
           );
         setTravelSubOptions({ ticketing, accommodation, conveyance });
         setGuestHouses(guestHousesData);
-        setARCHotels(arcHotelsData);
+        // setARCHotels(arcHotelsData); // Removed initial load
       } catch (error) {
         console.error("Failed to load master data:", error);
         toast.error("Failed to load form data. Using default values.");
@@ -300,6 +295,36 @@ export const TravelApplicationForm: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Fetch ARC Hotels based on trip location
+  useEffect(() => {
+    const fetchFilteredARCHotels = async () => {
+      const cityIds: number[] = [];
+      if (purposeData.trip_from_location) {
+        cityIds.push(purposeData.trip_from_location);
+      }
+      if (purposeData.trip_to_location) {
+        cityIds.push(purposeData.trip_to_location);
+      }
+
+      if (cityIds.length > 0) {
+        // Only fetch if we have at least one city selected
+        try {
+          const hotels = await travelAPI.getARCHotelsDropdown(cityIds);
+          setARCHotels(hotels);
+        } catch (error) {
+          console.error("Failed to fetch filtered ARC hotels", error);
+        }
+      } else {
+        // If no cities selected, maybe clear the list or show all?
+        // showing all might be too heavy (4000+). Let's keep it empty or show all if needed.
+        // For now, let's just clear it to encourage selection.
+        setARCHotels([]);
+      }
+    };
+
+    fetchFilteredARCHotels();
+  }, [purposeData.trip_from_location, purposeData.trip_to_location]);
 
   // Fetch user profile to get approver details
   useEffect(() => {

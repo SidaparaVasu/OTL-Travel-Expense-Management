@@ -56,6 +56,7 @@ urlpatterns = [
     # Accommodation URLs
     path('arc-hotels/', ARCHotelListCreateView.as_view(), name='arc-hotel-list-create'),
     path('arc-hotels/<int:pk>/', ARCHotelDetailView.as_view(), name='arc-hotel-detail'),
+    path('arc-hotels/dropdown/', ARCHotelDropdownView.as_view(), name='arc-hotel-dropdown'),
     path('location-spoc/', LocationSPOCListCreateView.as_view(), name='locationspoc-list'),
     path('location-spoc/<int:pk>/', LocationSPOCDetailView.as_view(), name='locationspoc-detail'),
     

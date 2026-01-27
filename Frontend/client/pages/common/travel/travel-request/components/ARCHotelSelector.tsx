@@ -154,7 +154,7 @@ export const ARCHotelSelector: React.FC<ARCHotelSelectorProps> = ({
                             (g) => !tempPreferences.includes(g.id) || currentSelection === g.id
                           ).map((g) => (
                             <option key={g.id} value={g.id}>
-                              {g.name}
+                              <span className="text-blue-500">{g.name}</span> - <span>{g.city_name}</span>, <span>{g.state_name}</span>
                             </option>
                           ))}
                         </select>

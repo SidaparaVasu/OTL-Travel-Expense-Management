@@ -169,6 +169,22 @@ export const travelAPI = {
     }
   },
 
+  // ARC Hotels Dropdown
+  getARCHotelsDropdown: async (cityIds?: number[]): Promise<ARCHotel[]> => {
+    try {
+      let url = "/master/arc-hotels/dropdown/";
+      if (cityIds && cityIds.length > 0) {
+        url += `?city_ids=${cityIds.join(",")}`;
+      }
+      const response = await apiClient.get(url);
+      // console.log('ARC Hotels: ', response);
+      return response.data.data || response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch ARC hotels:", error);
+      return [];
+    }
+  },
+
   // Create Application (Save as Draft)
   createApplication: async (
     request: TravelApplicationRequest,

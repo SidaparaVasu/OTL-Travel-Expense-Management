@@ -18,6 +18,7 @@ import {
   VEHICLE_SUB_OPTIONS,
   LOCATION_TYPES,
   getEmptyConveyance,
+  MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
   isDateInRange,
@@ -206,6 +207,11 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     if (form.estimated_cost.trim() !== "") {
       const costError = validateEstimatedCost(form.estimated_cost);
       if (costError) newErrors.estimated_cost = costError;
+
+      const cost = parseFloat(form.estimated_cost);
+      if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
+        newErrors.estimated_cost = `Estimated cost cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+      }
     }
 
     // Special instructions
@@ -216,6 +222,21 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCostBlur = () => {
+    const cost = parseFloat(form.estimated_cost);
+    if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
+      setForm({
+        ...form,
+        estimated_cost: MAX_ADVANCE_AMOUNT.toString(),
+      });
+      toast.warning(
+        `Estimated cost capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
+          "en-IN",
+        )}`,
+      );
+    }
   };
 
   const handleSubmit = () => {
@@ -645,6 +666,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                       estimated_cost: value?.toString() || "",
                     })
                   }
+                  onBlur={handleCostBlur}
                   placeholder="0.00"
                   className={errors.estimated_cost ? "border-destructive" : ""}
                 />

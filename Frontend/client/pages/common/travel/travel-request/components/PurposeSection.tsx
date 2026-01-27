@@ -1,5 +1,6 @@
 import React from "react";
 import { Calendar } from "lucide-react";
+import { toast } from "sonner";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { FormInput } from "./FormInput";
 import { FormTextarea } from "./FormTextarea";
@@ -7,7 +8,11 @@ import { CityCombobox } from "./CityCombobox";
 import { GLCodeCombobox } from "./GLCodeCombobox";
 import { TimePickerField } from "./TimePickerField";
 import { DatePickerField } from "./DatePickerField";
-import { CITIES, GL_CODES } from "../lib/travel-constants";
+import {
+  MAX_ADVANCE_AMOUNT,
+  IO_NUMBER_MINMAX_LENGTH,
+  SANCTION_NUMBER_MINMAX_LENGTH,
+} from "../lib/travel-constants";
 import {
   getToday,
   getMaxDate,
@@ -129,6 +134,34 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
         setErrors((prev) => ({ ...prev, end_time: timeError }));
       }
     }
+
+    if (field === "advance_amount") {
+      const amount = parseFloat(value);
+      if (!isNaN(amount) && amount > MAX_ADVANCE_AMOUNT) {
+        // Cap the amount logic will happen in onBlur
+        // Just show error while typing
+        setErrors((prev) => ({
+          ...prev,
+          advance_amount: `Advance amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
+        }));
+      }
+    }
+  };
+
+  const handleAdvanceAmountBlur = () => {
+    const amount = parseFloat(formData.advance_amount);
+    if (!isNaN(amount) && amount > MAX_ADVANCE_AMOUNT) {
+      handleFieldChange("advance_amount", MAX_ADVANCE_AMOUNT.toString());
+      toast.warning(
+        `Advance amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
+      );
+      // Clear error
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.advance_amount;
+        return newErrors;
+      });
+    }
   };
 
   const handleCityChange = (
@@ -230,8 +263,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
               validateAndTrapFocus(
                 "internal_order",
                 internalOrderRef,
-                9,
-                "Please enter exactly 9 digits.",
+                IO_NUMBER_MINMAX_LENGTH,
+                `Please enter exactly ${IO_NUMBER_MINMAX_LENGTH} digits.`,
               )
             }
             value={formData.internal_order}
@@ -239,8 +272,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
               handleFieldChange("internal_order", value?.toString() || "")
             }
             placeholder="Enter IO number"
-            maxLength={9}
-            minLength={9}
+            maxLength={IO_NUMBER_MINMAX_LENGTH}
+            minLength={IO_NUMBER_MINMAX_LENGTH}
             className={errors.internal_order ? "border-destructive" : ""}
             required
           />
@@ -275,7 +308,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           value={formData.sanction_number}
           onChange={(e) => handleFieldChange("sanction_number", e.target.value)}
           placeholder="Enter Sanction number (if applicable)"
-          maxLength={50}
+          maxLength={SANCTION_NUMBER_MINMAX_LENGTH}
         />
 
         <div className="space-y-2">
@@ -285,7 +318,9 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
             onValueChange={(value) =>
               handleFieldChange("advance_amount", value?.toString() || "")
             }
+            onBlur={handleAdvanceAmountBlur}
             placeholder="0.00"
+            max={MAX_ADVANCE_AMOUNT}
             className={errors.advance_amount ? "border-destructive" : ""}
           />
           {errors.advance_amount && (

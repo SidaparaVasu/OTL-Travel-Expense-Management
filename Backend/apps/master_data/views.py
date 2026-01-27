@@ -469,38 +469,7 @@ class GuestHouseMasterViewSet(viewsets.ModelViewSet):
             {'message': f'Guest house {status_text} successfully', 'is_active': instance.is_active},
             status=status.HTTP_200_OK
         )
-    
 
-# Annual Rate Contract Hotels
-class ARCHotelListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for list views"""
-    
-    city_name = serializers.CharField(source='city.city_name', read_only=True)
-    state_name = serializers.CharField(source='state.state_name', read_only=True)
-    hotel_type_display = serializers.CharField(source='get_hotel_type_display', read_only=True)
-    category_display = serializers.CharField(source='get_category_display', read_only=True)
-    total_rate_with_tax = serializers.SerializerMethodField()
-    contract_valid = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = ARCHotelMaster
-        fields = [
-            'id', 'name', 'hotel_type', 'hotel_type_display', 'star_rating',
-            'city', 'city_name', 'state_name', 'category', 'category_display',
-            'phone_number', 'email', 'total_rooms',
-            'rate_per_night', 'tax_percentage', 'total_rate_with_tax',
-            'contract_start_date', 'contract_end_date', 'contract_valid',
-            'is_active'
-        ]
-    
-    def get_total_rate_with_tax(self, obj):
-        return float(obj.get_total_rate_with_tax())
-    
-    def get_contract_valid(self, obj):
-        return obj.is_contract_valid()
-
-
-# Views
 class ARCHotelListCreateView(ListCreateAPIView):
     """
     List all active ARC hotels or create a new hotel.
@@ -602,6 +571,25 @@ class ARCHotelDetailView(RetrieveUpdateDestroyAPIView):
         instance.is_active = False
         instance.updated_by = self.request.user
         instance.save()
+
+class ARCHotelDropdownView(ListAPIView):
+    serializer_class = ARCHotelDropdownSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = ARCHotelMaster.objects.filter(is_active=True)
+        city_ids = self.request.query_params.get('city_ids')
+        
+        if city_ids:
+            try:
+                ids = [int(id.strip()) for id in city_ids.split(',') if id.strip().isdigit()]
+                if ids:
+                    queryset = queryset.filter(city__id__in=ids)
+            except ValueError:
+                pass
+                
+        return queryset
 
 # Location-wise Single Point of Contact for vehicle bookings
 class LocationSPOCListCreateView(ListCreateAPIView):
