@@ -21,7 +21,7 @@ import {
   MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
-  isDateInRange,
+  isDateTimeInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
   validateConveyanceLocations,
@@ -63,7 +63,9 @@ interface ConveyanceSectionProps {
   notRequired: boolean;
   setNotRequired: (value: boolean) => void;
   tripStartDate: string;
+  tripStartTime: string;
   tripEndDate: string;
+  tripEndTime: string;
   travelModes: any[];
   travelSubOptions: Record<string, any[]>;
   bookingErrors?: Record<number, string>;
@@ -75,7 +77,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   notRequired,
   setNotRequired,
   tripStartDate,
+  tripStartTime,
   tripEndDate,
+  tripEndTime,
   travelModes,
   travelSubOptions,
   bookingErrors = {},
@@ -180,15 +184,33 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       newErrors.drop_location = conveyanceError;
     }
 
-    // Date range validation
-    if (form.start_date && tripStartDate && tripEndDate) {
-      if (!isDateInRange(form.start_date, tripStartDate, tripEndDate)) {
-        newErrors.start_date = "Start date must be within trip dates";
+    // Date & Time range validation
+    if (form.start_date && form.start_time && tripStartDate && tripEndDate) {
+      if (
+        !isDateTimeInRange(
+          form.start_date,
+          form.start_time,
+          tripStartDate,
+          tripStartTime,
+          tripEndDate,
+          tripEndTime,
+        )
+      ) {
+        newErrors.start_date = "Start time must be within trip period";
       }
     }
-    if (form.end_date && tripStartDate && tripEndDate) {
-      if (!isDateInRange(form.end_date, tripStartDate, tripEndDate)) {
-        newErrors.end_date = "End date must be within trip dates";
+    if (form.end_date && form.end_time && tripStartDate && tripEndDate) {
+      if (
+        !isDateTimeInRange(
+          form.end_date,
+          form.end_time,
+          tripStartDate,
+          tripStartTime,
+          tripEndDate,
+          tripEndTime,
+        )
+      ) {
+        newErrors.end_date = "End time must be within trip period";
       }
     }
 

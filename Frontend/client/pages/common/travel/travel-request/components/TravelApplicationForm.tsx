@@ -194,7 +194,9 @@ export const TravelApplicationForm: React.FC = () => {
         const ticketValidation = validateTicketingDates(
           ticketing,
           purposeData.departure_date,
+          purposeData.start_time,
           purposeData.return_date,
+          purposeData.end_time,
         );
         setTicketingErrors(ticketValidation.errors);
         if (!ticketValidation.isValid) {
@@ -211,7 +213,9 @@ export const TravelApplicationForm: React.FC = () => {
         const accValidation = validateAccommodationDates(
           accommodation,
           purposeData.departure_date,
+          purposeData.start_time,
           purposeData.return_date,
+          purposeData.end_time,
         );
         setAccommodationErrors(accValidation.errors);
         if (!accValidation.isValid) {
@@ -228,7 +232,9 @@ export const TravelApplicationForm: React.FC = () => {
         const convValidation = validateConveyanceDates(
           conveyance,
           purposeData.departure_date,
+          purposeData.start_time,
           purposeData.return_date,
+          purposeData.end_time,
         );
         setConveyanceErrors(convValidation.errors);
         if (!convValidation.isValid) {
@@ -242,7 +248,9 @@ export const TravelApplicationForm: React.FC = () => {
     }
   }, [
     purposeData.departure_date,
+    purposeData.start_time,
     purposeData.return_date,
+    purposeData.end_time,
     ticketing,
     accommodation,
     conveyance,
@@ -267,12 +275,12 @@ export const TravelApplicationForm: React.FC = () => {
       try {
         const [citiesData, glCodesData, travelModesData, guestHousesData, arcHotelsData] =
           await Promise.all([
-            locationAPI.getAllCities(),
-            travelAPI.getActiveGLCodes(),
-            travelAPI.getAllowedTravelModes(),
-            travelAPI.getGuestHouses(),
-            // travelAPI.getARCHotelsDropdown(),
-          ]);
+          locationAPI.getAllCities(),
+          travelAPI.getActiveGLCodes(),
+          travelAPI.getAllowedTravelModes(),
+          travelAPI.getGuestHouses(),
+          // travelAPI.getARCHotelsDropdown(),
+        ]);
 
         setCities(citiesData);
         setGLCodes(glCodesData);

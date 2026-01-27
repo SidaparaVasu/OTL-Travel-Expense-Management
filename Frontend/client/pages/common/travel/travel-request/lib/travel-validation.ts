@@ -173,29 +173,72 @@ export const hasTimeOverlap = (
   return false;
 };
 
-// Validate booking dates against trip window
+// Helper to validate Date + Time (Validate bookings against trip window)
+export const isDateTimeInRange = (
+  checkDate: string,
+  checkTime: string,
+  startDate: string,
+  startTime: string,
+  endDate: string,
+  endTime: string,
+): boolean => {
+  if (!checkDate || !startDate || !endDate) return false;
+
+  // Create Date objects for comparison
+  // Use a fixed date for time-only comparison or full timestamp
+  const check = new Date(`${checkDate}T${checkTime || "00:00"}`);
+  const start = new Date(`${startDate}T${startTime || "00:00"}`);
+  const end = new Date(`${endDate}T${endTime || "23:59"}`);
+
+  return check >= start && check <= end;
+};
+
 export interface BookingDateValidation {
   isValid: boolean;
   errors: Record<number, string>;
 }
 
 export const validateTicketingDates = (
-  ticketing: Array<{ departure_date: string; arrival_date: string }>,
+  ticketing: Array<{
+    departure_date: string;
+    departure_time: string;
+    arrival_date: string;
+    arrival_time: string;
+  }>,
   tripStartDate: string,
-  tripEndDate: string
+  tripStartTime: string,
+  tripEndDate: string,
+  tripEndTime: string,
 ): BookingDateValidation => {
   const errors: Record<number, string> = {};
 
   ticketing.forEach((ticket, index) => {
-    const departureValid = isDateInRange(ticket.departure_date, tripStartDate, tripEndDate);
-    const arrivalValid = isDateInRange(ticket.arrival_date, tripStartDate, tripEndDate);
+    const departureValid = isDateTimeInRange(
+      ticket.departure_date,
+      ticket.departure_time,
+      tripStartDate,
+      tripStartTime,
+      tripEndDate,
+      tripEndTime,
+    );
+    const arrivalValid = isDateTimeInRange(
+      ticket.arrival_date,
+      ticket.arrival_time,
+      tripStartDate,
+      tripStartTime,
+      tripEndDate,
+      tripEndTime,
+    );
 
     if (!departureValid && !arrivalValid) {
-      errors[index] = `Departure (${ticket.departure_date}) and arrival (${ticket.arrival_date}) dates are outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Departure (${ticket.departure_date}) and arrival (${ticket.arrival_date}) dates are outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Departure and arrival times are outside trip window`;
     } else if (!departureValid) {
-      errors[index] = `Departure date (${ticket.departure_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Departure date (${ticket.departure_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Departure time is outside trip window`;
     } else if (!arrivalValid) {
-      errors[index] = `Arrival date (${ticket.arrival_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Arrival date (${ticket.arrival_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Arrival time is outside trip window`;
     }
   });
 
@@ -206,22 +249,46 @@ export const validateTicketingDates = (
 };
 
 export const validateAccommodationDates = (
-  accommodation: Array<{ check_in_date: string; check_out_date: string }>,
+  accommodation: Array<{
+    check_in_date: string;
+    check_in_time: string;
+    check_out_date: string;
+    check_out_time: string;
+  }>,
   tripStartDate: string,
-  tripEndDate: string
+  tripStartTime: string,
+  tripEndDate: string,
+  tripEndTime: string,
 ): BookingDateValidation => {
   const errors: Record<number, string> = {};
 
   accommodation.forEach((acc, index) => {
-    const checkInValid = isDateInRange(acc.check_in_date, tripStartDate, tripEndDate);
-    const checkOutValid = isDateInRange(acc.check_out_date, tripStartDate, tripEndDate);
+    const checkInValid = isDateTimeInRange(
+      acc.check_in_date,
+      acc.check_in_time,
+      tripStartDate,
+      tripStartTime,
+      tripEndDate,
+      tripEndTime,
+    );
+    const checkOutValid = isDateTimeInRange(
+      acc.check_out_date,
+      acc.check_out_time,
+      tripStartDate,
+      tripStartTime,
+      tripEndDate,
+      tripEndTime,
+    );
 
     if (!checkInValid && !checkOutValid) {
-      errors[index] = `Check-in (${acc.check_in_date}) and check-out (${acc.check_out_date}) dates are outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Check-in (${acc.check_in_date}) and check-out (${acc.check_out_date}) dates are outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Check-in and check-out times are outside trip window`;
     } else if (!checkInValid) {
-      errors[index] = `Check-in date (${acc.check_in_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Check-in date (${acc.check_in_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Check-in time is outside trip window`;
     } else if (!checkOutValid) {
-      errors[index] = `Check-out date (${acc.check_out_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Check-out date (${acc.check_out_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Check-out time is outside trip window`;
     }
   });
 
@@ -232,22 +299,46 @@ export const validateAccommodationDates = (
 };
 
 export const validateConveyanceDates = (
-  conveyance: Array<{ start_date: string; end_date: string }>,
+  conveyance: Array<{
+    start_date: string;
+    start_time: string;
+    end_date: string;
+    end_time: string;
+  }>,
   tripStartDate: string,
-  tripEndDate: string
+  tripStartTime: string,
+  tripEndDate: string,
+  tripEndTime: string,
 ): BookingDateValidation => {
   const errors: Record<number, string> = {};
 
   conveyance.forEach((conv, index) => {
-    const startValid = isDateInRange(conv.start_date, tripStartDate, tripEndDate);
-    const endValid = isDateInRange(conv.end_date, tripStartDate, tripEndDate);
+    const startValid = isDateTimeInRange(
+      conv.start_date,
+      conv.start_time,
+      tripStartDate,
+      tripStartTime,
+      tripEndDate,
+      tripEndTime,
+    );
+    const endValid = isDateTimeInRange(
+      conv.end_date,
+      conv.end_time,
+      tripStartDate,
+      tripStartTime,
+      tripEndDate,
+      tripEndTime,
+    );
 
     if (!startValid && !endValid) {
-      errors[index] = `Start (${conv.start_date}) and end (${conv.end_date}) dates are outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Start (${conv.start_date}) and end (${conv.end_date}) dates are outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Start and end times are outside trip window`;
     } else if (!startValid) {
-      errors[index] = `Start date (${conv.start_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `Start date (${conv.start_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `Start time is outside trip window`;
     } else if (!endValid) {
-      errors[index] = `End date (${conv.end_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      // errors[index] = `End date (${conv.end_date}) is outside trip window (${tripStartDate} to ${tripEndDate})`;
+      errors[index] = `End time is outside trip window`;
     }
   });
 

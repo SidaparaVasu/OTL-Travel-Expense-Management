@@ -18,7 +18,7 @@ import {
   MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
-  isDateInRange,
+  isDateTimeInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
   isAmountWithinLimit,
@@ -50,7 +50,9 @@ interface AccommodationSectionProps {
   notRequired: boolean;
   setNotRequired: (value: boolean) => void;
   tripStartDate: string;
+  tripStartTime: string;
   tripEndDate: string;
+  tripEndTime: string;
   travelModes: any[];
   travelSubOptions: Record<string, any>;
   guestHouses: any[];
@@ -65,7 +67,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   notRequired,
   setNotRequired,
   tripStartDate,
+  tripStartTime,
   tripEndDate,
+  tripEndTime,
   travelModes,
   travelSubOptions,
   guestHouses,
@@ -252,15 +256,43 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       newErrors.place = "Location is required";
     }
 
-    // Date range validation
-    if (form.check_in_date && tripStartDate && tripEndDate) {
-      if (!isDateInRange(form.check_in_date, tripStartDate, tripEndDate)) {
-        newErrors.check_in_date = "Check-in must be within trip dates";
+    // Date & Time range validation
+    if (
+      form.check_in_date &&
+      form.check_in_time &&
+      tripStartDate &&
+      tripEndDate
+    ) {
+      if (
+        !isDateTimeInRange(
+          form.check_in_date,
+          form.check_in_time,
+          tripStartDate,
+          tripStartTime,
+          tripEndDate,
+          tripEndTime,
+        )
+      ) {
+        newErrors.check_in_date = "Check-in time must be within trip period";
       }
     }
-    if (form.check_out_date && tripStartDate && tripEndDate) {
-      if (!isDateInRange(form.check_out_date, tripStartDate, tripEndDate)) {
-        newErrors.check_out_date = "Check-out must be within trip dates";
+    if (
+      form.check_out_date &&
+      form.check_out_time &&
+      tripStartDate &&
+      tripEndDate
+    ) {
+      if (
+        !isDateTimeInRange(
+          form.check_out_date,
+          form.check_out_time,
+          tripStartDate,
+          tripStartTime,
+          tripEndDate,
+          tripEndTime,
+        )
+      ) {
+        newErrors.check_out_date = "Check-out time must be within trip period";
       }
     }
 

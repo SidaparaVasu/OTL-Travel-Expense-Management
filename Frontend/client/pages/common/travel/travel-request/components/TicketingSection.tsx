@@ -19,7 +19,7 @@ import {
   MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
-  isDateInRange,
+  isDateTimeInRange,
   validateAdvanceBooking,
   validateLocationPair,
   validateEstimatedCost,
@@ -56,7 +56,9 @@ interface TicketingSectionProps {
   notRequired: boolean;
   setNotRequired: (value: boolean) => void;
   tripStartDate: string;
+  tripStartTime: string;
   tripEndDate: string;
+  tripEndTime: string;
   cities?: City[];
   travelModes?: TravelMode[];
   travelSubOptions?: Record<string, TravelSubOption[]>;
@@ -69,7 +71,9 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   notRequired,
   setNotRequired,
   tripStartDate,
+  tripStartTime,
   tripEndDate,
+  tripEndTime,
   cities: propCities,
   travelModes: propModes,
   travelSubOptions: propSubOptions,
@@ -132,15 +136,43 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
     );
     if (locationError) newErrors.to_location = locationError;
 
-    // Date range validation
-    if (form.departure_date && tripStartDate && tripEndDate) {
-      if (!isDateInRange(form.departure_date, tripStartDate, tripEndDate)) {
-        newErrors.departure_date = "Departure must be within trip dates";
+    // Date & Time range validation
+    if (
+      form.departure_date &&
+      form.departure_time &&
+      tripStartDate &&
+      tripEndDate
+    ) {
+      if (
+        !isDateTimeInRange(
+          form.departure_date,
+          form.departure_time,
+          tripStartDate,
+          tripStartTime,
+          tripEndDate,
+          tripEndTime,
+        )
+      ) {
+        newErrors.departure_date = "Departure time must be within trip period";
       }
     }
-    if (form.arrival_date && tripStartDate && tripEndDate) {
-      if (!isDateInRange(form.arrival_date, tripStartDate, tripEndDate)) {
-        newErrors.arrival_date = "Arrival must be within trip dates";
+    if (
+      form.arrival_date &&
+      form.arrival_time &&
+      tripStartDate &&
+      tripEndDate
+    ) {
+      if (
+        !isDateTimeInRange(
+          form.arrival_date,
+          form.arrival_time,
+          tripStartDate,
+          tripStartTime,
+          tripEndDate,
+          tripEndTime,
+        )
+      ) {
+        newErrors.arrival_date = "Arrival time must be within trip period";
       }
     }
 
