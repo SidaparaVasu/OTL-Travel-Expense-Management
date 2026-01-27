@@ -266,10 +266,7 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
                   <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                     <tr>
                       <th className="h-10 px-4 text-left font-medium text-slate-800 bg-muted/50">
-                        First Name
-                      </th>
-                      <th className="h-10 px-4 text-left font-medium text-slate-800 bg-muted/50">
-                        Last Name
+                        Name
                       </th>
                       <th className="h-10 px-4 text-left font-medium text-slate-800 bg-muted/50">
                         Gender
@@ -297,8 +294,7 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
                         key={guest.id}
                         className="border-b border-border last:border-0 hover:bg-muted/20"
                       >
-                        <td className="p-4">{guest.first_name}</td>
-                        <td className="p-4">{guest.last_name}</td>
+                        <td className="p-4">{guest.first_name} {guest.last_name}</td>
                         <td className="p-4">
                           {guest.gender === "M"
                             ? "Male"

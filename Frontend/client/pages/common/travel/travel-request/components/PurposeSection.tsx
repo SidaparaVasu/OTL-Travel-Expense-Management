@@ -53,6 +53,26 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
 }) => {
   const today = getToday();
 
+  const internalOrderRef = React.useRef<HTMLInputElement>(null);
+
+  const validateAndTrapFocus = (
+    field: keyof PurposeFormData,
+    ref: React.RefObject<HTMLInputElement>,
+    minLength: number,
+    customError?: string,
+  ) => {
+    const value = formData[field];
+    if (value && value.length > 0 && value.length < minLength) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: customError || `Please enter at least ${minLength} digits.`,
+      }));
+      setTimeout(() => {
+        ref.current?.focus();
+      }, 0);
+    }
+  };
+
   // Use props if provided, otherwise empty
   const cities = propCities && propCities.length > 0 ? propCities : [];
   const glCodes = propGLCodes && propGLCodes.length > 0 ? propGLCodes : [];
@@ -205,6 +225,15 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
             <span className="text-destructive">*</span>
           </label>
           <CurrencyInput
+            ref={internalOrderRef}
+            onBlur={() =>
+              validateAndTrapFocus(
+                "internal_order",
+                internalOrderRef,
+                9,
+                "Please enter exactly 9 digits.",
+              )
+            }
             value={formData.internal_order}
             onValueChange={(value) =>
               handleFieldChange("internal_order", value?.toString() || "")
@@ -225,13 +254,13 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           required
           glCodes={glCodes}
           value={
-            formData.general_ledger
-              ? parseInt(formData.general_ledger)
-              : null
+            formData.general_ledger ? parseInt(formData.general_ledger) : null
           }
           displayValue={
             formData.general_ledger
-              ? glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))
+              ? glCodes.find(
+                  (gl) => gl.id === parseInt(formData.general_ledger),
+                )
                 ? `${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.gl_code} - ${glCodes.find((gl) => gl.id === parseInt(formData.general_ledger))?.vertical_name}`
                 : ""
               : ""

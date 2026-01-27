@@ -75,7 +75,7 @@ const ROLE_CONFIG: Record<string, PortalConfig> = {
     desc: "Review and approve travel and expense requests from your team.",
     icon: ShieldCheck,
     route: ROUTES.adminDashboard,
-    portalKey: "manager",
+    portalKey: "employee",
   },
 };
 
@@ -87,7 +87,7 @@ const ChoosePortal: React.FC = () => {
 
   // roles except finance for portal selection
   const portalRoles = roles.filter(
-    (r: any) => r.role_type?.toLowerCase() !== "finance"
+    (r: any) => r.role_type?.toLowerCase() !== "finance",
   );
 
   React.useEffect(() => {
