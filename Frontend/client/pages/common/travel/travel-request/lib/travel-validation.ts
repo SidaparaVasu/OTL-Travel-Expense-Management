@@ -106,8 +106,10 @@ export const validateConveyanceLocations = (
   pickUp: string,
   dropOff: string
 ): string | null => {
-  const validPickUpLocations = ["Residence", "Hotel", "Guest House"];
-  const validDropLocations = ["Airport", "Railway Station"];
+  // const validPickUpLocations = ["Residence", "Hotel", "Guest House"];
+  // const validDropLocations = ["Airport", "Railway Station"];
+  const validPickUpLocations = ["Residence", "Hotel", "Guest House", "Airport", "Railway Station"];
+  const validDropLocations = ["Residence", "Hotel", "Guest House", "Airport", "Railway Station"];
 
   const isValidPickUp = validPickUpLocations.includes(pickUp);
   const isValidDrop = validDropLocations.includes(dropOff);
