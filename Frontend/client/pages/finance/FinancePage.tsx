@@ -113,7 +113,7 @@ const FinanceDashboard = () => {
       case "finance_pending":
         return "Pending";
       case "paid":
-        return "Paid";
+        return "Processed";
       case "closed":
         return "Closed";
       default:
@@ -150,11 +150,11 @@ const FinanceDashboard = () => {
         setSelectedClaim(null);
         setPaymentRemarks("");
       } else {
-        setError("Failed to mark claim as paid");
+        setError("Failed to mark claim as processed");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      console.error("Mark as paid error:", err);
+      console.error("Mark as processed error:", err);
     } finally {
       setActionLoading(null);
     }
@@ -276,7 +276,7 @@ const FinanceDashboard = () => {
             bgColor="bg-orange-50"
           />
           <StatCard
-            title="Marked as Paid"
+            title="Marked as Processed"
             value={String(statistics.paid || 0)}
             icon={<CheckCircle className="h-9 w-9 text-emerald-600" />}
             bgColor="bg-emerald-50"
@@ -313,7 +313,7 @@ const FinanceDashboard = () => {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="paid">Processed</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
@@ -413,7 +413,7 @@ const FinanceDashboard = () => {
                           )}
                           className="text-blue-600 hover:text-blue-800 underline"
                         >
-                          View Claim details
+                          View Travel details
                         </Link>
                       </TableCell>
 
@@ -448,7 +448,7 @@ const FinanceDashboard = () => {
                           </Button>
                         )}
 
-                        {/* Paid -> Disclose/Process */}
+                        {/* Paid -> Process */}
                         {claim.status_code === "paid" && (
                           <Button
                             size="sm"
@@ -541,7 +541,7 @@ const FinanceDashboard = () => {
               <DialogTitle>Confirmation Required</DialogTitle>
               <DialogDescription className="text-slate-500">
                 Are you sure you want to mark this claim as{" "}
-                <b className="text-slate-800">Paid</b>?
+                <b className="text-slate-800">Processed</b>?
               </DialogDescription>
             </DialogHeader>
 
@@ -569,7 +569,7 @@ const FinanceDashboard = () => {
                 This action is irreversible
               </p>
               <p className="text-xs text-orange-700 mt-1">
-                Once you mark as paid, this claim will move to <b>Paid</b>{" "}
+                Once you mark as processed, this claim will move to <b>Processed</b>{" "}
                 status and cannot be modified later.
               </p>
             </div>
@@ -618,7 +618,7 @@ const FinanceDashboard = () => {
                     Processing...
                   </>
                 ) : (
-                  <>Yes, Mark Paid</>
+                  <>Yes, Mark Processed</>
                 )}
               </Button>
             </DialogFooter>
@@ -642,7 +642,7 @@ const FinanceDashboard = () => {
             <DialogHeader>
               <DialogTitle>Close Application?</DialogTitle>
               <DialogDescription>
-                The claim has been marked as <b>Paid</b>.
+                The claim has been marked as <b>Processed</b>.
                 <br />
                 Would you like to close this travel and claim application?
               </DialogDescription>
