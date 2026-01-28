@@ -127,7 +127,7 @@ const BookingAgentDashboard: React.FC = () => {
             icon={<AlertCircle className="h-9 w-9 text-orange-600" />}
             bgColor="bg-orange-50"
           />
-          <StatCard
+          {/* <StatCard
             title="Avg Response Hours"
             value={stats.avg_response_hours ? formatHours(stats.avg_response_hours) : "—"}
             icon={<TrendingUp className="h-9 w-9 text-emerald-600" />}
@@ -138,7 +138,7 @@ const BookingAgentDashboard: React.FC = () => {
             value={stats.avg_completion_hours ? formatHours(stats.avg_completion_hours) : "—"}
             icon={<CircleCheckBig className="h-9 w-9 text-emerald-600" />}
             bgColor="bg-emerald-50"
-          />
+          /> */}
           <StatCard
             title="Avg Confirmation Hours"
             value={stats.avg_confirmation_hours ? formatHours(stats.avg_confirmation_hours) : "—"}

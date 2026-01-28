@@ -42,11 +42,11 @@ export const formatDateTime = (dateTimeString: string | null | undefined): strin
 // };
 
 export function formatCurrency(amount: string | number | null | undefined): string {
-  if (amount === null || amount === undefined) return "N/A";
+  if (amount === null || amount === undefined) return "Not Provided";
   
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   
-  if (isNaN(numAmount)) return "N/A";
+  if (isNaN(numAmount)) return "Not Provided";
   
   return `₹${numAmount.toLocaleString('en-IN')}`;
 }

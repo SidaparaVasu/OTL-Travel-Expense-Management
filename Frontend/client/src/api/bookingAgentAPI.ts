@@ -33,6 +33,7 @@ export interface Booking {
   assigned_agent_name: string | null;
   special_instruction?: string;
   travel_request_id?: string;
+  purpose?: string;
   employee_name?: string;
   employee_grade?: string;
   assigned_agent?: {
@@ -118,7 +119,9 @@ export const bookingAgentAPI = {
       success: boolean;
       data: BookingAgentDashboardData;
     }> => {
-      const response = await apiClient.get("/booking_agent/dashboard/booking-agent/");
+      const response = await apiClient.get(
+        "/booking_agent/dashboard/booking-agent/",
+      );
       return response.data;
     },
   },

@@ -51,8 +51,9 @@ class AgentBookingSerializer(serializers.ModelSerializer):
 
 class AgentBookingListSerializer(serializers.ModelSerializer):
     application_id = serializers.IntegerField(source="trip_details.travel_application.id", read_only=True)
-    travel_request_id = serializers.CharField(source="trip_details.travel_application.travel_request_id", read_only=True)
+    travel_request_id = serializers.SerializerMethodField()
     employee_name = serializers.SerializerMethodField()
+    purpose = serializers.CharField(source="trip_details.travel_application.purpose", read_only=True)
     trip_segment = serializers.SerializerMethodField()
     booking_details = serializers.JSONField()
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
@@ -65,7 +66,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            "id", "application_id", "travel_request_id", "employee_name", "trip_segment", 
+            "id", "application_id", "travel_request_id", "employee_name", "purpose", "trip_segment", 
             "booking_details", "booking_type", "booking_type_name", "sub_option", "sub_option_name",
             "status", "status_label", "estimated_cost", "actual_cost", "max_allowed_cost",
             "booking_reference", "vendor_reference", "booking_file",
@@ -79,6 +80,9 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
+
+    def get_travel_request_id(self, obj):
+        return obj.trip_details.travel_application.get_travel_request_id()
 
     def get_employee_name(self, obj):
         emp = obj.trip_details.travel_application.employee
@@ -176,6 +180,9 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
+    
+    def get_travel_request_id(self, obj):
+        return obj.trip_details.travel_application.get_travel_request_id()
 
     def get_employee_name(self, obj):
         app = obj.trip_details.travel_application

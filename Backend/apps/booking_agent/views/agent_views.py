@@ -176,6 +176,7 @@ class BookingAgentBookingsListView(APIView):
             assignment__assigned_to=user,
         ).select_related(
             "trip_details__travel_application",
+            "trip_details__travel_application__employee",
             "trip_details__from_location",
             "trip_details__to_location",
             "booking_type",
@@ -188,11 +189,28 @@ class BookingAgentBookingsListView(APIView):
 
         search = request.query_params.get("search")
         if search:
-            qs = qs.filter(
-                Q(trip_details__travel_application__travel_request_id__icontains=search)
-                | Q(trip_details__travel_application__employee__first_name__icontains=search)
-                | Q(trip_details__travel_application__employee__last_name__icontains=search)
-            )
+            search = search.strip()
+            
+            # 1. Base Text Query (Name, Purpose)
+            query = Q(trip_details__travel_application__employee__first_name__icontains=search) | \
+                    Q(trip_details__travel_application__employee__last_name__icontains=search) | \
+                    Q(trip_details__travel_application__purpose__icontains=search)
+
+            # 2. Smart ID Parsing
+            # Check for direct numeric ID or TR Format (e.g. TR/TSF/2026/0000048)
+            # We extract the last sequence of digits
+            import re
+            id_match = re.search(r'(\d+)$', search)
+            
+            if id_match:
+                # If parsed successfully, allow searching by Application ID
+                try:
+                    app_id = int(id_match.group(1))
+                    query |= Q(trip_details__travel_application__id=app_id)
+                except ValueError:
+                    pass
+            
+            qs = qs.filter(query)
 
         qs = qs.order_by("status", "created_at")
 
@@ -306,11 +324,11 @@ class BookingAgentUpdateStatusView(APIView):
             # Escalation rules apply only to Flight
             if booking.booking_type.name == "Flight":
 
-                if not booking.actual_cost:
-                    return error_response(
-                        message="Actual cost is required for flight confirmation",
-                        data={"actual_cost": ["Required"]}
-                    )
+                # if not booking.actual_cost:
+                #     return error_response(
+                #         message="Actual cost is required for flight confirmation",
+                #         data={"actual_cost": ["Required"]}
+                #     )
 
                 # Check if CEO has already approved this escalation
                 ceo_flow = application.approval_flows.filter(

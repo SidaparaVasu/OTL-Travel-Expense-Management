@@ -85,14 +85,14 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
       return;
     }
 
-    if (status === "confirmed" && !actualCost) {
-      toast({
-        title: "Actual cost required",
-        description: "Actual cost is mandatory for confirmation",
-        variant: "destructive",
-      });
-      return;
-    }
+    // if (status === "confirmed" && !actualCost) {
+    //   toast({
+    //     title: "Actual cost required",
+    //     description: "Actual cost is mandatory for confirmation",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     if (requiresCeoApproval()) {
       toast({
@@ -260,7 +260,9 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Actual Cost *</Label>
+            <Label>
+              Actual Cost {status === "confirmed" ? "(Optional)" : ""}
+            </Label>
             {booking.max_allowed_cost != null && (
               <p className="text-xs text-muted-foreground">
                 Max allowed: ₹{booking.max_allowed_cost}
@@ -271,7 +273,7 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
               value={actualCost}
               onChange={(e) => setActualCost(e.target.value)}
               className="w-full h-10 rounded-md border px-3 text-sm"
-              placeholder="Enter actual cost"
+              placeholder="Enter actual cost (optional)"
               disabled={isSubmitting || isOnHold}
             />
 

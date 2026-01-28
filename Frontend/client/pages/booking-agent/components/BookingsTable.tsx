@@ -54,6 +54,8 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
   showTravelRequestId,
   showEmployeeName,
 }) => {
+
+  console.log(bookings);
   /** ------------------------------
    *  SMART ROUTE BUILDER (All types)
    *  ------------------------------ */
@@ -88,8 +90,8 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40">
-              <TableHead>Booking ID</TableHead>
-              <TableHead>Route</TableHead>
+              <TableHead>Travel Request ID</TableHead>
+              <TableHead>Purpose/ Route</TableHead>
               <TableHead>Booking Type</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Actual Cost</TableHead>
@@ -126,7 +128,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                       isCancelled && "bg-red-50/30",
                     )}
                   >
-                    {/* Booking ID */}
+                    {/* TR ID / Purpose */}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {isOnHold && (
@@ -159,20 +161,30 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                             />
                           </svg>
                         )}
-                        <span className="font-mono text-sm font-medium">
-                          BK-{String(booking.id).padStart(5, "0")}
+                        <span className="font-semibold text-sm">
+                          {booking.travel_request_id || "—"}
                         </span>
                       </div>
                     </TableCell>
 
-                    {/* Route */}
+                    {/* Purpose / Route */}
                     <TableCell>
-                      <span
-                        className="text-sm max-w-[220px] truncate block"
-                        title={getRoute(booking)}
-                      >
-                        {getRoute(booking)}
-                      </span>
+                      <div className="flex flex-col">
+                        {booking.purpose && (
+                          <span
+                            className="text-sm text-slate-800 font-medium truncate max-w-[180px]"
+                            title={booking.purpose}
+                          >
+                            {booking.purpose}
+                          </span>
+                        )}
+                        <span
+                          className="text-sm max-w-[220px] truncate block"
+                          title={getRoute(booking)}
+                        >
+                          {getRoute(booking)}
+                        </span>
+                      </div>
                     </TableCell>
 
                     {/* Type + Suboption */}
