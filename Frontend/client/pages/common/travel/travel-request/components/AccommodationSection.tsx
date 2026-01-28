@@ -147,6 +147,18 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   console.log("derivedCityCategory: ", derivedCityCategory);
   console.log("selectedLimit: ", selectedLimit, " maxAllowed: ", maxAllowed);
 
+  // Auto-select first accommodation type
+  useEffect(() => {
+    if (!form.accommodation_type && travelModes.length > 0) {
+      const firstMode = travelModes[0];
+      setForm((prev) => ({
+        ...prev,
+        accommodation_type: String(firstMode.id),
+        accommodation_type_label: firstMode.name,
+      }));
+    }
+  }, [travelModes, form.accommodation_type]);
+
   // Auto-select sub-option based on accommodation type change
   useEffect(() => {
     // Do nothing if type is empty OR sub-options not loaded
@@ -556,7 +568,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               {/* Row 1: Type, Mode, Place */}
-              <div className="md:col-span-2">
+              <div className="hidden">
                 <FormSelect
                   label="Accommodation Type"
                   required
@@ -570,11 +582,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                     })),
                   ]}
                   error={errors.accommodation_type}
-                  hidden={true}
+                  disabled={true}
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-3">
                 <FormSelect
                   label="Accommodation Mode"
                   required
@@ -609,7 +621,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 />
               </div>
 
-              <div className="md:col-span-2">
+              <div className="md:col-span-3">
                 {isGuestHouseSelected ? (
                   <CityCombobox
                     label="Place/Location"
