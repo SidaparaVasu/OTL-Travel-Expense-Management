@@ -52,7 +52,7 @@ const CLAIM_STATUS_LABELS: Record<string, string> = {
   chro_pending: "Pending by CHRO",
   approved: "Approved",
   rejected: "Rejected",
-  paid: "Paid",
+  paid: "Processed",
   closed: "Closed",
 };
 
