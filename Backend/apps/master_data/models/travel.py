@@ -1,6 +1,23 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 
+
+class MealPreferenceMaster(models.Model):
+    """
+    Master table for Meal Preferences.
+    defined modes: 0=Ticketing, 1=Accommodation
+    """
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    
+    # Stores which modes this meal is available for.
+    allowed_modes = models.JSONField(default=list) 
+    
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
 class GLCodeMaster(models.Model):
     """
     General Ledger codes for travel expenses

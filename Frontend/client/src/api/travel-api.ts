@@ -61,6 +61,14 @@ export interface ARCHotel {
   category?: string;
 }
 
+export interface MealPreference {
+  id: number;
+  code: string;
+  name: string;
+  allowed_modes: number[];
+  is_active?: boolean;
+}
+
 export const travelAPI = {
   // GL Codes
   getGLCodes: async (): Promise<GLCode[]> => {
@@ -181,6 +189,17 @@ export const travelAPI = {
       return response.data.data || response.data || [];
     } catch (error) {
       console.error("Failed to fetch ARC hotels:", error);
+      return [];
+    }
+  },
+
+  // Meal Preferences
+  getMealPreferences: async (): Promise<MealPreference[]> => {
+    try {
+      const response = await apiClient.get("/master/meal-preferences/");
+      return response.data.data || response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch meal preferences:", error);
       return [];
     }
   },

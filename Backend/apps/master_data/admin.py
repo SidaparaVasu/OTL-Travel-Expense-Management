@@ -60,6 +60,7 @@ class GradeMasterAdmin(admin.ModelAdmin):
 
 admin.site.register(travel.TravelModeMaster)
 admin.site.register(travel.TravelSubOptionMaster)
+admin.site.register(travel.MealPreferenceMaster)
 
 @admin.register(travel.GradeEntitlementMaster)
 class GradeEntitlementMasterAdmin(admin.ModelAdmin):

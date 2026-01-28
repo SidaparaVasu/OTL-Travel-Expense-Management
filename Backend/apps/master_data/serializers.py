@@ -111,6 +111,11 @@ class TravelModeSerializer(serializers.ModelSerializer):
         model = TravelModeMaster
         fields = '__all__'
 
+class MealPreferenceMasterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MealPreferenceMaster
+        fields = '__all__'
+
 class TravelSubOptionSerializer(serializers.ModelSerializer):
     mode_name = serializers.CharField(source='mode.name', read_only=True)
     

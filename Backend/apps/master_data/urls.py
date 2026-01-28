@@ -6,6 +6,7 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 router.register(r"city-categories", CityCategoryAssignmentViewSet, basename="city-categories")
 router.register(r'guest-houses', GuestHouseMasterViewSet, basename='guesthouse')
+router.register(r'meal-preferences', MealPreferenceMasterViewSet, basename='meal-preferences')
 
 urlpatterns = [
     # Company

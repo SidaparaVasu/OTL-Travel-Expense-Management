@@ -104,6 +104,28 @@ class ApplicationTraveler(models.Model):
         # Note: multiple guests might be allowed, but unique guest profile per app prevents duplicates.
         # If user adds same guest twice, it should be blocked.
 
+    # Preference for Ticketing (Mode 0)
+    flight_meal_preference = models.ForeignKey(
+        'master_data.MealPreferenceMaster',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='flight_travelers',
+        # JSONField containment check: allowed_modes contains 0
+        limit_choices_to={'allowed_modes__contains': 0}
+    )
+    
+    # Preference for Accommodation (Mode 1)
+    accommodation_meal_preference = models.ForeignKey(
+        'master_data.MealPreferenceMaster',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='accommodation_travelers',
+        # JSONField containment check: allowed_modes contains 1
+        limit_choices_to={'allowed_modes__contains': 1}
+    )
+
     def __str__(self):
         if self.user:
             return f"User: {self.user.get_full_name()}"

@@ -134,6 +134,8 @@ export interface GuestProfile {
   date_of_birth?: string;
   nationality_type: "indian" | "foreign";
   is_active?: boolean;
+  flight_meal_preference?: number;
+  accommodation_meal_preference?: number;
 }
 
 export interface ApplicationTraveler {
@@ -147,13 +149,20 @@ export interface ApplicationTraveler {
   email?: string;
   contact_number?: string;
   is_primary?: boolean;
+  flight_meal_preference?: number;
+  accommodation_meal_preference?: number;
 }
 
 // Travel Applications
 export interface TravelApplicationRequest {
   purpose: string;
   travel_for: "self" | "guest" | "self_guest";
-  travelers_data?: { guest?: number; user?: number }[];
+  travelers_data?: {
+    guest?: number;
+    user?: number;
+    flight_meal_preference?: number;
+    accommodation_meal_preference?: number;
+  }[];
   internal_order: string;
   general_ledger: number;
   sanction_number: string;

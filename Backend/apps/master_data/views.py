@@ -246,6 +246,12 @@ class TravelModeListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = NoPagination
 
+class MealPreferenceMasterViewSet(viewsets.ModelViewSet):
+    queryset = MealPreferenceMaster.objects.filter(is_active=True)
+    serializer_class = MealPreferenceMasterSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = NoPagination
+
 class TravelModeDetailView(RetrieveUpdateDestroyAPIView):
     queryset = TravelModeMaster.objects.all()
     serializer_class = TravelModeSerializer

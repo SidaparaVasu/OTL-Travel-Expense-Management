@@ -172,7 +172,8 @@ class ApplicationTravelerSerializer(serializers.ModelSerializer):
             'id', 'user', 'user_name', 
             'guest', 'guest_name', 'is_primary', 'employee_id',
             'first_name', 'last_name', 'email', 'contact_number',
-            'gender', 'age', 'nationality_type'
+            'gender', 'age', 'nationality_type',
+            'flight_meal_preference', 'accommodation_meal_preference'
         ]
     
     def get_guest_name(self, obj):
@@ -300,15 +301,28 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         # Clear existing
         application.display_travelers.all().delete()
         
-        # Add Self if applicable
+        # Add Guests/Self
+        # travelers_data example: [{'user': 1, 'flight_meal_preference': 1, ...}, {'guest': 5, ...}]
+        
+        # 1. Handle Self (if applicable)
         if travel_for in ['self', 'self_guest']:
+             # Find self data in travelers_data
+             # Logic: Look for exact ID match, OR entry with 'user' key (even if None), OR fallback to any entry without 'guest' key
+            self_data = next((t for t in travelers_data if str(t.get('user')) == str(user.id)), None)
+            
+            if not self_data:
+                # Fallback: check for entry with 'user' key (even if null) or no 'guest' key
+                self_data = next((t for t in travelers_data if 'user' in t or 'guest' not in t), {})
+            
             ApplicationTraveler.objects.create(
                 travel_application=application,
                 user=user,
-                is_primary=True # User is always primary if traveling
+                is_primary=True,
+                flight_meal_preference_id=self_data.get('flight_meal_preference'),
+                accommodation_meal_preference_id=self_data.get('accommodation_meal_preference')
             )
         
-        # Add Guests
+        # 2. Handle Guests
         if travel_for in ['guest', 'self_guest']:
             for idx, t_data in enumerate(travelers_data):
                 guest_id = t_data.get('guest')
@@ -319,7 +333,9 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                     ApplicationTraveler.objects.create(
                         travel_application=application,
                         guest_id=guest_id,
-                        is_primary=is_primary_guest
+                        is_primary=is_primary_guest,
+                        flight_meal_preference_id=t_data.get('flight_meal_preference'),
+                        accommodation_meal_preference_id=t_data.get('accommodation_meal_preference')
                     )
 
     @transaction.atomic
@@ -397,7 +413,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         # Update travelers
         if travelers_data or instance.travel_for != 'self': # Only if relevant changes
              self._handle_travelers(instance, travelers_data, instance.travel_for, instance.employee)
-
+        
         # Update trip details if provided
         if trip_details_data is not None:
             # Delete existing trip details and recreate

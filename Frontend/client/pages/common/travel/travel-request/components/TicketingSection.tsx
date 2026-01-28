@@ -554,8 +554,9 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                   </p>
                 )}
               </div>
-
-              <div className="md:col-span-3">
+              
+              {/* Meal Preference - DISABLED (Moved to Travelers Section) */}
+              {/* <div className="md:col-span-3">
                 <FormSelect
                   label="Meal Preference"
                   value={form.meal_preference || ""}
@@ -572,7 +573,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                     { value: "No Food", label: "No Food" },
                   ]}
                 />
-              </div>
+              </div> */}
 
               {/* Row 6: Special Instructions */}
               <div className="md:col-span-6">

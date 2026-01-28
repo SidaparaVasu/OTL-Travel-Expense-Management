@@ -30,12 +30,28 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { GuestProfile } from "@/src/types/travel.types";
 import { guestProfileAPI } from "@/src/api/guest-profile";
+import { type MealPreference } from "@/src/api/travel-api";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Plane, Building, Utensils } from "lucide-react";
 
 interface TravelForSectionProps {
   travelFor: "self" | "guest" | "self_guest";
   setTravelFor: (value: "self" | "guest" | "self_guest") => void;
   selectedGuests: GuestProfile[];
   setSelectedGuests: (guests: GuestProfile[]) => void;
+  mealPreferences: MealPreference[];
+  selfPreferences: {
+    flight_meal_preference?: number;
+    accommodation_meal_preference?: number;
+  };
+  setSelfPreferences: (prefs: {
+    flight_meal_preference?: number;
+    accommodation_meal_preference?: number;
+  }) => void;
 }
 
 export const TravelForSection: React.FC<TravelForSectionProps> = ({
@@ -43,6 +59,9 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
   setTravelFor,
   selectedGuests,
   setSelectedGuests,
+  mealPreferences,
+  selfPreferences,
+  setSelfPreferences,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GuestProfile[]>([]);
@@ -92,6 +111,9 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
     setSelectedGuests(selectedGuests.filter((g) => g.id !== guestId));
   };
 
+  // Feature flag to control visibility of Self Meal Preferences
+  const SHOW_SELF_MEAL_PREF = false;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -136,7 +158,7 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
               Guest(s)
             </Label>
           </div>
-          <div className="flex items-center space-x-2">
+          {/* <div className="flex items-center space-x-2">
             <RadioGroupItem value="self_guest" id="travel-self-guest" />
             <Label
               htmlFor="travel-self-guest"
@@ -144,7 +166,7 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
             >
               Self with Guest(s)
             </Label>
-          </div>
+          </div> */}
         </RadioGroup>
 
         {travelFor === "self" && (
@@ -153,6 +175,86 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
           </p>
         )}
       </div>
+
+      {/* Self Meal Preferences */}
+      {(travelFor === "self" || travelFor === "self_guest") &&
+        SHOW_SELF_MEAL_PREF && (
+          <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              <Utensils className="h-4 w-4" /> Your Meal Preferences
+            </Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Flight */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Plane className="h-4 w-4 text-sky-500" /> Flight Meal
+                </Label>
+                <Select
+                  value={
+                    selfPreferences?.flight_meal_preference?.toString() ||
+                    "no_pref"
+                  }
+                  onValueChange={(v) =>
+                    setSelfPreferences({
+                      ...selfPreferences,
+                      flight_meal_preference:
+                        v === "no_pref" ? undefined : Number(v),
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Preference" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_pref">No Preference</SelectItem>
+                    {(mealPreferences || [])
+                      .filter((p) => p.allowed_modes.includes(0)) // 0 = Flight (assumed, or use name)
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Accommodation */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Building className="h-4 w-4 text-orange-500" /> Accommodation
+                  Meal
+                </Label>
+                <Select
+                  value={
+                    selfPreferences.accommodation_meal_preference?.toString() ||
+                    "no_pref"
+                  }
+                  onValueChange={(v) =>
+                    setSelfPreferences({
+                      ...selfPreferences,
+                      accommodation_meal_preference:
+                        v === "no_pref" ? undefined : Number(v),
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Preference" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_pref">No Preference</SelectItem>
+                    {(mealPreferences || [])
+                      .filter((p) => p.allowed_modes.includes(1)) // 1 = Accommodation (assumed)
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Guest Selection UI */}
       {(travelFor === "guest" || travelFor === "self_guest") && (
@@ -283,6 +385,9 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
                       <th className="h-10 px-4 text-left font-medium text-slate-800 bg-muted/50">
                         Contact
                       </th>
+                      <th className="h-10 px-4 text-center font-medium text-slate-800 bg-muted/50 w-[100px]">
+                        Meal Preferences
+                      </th>
                       <th className="h-10 px-4 text-left font-medium text-slate-800 w-[50px] bg-muted/50">
                         Remove
                       </th>
@@ -294,7 +399,9 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
                         key={guest.id}
                         className="border-b border-border last:border-0 hover:bg-muted/20"
                       >
-                        <td className="p-4">{guest.first_name} {guest.last_name}</td>
+                        <td className="p-4">
+                          {guest.first_name} {guest.last_name}
+                        </td>
                         <td className="p-4">
                           {guest.gender === "M"
                             ? "Male"
@@ -310,6 +417,35 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
                         </td>
                         <td className="p-4">{guest.email}</td>
                         <td className="p-4">{guest.contact_number}</td>
+                        {/* Meal Prefs */}
+                        <td className="p-4 text-center flex items-center gap-3">
+                          <MealPrefPopover
+                            type="ticketing"
+                            currentValue={guest.flight_meal_preference}
+                            options={mealPreferences}
+                            onChange={(val) => {
+                              const updated = selectedGuests.map((g) =>
+                                g.id === guest.id
+                                  ? { ...g, flight_meal_preference: val }
+                                  : g,
+                              );
+                              setSelectedGuests(updated);
+                            }}
+                          />
+                          <MealPrefPopover
+                            type="accommodation"
+                            currentValue={guest.accommodation_meal_preference}
+                            options={mealPreferences}
+                            onChange={(val) => {
+                              const updated = selectedGuests.map((g) =>
+                                g.id === guest.id
+                                  ? { ...g, accommodation_meal_preference: val }
+                                  : g,
+                              );
+                              setSelectedGuests(updated);
+                            }}
+                          />
+                        </td>
                         <td className="p-4 text-center">
                           <button
                             onClick={() =>
@@ -347,6 +483,89 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+const MealPrefPopover = ({
+  type,
+  currentValue,
+  options,
+  onChange,
+}: {
+  type: "ticketing" | "accommodation";
+  currentValue?: number;
+  options: MealPreference[];
+  onChange: (val?: number) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const modeId = type === "ticketing" ? 0 : 1;
+  const filteredOptions = options.filter((o) =>
+    o.allowed_modes.includes(modeId),
+  );
+
+  const selectedOption = options.find((o) => o.id === currentValue);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "h-8 w-8 p-0 rounded-full",
+            currentValue
+              ? type === "ticketing"
+                ? "bg-sky-100 text-sky-700 hover:bg-sky-200 hover:text-sky-700"
+                : "bg-orange-100 text-orange-700 hover:bg-orange-200 hover:text-orange-700"
+              : "text-muted-foreground hover:bg-muted hover:text-blue-500",
+          )}
+        >
+          {type === "ticketing" ? (
+            <Plane className="h-4 w-4" />
+          ) : (
+            <Building className="h-4 w-4" />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2" align="center">
+        <div className="space-y-1">
+          <div className="font-medium text-xs px-2 py-1 mb-1 text-blue-500 border-b uppercase tracking-wider">
+            {type === "ticketing"
+              ? "Ticketing Meal Preference"
+              : "Accommodation Meal Preference"}
+          </div>
+          <div
+            className={cn(
+              "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+              !currentValue && "bg-accent/50",
+            )}
+            onClick={() => {
+              onChange(undefined);
+              setOpen(false);
+            }}
+          >
+            <span className="flex-1">No Preference</span>
+            {!currentValue && <Check className="h-4 w-4 ml-2" />}
+          </div>
+          {filteredOptions.map((option) => (
+            <div
+              key={option.id}
+              className={cn(
+                "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                currentValue === option.id && "bg-accent/50",
+              )}
+              onClick={() => {
+                onChange(option.id);
+                setOpen(false);
+              }}
+            >
+              <span className="flex-1">{option.name}</span>
+              {currentValue === option.id && <Check className="h-4 w-4 ml-2" />}
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

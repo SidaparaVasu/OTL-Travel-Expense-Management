@@ -68,6 +68,7 @@ import {
   type TravelSubOption,
   type GuestHouse,
   type ARCHotel,
+  type MealPreference,
 } from "@/src/api/travel-api";
 import { authAPI } from "@/src/api/auth";
 import { ROUTES } from "@/routes/routes";
@@ -139,6 +140,13 @@ export const TravelApplicationForm: React.FC = () => {
   const [cities, setCities] = useState<City[]>([]);
   const [glCodes, setGLCodes] = useState<GLCode[]>([]);
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
+  const [mealPreferences, setMealPreferences] = useState<MealPreference[]>([]);
+
+  // Self Preferences
+  const [selfPreferences, setSelfPreferences] = useState<{
+    flight_meal_preference?: number;
+    accommodation_meal_preference?: number;
+  }>({});
 
   const [travelSubOptions, setTravelSubOptions] =
     useState<TravelSubOptionsGrouped>({
@@ -151,6 +159,7 @@ export const TravelApplicationForm: React.FC = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Approver data from user profile
+  const [userId, setUserId] = useState<number | null>(null);
   const [approverData, setApproverData] = useState<{
     full_name: string;
     email: string;
@@ -273,18 +282,25 @@ export const TravelApplicationForm: React.FC = () => {
     const fetchData = async () => {
       setIsLoadingData(true);
       try {
-        const [citiesData, glCodesData, travelModesData, guestHousesData, arcHotelsData] =
-          await Promise.all([
+        const [
+          citiesData,
+          glCodesData,
+          travelModesData,
+          guestHousesData,
+          mealPreferencesData,
+        ] = await Promise.all([
           locationAPI.getAllCities(),
           travelAPI.getActiveGLCodes(),
           travelAPI.getAllowedTravelModes(),
           travelAPI.getGuestHouses(),
+          travelAPI.getMealPreferences(),
           // travelAPI.getARCHotelsDropdown(),
         ]);
 
         setCities(citiesData);
         setGLCodes(glCodesData);
         setTravelModes(travelModesData.modes);
+        setMealPreferences(mealPreferencesData);
         const { ticketing, accommodation, conveyance } =
           prepareSectionWiseTravelData(
             travelModesData.modes,
@@ -339,6 +355,9 @@ export const TravelApplicationForm: React.FC = () => {
     const fetchApproverData = async () => {
       try {
         const profileData = await authAPI.getProfile();
+        if (profileData?.id) {
+          setUserId(profileData.id);
+        }
 
         // Extract reporting_manager_details from organizational profile
         if (profileData?.profile?.reporting_manager_details) {
@@ -399,6 +418,16 @@ export const TravelApplicationForm: React.FC = () => {
             // Or fetch guest details if needed.
             // Assuming basic display fields are present in traveler serializer response
             setSelectedGuests(guests);
+
+            // Set Self Preferences
+            const selfTraveler = app.travelers.find((t: any) => t.user); // or matches current user
+            if (selfTraveler) {
+              setSelfPreferences({
+                flight_meal_preference: selfTraveler.flight_meal_preference,
+                accommodation_meal_preference:
+                  selfTraveler.accommodation_meal_preference,
+              });
+            }
           }
 
           // Pre-fill purpose data
@@ -545,7 +574,14 @@ export const TravelApplicationForm: React.FC = () => {
 
       fetchApplicationForEdit();
     }
-  }, [isEditMode, editApplicationId, isLoadingData, travelModes, navigate]);
+  }, [
+    isEditMode,
+    editApplicationId,
+    isLoadingData,
+    travelModes,
+    navigate,
+    // Add dependencies if needed for self preferences logic in edit (handled inside)
+  ]);
 
   // Load saved data on mount
   useEffect(() => {
@@ -570,6 +606,7 @@ export const TravelApplicationForm: React.FC = () => {
         // Load Guest Data
         if (data.travelFor) setTravelFor(data.travelFor);
         if (data.selectedGuests) setSelectedGuests(data.selectedGuests);
+        if (data.selfPreferences) setSelfPreferences(data.selfPreferences);
       }
     } catch (error) {
       console.error("Error loading saved form data:", error);
@@ -590,6 +627,7 @@ export const TravelApplicationForm: React.FC = () => {
       draftApplicationId,
       travelFor,
       selectedGuests,
+      selfPreferences,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [
@@ -604,6 +642,7 @@ export const TravelApplicationForm: React.FC = () => {
     draftApplicationId,
     travelFor,
     selectedGuests,
+    selfPreferences,
   ]);
 
   // Warn on unsaved changes when leaving
@@ -852,10 +891,29 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const buildPayload = (isDraft: boolean = false) => {
+    const travelersPayload: any[] = [];
+    if (travelFor === "self" || travelFor === "self_guest") {
+      travelersPayload.push({
+        user: userId,
+        flight_meal_preference: selfPreferences.flight_meal_preference,
+        accommodation_meal_preference:
+          selfPreferences.accommodation_meal_preference,
+      });
+    }
+    if (travelFor === "guest" || travelFor === "self_guest") {
+      selectedGuests.forEach((g) => {
+        travelersPayload.push({
+          guest: g.id,
+          flight_meal_preference: g.flight_meal_preference,
+          accommodation_meal_preference: g.accommodation_meal_preference,
+        });
+      });
+    }
+
     return {
       purpose: purposeData.purpose,
       travel_for: travelFor,
-      travelers_data: selectedGuests.map((g) => ({ guest: g.id })),
+      travelers_data: travelersPayload,
       internal_order: purposeData.internal_order,
       general_ledger: purposeData.general_ledger,
       sanction_number: purposeData.sanction_number,
@@ -1282,7 +1340,7 @@ export const TravelApplicationForm: React.FC = () => {
           <Alert className="border-destructive/50 bg-destructive/10">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive">
-              <strong>Booking Date Errors:</strong> Some booking dates are
+              <strong>Booking Date Issues:</strong> Some booking dates are
               outside the trip window ({purposeData.departure_date} to{" "}
               {purposeData.return_date}). Please review and correct the
               highlighted bookings before submitting.
@@ -1363,6 +1421,9 @@ export const TravelApplicationForm: React.FC = () => {
                 setTravelFor={setTravelFor}
                 selectedGuests={selectedGuests}
                 setSelectedGuests={setSelectedGuests}
+                mealPreferences={mealPreferences}
+                selfPreferences={selfPreferences}
+                setSelfPreferences={setSelfPreferences}
               />
             )}
 
