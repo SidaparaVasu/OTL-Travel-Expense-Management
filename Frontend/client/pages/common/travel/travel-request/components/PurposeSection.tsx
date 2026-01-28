@@ -328,6 +328,8 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           )}
         </div> */}
 
+        <div className="empty-div"></div>
+
         <CityCombobox
           label="Trip Origin City"
           required

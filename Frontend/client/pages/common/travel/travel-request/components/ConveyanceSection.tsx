@@ -758,35 +758,43 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              {editIndex !== null && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setForm({
-                      ...getEmptyConveyance(),
-                      distance_km: "",
-                      passenger_count: "1",
-                      has_six_airbags: true,
-                    });
-                    setEditIndex(null);
-                    setErrors({});
-                  }}
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button onClick={handleSubmit}>
-                {editIndex !== null ? (
-                  <>
-                    <Save className="w-4 h-4 mr-2" /> Update Conveyance
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" /> Add Conveyance
-                  </>
+            <div className="flex justify-between items-center gap-3 mt-6">
+              <div className="md:col-span-6">
+                <span className="text-destructive">
+                  Note : Create a separate line item for each Car Booking
+                  request.
+                </span>
+              </div>
+              <div className="flex justify-end items-center gap-3">
+                {editIndex !== null && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setForm({
+                        ...getEmptyConveyance(),
+                        distance_km: "",
+                        passenger_count: "1",
+                        has_six_airbags: true,
+                      });
+                      setEditIndex(null);
+                      setErrors({});
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 )}
-              </Button>
+                <Button onClick={handleSubmit}>
+                  {editIndex !== null ? (
+                    <>
+                      <Save className="w-4 h-4 mr-2" /> Update Conveyance
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" /> Add Conveyance
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 

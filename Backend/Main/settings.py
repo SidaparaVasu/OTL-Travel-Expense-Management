@@ -315,7 +315,7 @@ SPECTACULAR_SETTINGS = {
 
 # JWT configuration
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),   # short lifespan
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=5),   # short lifespan
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),    # long lifespan
     "ROTATE_REFRESH_TOKENS": True,                   # refresh token rotation
     "BLACKLIST_AFTER_ROTATION": True,                # old refresh tokens become invalid
