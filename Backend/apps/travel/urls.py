@@ -45,6 +45,7 @@ urlpatterns = [
     path("travel-desk/bookings/<int:booking_id>/notes/", BookingNotesView.as_view(), name="travel-desk-booking-notes"),
     path("travel-desk/applications/<int:app_id>/forward/", ForwardApplicationView.as_view(), name="travel-desk-forward-application"),
     path("travel-desk/applications/<int:app_id>/cancel/", TravelDeskCancelApplicationView.as_view(), name="travel-desk-cancel-application"),
+    path("travel-desk/bookings/<int:booking_id>/cancel/", TravelDeskCancelBookingView.as_view(), name="travel-desk-cancel-booking"),
     path("travel-desk/applications/<int:application_id>/recommended-agents/", TravelDeskRecommendedAgentsView.as_view(), name="travel-desk-recommended-agents"),
     
     # Analytics

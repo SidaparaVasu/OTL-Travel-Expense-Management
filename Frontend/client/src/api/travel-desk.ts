@@ -103,6 +103,14 @@ export const travelDeskAPI = {
       );
       return data;
     },
+
+    cancel: async (bookingId: number, payload: { reason: string }) => {
+      const { data } = await apiClient.post(
+        `/travel/travel-desk/bookings/${bookingId}/cancel/`,
+        payload,
+      );
+      return data;
+    },
   },
 
   agents: {

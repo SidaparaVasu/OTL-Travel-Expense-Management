@@ -554,3 +554,61 @@ class TravelDeskCancelApplicationView(APIView):
             return error_response(str(e))
         except Exception as e:
             return error_response(f"An error occurred during cancellation: {str(e)}")
+
+
+class TravelDeskCancelBookingView(APIView):
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def post(self, request, booking_id):
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.error(f"DEBUG_CANCEL: Attempting to cancel booking {booking_id} by {request.user}")
+        
+        reason = request.data.get("reason", "")
+        logger.error(f"DEBUG_CANCEL: Reason provided: {reason}")
+        
+        booking = Booking.objects.filter(id=booking_id).first()
+        if not booking:
+            logger.error(f"DEBUG_CANCEL: Booking {booking_id} not found")
+            return error_response(message="Booking not found")
+
+        logger.error(f"DEBUG_CANCEL: Found booking {booking.id}, status: {booking.status}")
+
+        if booking.status in ["cancelled", "completed"]:
+             logger.error(f"DEBUG_CANCEL: Booking already {booking.status}")
+             return error_response(message=f"Booking is already {booking.status}")
+
+        try:
+            with transaction.atomic():
+                # Update booking status
+                old_status = booking.status
+                booking.status = "cancelled"
+                booking.save(update_fields=["status"])
+                
+                # Add cancellation note
+                if reason:
+                    BookingNote.objects.create(
+                        booking=booking,
+                        author=request.user,
+                        note=f"[CANCELLATION] {reason}"
+                    )
+                
+                # Audit Log
+                AuditLog.objects.create(
+                    user=request.user,
+                    action="cancel_booking",
+                    content_object=booking,
+                    changes={
+                        "booking_id": booking.id,
+                        "old_status": old_status,
+                        "new_status": "cancelled",
+                        "reason": reason
+                    }
+                )
+            
+            logger.error(f"DEBUG_CANCEL: Cancellation successful")
+            return success_response(message="Booking cancelled successfully")
+        except Exception as e:
+            logger.error(f"DEBUG_CANCEL: Exception detected: {str(e)}")
+            return error_response(f"Error cancelling booking: {str(e)}")
