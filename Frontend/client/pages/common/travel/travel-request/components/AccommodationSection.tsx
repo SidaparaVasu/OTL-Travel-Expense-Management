@@ -245,7 +245,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       newErrors.check_in_time = "Check-in time is required";
     if (!form.check_out_time)
       newErrors.check_out_time = "Check-out time is required";
-    // if (!form.estimated_cost) newErrors.estimated_cost = "Estimated cost is required";
+    // if (!form.estimated_cost) newErrors.estimated_cost = "Advance Amount is required";
 
     // Guest house preferences required for Guest House - REMOVED CHECK
     // if (isGuestHouseSelected && form.guest_house_preferences.length === 0) {
@@ -318,7 +318,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         "Check-out date cannot be before check-in date";
     }
 
-    // Validate estimated cost against entitlement
+    // Validate Advance Amount against entitlement
     if (form.estimated_cost && form.estimated_cost.trim() !== "") {
       const cost = Number(form.estimated_cost);
 
@@ -722,10 +722,10 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                 />
               </div>
 
-              {/* Row 4: Estimated Cost, Meal Preference */}
+              {/* Row 4: Advance Amount, Meal Preference */}
               <div className="md:col-span-3 space-y-2">
                 <label className="text-sm font-medium">
-                  Estimated Cost (₹)
+                  Advance Amount (₹)
                   {maxAllowed !== undefined && (
                     <span className="text-xs text-muted-foreground ml-2 font-normal">
                       (Max: ₹{maxAllowed.toLocaleString("en-IN")})
@@ -739,7 +739,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   placeholder={
                     maxAllowed !== undefined
                       ? `Max allowed ₹${maxAllowed.toLocaleString("en-IN")}`
-                      : "Enter estimated cost"
+                      : "Enter Advance Amount"
                   }
                   className={errors.estimated_cost ? "border-destructive" : ""}
                 />

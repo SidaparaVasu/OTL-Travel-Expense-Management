@@ -311,7 +311,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           maxLength={SANCTION_NUMBER_MINMAX_LENGTH}
         />
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <label className="text-sm font-medium">Advance Amount (₹)</label>
           <CurrencyInput
             value={formData.advance_amount}
@@ -326,7 +326,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           {errors.advance_amount && (
             <p className="text-sm text-destructive">{errors.advance_amount}</p>
           )}
-        </div>
+        </div> */}
 
         <CityCombobox
           label="Trip Origin City"

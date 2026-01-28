@@ -148,7 +148,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     if (!form.end_date) newErrors.end_date = "End date is required";
     if (!form.start_time) newErrors.start_time = "Start time is required";
     if (!form.end_time) newErrors.end_time = "End time is required";
-    // if (!form.estimated_cost) newErrors.estimated_cost = "Estimated cost is required";
+    // if (!form.estimated_cost) newErrors.estimated_cost = "Advance Amount is required";
 
     // Distance validation (Required for all types now)
     if (!form.distance_km) {
@@ -232,7 +232,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
       const cost = parseFloat(form.estimated_cost);
       if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
-        newErrors.estimated_cost = `Estimated cost cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+        newErrors.estimated_cost = `Advance Amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
       }
     }
 
@@ -254,7 +254,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
         estimated_cost: MAX_ADVANCE_AMOUNT.toString(),
       });
       toast.warning(
-        `Estimated cost capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
+        `Advance Amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
           "en-IN",
         )}`,
       );
@@ -628,7 +628,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 />
               </div>
 
-              {/* Row 6: No. of Person, Approx KM, Estimated Cost */}
+              {/* Row 6: No. of Person, Approx KM, Advance Amount */}
               <div className="md:col-span-2 space-y-1.5 align-bottom">
                 <label className="text-sm font-medium">
                   No. of Person <span className="text-destructive">*</span>
@@ -678,7 +678,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-medium">
-                  Estimated Cost (₹)
+                  Advance Amount (₹)
                 </label>
                 <CurrencyInput
                   value={form.estimated_cost}

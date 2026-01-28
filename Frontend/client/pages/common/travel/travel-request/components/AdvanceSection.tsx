@@ -32,7 +32,7 @@ export const AdvanceSection: React.FC<AdvanceSectionProps> = ({
           <Wallet className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Travel Estimated Summary</h2>
+          <h2 className="text-xl font-semibold text-foreground">Travel Advance Summary</h2>
           <p className="text-sm text-black">Review and finalize your travel advance request</p>
         </div>
       </div>
@@ -40,7 +40,7 @@ export const AdvanceSection: React.FC<AdvanceSectionProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expense Breakdown */}
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Expense Breakdown</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Advance Breakdown</h3>
 
           <div className="space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-primary/20">
@@ -58,13 +58,13 @@ export const AdvanceSection: React.FC<AdvanceSectionProps> = ({
               <span className="font-semibold text-foreground">₹{sums.convSum.toLocaleString('en-IN')}</span>
             </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-primary/20">
+            {/* <div className="flex justify-between items-center py-2 border-b border-primary/20">
               <span className="text-black">Other Expenses</span>
               <span className="font-semibold text-foreground">₹{Number(otherExpenses || 0).toLocaleString('en-IN')}</span>
-            </div>
+            </div> */}
 
             <div className="flex justify-between items-center pt-4 mt-2">
-              <span className="text-lg font-bold text-foreground">Total Estimated Amount</span>
+              <span className="text-lg font-bold text-foreground">Total Advance Amount</span>
               <span className="text-2xl font-bold text-primary">₹{totalAdvance.toLocaleString('en-IN')}</span>
             </div>
           </div>

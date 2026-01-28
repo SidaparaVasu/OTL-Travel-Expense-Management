@@ -127,7 +127,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
       newErrors.departure_time = "Departure time is required";
     if (!form.arrival_date) newErrors.arrival_date = "Arrival date is required";
     if (!form.arrival_time) newErrors.arrival_time = "Arrival time is required";
-    // if (!form.estimated_cost) newErrors.estimated_cost = "Estimated cost is required";
+    // if (!form.estimated_cost) newErrors.estimated_cost = "Advance Amount is required";
 
     // Location validation
     const locationError = validateLocationPair(
@@ -212,7 +212,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
 
       const cost = parseFloat(form.estimated_cost);
       if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
-        newErrors.estimated_cost = `Estimated cost cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+        newErrors.estimated_cost = `Advance Amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
       }
     }
 
@@ -242,7 +242,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
         estimated_cost: MAX_ADVANCE_AMOUNT.toString(),
       });
       toast.warning(
-        `Estimated cost capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
+        `Advance Amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
           "en-IN",
         )}`,
       );
@@ -530,10 +530,10 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 />
               </div>
 
-              {/* Row 5: Estimated Cost, Meal Preference */}
+              {/* Row 5: Advance Amount, Meal Preference */}
               <div className="md:col-span-3 space-y-2">
                 <label className="text-sm font-medium">
-                  Estimated Cost (₹)
+                  Advance Amount (₹)
                 </label>
                 <CurrencyInput
                   value={form.estimated_cost}
