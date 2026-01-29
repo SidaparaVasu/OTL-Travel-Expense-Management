@@ -609,7 +609,7 @@ function CreateGuestForm({
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <Label className="text-xs">
-            First Name & Last Name <span className="text-destructive">*</span>
+            First Name & Middle Name <span className="text-destructive">*</span>
           </Label>
           <Input
             value={formData.first_name}
@@ -628,6 +628,7 @@ function CreateGuestForm({
               setFormData({ ...formData, last_name: e.target.value })
             }
             className="h-9"
+            placeholder="Enter last name"
           />
         </div>
 
@@ -640,16 +641,21 @@ function CreateGuestForm({
               setFormData({ ...formData, email: e.target.value })
             }
             className="h-9"
+            placeholder="Enter email address"
           />
         </div>
         <div className="space-y-2">
           <Label className="text-xs">Contact</Label>
           <Input
+            type="tel"
+            maxLength={10}
             value={formData.contact_number}
-            onChange={(e) =>
-              setFormData({ ...formData, contact_number: e.target.value })
-            }
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, ""); // Only allow digits
+              setFormData({ ...formData, contact_number: value });
+            }}
             className="h-9"
+            placeholder="10-digit mobile number"
           />
         </div>
 
@@ -686,6 +692,7 @@ function CreateGuestForm({
               })
             }
             className="h-9"
+            placeholder="Enter age"
           />
         </div>
 
