@@ -30,7 +30,7 @@ class GuestProfile(models.Model):
     )
 
     first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100, blank=True)
     email = models.EmailField(blank=True)
     
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)

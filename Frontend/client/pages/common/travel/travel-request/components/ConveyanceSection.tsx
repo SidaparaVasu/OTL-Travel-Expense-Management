@@ -653,7 +653,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
               <div className="md:col-span-2 space-y-1.5">
                 <label className="text-sm font-medium">
-                  Approx. K.M. <span className="text-destructive">*</span>
+                  Approx. K.M. (Two-way distance)<span className="text-destructive">*</span>
                 </label>
                 <CurrencyInput
                   value={form.distance_km || ""}

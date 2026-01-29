@@ -368,7 +368,7 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
                   <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                     <tr>
                       <th className="h-10 px-4 text-left font-medium text-slate-800 bg-muted/50">
-                        Name
+                        Name as per aadhar card
                       </th>
                       <th className="h-10 px-4 text-left font-medium text-slate-800 bg-muted/50">
                         Gender
@@ -587,11 +587,7 @@ function CreateGuestForm({
     age: undefined,
   });
 
-  const isFormValid =
-    formData.first_name &&
-    formData.last_name &&
-    formData.gender &&
-    formData.age;
+  const isFormValid = formData.first_name && formData.gender && formData.age;
 
   const handleSubmit = async () => {
     if (!isFormValid) return;
@@ -613,7 +609,7 @@ function CreateGuestForm({
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <Label className="text-xs">
-            First Name <span className="text-destructive">*</span>
+            First Name & Last Name <span className="text-destructive">*</span>
           </Label>
           <Input
             value={formData.first_name}
@@ -621,12 +617,11 @@ function CreateGuestForm({
               setFormData({ ...formData, first_name: e.target.value })
             }
             className="h-9"
+            placeholder="Name as per aadhar card"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs">
-            Last Name <span className="text-destructive">*</span>
-          </Label>
+          <Label className="text-xs">Last Name</Label>
           <Input
             value={formData.last_name}
             onChange={(e) =>

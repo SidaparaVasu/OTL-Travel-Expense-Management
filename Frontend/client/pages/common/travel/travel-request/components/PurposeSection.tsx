@@ -59,6 +59,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
   const today = getToday();
 
   const internalOrderRef = React.useRef<HTMLInputElement>(null);
+  const sanctionNumberRef = React.useRef<HTMLInputElement>(null);
 
   const validateAndTrapFocus = (
     field: keyof PurposeFormData,
@@ -304,11 +305,26 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
         />
 
         <FormInput
+          ref={sanctionNumberRef}
           label="Sanction Number"
           value={formData.sanction_number}
           onChange={(e) => handleFieldChange("sanction_number", e.target.value)}
-          placeholder="Enter Sanction number (if applicable)"
+          onBlur={() => {
+            const value = formData.sanction_number;
+            if (!value || value.trim().length === 0) {
+              setErrors((prev) => ({
+                ...prev,
+                sanction_number: "Sanction Number is required",
+              }));
+              setTimeout(() => {
+                sanctionNumberRef.current?.focus();
+              }, 0);
+            }
+          }}
+          placeholder="Enter Sanction number"
           maxLength={SANCTION_NUMBER_MINMAX_LENGTH}
+          required
+          error={errors.sanction_number}
         />
 
         {/* <div className="space-y-2">
