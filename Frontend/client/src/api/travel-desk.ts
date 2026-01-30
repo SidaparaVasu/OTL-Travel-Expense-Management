@@ -111,6 +111,14 @@ export const travelDeskAPI = {
       );
       return data;
     },
+
+    downloadDutySlip: async (bookingId: number) => {
+      const response = await apiClient.get(
+        `/travel/travel-desk/bookings/${bookingId}/duty-slip/`,
+        { responseType: "blob" },
+      );
+      return response.data;
+    },
   },
 
   agents: {

@@ -17,6 +17,7 @@ import Login from "./pages/common/Login";
 import NotFound from "./pages/common/NotFound";
 import Profile from "./pages/common/Profile";
 import ChoosePortal from "./pages/common/ChoosePortal";
+import DutySlipGeneration from "./pages/deskagent/DutySlipGeneration";
 
 // Dashboards
 import AdminIndex from "./pages/admin/Index";
@@ -203,6 +204,18 @@ const App = () => (
               <AuthOnly>
                 <UnifiedLayout>
                   <FinancePage />
+                </UnifiedLayout>
+              </AuthOnly>
+            }
+          />
+
+          {/* ---------------- DUTY SLIP GENERATION ---------------- */}
+          <Route
+            path={ROUTES.dutySlipGeneration}
+            element={
+              <AuthOnly>
+                <UnifiedLayout>
+                  <DutySlipGeneration />
                 </UnifiedLayout>
               </AuthOnly>
             }

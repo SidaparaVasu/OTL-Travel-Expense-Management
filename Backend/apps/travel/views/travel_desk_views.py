@@ -131,13 +131,27 @@ class TravelDeskApplicationListView(APIView):
 
         search = request.query_params.get("search")
         if search:
-            qs = qs.filter(
-                Q(travel_request_id__icontains=search)
-                | Q(purpose__icontains=search)
-                | Q(employee__first_name__icontains=search)
-                | Q(employee__last_name__icontains=search)
-                | Q(employee__username__icontains=search)
-            )
+            # Check if search term might be a Travel Request ID (e.g., TR/TSF/2025/0000123 or just 123)
+            # Try to extract the numeric ID
+            import re
+            # Match strictly the numeric part at the end or just a number
+            match = re.search(r'(\d+)$', search)
+            
+            q_objects = Q(purpose__icontains=search) | \
+                        Q(employee__first_name__icontains=search) | \
+                        Q(employee__last_name__icontains=search) | \
+                        Q(employee__username__icontains=search)
+
+            if match:
+                try:
+                    # If we found a number, try to filter by ID as well
+                    # This handles "123" and "TR/TSF/2025/0000123" (extracting 123)
+                    travel_id = int(match.group(1))
+                    q_objects |= Q(id=travel_id)
+                except ValueError:
+                    pass
+            
+            qs = qs.filter(q_objects)
 
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
@@ -212,7 +226,7 @@ class TravelDeskAssignBookingsView(APIView):
         booking_agent_id = serializer.validated_data["booking_agent_id"]
         application_id = serializer.validated_data["_application_id"]
         bookings = serializer.validated_data["_bookings"]
-        requests_vehicle_type_id = serializer.validated_data.get("requested_vehicle_type_id")
+        requested_vehicle_type_id = serializer.validated_data.get("requested_vehicle_type_id")
         note_text = serializer.validated_data.get("note")
         
         # Validate no self-arranged bookings
@@ -661,3 +675,71 @@ class TravelDeskCancelBookingView(APIView):
         except Exception as e:
             logger.error(f"DEBUG_CANCEL: Exception detected: {str(e)}")
             return error_response(f"Error cancelling booking: {str(e)}")
+
+
+class GenerateDutySlipAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, booking_id):
+        try:
+            booking = Booking.objects.select_related(
+                "booking_type", "sub_option", "trip_details__travel_application__employee"
+            ).get(id=booking_id)
+
+            # Strict Validation
+            VALID_DUTY_SLIP_MODES = {
+                "Pick-up & Drop": ["Passenger Vehicle", "Goods Vehicle"],
+                "Pick-up and Drop": ["Passenger Vehicle", "Goods Vehicle"],
+                "Car at Disposal": ["Company Arranged Car", "Company-Arranged car"], # Handle both just in case
+                "Goods Carriage": ["Heavy/Small"],
+                "BUS/Tempo Traveller": ["Bus/Traveller"],
+            }
+            b_type = (booking.booking_type.name or "").strip()
+            # Normalize '&' vs 'and' for type
+            b_type_norm = b_type.replace(" and ", " & ")
+            
+            b_sub = (booking.sub_option.name or "").strip()
+            
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"DEBUG_DUTY_SLIP: BookingID={booking_id} Type='{b_type}' Sub='{b_sub}' NormType='{b_type_norm}'")
+            
+            is_valid = False
+            
+            # Check against normalized keys or direct keys
+            if b_type in VALID_DUTY_SLIP_MODES:
+                if b_sub in VALID_DUTY_SLIP_MODES[b_type]:
+                    is_valid = True
+            elif b_type_norm in VALID_DUTY_SLIP_MODES:
+                 if b_sub in VALID_DUTY_SLIP_MODES[b_type_norm]:
+                    is_valid = True
+            
+            # Fallback for "Passanger" typo just in case DB has it
+            if not is_valid and (b_type == "Pick-up & Drop" or b_type == "Pick-up and Drop"):
+                 if b_sub in ["Passanger Goods", "Passenger Goods", "Goods Vehicle"]:
+                    is_valid = True
+
+            if not is_valid:
+                return error_response(
+                    message=f"Duty slip not applicable for {b_type} - {b_sub}", 
+                    status_code=400
+                )
+
+            # Generate PDF
+            from apps.travel.utils.pdf_generator import generate_duty_slip_pdf
+            from django.http import FileResponse
+            pdf_buffer = generate_duty_slip_pdf(booking)
+            
+            filename = f"DutySlip_{booking.id}.pdf"
+            response = FileResponse(pdf_buffer, as_attachment=True, filename=filename)
+            return response
+
+        except Booking.DoesNotExist:
+            return error_response(message="Booking not found", status_code=404)
+        except Exception as e:
+            import logging
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"GenerateDutySlipAPIView Error: {str(e)}")
+            logger.error(traceback.format_exc())
+            return error_response(message=f"Error generating PDF: {str(e)}", status_code=500)

@@ -100,6 +100,9 @@ export const ROUTES = {
   vehicleCategoryMaster: "/masters/vehicle-category",
   vehicleTypeMaster: "/masters/vehicle-type",
 
+  // ---------------- DUTY SLIP GENERATION ----------------
+  dutySlipGeneration: "/travel-desk/duty-slip",
+
   // ---------------- SETTINGS / REPORTS ----------------
   settings: "/settings",
   reports: "/reports",

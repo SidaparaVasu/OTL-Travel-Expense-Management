@@ -116,6 +116,7 @@ export interface Application {
   updated_at: string;
   submitted_at: string;
   trip_details: TripDetail[];
+  trips?: TripDetail[]; // Added for TravelDeskApplicationDetailSerializer consistency
 }
 
 export interface DashboardApplication {

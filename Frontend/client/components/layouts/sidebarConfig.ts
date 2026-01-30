@@ -258,4 +258,9 @@ export const getTravelDeskSidebar = (): SidebarSection[] => [
     icon: User,
     path: ROUTES.bookingAgentsFromTravelDesk,
   },
+  {
+    title: "Duty Slip Generation",
+    icon: ReceiptIndianRupee,
+    path: ROUTES.dutySlipGeneration,
+  },
 ];
