@@ -125,6 +125,14 @@ export const travelDeskAPI = {
       console.log("Recommended Agents: ", data);
       return data;
     },
+    getAgentVehicleTypes: async (
+      agentId: number,
+    ): Promise<{ data: { id: number; name: string }[] }> => {
+      const { data } = await apiClient.get(
+        `/travel/travel-desk/agents/${agentId}/vehicle-types/`,
+      );
+      return data;
+    },
   },
 
   analytics: {

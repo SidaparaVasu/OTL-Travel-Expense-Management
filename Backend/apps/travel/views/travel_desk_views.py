@@ -212,6 +212,8 @@ class TravelDeskAssignBookingsView(APIView):
         booking_agent_id = serializer.validated_data["booking_agent_id"]
         application_id = serializer.validated_data["_application_id"]
         bookings = serializer.validated_data["_bookings"]
+        requests_vehicle_type_id = serializer.validated_data.get("requested_vehicle_type_id")
+        note_text = serializer.validated_data.get("note")
         
         # Validate no self-arranged bookings
         for b in bookings:
@@ -234,6 +236,7 @@ class TravelDeskAssignBookingsView(APIView):
                         "assigned_by": request.user,
                         "assignment_scope": scope,
                         "assigned_at": timezone.now(),
+                        "requested_vehicle_type_id": requested_vehicle_type_id,
                     }
                 )
 
@@ -244,15 +247,25 @@ class TravelDeskAssignBookingsView(APIView):
                     assignment.assigned_at = timezone.now()
                     assignment.accepted_at = None
                     assignment.completed_at = None
+                    assignment.requested_vehicle_type_id = requested_vehicle_type_id
                     assignment.save(update_fields=[
                         "assigned_to", "assigned_by", "assignment_scope",
-                        "assigned_at", "accepted_at", "completed_at"
+                        "assigned_at", "accepted_at", "completed_at",
+                        "requested_vehicle_type"
                     ])
 
                 # Update booking status
                 if b.status == "pending":
                     b.status = "requested"
                     b.save(update_fields=["status"])
+
+                # Create Note if provided
+                if note_text:
+                    BookingNote.objects.create(
+                        booking=b,
+                        author=request.user,
+                        note=note_text
+                    )
 
                 # Audit
                 AuditLog.objects.create(
@@ -264,6 +277,7 @@ class TravelDeskAssignBookingsView(APIView):
                         "application_id": application_id,
                         "agent_id": booking_agent.id,
                         "scope": scope,
+                        "requested_vehicle_type": requested_vehicle_type_id,
                     },
                 )
 
@@ -304,6 +318,41 @@ class TravelDeskAssignBookingsView(APIView):
                 "scope": scope,
             },
         )
+
+class TravelDeskAgentVehicleTypesView(APIView):
+    """
+    GET: List vehicle types supported by a booking agent
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def get(self, request, agent_id):
+        # Verify agent exists
+        if not User.objects.filter(id=agent_id, is_active=True).exists():
+            return error_response(message="Invalid agent ID")
+
+        # Query BookingAgentVehicleTypeMap via BookingAgentService
+        # Path: Agent (User) -> BookingAgentProfile -> BookingAgentService -> BookingAgentVehicleTypeMap -> VehicleTypeMaster
+        
+        from apps.booking_agent.models import BookingAgentVehicleTypeMap
+        
+        vehicle_types = (
+            BookingAgentVehicleTypeMap.objects
+            .filter(
+                booking_agent_service__booking_agent_profile__user_id=agent_id,
+                is_active=True,
+                vehicle_type__is_active=True
+            )
+            .select_related("vehicle_type")
+            .values("vehicle_type__id", "vehicle_type__name")
+            .distinct()
+        )
+        
+        data = [
+            {"id": vt["vehicle_type__id"], "name": vt["vehicle_type__name"]} 
+            for vt in vehicle_types
+        ]
+        
+        return success_response(data=data)
     
 
 class TravelDeskReassignBookingView(APIView):

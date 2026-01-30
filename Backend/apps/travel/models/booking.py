@@ -136,6 +136,14 @@ class BookingAssignment(models.Model):
         help_text="Whether this assignment was created individually or via full application forwarding.",
     )
 
+    requested_vehicle_type = models.ForeignKey(
+        'master_data.VehicleTypeMaster',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Specific vehicle type requested for this assignment"
+    )
+
     notes = models.TextField(blank=True)
 
     assigned_at = models.DateTimeField(auto_now_add=True)

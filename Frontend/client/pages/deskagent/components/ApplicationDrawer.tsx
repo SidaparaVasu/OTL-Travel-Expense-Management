@@ -187,7 +187,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     setForwardModalOpen(true);
   };
 
-  const confirmForward = async (agentId: number, note: string) => {
+  const confirmForward = async (
+    agentId: number,
+    note: string,
+    vehicleTypeId?: number,
+  ) => {
     setActionLoading(true);
 
     try {
@@ -205,6 +209,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
           booking_agent_id: agentId,
           scope: ids.length === 1 ? "single_booking" : "full_application",
           note: note || undefined,
+          requested_vehicle_type_id: vehicleTypeId,
         });
       }
 
@@ -898,14 +903,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         }}
         onConfirm={confirmForward}
         title={
-          selectedBookingForAction
-            ? forwardType === "forward"
-              ? `Forward Booking #${selectedBookingForAction.id}`
-              : `Reassign Booking #${selectedBookingForAction.id}`
-            : `Forward ${selectedBookings.length} Booking(s)`
+          forwardType === "reassign" ? "Reassign Booking" : "Forward Booking"
         }
-        isLoading={actionLoading}
         type={forwardType}
+        isLoading={actionLoading}
+        booking={selectedBookingForAction}
       />
 
       <AddNoteModal

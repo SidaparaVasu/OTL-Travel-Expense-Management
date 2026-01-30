@@ -71,13 +71,37 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "booking_details",
             "meal_preference",
             "can_reassign",
+            "notes",
+            "requested_vehicle_type",
         ]
     
     meal_preference = serializers.SerializerMethodField()
     can_reassign = serializers.SerializerMethodField()
+    notes = serializers.SerializerMethodField()
+    requested_vehicle_type = serializers.SerializerMethodField()
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
+    
+    def get_notes(self, obj):
+        notes = BookingNote.objects.filter(booking=obj).select_related("author").order_by("-created_at")
+        from apps.booking_agent.serializers.agent_serializers import BookingNoteSerializer
+        return BookingNoteSerializer(notes, many=True).data
+
+    def get_requested_vehicle_type(self, obj):
+        assignment = (
+            BookingAssignment.objects
+            .filter(booking=obj)
+            .select_related("requested_vehicle_type")
+            .order_by("-assigned_at")
+            .first()
+        )
+        if assignment and assignment.requested_vehicle_type:
+            return {
+                "id": assignment.requested_vehicle_type.id,
+                "name": assignment.requested_vehicle_type.name
+            }
+        return None
 
     def get_trip_segment(self, obj):
         td = obj.trip_details
@@ -290,11 +314,13 @@ class BookingAssignmentSerializer(serializers.ModelSerializer):
     )
     scope = serializers.ChoiceField(choices=BookingAssignment.ASSIGNMENT_SCOPE_CHOICES)
     booking_agent_id = serializers.IntegerField(write_only=True)
+    requested_vehicle_type_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    note = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = BookingAssignment
         fields = [
-            "id", "booking_ids", "scope", "booking_agent_id",
+            "id", "booking_ids", "scope", "booking_agent_id", "requested_vehicle_type_id", "note",
         ]
 
     def validate(self, attrs):

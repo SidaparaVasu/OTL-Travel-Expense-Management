@@ -173,13 +173,37 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "meal_preference",
             "max_allowed_cost",
             "ceo_approval_status",
+            "ceo_approval_status",
             "travel_application_status",
+            "requested_vehicle_type",
+            "notes",
         ]
 
     meal_preference = serializers.SerializerMethodField()
+    requested_vehicle_type = serializers.SerializerMethodField()
+    notes = serializers.SerializerMethodField()
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
+    
+    def get_requested_vehicle_type(self, obj):
+        assignment = (
+            BookingAssignment.objects
+            .filter(booking=obj)
+            .select_related("requested_vehicle_type")
+            .order_by("-assigned_at")
+            .first()
+        )
+        if assignment and assignment.requested_vehicle_type:
+            return {
+                "id": assignment.requested_vehicle_type.id,
+                "name": assignment.requested_vehicle_type.name
+            }
+        return None
+
+    def get_notes(self, obj):
+        notes = BookingNote.objects.filter(booking=obj).select_related("author").order_by("-created_at")
+        return BookingNoteSerializer(notes, many=True).data
     
     def get_travel_request_id(self, obj):
         return obj.trip_details.travel_application.get_travel_request_id()

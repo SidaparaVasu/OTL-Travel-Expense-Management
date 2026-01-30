@@ -34,7 +34,7 @@ export interface BookingDetails {
   not_required?: boolean;
   drop_location?: string;
   has_six_airbags?: boolean;
-  accommodation_type?: 'company' | 'self';
+  accommodation_type?: "company" | "self";
 }
 
 export interface Booking {
@@ -53,6 +53,27 @@ export interface Booking {
   special_instruction: string;
   can_reassign: boolean;
   trip_segment?: string;
+  notes?: {
+    id: number;
+    note: string;
+    author_name: string;
+    created_at: string;
+  }[];
+  requested_vehicle_type?: {
+    id: number;
+    name: string;
+  };
+  assigned_agent?: {
+    id: number;
+    name: string;
+    organization_name?: string;
+    contact_person?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    assigned_at: string;
+    scope: string;
+  };
 }
 
 export interface TripDetail {
@@ -168,15 +189,22 @@ export interface ApplicationsListResponse {
   errors: any | null;
 }
 
+export interface VehicleType {
+  id: number;
+  name: string;
+}
+
 export interface AssignBookingPayload {
   booking_ids: number[];
-  scope: 'single_booking' | 'full_application';
+  scope: "single_booking" | "full_application";
   booking_agent_id: number;
   note: string;
+  requested_vehicle_type_id?: number;
 }
 
 export interface ForwardApplicationPayload {
   agent_id: number;
+  requested_vehicle_type_id?: number;
 }
 
 export interface AddNotePayload {
@@ -191,8 +219,18 @@ export interface CancelApplicationPayload {
   reason: string;
 }
 
-export type BookingStatus = 'pending' | 'assigned' | 'booked' | 'completed' | 'cancelled';
-export type ApplicationStatus = 'pending_travel_desk' | 'booking_in_progress' | 'booked' | 'completed' | 'cancelled';
+export type BookingStatus =
+  | "pending"
+  | "assigned"
+  | "booked"
+  | "completed"
+  | "cancelled";
+export type ApplicationStatus =
+  | "pending_travel_desk"
+  | "booking_in_progress"
+  | "booked"
+  | "completed"
+  | "cancelled";
 
 export interface RecommendedAgent {
   id: number;

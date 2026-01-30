@@ -37,9 +37,20 @@ export interface Booking {
   employee_name?: string;
   employee_grade?: string;
   assigned_agent?: {
+    id: number;
     name: string;
-    scope: string;
     assigned_at: string;
+    scope: "single_booking" | "full_application";
+  };
+  notes?: {
+    id: number;
+    note: string;
+    author_name: string;
+    created_at: string;
+  }[];
+  requested_vehicle_type?: {
+    id: number;
+    name: string;
   };
   created_at?: string;
   max_allowed_cost?: number;

@@ -208,6 +208,52 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             </div>
           )}
 
+          {/* Requested Vehicle Type (For Conveyance) */}
+          {booking.requested_vehicle_type && (
+            <div className="bg-sky-50 border border-sky-100 rounded-lg p-3 flex justify-between items-center">
+              <span className="text-sm text-sky-700 font-medium">
+                Requested Vehicle
+              </span>
+              <span className="text-sm font-bold text-sky-800">
+                {booking.requested_vehicle_type.name}
+              </span>
+            </div>
+          )}
+
+          {/* Notes & Remarks History */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <FileText className="w-4 h-4 text-primary" />
+              Notes & Remarks
+            </h4>
+            <div className="bg-card border rounded-lg p-3 max-h-60 overflow-y-auto space-y-4">
+              {booking.notes && booking.notes.length > 0 ? (
+                booking.notes.map((note: any) => (
+                  <div
+                    key={note.id}
+                    className="text-sm border-b last:border-0 pb-3 last:pb-0"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold text-slate-700">
+                        {note.author_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDateTime(note.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 whitespace-pre-wrap">
+                      {note.note}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  No notes available.
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Flight / Train / Conveyance / Accommodation Schedule */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
