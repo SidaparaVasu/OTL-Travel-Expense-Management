@@ -157,11 +157,22 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       const distance = parseFloat(form.distance_km);
       if (isNaN(distance) || distance <= 0) {
         newErrors.distance_km = "Enter valid distance";
-      } else if (isOwnCar && distance > 150) {
-        // Show CHRO approval toast but allow submission
-        toast.warning("CHRO approval required for distance exceeding 150 km", {
-          duration: 5000,
-        });
+      } else {
+        const isSelfArrangedDisposal =
+          isCarAtDisposal &&
+          (form.vehicle_sub_option_label || "")
+            .toLowerCase()
+            .includes("self-arranged");
+
+        if ((isOwnCar || isSelfArrangedDisposal) && distance > 150) {
+          // Show CHRO approval toast but allow submission
+          toast.warning(
+            "CHRO approval required for distance exceeding 150 km",
+            {
+              duration: 5000,
+            },
+          );
+        }
       }
     }
 
@@ -653,14 +664,24 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
               <div className="md:col-span-2 space-y-1.5">
                 <label className="text-sm font-medium">
-                  Approx. K.M. (Two-way distance)<span className="text-destructive">*</span>
+                  Approx. K.M. (Two-way distance)
+                  <span className="text-destructive">*</span>
                 </label>
                 <CurrencyInput
                   value={form.distance_km || ""}
                   onValueChange={(value) => {
                     const valStr = value?.toString() || "";
                     setForm({ ...form, distance_km: valStr });
-                    if (isOwnCar && value && value > 150) {
+                    const isSelfArrangedDisposal =
+                      isCarAtDisposal &&
+                      (form.vehicle_sub_option_label || "")
+                        .toLowerCase()
+                        .includes("self-arranged");
+                    if (
+                      (isOwnCar || isSelfArrangedDisposal) &&
+                      value &&
+                      value > 150
+                    ) {
                       toast.warning(
                         "CHRO approval required for distance exceeding 150 km",
                       );

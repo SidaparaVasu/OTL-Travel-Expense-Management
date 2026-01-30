@@ -289,6 +289,23 @@ class ApprovalEngineV2:
         for b in bookings:
             try:
                 name = getattr(b.booking_type, "name", str(getattr(b, "booking_type", "") or "")).lower()
+                
+                # Specific check for Car at Disposal: Only trigger if "Self-Arranged"
+                if "disposal" in name:
+                    # Try to get sub-option name from FK
+                    sub_opt_obj = getattr(b, "sub_option", None)
+                    sub_opt = getattr(sub_opt_obj, "name", "") or ""
+                    
+                    # Fallback to details (though frontend likely doesn't send it)
+                    if not sub_opt:
+                        details = getattr(b, "booking_details", {}) or {}
+                        sub_opt = details.get("vehicle_sub_option_label", "")
+                    
+                    sub_opt = str(sub_opt).lower()
+                    
+                    if "self-arranged" not in sub_opt:
+                        continue
+
                 if any(k in name for k in ("car", "own car", "pickup", "drop")):
                     details = getattr(b, "booking_details", {}) or {}
                     distance = (
@@ -306,6 +323,7 @@ class ApprovalEngineV2:
                     except Exception:
                         logger.debug("ApprovalEngineV2: malformed distance value '%s' for booking id=%s", distance, getattr(b, "id", None))
                         continue
+                    
                     logger.debug("ApprovalEngineV2: booking id=%s mode=%s distance=%s threshold=%s", getattr(b, "id", None), name, dist_val, max_distance_val)
                     if dist_val > max_distance_val:
                         logger.info("ApprovalEngineV2: distance threshold exceeded for booking id=%s (%s > %s)", getattr(b, "id", None), dist_val, max_distance_val)
