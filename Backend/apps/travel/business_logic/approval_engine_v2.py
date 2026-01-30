@@ -54,6 +54,8 @@ class ApprovalEngineV2:
     DEFAULTS = {
         "flight_amount_threshold": Decimal("10000"),  # TSF fallback if TravelPolicyMaster not present
         "own_car_distance_km": 150,                   # TSF fallback
+        "ceo_approval_long_duration_days": 7,         # CEO required if trip > 7 days
+        "enable_ceo_approval_long_duration": True,    # Feature flag
     }
 
     def __init__(self, travel_app, request_user, config=None):
@@ -384,6 +386,29 @@ class ApprovalEngineV2:
         return False
 
 
+    def _any_trip_duration_exceeds(self, max_days):
+        """
+        Return True if any single trip in the application exceeds max_days.
+        Duration = (Return Date - Departure Date).days + 1
+        """
+        try:
+            trips = getattr(self.travel_application, "trip_details", None)
+            if not trips:
+                return False
+            
+            for trip in trips.all():
+                dep = getattr(trip, "departure_date", None)
+                ret = getattr(trip, "return_date", None)
+                
+                if dep and ret:
+                    duration = (ret - dep).days + 1
+                    if duration > int(max_days):
+                        logger.info(f"ApprovalEngineV2: trip {trip.id} duration {duration} > {max_days} days")
+                        return True
+        except Exception as e:
+            logger.debug(f"Error checking trip duration: {e}")
+        return False
+
     # ---------------------------
     # Matrix-based checks (if available)
     # ---------------------------
@@ -626,6 +651,15 @@ class ApprovalEngineV2:
                 if not require_ceo:
                     if self._any_flight_above_threshold(bookings, self.config.get("flight_amount_threshold")):
                         require_ceo = True
+            
+            # 4) Long Duration Travel Rule (> 7 days default)
+            # This is "unlinkable" via the enable_ceo_approval_long_duration config.
+            if not require_ceo and self.config.get("enable_ceo_approval_long_duration", True):
+                days_limit = self.config.get("ceo_approval_long_duration_days", 7)
+                if self._any_trip_duration_exceeds(days_limit):
+                    logger.info("Long Duration Rule triggered (> %s days). CEO Required.", days_limit)
+                    require_ceo = True
+
         except Exception as e:
             logger.debug("Error evaluating CEO requirement: %s", e)
 
