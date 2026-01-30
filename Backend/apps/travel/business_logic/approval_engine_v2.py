@@ -518,6 +518,32 @@ class ApprovalEngineV2:
             logger.debug("matrix_requires_ceo_for_amount error: %s", e)
             return None
 
+    def _any_booking_has_advance(self, bookings):
+        """
+        Return True if any booking has an advance amount (estimated_cost > 0).
+        This checks ticketing, accommodation, and conveyance bookings.
+        
+        This rule can be disabled by setting config["enable_ceo_approval_for_advance"] = False
+        """
+        for b in bookings:
+            try:
+                cost = getattr(b, "estimated_cost", None)
+                if cost is not None:
+                    try:
+                        cost_decimal = Decimal(str(cost))
+                        if cost_decimal > Decimal("0"):
+                            logger.info(
+                                "ApprovalEngineV2: booking id=%s has advance amount %s, CEO approval required",
+                                getattr(b, "id", None),
+                                cost
+                            )
+                            return True
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+        return False
+
     # ---------------------------
     # Merge/dedupe/order helpers
     # ---------------------------
@@ -586,9 +612,14 @@ class ApprovalEngineV2:
                 flight_over = self._any_flight_above_threshold(bookings, self.config.get("flight_amount_threshold"))
                 car_dist_over = self._any_own_car_over_distance(bookings, self.config.get("own_car_distance_km"))
                 car_disposal_over = self._any_car_disposal_over_duration(bookings, 5)
+                
+                # Check if advance amount is requested (if rule is enabled)
+                advance_requested = False
+                if self.config.get("enable_ceo_approval_for_advance", True):
+                    advance_requested = self._any_booking_has_advance(bookings)
 
                 # If none of the special rules trigger -> true self-approval (final)
-                if not (flight_over or car_dist_over or car_disposal_over):
+                if not (flight_over or car_dist_over or car_disposal_over or advance_requested):
                     logger.info(
                         f"[SELF APPROVAL] User {getattr(self.request_user, 'id', None)} "
                         f"grade={getattr(getattr(self.request_user, 'grade', None), 'name', None)} "
@@ -658,6 +689,14 @@ class ApprovalEngineV2:
                 days_limit = self.config.get("ceo_approval_long_duration_days", 7)
                 if self._any_trip_duration_exceeds(days_limit):
                     logger.info("Long Duration Rule triggered (> %s days). CEO Required.", days_limit)
+                    require_ceo = True
+
+            # 5) Advance Amount Rule
+            # If any booking (ticketing/accommodation/conveyance) has advance amount requested,
+            # require CEO approval. This is "unlinkable" via the enable_ceo_approval_for_advance config.
+            if not require_ceo and self.config.get("enable_ceo_approval_for_advance", True):
+                if self._any_booking_has_advance(bookings):
+                    logger.info("Advance Amount Rule triggered. CEO approval required for advance amount request.")
                     require_ceo = True
 
         except Exception as e:
