@@ -113,6 +113,9 @@ def _get_city_category_for_date(trips, current_date: date) -> str:
         start = _date_from_str(trip.departure_date)
         end = _date_from_str(trip.return_date)
         if start and end and start <= current_date <= end:
+            # Rule: If "Stay at Revenue Village" is selected in any booking for this trip, force Category C
+            if trip.bookings.filter(sub_option__name__iexact="Stay at Revenue Village").exists():
+                return "C"
             return trip.get_city_category() or "B"
     
     # Fallback: if between trips or not found, pick the destination of the last trip before this date
