@@ -10,9 +10,13 @@ import {
   Banknote,
   Lock,
   AlertCircle,
+  Send,
+  RefreshCw,
+  Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -58,6 +62,19 @@ export default function ClaimDetailPage() {
     });
   };
 
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })}, ${date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  };
+
   const statusColorClass = (status: string) => {
     switch (status) {
       case "approved":
@@ -71,6 +88,8 @@ export default function ClaimDetailPage() {
         return "bg-blue-100 text-blue-700 hover:bg-blue-200";
       case "closed":
         return "bg-slate-200 text-slate-700 hover:bg-slate-300";
+      case "revision_required":
+        return "bg-orange-100 text-orange-700 hover:bg-orange-200";
       default:
         return "bg-slate-100 text-slate-700 hover:bg-slate-200";
     }
@@ -113,7 +132,7 @@ export default function ClaimDetailPage() {
           iconColor: "text-blue-600",
           Icon: Banknote,
           label: "Payment Processed",
-          message: "Amount has been disbursed",
+          message: "Processing...",
         };
       case "closed":
         return {
@@ -122,6 +141,14 @@ export default function ClaimDetailPage() {
           Icon: Lock,
           label: "Claim Closed",
           message: "This claim record is closed",
+        };
+      case "revision_required":
+        return {
+          bg: "bg-gradient-to-br from-orange-50 to-orange-50/50 border-orange-100",
+          iconColor: "text-orange-600",
+          Icon: AlertCircle,
+          label: "Revision Required",
+          message: "Claim returned for corrections",
         };
       default:
         return {
@@ -182,6 +209,67 @@ export default function ClaimDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Return Remarks Alert - Only show when status is revision_required */}
+            {claim.status_code === "revision_required" && (
+              <Card className="border-orange-300 bg-orange-50/50">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-orange-900 mb-2">
+                        Revision Required
+                      </h3>
+                      <p className="text-sm text-orange-800 mb-3">
+                        Your claim has been returned by the finance team for
+                        corrections. Please review the feedback below, make
+                        necessary changes, and resubmit.
+                      </p>
+
+                      {/* Find the latest return action from finance_action_logs */}
+                      {claim.finance_action_logs &&
+                        claim.finance_action_logs.length > 0 && (
+                          <div className="bg-white border border-orange-200 rounded-md p-3 mb-3">
+                            <p className="text-xs font-medium text-orange-900 mb-1">
+                              Finance Feedback:
+                            </p>
+                            <p className="text-sm text-slate-700 italic">
+                              "
+                              {claim.finance_action_logs.find(
+                                (log: any) =>
+                                  log.action === "return_to_applicant",
+                              )?.remarks || "No remarks provided"}
+                              "
+                            </p>
+                            <p className="text-xs text-slate-500 mt-2">
+                              Returned by:{" "}
+                              {
+                                claim.finance_action_logs.find(
+                                  (log: any) =>
+                                    log.action === "return_to_applicant",
+                                )?.action_by_name
+                              }{" "}
+                              on{" "}
+                              {formatDateTime(
+                                claim.finance_action_logs.find(
+                                  (log: any) =>
+                                    log.action === "return_to_applicant",
+                                )?.action_date,
+                              )}
+                            </p>
+                          </div>
+                        )}
+
+                      <Button
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                        onClick={() => navigate(ROUTES.editClaimPage(claim.id))}
+                      >
+                        Edit Claim
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* Expense Items Table */}
             <Card className="shadow-sm border-slate-200">
               <CardHeader className="border-b pb-3">
@@ -469,6 +557,180 @@ export default function ClaimDetailPage() {
                   <p className="text-xs text-slate-600">
                     {statusConfig.message}
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Audit Timeline Card */}
+            <Card className="shadow-sm border-slate-200 mt-6">
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  Audit & Finance Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-0">
+                  {/* Created Event */}
+                  {claim.created_on && (
+                    <div className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-100">
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
+                      </div>
+                      <div className="pb-6 w-full">
+                        <p className="font-semibold text-sm text-slate-800">
+                          Claim Created
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {formatDateTime(claim.created_on)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submitted Event */}
+                  {claim.submitted_on && (
+                    <div className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-100">
+                          <Send className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
+                      </div>
+                      <div className="pb-6 w-full">
+                        <p className="font-semibold text-sm text-slate-800">
+                          Claim Submitted
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {formatDateTime(claim.submitted_on)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Last Updated Event */}
+                  {claim.updated_on &&
+                    claim.updated_on !== claim.created_on && (
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-slate-100">
+                            <RefreshCw className="h-4 w-4 text-slate-600" />
+                          </div>
+                          <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
+                        </div>
+                        <div className="pb-6 w-full">
+                          <p className="font-semibold text-sm text-slate-800">
+                            Last Updated
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(claim.updated_on)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Finance Action Logs */}
+                  {claim.finance_action_logs?.map((log: any, index: number) => (
+                    <div key={log.id} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            log.action === "mark_paid"
+                              ? "bg-green-100"
+                              : "bg-slate-100"
+                          }`}
+                        >
+                          {log.action === "mark_paid" ? (
+                            <Banknote
+                              className={`h-4 w-4 ${
+                                log.action === "mark_paid"
+                                  ? "text-green-600"
+                                  : "text-slate-600"
+                              }`}
+                            />
+                          ) : (
+                            <Lock
+                              className={`h-4 w-4 ${
+                                log.action === "mark_paid"
+                                  ? "text-green-600"
+                                  : "text-slate-600"
+                              }`}
+                            />
+                          )}
+                        </div>
+                        {index <
+                          (claim.finance_action_logs?.length || 0) - 1 && (
+                          <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
+                        )}
+                      </div>
+                      <div className="pb-6 w-full">
+                        <p className="font-semibold text-sm text-slate-800">
+                          {log.action === "mark_paid"
+                            ? "Payment Processed"
+                            : "Claim Closed"}
+                        </p>
+                        <p className="text-xs text-slate-500 mb-1">
+                          {formatDateTime(log.action_date)}
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          By: {log.action_by_name}
+                        </p>
+                        {log.remarks && (
+                          <p className="text-xs text-slate-500 mt-1 italic">
+                            "{log.remarks}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Paid On (if no finance logs but paid_on exists) */}
+                  {claim.paid_on &&
+                    (!claim.finance_action_logs ||
+                      claim.finance_action_logs.length === 0) && (
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-100">
+                            <Banknote className="h-4 w-4 text-green-600" />
+                          </div>
+                          {claim.closed_on && (
+                            <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
+                          )}
+                        </div>
+                        <div className="pb-6 w-full">
+                          <p className="font-semibold text-sm text-slate-800">
+                            Payment Processed
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(claim.paid_on)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Closed On (if no finance logs but closed_on exists) */}
+                  {claim.closed_on &&
+                    (!claim.finance_action_logs ||
+                      claim.finance_action_logs.length === 0) && (
+                      <div className="flex gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-slate-100">
+                            <Lock className="h-4 w-4 text-slate-600" />
+                          </div>
+                        </div>
+                        <div className="pb-6 w-full">
+                          <p className="font-semibold text-sm text-slate-800">
+                            Claim Closed
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(claim.closed_on)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                 </div>
               </CardContent>
             </Card>

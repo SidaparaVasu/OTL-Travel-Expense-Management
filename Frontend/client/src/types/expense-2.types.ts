@@ -35,12 +35,21 @@ export interface ExpenseItem {
   id?: number;
   expense_type: number | string;
   booking_id?: number;
+  is_booking_expense?: boolean;
   estimated_cost: number;
   actual_cost: number;
   has_receipt: boolean;
   receipt_file?: File | string;
   remarks: string;
   expense_date?: string;
+  distance_km?: number;
+}
+
+export interface ExpenseClaim {
+  id: number;
+  claim_number: string;
+  travel_application: number;
+  travel_request_id?: string;
 }
 
 export interface ExpenseClaim {
@@ -92,7 +101,8 @@ export interface ExpenseClaimValidateResponse {
 }
 
 export interface ExpenseClaimValidateRequest {
-  travel_application: number;
+  travel_application_id: number;
+  claim_id?: number;
   items: ExpenseItem[];
 }
 
@@ -141,7 +151,7 @@ export interface FinanceDashboardResponse {
 
 // Finance Action Types
 export interface FinanceActionRequest {
-  action: 'mark_paid' | 'mark_closed';
+  action: "mark_paid" | "mark_closed" | "return_to_applicant";
   remarks?: string;
 }
 

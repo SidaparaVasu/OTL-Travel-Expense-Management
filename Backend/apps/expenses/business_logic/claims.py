@@ -276,8 +276,11 @@ def get_grade_entitlement_limit(grade_name, city_category_name, sub_option_name=
 # DUPLICATE CLAIM CHECK
 # --------------------------------------------------------------------
 
-def check_duplicate_claim(tr: TravelApplication):
-    return ExpenseClaim.objects.filter(travel_application=tr).exists()
+def check_duplicate_claim(tr: TravelApplication, exclude_claim_id=None):
+    qs = ExpenseClaim.objects.filter(travel_application=tr)
+    if exclude_claim_id:
+        qs = qs.exclude(id=exclude_claim_id)
+    return qs.exists()
 
 
 # --------------------------------------------------------------------
@@ -287,7 +290,8 @@ def check_duplicate_claim(tr: TravelApplication):
 def validate_claim_payload(
     payload: Dict[str, Any],
     tr: Optional[TravelApplication] = None,
-    travel_application: Optional[TravelApplication] = None
+    travel_application: Optional[TravelApplication] = None,
+    exclude_claim_id: Optional[int] = None
 ):
     """
     Core validation function.
@@ -318,7 +322,11 @@ def validate_claim_payload(
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
     # 3 — Prevent duplicate claims
-    if check_duplicate_claim(tr):
+    # If explicit exclude_claim_id passed, use it.
+    # Also check payload for 'claim_id' (common in edit/validate scenarios)
+    claim_id_to_exclude = exclude_claim_id or payload.get("claim_id")
+    
+    if check_duplicate_claim(tr, exclude_claim_id=claim_id_to_exclude):
         errors["duplicate"] = ["Claim already submitted for this travel."]
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
@@ -387,8 +395,15 @@ def validate_claim_payload(
     for idx, item in enumerate(items):
         prefix = f"items[{idx}]"
 
-        # expense_type is FK instance after serializer
+        # expense_type is FK instance after serializer (Submit) OR int ID (Edit/Validate)
         etype = item.get("expense_type")
+        if isinstance(etype, (int, str)):
+             try:
+                 etype = ExpenseTypeMaster.objects.get(pk=int(etype))
+                 item["expense_type"] = etype # Update item for later logic
+             except (ValueError, ExpenseTypeMaster.DoesNotExist):
+                 pass
+
         code = _get_expense_type_code(etype)
 
         # date
@@ -406,7 +421,7 @@ def validate_claim_payload(
         if code in ("hotel", "flight", "train", "taxi"):
             # If item is linked to a booking (has booking_id) OR has receipt, it's valid.
             # If neither, and it's a required type, warn.
-            is_booking = item.get("booking_id") or item.get("is_booking")
+            is_booking = item.get("booking_id") or item.get("is_booking") or item.get("is_booking_expense")
             
             if not has_receipt and not is_booking:
                 warnings.setdefault(f"{prefix}.receipt", []).append(
@@ -532,7 +547,8 @@ def validate_claim_payload(
 def compute_claim_totals_and_prepare(
     payload,
     tr: TravelApplication = None,
-    travel_application: TravelApplication = None
+    travel_application: TravelApplication = None,
+    exclude_claim_id: int = None
 ):
     """
     Supports both 'tr' and 'travel_application' for compatibility.
@@ -542,7 +558,7 @@ def compute_claim_totals_and_prepare(
     if travel_application is not None and tr is None:
         tr = travel_application
 
-    result = validate_claim_payload(payload, tr=tr)
+    result = validate_claim_payload(payload, tr=tr, exclude_claim_id=exclude_claim_id)
 
     if result["errors"]:
         return result
@@ -553,11 +569,16 @@ def compute_claim_totals_and_prepare(
     prepared_items = []
     for item in items:
         amt = _to_decimal(item["amount"])
+        prepare_booking_flag = item.get("is_booking_expense", False)
+        if item.get("booking_id"):
+            prepare_booking_flag = True
+
         prepared_items.append({
             "expense_type": item["expense_type"],
             "expense_date": _date_from_str(item.get("expense_date")),
             "amount": amt,
             "booking_id": item.get("booking_id"), # Pass booking_id if present
+            "is_booking_expense": prepare_booking_flag,
             "has_receipt": item.get("has_receipt", True),
             "receipt_file": item.get("receipt_file"),
             "is_self_certified": item.get("is_self_certified", False),

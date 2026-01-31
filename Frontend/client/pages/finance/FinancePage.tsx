@@ -36,6 +36,7 @@ import {
   CircleCheck,
   Loader2,
   AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 import { useNavigate } from "react-router-dom";
@@ -71,9 +72,11 @@ const FinanceDashboard = () => {
     useState<FinanceDashboardClaim | null>(null);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isCloseAppModalOpen, setIsCloseAppModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [paymentRemarks, setPaymentRemarks] = useState("");
   const [closeRemarks, setCloseRemarks] = useState("");
+  const [returnRemarks, setReturnRemarks] = useState("");
 
   // Fetch dashboard data
   const fetchDashboard = async () => {
@@ -112,6 +115,8 @@ const FinanceDashboard = () => {
     switch (statusCode) {
       case "finance_pending":
         return "Pending";
+      case "revision_required":
+        return "Revision Required";
       case "paid":
         return "Processed";
       case "closed":
@@ -199,6 +204,49 @@ const FinanceDashboard = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
       console.error("Close application error:", err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReturnToApplicant = (claim: FinanceDashboardClaim) => {
+    setSelectedClaim(claim);
+    setReturnRemarks(""); // Reset remarks
+    setIsReturnModalOpen(true);
+  };
+
+  const confirmReturnToApplicant = async () => {
+    if (!selectedClaim) return;
+
+    // Validate remarks
+    if (!returnRemarks.trim()) {
+      setError("Remarks are required when returning claim to applicant");
+      return;
+    }
+
+    setActionLoading(selectedClaim.claim_application_id);
+
+    try {
+      const result = await expenseAPI.claims.financeAction(
+        selectedClaim.claim_application_id,
+        {
+          action: "return_to_applicant",
+          remarks: returnRemarks.trim(),
+        },
+      );
+
+      if (result.success) {
+        // Refresh dashboard data
+        await fetchDashboard();
+        setIsReturnModalOpen(false);
+        setSelectedClaim(null);
+        setReturnRemarks("");
+      } else {
+        setError("Failed to return claim to applicant");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Return to applicant error:", err);
     } finally {
       setActionLoading(null);
     }
@@ -313,6 +361,7 @@ const FinanceDashboard = () => {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="revision_required">Returned</SelectItem>
                   <SelectItem value="paid">Processed</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
@@ -408,7 +457,7 @@ const FinanceDashboard = () => {
 
                       <TableCell className="text-center">
                         <Link
-                          to={ROUTES.travelApplicationView(
+                          to={ROUTES.travelApplicationDetails(
                             claim.travel_application,
                           )}
                           className="text-blue-600 hover:text-blue-800 underline"
@@ -429,23 +478,37 @@ const FinanceDashboard = () => {
                       </TableCell>
 
                       <TableCell className="text-center">
-                        {/* Pending -> Mark Paid */}
+                        {/* Pending -> Mark Paid or Return */}
                         {claim.status_code === "finance_pending" && (
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                            onClick={() => handleMarkAsPaid(claim)}
-                            disabled={
-                              actionLoading === claim.claim_application_id
-                            }
-                          >
-                            {actionLoading === claim.claim_application_id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="h-4 w-4" />
-                            )}
-                            Mark as Paid
-                          </Button>
+                          <div className="flex gap-2 justify-center">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                              onClick={() => handleMarkAsPaid(claim)}
+                              disabled={
+                                actionLoading === claim.claim_application_id
+                              }
+                            >
+                              {actionLoading === claim.claim_application_id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4" />
+                              )}
+                              Mark as Paid
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-600 text-red-600 hover:bg-red-50 gap-2 hover:text-red-800"
+                              onClick={() => handleReturnToApplicant(claim)}
+                              disabled={
+                                actionLoading === claim.claim_application_id
+                              }
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              Return
+                            </Button>
+                          </div>
                         )}
 
                         {/* Paid -> Process */}
@@ -569,8 +632,8 @@ const FinanceDashboard = () => {
                 This action is irreversible
               </p>
               <p className="text-xs text-orange-700 mt-1">
-                Once you mark as processed, this claim will move to <b>Processed</b>{" "}
-                status and cannot be modified later.
+                Once you mark as processed, this claim will move to{" "}
+                <b>Processed</b> status and cannot be modified later.
               </p>
             </div>
 
@@ -708,6 +771,113 @@ const FinanceDashboard = () => {
                   </>
                 ) : (
                   "Close & Finish"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Return to Applicant Modal */}
+        <Dialog
+          open={isReturnModalOpen}
+          onOpenChange={(open) => {
+            if (actionLoading !== null) return;
+
+            setIsReturnModalOpen(open);
+            if (!open) {
+              setSelectedClaim(null);
+              setReturnRemarks("");
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[520px]">
+            <DialogHeader>
+              <DialogTitle>Return Claim to Applicant</DialogTitle>
+              <DialogDescription className="text-slate-500">
+                Return this claim to the applicant for corrections.
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Claim Summary */}
+            <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-600">Employee</span>
+                <span className="font-medium text-orange-900">
+                  {selectedClaim?.employee_name || "-"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-600">Travel Request ID</span>
+                <span className="font-semibold text-orange-900">
+                  {selectedClaim?.travel_request_id || "-"}
+                </span>
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm font-semibold text-blue-800 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-[2px]" />
+                What happens next?
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                The applicant will be able to edit the claim and resubmit it.
+                The claim will come back to you for re-verification after
+                resubmission.
+              </p>
+            </div>
+
+            {/* Remarks Input - REQUIRED */}
+            <div className="space-y-2">
+              <label
+                htmlFor="return-remarks"
+                className="text-sm font-medium text-slate-700"
+              >
+                Feedback for Applicant <span className="text-red-600">*</span>
+              </label>
+              <textarea
+                id="return-remarks"
+                placeholder="e.g., Missing receipts for hotel expenses. Please upload valid receipts and resubmit."
+                value={returnRemarks}
+                onChange={(e) => setReturnRemarks(e.target.value)}
+                disabled={actionLoading !== null}
+                className="w-full min-h-[100px] px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                required
+              />
+              <p className="text-xs text-slate-500">
+                Please provide clear feedback so the applicant knows what to
+                fix.
+              </p>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                className="hover:bg-slate-100 hover:text-black"
+                onClick={() => {
+                  if (actionLoading !== null) return;
+                  setIsReturnModalOpen(false);
+                  setSelectedClaim(null);
+                  setReturnRemarks("");
+                }}
+                disabled={actionLoading !== null}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+                onClick={confirmReturnToApplicant}
+                disabled={actionLoading !== null || !returnRemarks.trim()}
+              >
+                {actionLoading !== null ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Returning...
+                  </>
+                ) : (
+                  <>Return to Applicant</>
                 )}
               </Button>
             </DialogFooter>

@@ -623,10 +623,18 @@ class ClaimFinanceActionView(BranchFilterMixin, APIView):
                     )
                 new_status_code = "closed"
                 
+            elif action == "return_to_applicant":
+                if current_status != "finance_pending":
+                    return error_response(
+                        message="Invalid action",
+                        data={"action": ["Can only return claims when status is finance_pending"]}
+                    )
+                new_status_code = "revision_required"
+                
             else:
                 return error_response(
                     message="Invalid action",
-                    data={"action": ["Action must be 'mark_paid' or 'mark_closed'"]}
+                    data={"action": ["Action must be 'mark_paid', 'mark_closed', or 'return_to_applicant'"]}
                 )
 
             # Update claim status
@@ -843,4 +851,185 @@ class ClaimReportPDFView(APIView):
                     serializer_data={"detail": str(ex), "trace": tb}
                 ),
                 status=500
+            )
+
+
+# -------------------------
+# Claim Edit View - Edit claims in revision_required status
+# -------------------------
+class ClaimEditView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def put(self, request, claim_id):
+        """
+        Allow applicant to edit claim when status is revision_required.
+        Updates expense items and recalculates totals.
+        """
+        try:
+            claim = ExpenseClaim.objects.select_related(
+                "employee", "status", "travel_application"
+            ).filter(id=claim_id).first()
+            
+            # Validation
+            if not claim:
+                return error_response(
+                    message="Claim not found",
+                    data={"claim": ["Invalid claim ID"]}
+                )
+            
+            if claim.employee != request.user:
+                return error_response(
+                    message="Permission denied",
+                    data={"permission": ["You can only edit your own claims"]}
+                )
+            
+            if claim.status.code != "revision_required":
+                return error_response(
+                    message="Invalid status",
+                    data={"status": [f"Claim cannot be edited in '{claim.status.label}' status. Only claims in 'Revision Required' status can be edited."]}
+                )
+            
+            # Import business logic
+            from apps.expenses.business_logic.claims import compute_claim_totals_and_prepare
+            
+            # Update items (delete old, create new)
+            with transaction.atomic():
+                # Delete existing items
+                claim.items.all().delete()
+                
+                # Recalculate totals and prepare new items
+                prepared = compute_claim_totals_and_prepare(
+                    request.data, 
+                    travel_application=claim.travel_application,
+                    exclude_claim_id=claim.id
+                )
+                
+                if prepared["errors"]:
+                    return error_response(
+                        message="Validation failed",
+                        data=prepared["errors"]
+                    )
+                
+                # Update claim totals
+                claim.total_da = prepared["total_da"]
+                claim.total_incidental = prepared["total_incidental"]
+                claim.total_expenses = prepared["total_expenses"]
+                claim.final_amount_payable = prepared["final_amount"]
+                claim.exceptions = prepared["warnings"] or {}
+                claim.save()
+                
+                # Create new items
+                for item in prepared["items_prepared"]:
+                    item_data = item.copy()
+                    ExpenseItem.objects.create(claim=claim, **item_data)
+                
+                # Update DA breakdown
+                claim.da_breakdown.all().delete()
+                for day in prepared["computed"]["da_breakdown"]:
+                    DAIncidentalBreakdown.objects.create(
+                        claim=claim,
+                        date=day["date"],
+                        eligible_da=day["da"],
+                        eligible_incidental=day["incidental"],
+                        hours=day["duration_hours"],
+                    )
+            
+            return success_response(
+                message="Claim updated successfully",
+                data={"claim_id": claim.id}
+            )
+            
+        except Exception as ex:
+            tb = traceback.format_exc()
+            return error_response(
+                message="Unexpected error",
+                data={"detail": str(ex), "trace": tb}
+            )
+
+
+# -------------------------
+# Claim Resubmit View - Resubmit edited claims
+# -------------------------
+class ClaimResubmitView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, claim_id):
+        """
+        Resubmit claim after editing.
+        Status changes from revision_required to finance_pending (bypasses manager).
+        """
+        try:
+            claim = ExpenseClaim.objects.select_related(
+                "employee", "status", "travel_application"
+            ).filter(id=claim_id).first()
+            
+            # Validation
+            if not claim:
+                return error_response(
+                    message="Claim not found",
+                    data={"claim": ["Invalid claim ID"]}
+                )
+            
+            if claim.employee != request.user:
+                return error_response(
+                    message="Permission denied",
+                    data={"permission": ["You can only resubmit your own claims"]}
+                )
+            
+            if claim.status.code != "revision_required":
+                return error_response(
+                    message="Invalid status",
+                    data={"status": [f"Claim cannot be resubmitted in '{claim.status.label}' status. Only claims in 'Revision Required' status can be resubmitted."]}
+                )
+            
+            # Update status to finance_pending
+            with transaction.atomic():
+                finance_pending = ClaimStatusMaster.objects.filter(
+                    code="finance_pending"
+                ).first()
+                
+                if not finance_pending:
+                    return error_response(
+                        message="Configuration error",
+                        data={"status": ["Finance pending status not found in system"]}
+                    )
+                
+                claim.status = finance_pending
+                claim.submitted_on = timezone.now()  # Update submission time
+                claim.save()
+                
+                # Update existing finance approval flow entry to pending
+                finance_flow = claim.approval_flow.filter(level=2).first()
+                if finance_flow:
+                    finance_flow.status = "pending"
+                    finance_flow.remarks = "Resubmitted after revision"
+                    finance_flow.acted_on = timezone.now()
+                    finance_flow.save()
+                else:
+                    # Create new finance approval flow if doesn't exist
+                    # Use the finance user who returned it, or default to any finance user
+                    finance_user = request.user  # Placeholder - should be actual finance user
+                    ClaimApprovalFlow.objects.create(
+                        claim=claim,
+                        approver=finance_user,
+                        level=2,
+                        status="pending",
+                        remarks="Resubmitted after revision",
+                        acted_on=timezone.now()
+                    )
+            
+            return success_response(
+                message="Claim resubmitted successfully",
+                data={
+                    "claim_id": claim.id, 
+                    "status": "finance_pending",
+                    "status_label": finance_pending.label
+                }
+            )
+            
+        except Exception as ex:
+            tb = traceback.format_exc()
+            return error_response(
+                message="Unexpected error",
+                data={"detail": str(ex), "trace": tb}
             )

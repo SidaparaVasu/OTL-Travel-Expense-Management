@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 import type {
   ExpenseClaim,
   ExpenseClaimCreate,
@@ -11,18 +11,20 @@ import type {
   FinanceDashboardResponse,
   FinanceActionRequest,
   FinanceActionResponse,
-} from '@/src/types/expense-2.types';
+} from "@/src/types/expense-2.types";
 
 export const expenseAPI = {
   claimableApps: {
     getAll: async () => {
-      const { data } = await apiClient.get('/expense/claimable-travel-applications/');
+      const { data } = await apiClient.get(
+        "/expense/claimable-travel-applications/",
+      );
       return data;
-    }
+    },
   },
   claims: {
     getAll: async (params?: ClaimListParams) => {
-      const { data } = await apiClient.get('/expense/claims/', { params });
+      const { data } = await apiClient.get("/expense/claims/", { params });
       return data;
     },
     get: async (id: number) => {
@@ -30,31 +32,33 @@ export const expenseAPI = {
       return data.data;
     },
     create: async (payload: FormData) => {
-      const { data } = await apiClient.post('/expense/claims/', payload, {
+      const { data } = await apiClient.post("/expense/claims/", payload, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return data;
     },
 
     submit: async (formData: FormData) => {
-      const { data } = await apiClient.post('/expense/claims/', formData, {
+      const { data } = await apiClient.post("/expense/claims/", formData, {
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
       return data;
     },
 
-
     validate: async (payload: ExpenseClaimValidateRequest) => {
       const { data } = await apiClient.post<ExpenseClaimValidateResponse>(
-        '/expense/claims/validate/',
-        payload
+        "/expense/claims/validate/",
+        payload,
       );
       return data;
     },
     action: async (id: number, payload: ExpenseClaimActionRequest) => {
-      const { data } = await apiClient.post(`/expense/claims/${id}/action/`, payload);
+      const { data } = await apiClient.post(
+        `/expense/claims/${id}/action/`,
+        payload,
+      );
       return data;
     },
     uploadReceipts: async (id: number, formData: FormData) => {
@@ -63,40 +67,70 @@ export const expenseAPI = {
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
       console.log("from expense.ts, uploadReciepts: ", data);
       return data;
     },
     getPendingApprovals: async (params?: any) => {
-      const { data } = await apiClient.get('/expense/claims/pending-approvals/', {
-        params,
-      });
+      const { data } = await apiClient.get(
+        "/expense/claims/pending-approvals/",
+        {
+          params,
+        },
+      );
       console.log(data);
       return data;
     },
-    financeAction: async (id: number, payload: FinanceActionRequest): Promise<FinanceActionResponse> => {
-      const { data } = await apiClient.post(`/expense/claims/${id}/finance-action/`, payload);
+    financeAction: async (
+      id: number,
+      payload: FinanceActionRequest,
+    ): Promise<FinanceActionResponse> => {
+      const { data } = await apiClient.post(
+        `/expense/claims/${id}/finance-action/`,
+        payload,
+      );
+      return data;
+    },
+    edit: async (id: number, payload: any) => {
+      const { data } = await apiClient.put(
+        `/expense/claims/${id}/edit/`,
+        payload,
+      );
+      return data;
+    },
+    resubmit: async (id: number) => {
+      const { data } = await apiClient.post(`/expense/claims/${id}/resubmit/`);
       return data;
     },
   },
   expenseTypes: {
     getAll: async () => {
-      const { data } = await apiClient.get<ExpenseType[]>('/expense/expense-types/');
+      const { data } = await apiClient.get<ExpenseType[]>(
+        "/expense/expense-types/",
+      );
       return data;
     },
     get: async (id) => {
-      const { data } = await apiClient.get<ClaimStatus[]>(`/expense/expense-types/${id}/`);
+      const { data } = await apiClient.get<ClaimStatus[]>(
+        `/expense/expense-types/${id}/`,
+      );
       return data;
     },
     create: async (payload) => {
-      const { data } = await apiClient.post<ExpenseType[]>('/expense/expense-types/', payload);
+      const { data } = await apiClient.post<ExpenseType[]>(
+        "/expense/expense-types/",
+        payload,
+      );
       return data;
     },
     update: async (id, payload) => {
-      const { data } = await apiClient.post<ExpenseType[]>(`/expense/expense-types/${id}/`, payload);
+      const { data } = await apiClient.post<ExpenseType[]>(
+        `/expense/expense-types/${id}/`,
+        payload,
+      );
       return data;
     },
     delete: async (id: number, hard: boolean = false) => {
@@ -110,29 +144,48 @@ export const expenseAPI = {
   },
   claimStatus: {
     getAll: async () => {
-      const { data } = await apiClient.get<ClaimStatus[]>('/expense/claim-status/');
+      const { data } = await apiClient.get<ClaimStatus[]>(
+        "/expense/claim-status/",
+      );
       return data;
     },
     get: async (id) => {
-      const { data } = await apiClient.get<ClaimStatus[]>(`/expense/claim-status/${id}/`);
+      const { data } = await apiClient.get<ClaimStatus[]>(
+        `/expense/claim-status/${id}/`,
+      );
       return data;
     },
     create: async (payload) => {
-      const { data } = await apiClient.post<ExpenseType[]>('/expense/claim-status/', payload);
+      const { data } = await apiClient.post<ExpenseType[]>(
+        "/expense/claim-status/",
+        payload,
+      );
       return data;
     },
     update: async (id, payload) => {
-      const { data } = await apiClient.post<ExpenseType[]>(`/expense/claim-status/${id}/`, payload);
+      const { data } = await apiClient.post<ExpenseType[]>(
+        `/expense/claim-status/${id}/`,
+        payload,
+      );
       return data;
     },
     delete: async (id) => {
-      const { data } = await apiClient.delete<ExpenseType[]>(`/expense/claim-status/${id}/`);
+      const { data } = await apiClient.delete<ExpenseType[]>(
+        `/expense/claim-status/${id}/`,
+      );
       return data;
     },
   },
   finance: {
-    getDashboard: async (params?: { status?: string; search?: string; page?: number; page_size?: number }): Promise<FinanceDashboardResponse> => {
-      const { data } = await apiClient.get('/travel/dashboard/finance/', { params });
+    getDashboard: async (params?: {
+      status?: string;
+      search?: string;
+      page?: number;
+      page_size?: number;
+    }): Promise<FinanceDashboardResponse> => {
+      const { data } = await apiClient.get("/travel/dashboard/finance/", {
+        params,
+      });
       return data;
     },
   },

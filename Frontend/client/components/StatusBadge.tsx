@@ -50,6 +50,7 @@ const CLAIM_STATUS_LABELS: Record<string, string> = {
   manager_pending: "Pending by Manager",
   finance_pending: "Pending by Finance",
   chro_pending: "Pending by CHRO",
+  revision_required: "Revision Required",
   approved: "Approved",
   rejected: "Rejected",
   paid: "Processed",
@@ -88,6 +89,8 @@ const STATUS_COLOR_MAP: Record<string, string> = {
 
   confirmed: "bg-green-50 text-green-700 border-green-300",
   booked: "bg-green-50 text-green-700 border-green-300",
+
+  revision_required: "bg-orange-50 text-orange-700 border-orange-300",
 
   completed: "bg-emerald-50 text-emerald-700 border-emerald-300",
   paid: "bg-emerald-50 text-emerald-700 border-emerald-300",

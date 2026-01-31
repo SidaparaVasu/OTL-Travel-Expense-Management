@@ -10,6 +10,7 @@ from apps.expenses.models import (
     ExpenseItem,
     DAIncidentalBreakdown,
     ClaimApprovalFlow,
+    ClaimFinanceActionLog,
 )
 from apps.travel.models.application import TravelApplication
 
@@ -60,7 +61,7 @@ class ExpenseItemSerializer(serializers.ModelSerializer):
         queryset=ExpenseTypeMaster.objects.filter(is_active=True)
     )
     expense_type_display = serializers.SerializerMethodField()
-    booking_id = serializers.IntegerField(required=False, write_only=True)
+    booking_id = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = ExpenseItem
@@ -80,6 +81,7 @@ class ExpenseItemSerializer(serializers.ModelSerializer):
             "city_category",
             "remarks",
             "booking_id",
+            "is_booking_expense",
         ]
 
     def get_expense_type_display(self, obj):
@@ -118,12 +120,33 @@ class ClaimApprovalFlowSerializer(serializers.ModelSerializer):
 
 
 # -------------------------
+# Claim Finance Action Log Serializer
+# -------------------------
+class ClaimFinanceActionLogSerializer(serializers.ModelSerializer):
+    action_by_name = serializers.CharField(source="action_by.get_full_name", read_only=True)
+    
+    class Meta:
+        model = ClaimFinanceActionLog
+        fields = [
+            "id", 
+            "action_by", 
+            "action_by_name", 
+            "action", 
+            "previous_status_code", 
+            "new_status_code", 
+            "remarks", 
+            "action_date"
+        ]
+
+
+# -------------------------
 # Main Claim Serializer (list/detail)
 # -------------------------
 class ExpenseClaimSerializer(serializers.ModelSerializer):
     items = ExpenseItemSerializer(many=True, read_only=True, required=False)
     da_breakdown = DAIncidentalBreakdownSerializer(many=True, read_only=True)
     approval_flow = ClaimApprovalFlowSerializer(many=True, read_only=True)
+    finance_action_logs = ClaimFinanceActionLogSerializer(many=True, read_only=True)
 
     employee_name = serializers.SerializerMethodField()
     travel_request_id = serializers.SerializerMethodField()
@@ -180,9 +203,12 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             "is_late_submission",
             "late_submission_reason",
             "exceptions",
+            "paid_on",
+            "closed_on",
             "items",
             "da_breakdown",
             "approval_flow",
+            "finance_action_logs",
             "approval_history_count",
             "last_approver",
             "last_action_status",
@@ -199,6 +225,8 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             "final_amount_payable",
             "is_late_submission",
             "exceptions",
+            "paid_on",
+            "closed_on",
             "created_on",
             "updated_on",
         ]
@@ -209,6 +237,7 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
 # -------------------------
 class ClaimValidateSerializer(serializers.Serializer):
     travel_application_id = serializers.IntegerField()
+    claim_id = serializers.IntegerField(required=False)
     items = ExpenseItemSerializer(many=True)
     acknowledged_warnings = serializers.ListField(required=False)
     exception_reasons = serializers.ListField(required=False)
@@ -344,7 +373,6 @@ class ClaimSubmitSerializer(serializers.Serializer):
             # Save items
             for item in prepared["items_prepared"]:
                 item_data = item.copy()
-                item_data.pop("booking_id", None) # Remove non-model field
                 ExpenseItem.objects.create(claim=claim, **item_data)
 
             # Save DA breakdown
@@ -388,8 +416,16 @@ class ApprovalActionSerializer(serializers.Serializer):
 # Finance Action Serializer
 # -------------------------
 class FinanceActionSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=["mark_paid", "mark_closed"])
+    action = serializers.ChoiceField(choices=["mark_paid", "mark_closed", "return_to_applicant"])
     remarks = serializers.CharField(required=False, allow_blank=True)
+    
+    def validate(self, data):
+        # Make remarks mandatory for return_to_applicant
+        if data['action'] == 'return_to_applicant' and not data.get('remarks'):
+            raise serializers.ValidationError({
+                "remarks": "Remarks are required when returning claim to applicant"
+            })
+        return data
     
 
 # Re-export common serializers for clarity in views

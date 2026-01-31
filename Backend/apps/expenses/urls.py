@@ -17,8 +17,14 @@ urlpatterns = [
     # Claim Approval (Approve / Reject)
     path("claims/<int:claim_id>/action/", ClaimActionView.as_view(), name="expense-claim-action"),
 
-    # Finance Action (Mark as Paid / Closed)
+    # Finance Action (Mark as Paid / Closed / Return to Applicant)
     path("claims/<int:claim_id>/finance-action/", ClaimFinanceActionView.as_view(), name="expense-claim-finance-action"),
+    
+    # Claim Edit (for revision_required status)
+    path("claims/<int:claim_id>/edit/", ClaimEditView.as_view(), name="expense-claim-edit"),
+    
+    # Claim Resubmit (after editing)
+    path("claims/<int:claim_id>/resubmit/", ClaimResubmitView.as_view(), name="expense-claim-resubmit"),
 
     # Pending Claim Approval
     path("claims/pending-approvals/",  ClaimPendingApprovalListView.as_view(), name="expense-claim-pending-approvals"),

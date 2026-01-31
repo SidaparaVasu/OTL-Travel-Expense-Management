@@ -45,6 +45,7 @@ class ClaimStatusMaster(models.Model):
         ('manager_pending', 'Manager Pending'),
         ('finance_pending', 'Finance Pending'),
         ('chro_pending', 'CHRO Pending'),
+        ('revision_required', 'Revision Required'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
         ('paid', 'Paid'),
@@ -176,6 +177,12 @@ class ExpenseItem(models.Model):
     city_category = models.CharField(max_length=10, blank=True)
 
     remarks = models.TextField(blank=True)
+
+    # Link to original booking (if applicable)
+    booking_id = models.IntegerField(null=True, blank=True)
+
+    # Flag to distinguish booking expenses from additional expenses
+    is_booking_expense = models.BooleanField(default=False)
 
     created_on = models.DateTimeField(auto_now_add=True)
 
