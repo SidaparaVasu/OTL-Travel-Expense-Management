@@ -12,6 +12,7 @@ from ..models import TravelApplication, Booking
 from apps.travel.models import TravelApprovalFlow
 from ..serializers.travel_serializers import *
 from apps.authentication.permissions import IsEmployee, IsOwnerOrApprover
+from apps.authentication.mixins import BranchFilterMixin
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 from utils.response_formatter import success_response, error_response, validation_error_response, paginated_response
@@ -84,13 +85,14 @@ class MyPendingApplicationsView(ListAPIView):
             status__in=['submitted', 'pending_manager', 'pending_chro', 'pending_ceo']
         ).order_by('-submitted_at')
 
-class TravelApplicationListCreateView(ListCreateAPIView):
+class TravelApplicationListCreateView(BranchFilterMixin, ListCreateAPIView):
     """
         Travel Applications API
         
         list:
         Get list of travel applications for the authenticated user.
         Supports filtering by status, date ranges, and search.
+        Enhanced with branch-based access control.
         
         create:
         Create a new travel application.
@@ -105,44 +107,28 @@ class TravelApplicationListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = TravelApplicationPagination
     
-    # def get_queryset(self):
-    #     # Employees see only their own applications
-    #     return TravelApplication.objects.filter(
-    #         employee=self.request.user
-    #     ).select_related(
-    #         'employee', 'general_ledger'
-    #     ).prefetch_related(
-    #         'trip_details__bookings'
-    #     ).order_by('-created_at').order_by('-created_at')
     def get_queryset(self):
         """
-        Multilevel Role-Based Filtering:
-        - Admin, CEO, CHRO: See all applications
-        - Branch Admin: See all applications within their branch
-        - Manager: See their own + subordinates' applications
+        Branch-Based Access Control with Role-Specific Filtering:
+        - CEO/CHRO: See all applications across all branches
+        - Admin/Travel Desk/Finance: See only their branch applications
+        - Manager: See their own + subordinates' applications (within branch)
         - Employee: See only their own applications
         """
         user = self.request.user
         queryset = TravelApplication.objects.all()
-
-        if user.has_role('admin') or user.has_role('CEO') or user.has_role('CHRO'):
-            # Full visibility
-            pass
-        elif user.has_role('Branch Admin'):
-            # Filter by Branch
-            profile = user.get_profile()
-            if profile and profile.base_location:
-                queryset = queryset.filter(employee__organizational_profile__base_location=profile.base_location)
-            else:
-                queryset = queryset.none()
-        elif user.has_role('Manager'):
-            # Filter by Self + Reporting Hierarchy
-            queryset = queryset.filter(Q(employee=user) | Q(employee__organizational_profile__reporting_manager=user))
-        else:
-            # Standard Employee visibility
-            queryset = queryset.filter(employee=user)
-
-        # Optimization
+        
+        # Apply branch-based filtering using mixin
+        queryset = self.apply_branch_filter(queryset, user, employee_field='employee')
+        
+        # Additional filtering for Manager role: include subordinates within branch
+        if user.has_role('Manager'):
+            queryset = queryset.filter(
+                Q(employee=user) | 
+                Q(employee__organizational_profile__reporting_manager=user)
+            )
+        
+        # Optimization: Select and prefetch related data
         return queryset.select_related(
             'employee',
             'employee__grade',
@@ -202,15 +188,22 @@ class TravelApplicationListCreateView(ListCreateAPIView):
         # Ensure the application is linked to the logged-in user
         serializer.save(employee=self.request.user)
 
-class TravelApplicationDetailView(RetrieveUpdateDestroyAPIView):
+class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIView):
     """
-    Retrieve, update, delete travel application
+    Retrieve, update, delete travel application.
+    Enhanced with branch-based access control.
     """
     serializer_class = TravelApplicationSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrApprover]
     
     def get_queryset(self):
-        return TravelApplication.objects.select_related('employee', 'general_ledger')
+        """
+        Apply branch-based filtering to ensure users can only access
+        applications from their branch (except CEO/CHRO).
+        """
+        queryset = TravelApplication.objects.select_related('employee', 'general_ledger')
+        # Apply branch filtering using mixin
+        return self.apply_branch_filter(queryset, self.request.user, employee_field='employee')
     
     @transaction.atomic
     def update(self, request, *args, **kwargs):

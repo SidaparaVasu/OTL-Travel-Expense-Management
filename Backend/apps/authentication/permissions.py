@@ -26,11 +26,18 @@ class IsEmployee(BasePermission):
 
 class IsOwnerOrApprover(BasePermission):
     """
-    Only the user who created the application or the current approver can access it
+    Only the user who created the application or the current approver can access it.
+    
+    Enhanced with branch-based access control:
+    - CEO/CHRO: Company-wide access
+    - Admin/Travel Desk/Finance: Branch-level access only
+    - Manager: Branch subordinates only
+    - Employee: Own data only
     """
     def has_object_permission(self, request, view, obj):
         user = request.user
-        # Allow if user is the requester
+        
+        # Allow if user is the requester (owner)
         if obj.employee == user:
             return True
         
@@ -42,26 +49,41 @@ class IsOwnerOrApprover(BasePermission):
             if is_approver:
                 return True
         
-        # Super-users / Executives visibility
-        if user.has_role('Admin') or user.has_role('admin') or user.has_role('CEO') or user.has_role('CHRO'):
+        # CEO/CHRO have company-wide access (no branch restriction)
+        if user.has_role('CEO') or user.has_role('CHRO'):
             return True
-
-        # Branch Admin visibility
+        
+        # Get user and object employee profiles for branch checking
+        user_profile = user.get_profile()
+        obj_profile = obj.employee.get_profile()
+        
+        # If either profile is missing, deny access (except for roles already checked above)
+        if not user_profile or not obj_profile:
+            return False
+        
+        # Check if both users are in the same branch
+        same_branch = (user_profile.base_location == obj_profile.base_location)
+        
+        # Admin visibility - ONLY within their branch
+        if user.has_role('Admin') or user.has_role('admin'):
+            return same_branch
+        
+        # Branch Admin visibility - within their branch
         if user.has_role('Branch Admin'):
-            profile = user.get_profile()
-            obj_profile = obj.employee.get_profile()
-            if profile and obj_profile and profile.base_location == obj_profile.base_location:
-                return True
+            return same_branch
         
-        # Manager visibility for subordinates
-        if user.has_role('Manager'):
-            obj_profile = obj.employee.get_profile()
-            if obj_profile and obj_profile.reporting_manager == user:
-                return True
-        
-        # Travel Desk visibility
+        # Travel Desk visibility - ONLY within their branch
         if user.has_role('Travel Desk'):
-            return True
+            return same_branch
+        
+        # Finance visibility - ONLY within their branch
+        if user.has_role('Finance'):
+            return same_branch
+        
+        # Manager visibility - subordinates within their branch only
+        if user.has_role('Manager'):
+            is_subordinate = (obj_profile.reporting_manager == user)
+            return same_branch and is_subordinate
         
         return False
     

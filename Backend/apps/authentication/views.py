@@ -13,6 +13,7 @@ from .models import *
 from .serializers import *
 from .permissions import IsAdminUser, HasCustomPermission
 from .utils import RoleManager
+from .mixins import BranchFilterMixin
 from utils.rate_limiters import api_ratelimit
 from utils.response_formatter import success_response, error_response
 from django.contrib.auth import get_user_model
@@ -192,7 +193,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if not location_id:
             return Response({"error": "location parameter is required"}, status=400)
         
-        users = User.objects.filter(base_location_id=location_id, is_active=True)
+        users = User.objects.filter(organizational_profile__base_location_id=location_id, is_active=True)
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data)
     
@@ -205,24 +206,20 @@ class UserCreateView(ListCreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['base_location']  # 👈 this enables ?base_location=<id> filtering
+    filterset_fields = ['organizational_profile__base_location']  # 👈 this enables ?base_location=<id> filtering
     search_fields = ['username', 'first_name', 'last_name', 'email']
 
 
 # User views
-class UserListCreateView(ListCreateAPIView):
+class UserListCreateView(BranchFilterMixin, ListCreateAPIView):
+    """
+    List and create users with branch-based access control.
+    - Admin: See only users from their branch
+    - CEO/CHRO: See all users across all branches
+    """
     serializer_class = UserListSerializer
-    queryset = User.objects.filter(is_superuser=False).select_related(
-        "organizational_profile",
-        "booking_agent_profile",
-        "company",
-        "department",
-        "designation",
-        "employee_type",
-        "grade",
-        "base_location",
-    ).prefetch_related("userrole_set__role")
-
+    permission_classes = [IsAuthenticated]
+    
     filter_backends = [
         DjangoFilterBackend,
         SearchFilter,
@@ -258,6 +255,39 @@ class UserListCreateView(ListCreateAPIView):
         "id", "first_name", "last_name",
         "date_joined", "company", "department",
     ]
+    
+    def get_queryset(self):
+        """Apply branch filtering to user list"""
+        # Base queryset
+        qs = User.objects.filter(is_superuser=False).select_related(
+            "organizational_profile",
+            "booking_agent_profile",
+        ).prefetch_related("userrole_set__role")
+        
+        user = self.request.user
+        
+        # CEO and CHRO have company-wide access
+        if user.has_role('CEO') or user.has_role('CHRO'):
+            return qs
+        
+        # Get user's organizational profile and base location
+        profile = user.get_profile()
+        
+        # If user has no profile or no base location, deny access
+        if not profile or not profile.base_location:
+            return qs.none()
+        
+        user_location = profile.base_location
+        
+        # Admin, Manager, etc. see only their branch users
+        if (user.has_role('Admin') or user.has_role('admin') or 
+            user.has_role('Travel Desk') or user.has_role('Finance') or 
+            user.has_role('Manager') or user.has_role('Branch Admin')):
+            # Filter by organizational_profile__base_location
+            return qs.filter(organizational_profile__base_location=user_location)
+        
+        # Regular employees see only themselves
+        return qs.filter(id=user.id)
 
 
 class UserExportCSV(APIView):
@@ -276,18 +306,47 @@ class UserExportCSV(APIView):
 
         return response
 
-class UserDetailView(RetrieveUpdateDestroyAPIView):
+class UserDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIView):
     """
-    Retrieve, update, or delete a user (Admin only)
+    Retrieve, update, or delete a user with branch-based access control.
+    - Admin: Can only access users from their branch
+    - CEO/CHRO: Can access all users across all branches
     """
     permission_classes = [IsAuthenticated, IsAdminUser]
     
     def get_queryset(self):
-        return User.objects.prefetch_related(
+        """Apply branch filtering to user detail access"""
+        # Base queryset
+        qs = User.objects.prefetch_related(
             'organizational_profile',
             'booking_agent_profile',
             'userrole_set__role'
-        ).all()
+        )
+        
+        user = self.request.user
+        
+        # CEO and CHRO have company-wide access
+        if user.has_role('CEO') or user.has_role('CHRO'):
+            return qs.all()
+        
+        # Get user's organizational profile and base location
+        profile = user.get_profile()
+        
+        # If user has no profile or no base location, deny access
+        if not profile or not profile.base_location:
+            return qs.none()
+        
+        user_location = profile.base_location
+        
+        # Admin, Manager, etc. see only their branch users
+        if (user.has_role('Admin') or user.has_role('admin') or 
+            user.has_role('Travel Desk') or user.has_role('Finance') or 
+            user.has_role('Manager') or user.has_role('Branch Admin')):
+            # Filter by organizational_profile__base_location
+            return qs.filter(organizational_profile__base_location=user_location)
+        
+        # Regular employees see only themselves
+        return qs.filter(id=user.id)
     
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -528,10 +587,12 @@ class NotificationPreferencesView(APIView):
         )
 
 
-class EmployeeSearchView(APIView):
+class EmployeeSearchView(BranchFilterMixin, APIView):
     """
     GET /auth/employees/search/?q=<query>
-    Search for employees by name (for colleague selection in travel forms)
+    Search for employees by name with branch-based access control.
+    - Admin: Search only within their branch
+    - CEO/CHRO: Search across all branches
     """
     permission_classes = [IsAuthenticated]
 
@@ -542,7 +603,7 @@ class EmployeeSearchView(APIView):
         if len(query) < 3:
             return success_response(data=[], message="Query too short")
         
-        # Search for internal users by name
+        # Base search query
         employees = User.objects.filter(
             Q(first_name__icontains=query) |
             Q(last_name__icontains=query) |
@@ -550,8 +611,29 @@ class EmployeeSearchView(APIView):
             is_active=True,
             user_type='organizational'
         ).exclude(id=request.user.id).select_related(
-            'organizational_profile__department'
-        )[:20]
+            'organizational_profile__department',
+            'organizational_profile__base_location'
+        )
+        
+        # Apply branch filtering
+        user = request.user
+        
+        # CEO and CHRO can search all employees
+        if not (user.has_role('CEO') or user.has_role('CHRO')):
+            # Get user's branch
+            profile = user.get_profile()
+            
+            if profile and profile.base_location:
+                # Admin, Manager, etc. search only their branch
+                if (user.has_role('Admin') or user.has_role('admin') or 
+                    user.has_role('Travel Desk') or user.has_role('Finance') or 
+                    user.has_role('Manager') or user.has_role('Branch Admin')):
+                    employees = employees.filter(
+                        organizational_profile__base_location=profile.base_location
+                    )
+        
+        # Limit results
+        employees = employees[:20]
 
         data = []
         for emp in employees:

@@ -9,6 +9,7 @@ from apps.travel.models import TravelApplication, Booking, BookingAssignment, Bo
 from apps.travel.serializers.travel_desk_serializers import *
 from apps.travel.models.audit import AuditLog
 from apps.authentication.permissions import IsTravelDesk
+from apps.authentication.mixins import BranchFilterMixin
 from apps.authentication.models import User, BookingAgentProfile
 from utils.response_formatter import success_response, error_response, paginated_response
 from utils.pagination import StandardResultsSetPagination
@@ -26,12 +27,15 @@ TRAVEL_DESK_VISIBLE_STATUSES = [
     "booked",
 ]
 
-class TravelDeskDashboardView(APIView):
+class TravelDeskDashboardView(BranchFilterMixin, APIView):
+    """
+    Travel Desk Dashboard with branch-based access control.
+    Shows statistics only for applications from the Travel Desk user's branch.
+    """
     permission_classes = [IsAuthenticated, IsTravelDesk]
 
     def get(self, request):
-
-        # Applications visible to travel desk
+        # Base queryset: Applications visible to travel desk
         apps = TravelApplication.objects.filter(
             status__in=[
                 "pending_travel_desk",
@@ -40,6 +44,9 @@ class TravelDeskDashboardView(APIView):
                 "completed",
             ]
         ).select_related("employee")
+        
+        # Apply branch filtering - Travel Desk sees only their branch
+        apps = self.apply_branch_filter(apps, request.user, employee_field='employee')
 
         # -------------------------------
         # 1. STATUS COUNTS
@@ -117,18 +124,28 @@ class TravelDeskDashboardView(APIView):
         )
       
 
-class TravelDeskApplicationListView(APIView):
+class TravelDeskApplicationListView(BranchFilterMixin, APIView):
+    """
+    Travel Desk Application List with branch-based access control.
+    Travel Desk users can only see applications from their assigned branch.
+    """
     permission_classes = [IsAuthenticated, IsTravelDesk]
 
     def get(self, request):
+        # Base queryset: Filter by Travel Desk visible statuses
         qs = TravelApplication.objects.select_related("employee").filter(
             status__in=TRAVEL_DESK_VISIBLE_STATUSES
         )
+        
+        # Apply branch filtering - Travel Desk sees only their branch
+        qs = self.apply_branch_filter(qs, request.user, employee_field='employee')
 
+        # Status filter
         status_filter = request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
 
+        # Search filter
         search = request.query_params.get("search")
         if search:
             # Check if search term might be a Travel Request ID (e.g., TR/TSF/2025/0000123 or just 123)
@@ -153,6 +170,7 @@ class TravelDeskApplicationListView(APIView):
             
             qs = qs.filter(q_objects)
 
+        # Date range filters
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
         if date_from:

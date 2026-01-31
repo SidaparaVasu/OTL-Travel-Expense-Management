@@ -19,6 +19,7 @@ from apps.master_data.models.approval import ApprovalMatrix
 from apps.master_data.models.travel import TravelModeMaster
 from utils.pagination import StandardResultsSetPagination
 from utils.response_formatter import *
+from apps.authentication.mixins import BranchFilterMixin
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -76,33 +77,43 @@ class ClaimSubmitView(APIView):
 # -------------------------------------------------------
 # My Claims: List + Create (create via ClaimSubmit serializer)
 # -------------------------------------------------------
-class ClaimListCreateView(APIView):
+class ClaimListCreateView(BranchFilterMixin, APIView):
+    """
+    List and create expense claims with branch-based access control.
+    - Employees see only their own claims
+    - Staff (Admin, Finance, etc.) see only their branch claims
+    - CEO/CHRO see all claims across all branches
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """
-        GET: list claims for the authenticated user (non-staff).
-        Staff users can see all claims.
+        GET: list claims for the authenticated user.
+        Branch-based filtering applied for staff users.
         Supports filters: status, from_date, to_date, search.
         """
         try:
+            # Base queryset
             qs = ExpenseClaim.objects.select_related("employee", "status", "travel_application").all()
 
-            if not request.user.is_staff:
-                qs = qs.filter(employee=request.user)
+            # Apply branch filtering - handles all roles appropriately
+            qs = self.apply_branch_filter(qs, request.user, employee_field='employee')
 
-            # filters
+            # Status filter
             status_q = request.query_params.get("status")
-            ffrom = request.query_params.get("from_date")
-            tto = request.query_params.get("to_date")
-            search = request.query_params.get("search")
-
             if status_q:
                 qs = qs.filter(status__code=status_q)
+            
+            # Date range filters
+            ffrom = request.query_params.get("from_date")
+            tto = request.query_params.get("to_date")
             if ffrom:
                 qs = qs.filter(created_on__date__gte=ffrom)
             if tto:
                 qs = qs.filter(created_on__date__lte=tto)
+            
+            # Search filter
+            search = request.query_params.get("search")
             if search:
                 qs = qs.filter(
                     Q(travel_application__travel_request_id__icontains=search) |
@@ -176,24 +187,31 @@ class ClaimDetailView(APIView):
 # -------------------------
 # Claim list (with filters + pagination)
 # -------------------------
-class ClaimListView(APIView):
+class ClaimListView(BranchFilterMixin, APIView):
+    """
+    General claim list with branch-based access control.
+    Finance and Travel Desk users see only their branch claims.
+    CEO/CHRO see all claims across all branches.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             user = request.user
+            # Base queryset
             qs = ExpenseClaim.objects.select_related("employee", "status", "travel_application").all()
 
-            # Restrict for non-staff/non-finance
-            if not (user.is_staff or user.groups.filter(name__in=["Finance", "TravelDesk"]).exists()):
-                qs = qs.filter(employee=user)
+            # Apply branch filtering - handles all roles appropriately
+            qs = self.apply_branch_filter(qs, user, employee_field='employee')
 
-            # Filters
+            # Status filter
             status_q = request.query_params.get("status")
-            from_date = request.query_params.get("from")
-            to_date = request.query_params.get("to")
             if status_q:
                 qs = qs.filter(status__code=status_q)
+            
+            # Date range filters
+            from_date = request.query_params.get("from")
+            to_date = request.query_params.get("to")
             if from_date:
                 qs = qs.filter(submitted_on__date__gte=from_date)
             if to_date:
@@ -375,13 +393,17 @@ class ClaimStatusDetailView(APIView):
 # -------------------------
 # Pending Claim Approvals for Responsible Approver
 # -------------------------
-class ClaimPendingApprovalListView(APIView):
+class ClaimPendingApprovalListView(BranchFilterMixin, APIView):
+    """
+    Pending claim approvals with branch-based access control.
+    Approvers see only pending claims from their branch.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
 
-        # Fetch all claims where this user is an approver
+        # Base queryset: Fetch all claims where this user is an approver
         claims = ExpenseClaim.objects.filter(
             approval_flow__approver=user
         ).select_related(
@@ -389,16 +411,16 @@ class ClaimPendingApprovalListView(APIView):
             "employee",
             "status"
         ).distinct()
+        
+        # Apply branch filtering - Approvers see only their branch
+        claims = self.apply_branch_filter(claims, user, employee_field='employee')
 
         # Optional filters
         status_q = request.query_params.get("status")   # e.g. manager_pending, approved, rejected
-        search = request.query_params.get("search")
-        date_from = request.query_params.get("from_date")
-        date_to = request.query_params.get("to_date")
-
         if status_q:
             claims = claims.filter(status__code=status_q)
 
+        search = request.query_params.get("search")
         if search:
             claims = claims.filter(
                 Q(id__icontains=search) |
@@ -407,9 +429,10 @@ class ClaimPendingApprovalListView(APIView):
                 Q(employee__last_name__icontains=search)
             )
 
+        date_from = request.query_params.get("from_date")
+        date_to = request.query_params.get("to_date")
         if date_from:
             claims = claims.filter(created_on__date__gte=date_from)
-
         if date_to:
             claims = claims.filter(created_on__date__lte=date_to)
 
@@ -538,7 +561,11 @@ class ClaimActionView(APIView):
 # -------------------------
 # Finance Action View - Mark as Paid/Closed
 # -------------------------
-class ClaimFinanceActionView(APIView):
+class ClaimFinanceActionView(BranchFilterMixin, APIView):
+    """
+    Finance Action View - Mark claims as Paid/Closed with branch-based access control.
+    Finance users can only process claims from their assigned branch.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, claim_id):
@@ -563,12 +590,18 @@ class ClaimFinanceActionView(APIView):
             action = serializer.validated_data["action"]
             remarks = serializer.validated_data.get("remarks", "")
 
-            # Get claim
-            claim = ExpenseClaim.objects.select_related("status").filter(id=claim_id).first()
+            # Get claim with branch filtering
+            claim_qs = ExpenseClaim.objects.select_related("status").filter(id=claim_id)
+            
+            # Apply branch filtering - Finance can only act on their branch claims
+            claim_qs = self.apply_branch_filter(claim_qs, request.user, employee_field='employee')
+            
+            claim = claim_qs.first()
             if not claim:
                 return error_response(
-                    message="Claim not found",
-                    data={"claim": ["Invalid claim ID"]}
+                    message="Claim not found or access denied",
+                    data={"claim": ["Invalid claim ID or claim not in your branch"]},
+                    status_code=status.HTTP_404_NOT_FOUND
                 )
 
             # Validate action based on current status

@@ -17,6 +17,7 @@ from django.db.models import Sum
 from datetime import timedelta
 from django.db.models.functions import TruncMonth
 from ...authentication.permissions import HasCustomPermission
+from apps.authentication.mixins import BranchFilterMixin
 from apps.authentication.decorators import require_permission, require_role
 from utils.response_formatter import success_response, error_response, validation_error_response, paginated_response
 from utils.audit import log_action
@@ -24,9 +25,10 @@ from utils.audit import log_action
 import logging
 logger = logging.getLogger(__name__)
 
-class ManagerApprovalsView(ListAPIView):
+class ManagerApprovalsView(BranchFilterMixin, ListAPIView):
     """
-    List travel applications filtered by approval status (pending, approved, rejected, all)
+    List travel applications filtered by approval status (pending, approved, rejected, all).
+    Enhanced with branch-based access control - managers only see approvals from their branch.
     """
     serializer_class = ManagerApprovalListSerializer
     permission_classes = [IsAuthenticated]
@@ -35,6 +37,7 @@ class ManagerApprovalsView(ListAPIView):
         user = self.request.user
         status_filter = self.request.query_params.get('status', 'pending')  # default: pending
 
+        # Base queryset: Applications where user is an approver
         queryset = TravelApplication.objects.filter(
             approval_flows__approver=user,
             approval_flows__can_approve=True
@@ -44,7 +47,11 @@ class ManagerApprovalsView(ListAPIView):
             'trip_details__from_location', 'trip_details__to_location',
             'trip_details__bookings', 'trip_details__bookings__booking_type'
         ).distinct()
+        
+        # Apply branch filtering - Managers see only their branch
+        queryset = self.apply_branch_filter(queryset, user, employee_field='employee')
 
+        # Status filtering
         if status_filter == 'pending':
             queryset = queryset.filter(approval_flows__status='pending')
         elif status_filter == 'approved':
@@ -85,15 +92,16 @@ class ManagerApprovalsView(ListAPIView):
             message=f"{request.query_params.get('status', 'pending').capitalize()} approvals retrieved successfully"
         )
 
-class ManagerPendingApprovalsView(ListAPIView):
+class ManagerPendingApprovalsView(BranchFilterMixin, ListAPIView):
     """
-    List of travel applications pending manager's approval
+    List of travel applications pending manager's approval.
+    Enhanced with branch-based access control - managers only see pending approvals from their branch.
     """
     serializer_class = ManagerApprovalListSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        # return TravelApplication.objects.all()
+        # Base queryset: Pending approvals for this manager
         queryset = TravelApplication.objects.filter(
             approval_flows__approver=self.request.user,
             approval_flows__status='pending',
@@ -103,6 +111,9 @@ class ManagerPendingApprovalsView(ListAPIView):
         ).prefetch_related(
             'trip_details__from_location', 'trip_details__to_location'
         ).distinct()
+        
+        # Apply branch filtering - Managers see only their branch
+        queryset = self.apply_branch_filter(queryset, self.request.user, employee_field='employee')
 
         # Apply advanced filters
         filter_params = self.request.GET.copy()
