@@ -25,8 +25,13 @@ export const ROUTES = {
   travelApplicationList: "/travel/travel-application-list",
   travelApplicationView: (id: number | string) =>
     `/travel/travel-application/${id}/`,
+  // travelApplicationViewForFinance: (id: number | string) =>
+  //   `/travel/travel-application/${id}/`,
+  travelApplicationDetails: (id: number | string) =>
+    `/travel/travel-application/${id}/details`,
   travelApplicationViewForFinance: (id: number | string) =>
-    `/travel/travel-application/${id}/`,
+    `/travel/travel-application/${id}/details`,
+  // travelApplicationDetails: "/travel/travel-application/details",
   travelRequestApproval: "/travel/travel-request-approval",
   travelCancellationRequest: "/travel/cancellation-request",
   travelCancellationApproval: "/travel/cancellation-approval",
@@ -35,6 +40,7 @@ export const ROUTES = {
   indexExpense: "/expense",
   indexClaimPage: "/expense/my-claims",
   claimApplicationPage: "/expense/submit-claim",
+  editClaimPage: (id: number | string) => `/expense/claims/${id}/edit`,
   claimDetailPage: (id: number | string) => `/expense/claims/${id}`,
   claimApprovalPage: "/expense/claim-approvals",
 

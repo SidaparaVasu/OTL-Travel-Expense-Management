@@ -671,7 +671,7 @@ export default function TravelRequestApprovals() {
                           size="sm"
                           variant="outline"
                           onClick={() =>
-                            navigate(ROUTES.travelApplicationView(request.id))
+                            navigate(ROUTES.travelApplicationDetails(request.id))
                           }
                         >
                           View

@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views.travel_views import *
+from .views.travel_application_details_view import TravelApplicationDetailsView
 from .views.guest_views import GuestProfileViewSet
 from .views.approval_views import *
 from .views.booking import *
@@ -22,6 +23,7 @@ urlpatterns = [
     path('my-applications/', MyTravelApplicationsView.as_view(), name='my-travel-applications'),
     path('applications/', TravelApplicationListCreateView.as_view(), name='travel-application-list'),
     path('applications/<int:pk>/', TravelApplicationDetailView.as_view(), name='travel-application-detail'),
+    path('applications/<int:pk>/details/', TravelApplicationDetailsView.as_view(), name='travel-application-details'),
     path('applications/<int:pk>/edit/', TravelApplicationEditView.as_view(), name='travel-application-edit'),
     path('applications/<int:pk>/submit/', TravelApplicationSubmitView.as_view(), name='travel-application-submit'),
     path('applications/<int:pk>/validate/', TravelApplicationValidationView.as_view(), name='travel-application-validate'),

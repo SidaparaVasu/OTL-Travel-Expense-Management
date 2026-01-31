@@ -687,7 +687,7 @@ export default function TravelApplicationList() {
                                   className="hover:bg-dark-200 hover:text-dark-foreground"
                                   onClick={() =>
                                     navigate(
-                                      ROUTES.travelApplicationView(app.id),
+                                      ROUTES.travelApplicationDetails(app.id),
                                     )
                                   }
                                 >

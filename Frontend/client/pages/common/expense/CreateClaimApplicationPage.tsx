@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,7 @@ const formatDate = (dateString: string) => {
 export default function CreateClaimApplicationPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { id: claimId } = useParams(); // Get claim ID from URL for edit mode
 
   const [applications, setApplications] = useState([]);
   const [selectedApp, setSelectedApp] = useState<any>(null);
@@ -71,16 +72,162 @@ export default function CreateClaimApplicationPage() {
   const [currentUploadItem, setCurrentUploadItem] = useState<any>(null);
   const [errors, setErrors] = useState<any>({});
 
+  // Edit mode state
+  const isEditMode = Boolean(claimId);
+  const [existingClaim, setExistingClaim] = useState<any>(null);
+  const [financeRemarks, setFinanceRemarks] = useState<string>("");
+
   // Load applications + expenses
   useEffect(() => {
-    expenseAPI.claimableApps.getAll().then((res) => {
-      if (res?.data) setApplications(res.data);
-    });
-
+    // Load expense types
     expenseAPI.expenseTypes.getAll().then((res) => {
       if (res?.data) setExpenseTypes(res.data);
     });
-  }, []);
+
+    // If edit mode, fetch existing claim data
+    if (isEditMode && claimId) {
+      fetchExistingClaim(Number(claimId));
+    } else {
+      // Create mode - load claimable applications
+      expenseAPI.claimableApps.getAll().then((res) => {
+        if (res?.data) setApplications(res.data);
+      });
+    }
+  }, [isEditMode, claimId]);
+
+  // Fetch existing claim for edit mode
+  const fetchExistingClaim = async (id: number) => {
+    try {
+      setLoading(true);
+      const claim = await expenseAPI.claims.get(id);
+      console.log("Fetched claim for editing:", claim);
+
+      setExistingClaim(claim);
+
+      // Extract finance remarks if available
+      if (claim.finance_action_logs && claim.finance_action_logs.length > 0) {
+        const returnLog = claim.finance_action_logs.find(
+          (log: any) => log.action === "return_to_applicant",
+        );
+        if (returnLog) {
+          setFinanceRemarks(returnLog.remarks || "");
+        }
+      }
+
+      // Pre-fill form with existing data
+      // Note: selectedApp will be set from claim.travel_application
+      // We'll need to fetch the travel application details
+      // Pre-fill form with existing data
+      let fullTravelApp: any = null;
+      if (claim.travel_application) {
+        try {
+          // Fetch full travel application details to get bookings list
+          // This is needed to match bookings if booking_id is missing in claim items
+          const importTravelAPI = (await import("@/src/api/travel")).travelAPI;
+          fullTravelApp = await importTravelAPI.getApplication(
+            claim.travel_application,
+          );
+          console.log("Fetched full travel app:", fullTravelApp);
+
+          // Normalize the app object to match structure expected by component
+          const allBookings = [
+            ...(fullTravelApp.ticketing_bookings || []),
+            ...(fullTravelApp.accommodation_bookings || []),
+            ...(fullTravelApp.conveyance_bookings || []),
+          ];
+
+          const normalizedApp = {
+            ...fullTravelApp,
+            id: claim.travel_application, // Ensure ID is present
+            travel_request_id: fullTravelApp.application?.travel_request_id,
+            bookings: allBookings,
+          };
+
+          setSelectedApp(normalizedApp);
+
+          // Use normalized app for recovery logic below if needed
+          fullTravelApp = normalizedApp;
+        } catch (err) {
+          console.error("Failed to fetch travel application details:", err);
+          // Fallback to minimal app object
+          setSelectedApp({
+            id: claim.travel_application,
+            travel_request_id: claim.travel_request_id,
+          });
+        }
+      }
+
+      // Pre-fill expense items
+      if (claim.items && claim.items.length > 0) {
+        const bookings: any[] = [];
+        const others: any[] = [];
+
+        claim.items.forEach((item: any) => {
+          // Common fields for all expense items
+          const expenseItem = {
+            id: item.id,
+            expense_type: String(item.expense_type),
+            expense_date: item.expense_date,
+            amount: item.amount || item.actual_cost || 0, // Use 'amount' or 'actual_cost'
+            has_receipt: item.has_receipt,
+            receipt_file: item.receipt_file || item.receipt_url || null,
+            distance_km: item.distance_km || "",
+            remarks: item.remarks || "",
+          };
+
+          // Try to recover booking_id if missing (for legacy/bugged data)
+          let bookingId = item.booking_id;
+
+          if (!bookingId && fullTravelApp && fullTravelApp.bookings) {
+            // Heuristic: If expense type matches a booking type, assume it's that booking
+            // This is a "soft" match to recover data that wasn't saved correctly in backend
+            const matchedBooking = fullTravelApp.bookings.find(
+              (b: any) =>
+                b.booking_type === item.expense_type_display ||
+                (item.expense_type_display === "Hotel" &&
+                  b.booking_type === "Hotel"), // Example mapping
+            );
+
+            if (matchedBooking) {
+              console.log(
+                `Recovered booking ID for item ${item.id} (${item.expense_type_display}):`,
+                matchedBooking.id,
+              );
+              bookingId = matchedBooking.id;
+            }
+          }
+
+          // If item has booking_id (either from DB or recovered), it's a booking expense
+          if (bookingId) {
+            bookings.push({
+              ...expenseItem,
+              bookingId: bookingId,
+              typeName: item.expense_type_display || "", // Backend returns expense_type_display
+              subType: "", // Not available in edit mode
+              estimated: item.estimated_cost || item.amount || 0,
+              booking_file: item.receipt_file || item.receipt_url || null,
+            });
+          } else {
+            // Otherwise it's an additional expense
+            others.push(expenseItem);
+          }
+        });
+
+        setBookingRows(bookings);
+        setOtherExpenses(others);
+      }
+    } catch (error) {
+      console.error("Error fetching claim:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load claim data for editing",
+      });
+      navigate(ROUTES.indexClaimPage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -227,12 +374,14 @@ export default function CreateClaimApplicationPage() {
   const buildJsonPayload = () => {
     return {
       travel_application_id: selectedApp.id,
+      claim_id: isEditMode && claimId ? Number(claimId) : undefined,
       items: [
         ...bookingRows.map((b) => ({
           expense_type: Number(b.expense_type),
           expense_date: b.expense_date,
           amount: Number(b.amount),
           booking_id: b.bookingId,
+          is_booking_expense: true, // EXPLICIT from frontend
           has_receipt: Boolean(b.has_receipt),
           distance_km: Number(b.distance_km) || 0,
           remarks: b.remarks || "",
@@ -242,6 +391,7 @@ export default function CreateClaimApplicationPage() {
           expense_date: o.expense_date,
           amount: Number(o.amount),
           has_receipt: true,
+          is_booking_expense: false, // EXPLICIT from frontend
           distance_km: Number(o.distance_km) || 0,
           remarks: o.remarks || "",
         })),
@@ -309,34 +459,13 @@ export default function CreateClaimApplicationPage() {
       return;
     }
 
-    const payload = {
-      travel_application_id: selectedApp?.id,
-      items: [
-        ...bookingRows.map((b) => ({
-          expense_type: parseInt(b.expense_type),
-          expense_date: b.expense_date,
-          amount: parseFloat(b.amount) || 0,
-          booking_id: b.bookingId,
-          has_receipt: b.has_receipt,
-          distance_km: parseFloat(b.distance_km) || 0,
-          remarks: b.remarks || "",
-        })),
-        ...otherExpenses.map((o) => ({
-          expense_type: parseInt(o.expense_type),
-          expense_date: o.expense_date,
-          amount: parseFloat(o.amount) || 0,
-          has_receipt: o.has_receipt,
-          distance_km: parseFloat(o.distance_km) || 0,
-          remarks: o.remarks || "",
-        })),
-      ],
-    };
+    const payload = buildJsonPayload();
 
     try {
-      const result = await expenseAPI.claims.validate(payload);
+      const response = await expenseAPI.claims.validate(payload);
 
-      if (result?.success) {
-        setValidationResult(result);
+      if (response?.success) {
+        setValidationResult(response);
         setDeclarationConfirmed(false); // Reset declaration
         setValidationModalOpen(true);
       } else {
@@ -359,41 +488,89 @@ export default function CreateClaimApplicationPage() {
     }
   };
 
-  // SUBMIT CLAIM
+  // SUBMIT CLAIM (Create or Edit + Resubmit)
   const handleSubmit = async () => {
     if (!selectedApp) return;
     setLoading(true);
 
     try {
-      const submitResult = await submitClaimJson();
-      console.log("SUBMIT RESULT: ", submitResult);
-      console.log("SUBMIT RESULT: ", submitResult?.success);
+      if (isEditMode && claimId) {
+        // EDIT MODE: Update claim and resubmit
+        const editPayload = buildJsonPayload();
 
-      // SUCCESS FLOW
-      if (submitResult?.success === true) {
-        const claimId = submitResult.data.claim_id;
-        console.log("claimID: ", claimId);
+        // Call edit API
+        const editResult = await expenseAPI.claims.edit(
+          Number(claimId),
+          editPayload,
+        );
+        console.log("EDIT RESULT:", editResult);
 
-        const createdItems = await fetchCreatedItems(claimId);
-        console.log("createdItems: ", createdItems);
-        const uploadRecieptRes = await uploadReceipts(claimId, createdItems);
-        console.log("Upload Res: ", uploadRecieptRes);
+        if (!editResult?.success) {
+          toast({
+            variant: "destructive",
+            title: "Edit Failed",
+            description: editResult?.message || "Failed to update claim",
+          });
+          return;
+        }
 
+        // Upload receipts if any
+        const createdItems = await fetchCreatedItems(Number(claimId));
+        await uploadReceipts(Number(claimId), createdItems);
+
+        // Call resubmit API
+        const resubmitResult = await expenseAPI.claims.resubmit(
+          Number(claimId),
+        );
+        console.log("RESUBMIT RESULT:", resubmitResult);
+
+        if (resubmitResult?.success) {
+          toast({
+            title: "Success",
+            description: "Claim updated and resubmitted successfully",
+          });
+          navigate(ROUTES.claimDetailPage(claimId));
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Resubmit Failed",
+            description: resubmitResult?.message || "Failed to resubmit claim",
+          });
+        }
+      } else {
+        // CREATE MODE: Normal submission flow
+        const submitResult = await submitClaimJson();
+        console.log("SUBMIT RESULT: ", submitResult);
+
+        // SUCCESS FLOW
+        if (submitResult?.success === true) {
+          const newClaimId = submitResult.data.claim_id;
+          console.log("claimID: ", newClaimId);
+
+          const createdItems = await fetchCreatedItems(newClaimId);
+          console.log("createdItems: ", createdItems);
+          const uploadRecieptRes = await uploadReceipts(
+            newClaimId,
+            createdItems,
+          );
+          console.log("Upload Res: ", uploadRecieptRes);
+
+          toast({
+            title: "Success",
+            description: submitResult.message || "Claim submitted successfully",
+          });
+
+          navigate(ROUTES.indexClaimPage);
+          return;
+        }
+
+        // BACKEND SENT success = false → VALIDATION ERRORS
         toast({
-          title: "Success",
-          description: submitResult.message || "Claim submitted successfully",
+          variant: "destructive",
+          title: "Submission Error",
+          description: submitResult?.message || "Validation failed.",
         });
-
-        navigate(ROUTES.indexClaimPage);
-        return;
       }
-
-      // BACKEND SENT success = false → VALIDATION ERRORS
-      toast({
-        variant: "destructive",
-        title: "Submission Error",
-        description: submitResult?.message || "Validation failed.",
-      });
     } catch (error) {
       // NETWORK/UNEXPECTED ERRORS ONLY
       toast({
@@ -434,10 +611,12 @@ export default function CreateClaimApplicationPage() {
             </Button>
             <div>
               <h1 className="text-2xl font-semibold text-foreground">
-                Create Expense Claim
+                {isEditMode ? "Edit Expense Claim" : "Create Expense Claim"}
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Submit eligible expenses for your completed travel
+                {isEditMode
+                  ? "Update your claim and resubmit for verification"
+                  : "Submit eligible expenses for your completed travel"}
               </p>
             </div>
           </div>
@@ -445,48 +624,71 @@ export default function CreateClaimApplicationPage() {
       </header>
 
       <main className="container mx-auto px-6 py-8 max-w-7xl">
-        {/* SELECT TRAVEL APPLICATION */}
-        <Card className="p-6 mb-6 bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
-          <div className="flex items-start gap-3 mb-4">
-            <FileText className="h-5 w-5 text-primary mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-base font-medium text-foreground mb-1">
-                Select Completed Travel Application
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Choose an approved travel request to create expense claims
-              </p>
-            </div>
-          </div>
+        {/* FINANCE FEEDBACK ALERT - Only in edit mode */}
+        {isEditMode && financeRemarks && (
+          <Alert className="mb-6 border-orange-300 bg-orange-50">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            <AlertDescription className="ml-2">
+              <div>
+                <p className="font-semibold text-orange-900 mb-2">
+                  Finance Feedback:
+                </p>
+                <p className="text-sm text-orange-800 italic">
+                  "{financeRemarks}"
+                </p>
+                <p className="text-xs text-orange-700 mt-2">
+                  Please review the feedback above, make necessary corrections,
+                  and resubmit your claim.
+                </p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
-          <Select onValueChange={handleSelectApplication}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select completed travel application" />
-            </SelectTrigger>
-            <SelectContent>
-              {applications.length === 0 ? (
-                <div className="px-4 py-8 text-center">
-                  <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    No claimable applications found
-                  </p>
-                </div>
-              ) : (
-                applications.map((app: any) => (
-                  <SelectItem key={app.id} value={String(app.id)}>
-                    {app.travel_request_id} — {app.purpose}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </Card>
+        {/* SELECT TRAVEL APPLICATION - Hide in edit mode */}
+        {!isEditMode && (
+          <Card className="p-6 mb-6 bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
+            <div className="flex items-start gap-3 mb-4">
+              <FileText className="h-5 w-5 text-primary mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-base font-medium text-foreground mb-1">
+                  Select Completed Travel Application
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose an approved travel request to create expense claims
+                </p>
+              </div>
+            </div>
+
+            <Select onValueChange={handleSelectApplication}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select completed travel application" />
+              </SelectTrigger>
+              <SelectContent>
+                {applications.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <AlertTriangle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      No claimable applications found
+                    </p>
+                  </div>
+                ) : (
+                  applications.map((app: any) => (
+                    <SelectItem key={app.id} value={String(app.id)}>
+                      {app.travel_request_id} — {app.purpose}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </Card>
+        )}
 
         {selectedApp && (
           <>
             {/* TRAVEL APPLICATION SUMMARY */}
             <Card className="p-6 mb-6">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-4">
+              <h3 className="text-sm font-semibold text-black mb-4">
                 Travel Application Summary
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -496,35 +698,39 @@ export default function CreateClaimApplicationPage() {
                       Request ID
                     </span>
                     <p className="font-medium text-foreground">
-                      {selectedApp.travel_request_id}
+                      {selectedApp.travel_request_id || "N/A"}
                     </p>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">
-                      Travel Period
-                    </span>
-                    <p className="font-medium text-foreground">
-                      {selectedApp.trip_details[0].departure_date} →{" "}
-                      {selectedApp.trip_details[0].return_date}
-                      <span className="font-xs text-slate-500 ml-2">
-                        ({selectedApp.total_duration_days || 0} days)
-                      </span>
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1">
-                      Trip Location
-                    </span>
-                    <p className="font-medium text-foreground">
-                      {selectedApp.trip_details[0].from_location_name} →{" "}
-                      {selectedApp.trip_details[0].to_location_name}
-                    </p>
-                  </div>
-                </div>
+                {selectedApp.trip_details && selectedApp.trip_details[0] && (
+                  <>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-xs text-muted-foreground block mb-1">
+                          Travel Period
+                        </span>
+                        <p className="font-medium text-foreground">
+                          {selectedApp.trip_details[0].departure_date} →{" "}
+                          {selectedApp.trip_details[0].return_date}
+                          <span className="font-xs text-slate-500 ml-2">
+                            ({selectedApp.total_duration_days || 0} days)
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-xs text-muted-foreground block mb-1">
+                          Trip Location
+                        </span>
+                        <p className="font-medium text-foreground">
+                          {selectedApp.trip_details[0].from_location_name} →{" "}
+                          {selectedApp.trip_details[0].to_location_name}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
 

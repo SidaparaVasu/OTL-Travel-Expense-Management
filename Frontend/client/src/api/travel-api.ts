@@ -241,6 +241,12 @@ export const travelAPI = {
     const { data } = await apiClient.get(`/travel/applications/${id}/edit/`);
     return data;
   },
+
+  // Get Travel Application Details (comprehensive view)
+  getTravelApplicationDetails: async (id: number) => {
+    const { data } = await apiClient.get(`/travel/applications/${id}/details/`);
+    return data.data;
+  },
 };
 
 export const locationAPI = {

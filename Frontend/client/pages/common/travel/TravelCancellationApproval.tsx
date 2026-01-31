@@ -270,7 +270,7 @@ const TravelCancellationApproval: React.FC = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                              navigate(ROUTES.travelApplicationView(request.id))
+                              navigate(ROUTES.travelApplicationDetails(request.id))
                             }
                             className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           >
