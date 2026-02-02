@@ -119,13 +119,13 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
           collapsible: true,
           items: [
             {
-              label: "Claims Workspace",
-              path: ROUTES.financeActionPage,
+              label: "Advance Workspace",
+              path: ROUTES.advanceWorkspacePage,
               Icon: ClipboardList,
             },
             {
-              label: "Advance Workspace",
-              path: ROUTES.advanceWorkspacePage,
+              label: "Claims Workspace",
+              path: ROUTES.financeActionPage,
               Icon: ClipboardList,
             },
           ],
@@ -223,13 +223,13 @@ export const getEmployeeSidebar = (
           collapsible: true,
           items: [
             {
-              label: "Claims Workspace",
-              path: ROUTES.financeActionPage,
+              label: "Advance Workspace",
+              path: ROUTES.advanceWorkspacePage,
               Icon: ClipboardList,
             },
             {
-              label: "Advance Workspace",
-              path: ROUTES.advanceWorkspacePage,
+              label: "Claims Workspace",
+              path: ROUTES.financeActionPage,
               Icon: ClipboardList,
             },
           ],
