@@ -38,6 +38,9 @@ class AdvanceWorkspaceViewSet(viewsets.ReadOnlyModelViewSet):
         # 'pending' = AdvanceProcessing does NOT exist OR status='pending'
         # 'processed' = AdvanceProcessing exists AND status='processed'
         
+        if self.action == 'retrieve':
+            return qs
+
         proc_status = self.request.query_params.get('status', 'pending')
         
         if proc_status == 'processed':
