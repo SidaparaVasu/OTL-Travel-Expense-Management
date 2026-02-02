@@ -494,7 +494,7 @@ const FinanceDashboard = () => {
                               ) : (
                                 <CheckCircle className="h-4 w-4" />
                               )}
-                              Mark as Paid
+                              Mark as Processed
                             </Button>
                             <Button
                               size="sm"

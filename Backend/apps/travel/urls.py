@@ -14,9 +14,11 @@ from .views.analytics import TravelAnalyticsView, ComplianceReportView
 from .views.travel_desk_views import *
 from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
+from .views.advance_views import AdvanceWorkspaceViewSet
 
 router = DefaultRouter()
 router.register(r'guest-profiles', GuestProfileViewSet, basename='guest-profiles')
+router.register(r'finance/advances', AdvanceWorkspaceViewSet, basename='finance-advances')
 
 urlpatterns = [
     # Travel Applications

@@ -12,6 +12,11 @@ export const ROUTES = {
 
   // ---------------- FINANCE ----------------
   financeActionPage: "/dashboard/finance/",
+  advanceRequisitionPage: (id?: number | string) =>
+    id
+      ? `/dashboard/finance/advance-requisition/${id}`
+      : `/dashboard/finance/advance-requisition`,
+  advanceWorkspacePage: "/dashboard/finance/advance-workspace",
 
   // ---------------- PROFILE ----------------
   profile: "/profile",

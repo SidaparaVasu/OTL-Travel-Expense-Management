@@ -27,6 +27,8 @@ import BookingAgentDashboard from "./pages/booking-agent/BookingAgentDashboard";
 
 // Finance Page
 import FinancePage from "./pages/finance/FinancePage";
+import AdvanceRequisitionPage from "./pages/finance/AdvanceRequisitionPage";
+import AdvanceWorkspacePage from "./pages/finance/AdvanceWorkspacePage";
 
 // Booking Agent
 import BookingAgentBookings from "./pages/booking-agent/BookingAgentBookings";
@@ -205,6 +207,26 @@ const App = () => (
                 <AuthOnly>
                   <UnifiedLayout>
                     <FinancePage />
+                  </UnifiedLayout>
+                </AuthOnly>
+              }
+            />
+            <Route
+              path={ROUTES.advanceWorkspacePage}
+              element={
+                <AuthOnly>
+                  <UnifiedLayout>
+                    <AdvanceWorkspacePage />
+                  </UnifiedLayout>
+                </AuthOnly>
+              }
+            />
+            <Route
+              path={ROUTES.advanceRequisitionPage(":id")}
+              element={
+                <AuthOnly>
+                  <UnifiedLayout>
+                    <AdvanceRequisitionPage />
                   </UnifiedLayout>
                 </AuthOnly>
               }

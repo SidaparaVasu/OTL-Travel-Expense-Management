@@ -112,21 +112,26 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
     ],
   },
   ...(hasFinanceRole
-  ? [
-      {
-        title: "Finance",
-        icon: Wallet, // choose icon
-        collapsible: true,
-        items: [
-          {
-            label: "Claims Workspace",
-            path: ROUTES.financeActionPage,
-            Icon: ClipboardList,
-          },
-        ],
-      },
-    ]
-  : []),
+    ? [
+        {
+          title: "Finance",
+          icon: Wallet, // choose icon
+          collapsible: true,
+          items: [
+            {
+              label: "Claims Workspace",
+              path: ROUTES.financeActionPage,
+              Icon: ClipboardList,
+            },
+            {
+              label: "Advance Workspace",
+              path: ROUTES.advanceWorkspacePage,
+              Icon: ClipboardList,
+            },
+          ],
+        },
+      ]
+    : []),
   {
     title: "Settings",
     icon: Settings,
@@ -211,21 +216,26 @@ export const getEmployeeSidebar = (
     ],
   },
   ...(hasFinanceRole
-  ? [
-      {
-        title: "Finance",
-        icon: Wallet, // choose icon
-        collapsible: true,
-        items: [
-          {
-            label: "Claims Workspace",
-            path: ROUTES.financeActionPage,
-            Icon: ClipboardList,
-          },
-        ],
-      },
-    ]
-  : []),
+    ? [
+        {
+          title: "Finance",
+          icon: Wallet, // choose icon
+          collapsible: true,
+          items: [
+            {
+              label: "Claims Workspace",
+              path: ROUTES.financeActionPage,
+              Icon: ClipboardList,
+            },
+            {
+              label: "Advance Workspace",
+              path: ROUTES.advanceWorkspacePage,
+              Icon: ClipboardList,
+            },
+          ],
+        },
+      ]
+    : []),
 ];
 
 // ------------------------------------------------------

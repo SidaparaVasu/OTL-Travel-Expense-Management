@@ -5,8 +5,25 @@ from .models.approval import *
 from .models.booking_extended import *
 from .models.audit import *
 from .models.traveler import GuestProfile, ApplicationTraveler
+from .models.advance import AdvanceProcessing
 
 # Register your models here.
+@admin.register(AdvanceProcessing)
+class AdvanceProcessingAdmin(admin.ModelAdmin):
+    list_display = ('application', 'status', 'processed_amount', 'payment_mode', 'processed_by', 'processed_at')
+    list_filter = ('status', 'payment_mode', 'processed_at')
+    search_fields = ('application__employee__username', 'application__employee__employee_id', 'reference_number')
+    readonly_fields = ('processed_at', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Processing Details', {
+            'fields': ('application', 'status', 'processed_amount', 'payment_mode', 'reference_number', 'remarks')
+        }),
+        ('Timestamps', {
+            'fields': ('processed_at', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
 @admin.register(GuestProfile)
 class GuestProfileAdmin(admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'email', 'contact_number', 'company', 'created_by', 'is_active')
