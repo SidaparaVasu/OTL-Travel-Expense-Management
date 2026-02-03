@@ -1,6 +1,8 @@
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import black, HexColor
+import logging
+logger = logging.getLogger(__name__)
 
 def draw_header(c, WIDTH, HEIGHT, data):
     """
@@ -703,7 +705,7 @@ def generate_duty_slip_pdf(booking):
     # -------------------------
     
     # TR Number
-    tr_no = "TR/N/A"
+    tr_no = ""
     try:
         if booking.trip_details and booking.trip_details.travel_application:
             tr_no = booking.trip_details.travel_application.get_travel_request_id()
@@ -714,39 +716,39 @@ def generate_duty_slip_pdf(booking):
     date_gen = timezone.now().strftime("%d %B %Y")
     
     # Vertical (Department)
-    vertical = "GENERAL ADMIN"
+    vertical = ""
     try:
         vertical = (
-            booking.trip_details.travel_application.employee
-            .organizational_profile.department.name
+            booking.trip_details.travel_application.general_ledger.vertical_name
         )
     except:
         pass
     
-    # Location (Branch)
-    location = "JAMSHEDPUR"
-    try:
-        location = (
-            booking.trip_details.travel_application.employee
-            .organizational_profile.branch.name
-        )
-    except:
-        pass
-    
-    # Slip Number
-    slip_no = f"DS/{booking.id:04d}"
-    
-    # Vendor Name
     vendor_name = ""
     try:
-        assigned = booking.assignment
+        # Get the active assignment for this booking (OneToOne)
+        assigned = getattr(booking, 'assignment', None)
         if assigned and assigned.assigned_to:
-            vendor_name = (
-                (assigned.assigned_to.first_name or "") + " " + 
-                (assigned.assigned_to.last_name or "")
-            ).strip()
-    except:
-        pass
+            profile = getattr(assigned.assigned_to, 'booking_agent_profile', None)
+            if profile:
+                vendor_name = profile.organization_name
+    except Exception as e:
+        logger.error(f"Error fetching vendor name: {e}")
+        
+    # Slip Number
+    slip_no = f"DS/{booking.id:04d}"
+
+    # Location (From -> To)
+    location = ""
+    try:
+        details = booking.booking_details
+        from_loc = details.get("from_location_name", "") or details.get("from_location", "")
+        to_loc = details.get("to_location_name", "") or details.get("to_location", "")
+        
+        parts = [p for p in [from_loc, to_loc] if p]
+        location = " to ".join(parts)
+    except Exception as e:
+        logger.error(f"Error fetching location: {e}")
     
     # Vehicle Model
     vehicle_model = ""
@@ -758,14 +760,14 @@ def generate_duty_slip_pdf(booking):
         pass
     
     # Reporting Person
-    reporting_person = "Unknown"
+    reporting_person = ""
     reporting_mobile = ""
-    try:
-        emp = booking.trip_details.travel_application.employee
-        reporting_person = ((emp.first_name or "") + " " + (emp.last_name or "")).strip()
-        reporting_mobile = emp.phone or ""
-    except:
-        pass
+    # try:
+    #     emp = booking.trip_details.travel_application.employee
+    #     reporting_person = ((emp.first_name or "") + " " + (emp.last_name or "")).strip()
+    #     reporting_mobile = emp.phone or ""
+    # except:
+    #     pass
     
     # Booking Details
     bd = booking.booking_details or {}
@@ -782,7 +784,7 @@ def generate_duty_slip_pdf(booking):
     vehicle_no = ""
     
     # AC Status
-    ac_status = "AC"
+    ac_status = ""
     
     # -------------------------
     # Prepare Data Dictionaries
