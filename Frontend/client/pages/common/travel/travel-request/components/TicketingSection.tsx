@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plane, Plus, Save } from "lucide-react";
+import { Plane, Plus, Save, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -48,6 +48,7 @@ interface TicketingFormData {
   estimated_cost: string;
   meal_preference?: string;
   special_instruction: string;
+  is_self_arranged?: boolean;
 }
 
 interface TicketingSectionProps {
@@ -305,7 +306,20 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
         const subOption = travelSubOptions[row.booking_type]?.find(
           (s) => String(s.id) === row.sub_option,
         );
-        return `${mode?.name || row.booking_type} - ${subOption?.name || row.sub_option}`;
+        return (
+          <div className="flex items-center gap-2">
+            <span>{`${mode?.name || row.booking_type} - ${subOption?.name || row.sub_option}`}</span>
+            {row.is_self_arranged && (
+              <div
+                className="flex items-center text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full"
+                title="Self Arranged"
+              >
+                <UserCheck className="w-3 h-3 mr-1" />
+                Self
+              </div>
+            )}
+          </div>
+        );
       },
     },
     {
@@ -435,6 +449,26 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                 />
               </div>
 
+              <div className="md:col-span-6 flex w-full pb-2 pt-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_self_arranged"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={form.is_self_arranged || false}
+                    onChange={(e) =>
+                      setForm({ ...form, is_self_arranged: e.target.checked })
+                    }
+                  />
+                  <label
+                    htmlFor="is_self_arranged"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Self-arranged?
+                  </label>
+                </div>
+              </div>
+
               {/* Row 2: From, To */}
               <div className="md:col-span-3">
                 <CityCombobox
@@ -554,7 +588,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                   </p>
                 )}
               </div>
-              
+
               {/* Meal Preference - DISABLED (Moved to Travelers Section) */}
               {/* <div className="md:col-span-3">
                 <FormSelect

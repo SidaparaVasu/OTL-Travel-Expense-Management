@@ -469,6 +469,8 @@ export const TravelApplicationForm: React.FC = () => {
                     estimated_cost: booking.estimated_cost || "",
                     special_instruction: booking.special_instruction || "",
                     ticket_number: booking.booking_details?.ticket_number || "",
+                    is_self_arranged:
+                      booking.booking_details?.is_self_arranged || false,
                     from_location:
                       booking.booking_details?.from_location || null,
                     from_label:
@@ -961,6 +963,7 @@ export const TravelApplicationForm: React.FC = () => {
               estimated_cost: parseFloat(t.estimated_cost) || null,
               special_instruction: t.special_instruction,
               booking_details: {
+                is_self_arranged: !!t.is_self_arranged, // Add Flag
                 ticket_number: t.ticket_number,
                 from_location: t.from_location,
                 from_location_name: t.from_label,

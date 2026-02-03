@@ -8,6 +8,7 @@ import {
   Info,
   Edit,
   ArrowLeft,
+  UserCheck,
 } from "lucide-react";
 import { travelAPI } from "@/src/api/travel-api";
 import { ROUTES } from "@/routes/routes";
@@ -378,8 +379,17 @@ export const TravelApplicationDetails: React.FC = () => {
                     </thead>
                     <tbody>
                       <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-200 p-3">
+                        <td className="flex flex-row gap-1  border-slate-200 p-3">
                           {booking.booking_type}
+                          {booking.is_self_arranged && (
+                            <div
+                              className="flex items-center text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full w-fit"
+                              title="Self Arranged"
+                            >
+                              <UserCheck className="w-3 h-3 mr-1" />
+                              Self
+                            </div>
+                          )}
                         </td>
                         <td className="border border-slate-200 p-3">
                           {booking.class_field}

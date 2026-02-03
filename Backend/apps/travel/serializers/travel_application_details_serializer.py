@@ -100,6 +100,7 @@ class TicketingBookingSerializer(serializers.Serializer):
     status = serializers.CharField()
     booking_type = serializers.SerializerMethodField()
     class_field = serializers.SerializerMethodField()
+    is_self_arranged = serializers.SerializerMethodField()
     ticket_number = serializers.SerializerMethodField()
     from_location = serializers.SerializerMethodField()
     to_location = serializers.SerializerMethodField()
@@ -118,6 +119,9 @@ class TicketingBookingSerializer(serializers.Serializer):
     def get_class_field(self, obj):
         # sub_option is a ForeignKey field on the model, not in booking_details
         return obj.sub_option.name if obj.sub_option else ""
+
+    def get_is_self_arranged(self, obj):
+        return obj.booking_details.get('is_self_arranged', False)
 
     def get_ticket_number(self, obj):
         return obj.booking_reference or obj.booking_details.get('ticket_number', '')
