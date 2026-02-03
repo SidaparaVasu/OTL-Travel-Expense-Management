@@ -24,7 +24,31 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
         if channel == 'email':
             provider = EmailProviderFactory()
             to_emails = [log.recipient] if isinstance(log.recipient, str) else log.recipient
-            provider.send(subject=subject, body_text=body_text, body_html=body_html, to_emails=to_emails)
+            
+            attachments = []
+            
+            attachments = []
+            if payload.get('attach_duty_slip'):
+                try:
+                    from apps.travel.models import Booking
+                    from apps.travel.utils.pdf_generator import generate_duty_slip_pdf
+                    
+                    booking_id = payload.get('booking_id')
+                    if booking_id:
+                        booking = Booking.objects.filter(id=booking_id).first()
+                        if booking:
+                            pdf_buffer = generate_duty_slip_pdf(booking)
+                            pdf_content = pdf_buffer.getvalue()
+                            
+                            attachments.append({
+                                'name': f"DutySlip_{booking.id}.pdf",
+                                'content': pdf_content,
+                                'mimetype': 'application/pdf'
+                            })
+                except Exception as e:
+                    logger.error(f"Error generating duty slip attachment for log {log_id}: {str(e)}")
+
+            provider.send(subject=subject, body_text=body_text, body_html=body_html, to_emails=to_emails, attachments=attachments)
         elif channel == 'in_app':
             # create an in-app notification record or push through websocket
             # from .in_app import create_in_app_notification

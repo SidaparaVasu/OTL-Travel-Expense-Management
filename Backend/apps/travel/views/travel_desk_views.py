@@ -313,6 +313,15 @@ class TravelDeskAssignBookingsView(APIView):
                     },
                 )
 
+                # Determine if duty slip should be attached
+                # Logic: Not self-arranged AND Not Flight/Train/Accommodation
+                attach_duty_slip = False
+                if not b.booking_details.get("is_self_arranged"):
+                    excluded_types = ["Flight", "Train", "Accommodation"]
+                    b_type = (b.booking_type.name or "").strip()
+                    if b_type not in excluded_types:
+                        attach_duty_slip = True
+
                 NotificationCenter.notify(
                     event_name="travel.booking.assigned",
                     reference={"type": "Booking", "id": b.id},
@@ -324,6 +333,7 @@ class TravelDeskAssignBookingsView(APIView):
                         "booking_agent_name": booking_agent.get_full_name(),
                         "booking_id": b.id,
                         "action_required": "Booking assigned by Travel Desk",
+                        "attach_duty_slip": attach_duty_slip,
                     },
                 )
 
