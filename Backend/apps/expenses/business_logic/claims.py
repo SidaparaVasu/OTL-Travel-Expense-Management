@@ -324,7 +324,12 @@ def validate_claim_payload(
         ]
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
-    # 3 — Prevent duplicate claims
+    # 3 — Validate Guest Restriction
+    if tr.travel_for == 'guest':
+        errors["travel_request"] = ["Expense claims are not allowed for Guest travel applications."]
+        return {"errors": errors, "warnings": warnings, "computed": computed}
+
+    # 4 — Prevent duplicate claims
     # If explicit exclude_claim_id passed, use it.
     # Also check payload for 'claim_id' (common in edit/validate scenarios)
     claim_id_to_exclude = exclude_claim_id or payload.get("claim_id")

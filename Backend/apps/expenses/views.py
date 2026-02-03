@@ -723,6 +723,7 @@ class ClaimableTravelApplicationsView(APIView):
                 status="completed"
             )
             .exclude(expense_claim__isnull=False)  # exclude apps with existing claim
+            .exclude(travel_for='guest')           # exclude guest applications (no claims allowed)
             .select_related("employee", "general_ledger")
             .prefetch_related("trip_details", "trip_details__from_location", "trip_details__to_location")
             .order_by("-created_at")

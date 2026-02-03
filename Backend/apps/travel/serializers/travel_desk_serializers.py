@@ -284,13 +284,14 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     employee_name = serializers.SerializerMethodField()
     employee_grade = serializers.CharField(read_only=True)
     status_label = serializers.SerializerMethodField()
+    gl_code_text = serializers.SerializerMethodField()
     trips = TravelDeskTripSerializer(source="trip_details", many=True, read_only=True)
 
     class Meta:
         model = TravelApplication
         fields = [
             "id", "travel_request_id", "employee", "employee_name", "employee_grade", 
-            "purpose", "internal_order", "general_ledger", "sanction_number", 
+            "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
             "submitted_at", "created_at", "updated_at", "trips",
         ]
@@ -300,6 +301,11 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
 
     def get_status_label(self, obj):
         return obj.get_status_display()
+    
+    def get_gl_code_text(self, obj):
+        if obj.general_ledger:
+            return f"{obj.general_ledger.gl_code} - {obj.general_ledger.vertical_name}"
+        return None
 
 
 class BookingAssignmentSerializer(serializers.ModelSerializer):

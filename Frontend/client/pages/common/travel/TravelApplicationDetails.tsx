@@ -167,6 +167,16 @@ export const TravelApplicationDetails: React.FC = () => {
               </span>
             </div>
             <div className="p-4">
+              <span className="font-semibold text-slate-700">Status:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.status_label || ""}
+              </span>
+            </div>
+          </div>
+
+          {/* Purpose */}
+          <div className="border-b border-slate-200">
+            <div className="p-4">
               <span className="font-semibold text-slate-700">Purpose:</span>{" "}
               <span className="text-slate-900">
                 {data?.application?.purpose || ""}

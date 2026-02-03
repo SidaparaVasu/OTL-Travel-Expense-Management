@@ -359,7 +359,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
             <div className="flex justify-center items-center h-64">
               <div className="text-center">
                 <div className="animate-spin w-12 h-12 rounded-full border-b-2 border-blue-600 mx-auto mb-3" />
-                <p className="text-muted-foreground">Loading application...</p>
+                <p className="text-slate-500">Loading application...</p>
               </div>
             </div>
           ) : error ? (
@@ -378,13 +378,13 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                 <CardContent className="pt-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Purpose</p>
+                      <p className="text-xs text-slate-500">Purpose</p>
                       <p className="text-sm font-medium break-words">
                         {application.purpose}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-500">
                         Internal Order
                       </p>
                       <p className="text-sm font-medium">
@@ -392,23 +392,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        Estimated Cost
-                      </p>
-                      <p className="text-sm font-semibold text-blue-600">
-                        {formatCurrency(application.estimated_total_cost)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Advance Amount
-                      </p>
-                      <p className="text-sm font-semibold text-blue-600">
-                        {formatCurrency(application.advance_amount)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-500">
                         Sanction Number
                       </p>
                       <p className="text-sm font-medium">
@@ -416,13 +400,39 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Status</p>
+                      <p className="text-xs text-slate-500">
+                        GL Code (General Ledger)
+                      </p>
+                      <p className="text-sm font-medium">
+                        {application.gl_code_text ||
+                          application.general_ledger ||
+                          "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Estimated Cost
+                      </p>
+                      <p className="text-sm font-semibold text-blue-600">
+                        {formatCurrency(application.estimated_total_cost)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Advance Amount
+                      </p>
+                      <p className="text-sm font-semibold text-blue-600">
+                        {formatCurrency(application.advance_amount)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Status</p>
                       <p className="text-sm font-medium">
                         {application.status_label || application.status}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-slate-500">
                         Submitted On
                       </p>
                       <p className="text-sm font-medium">
@@ -517,7 +527,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                             <TableRow>
                               <TableCell
                                 colSpan={8}
-                                className="text-center py-8 text-muted-foreground"
+                                className="text-center py-8 text-slate-500"
                               >
                                 No bookings found
                               </TableCell>
@@ -566,7 +576,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         <p className="font-medium text-sm">
                                           {booking.booking_type_name}
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-slate-500">
                                           {booking.sub_option_name || "—"}
                                         </p>
                                         {(booking.booking_reference ||
@@ -646,7 +656,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                           `${trip.from_location_name} → ${trip.to_location_name}`;
                                         return (
                                           <div className="flex flex-col">
-                                            <span className="text-xs text-muted-foreground mb-0.5">
+                                            <span className="text-xs text-slate-500 mb-0.5">
                                               {segment}
                                             </span>
                                             <span>{place}</span>

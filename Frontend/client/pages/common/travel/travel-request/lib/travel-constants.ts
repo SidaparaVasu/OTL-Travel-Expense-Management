@@ -93,6 +93,7 @@ export const LOCATION_TYPES = [
   "Airport",
   "Railway Station",
   "Office",
+  "Other",
 ];
 
 // Empty form templates
@@ -154,7 +155,9 @@ export const getEmptyConveyance = () => ({
   from_location: "",
   to_location: "",
   report_at: "",
+  report_at_other: "",
   drop_location: "",
+  drop_location_other: "",
   start_date: "",
   start_time: "",
   end_date: "",

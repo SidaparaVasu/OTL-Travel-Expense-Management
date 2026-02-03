@@ -38,6 +38,7 @@ import {
   getEmptyTicketing,
   getEmptyAccommodation,
   getEmptyConveyance,
+  LOCATION_TYPES,
 } from "../lib/travel-constants";
 import {
   validateTicketingDates,
@@ -505,6 +506,19 @@ export const TravelApplicationForm: React.FC = () => {
                   });
                 } else {
                   // Conveyance
+                  const reportAt = booking.booking_details?.report_at || "";
+                  const dropLocation =
+                    booking.booking_details?.drop_location || "";
+
+                  const isReportAtCustom =
+                    reportAt &&
+                    !LOCATION_TYPES.includes(reportAt) &&
+                    reportAt !== "Other";
+                  const isDropLocationCustom =
+                    dropLocation &&
+                    !LOCATION_TYPES.includes(dropLocation) &&
+                    dropLocation !== "Other";
+
                   conveyanceData.push({
                     vehicle_type: String(booking.booking_type),
                     vehicle_sub_option: String(booking.sub_option),
@@ -513,8 +527,14 @@ export const TravelApplicationForm: React.FC = () => {
                     from_location:
                       booking.booking_details?.from_location || null,
                     to_location: booking.booking_details?.to_location || null,
-                    report_at: booking.booking_details?.report_at || "",
-                    drop_location: booking.booking_details?.drop_location || "",
+                    report_at: isReportAtCustom ? "Other" : reportAt,
+                    report_at_other: isReportAtCustom ? reportAt : "",
+                    drop_location: isDropLocationCustom
+                      ? "Other"
+                      : dropLocation,
+                    drop_location_other: isDropLocationCustom
+                      ? dropLocation
+                      : "",
                     start_date: booking.booking_details?.start_date || "",
                     start_time: booking.booking_details?.start_time || "",
                     end_date: booking.booking_details?.end_date || "",
@@ -976,8 +996,12 @@ export const TravelApplicationForm: React.FC = () => {
               booking_details: {
                 from_location: c.from_location,
                 to_location: c.to_location,
-                report_at: c.report_at,
-                drop_location: c.drop_location,
+                report_at:
+                  c.report_at === "Other" ? c.report_at_other : c.report_at,
+                drop_location:
+                  c.drop_location === "Other"
+                    ? c.drop_location_other
+                    : c.drop_location,
                 start_date: c.start_date,
                 start_time: c.start_time || "",
                 end_date: c.end_date,

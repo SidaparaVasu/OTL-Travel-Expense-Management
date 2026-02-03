@@ -328,7 +328,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
     def get_vehicle_type(self, obj):
         # Get from sub_option name or booking_details
-        return obj.sub_option.name if obj.sub_option else obj.booking_details.get('vehicle_type', '')
+        return obj.booking_type.name if obj.booking_type else obj.booking_details.get('booking_type', '')
 
     def get_vehicle_subtype(self, obj):
         return obj.sub_option.name if obj.sub_option else ""
@@ -340,7 +340,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.trip_details.to_location.city_name if obj.trip_details and obj.trip_details.to_location else ""
     
     def get_report_at(self, obj):
-        return obj.booking_details.get('pickup_location', '')
+        return obj.booking_details.get('report_at', '')
     
     def get_drop_location(self, obj):
         return obj.booking_details.get('drop_location', '')
@@ -487,7 +487,8 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'grade': obj.employee.grade.name if hasattr(obj.employee, 'grade') and obj.employee.grade else "",
             'department': obj.employee.department.name if hasattr(obj.employee, 'department') and obj.employee.department else "",
             'designation': obj.employee.designation.name if hasattr(obj.employee, 'designation') and obj.employee.designation else "",
-            'status': obj.status
+            'status': obj.status,
+            'status_label': obj.get_status_display()
         }
 
     def get_travel_details(self, obj):

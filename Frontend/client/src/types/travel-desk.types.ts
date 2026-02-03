@@ -103,6 +103,7 @@ export interface Application {
   purpose: string;
   internal_order: string;
   general_ledger: number;
+  gl_code_text?: string;
   gl_code_name: string;
   sanction_number: string;
   advance_amount: string;

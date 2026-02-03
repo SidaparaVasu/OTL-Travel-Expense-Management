@@ -12,7 +12,7 @@ class Command(BaseCommand):
             status='completed',
             is_settled=False,
             settlement_due_date__lt=today
-        )
+        ).exclude(travel_for='guest')
         
         for app in overdue_apps:
             self.stdout.write(f'OVERDUE: {app.get_travel_request_id()} - {app.employee.username}')

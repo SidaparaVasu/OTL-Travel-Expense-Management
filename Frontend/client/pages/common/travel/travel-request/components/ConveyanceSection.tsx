@@ -41,7 +41,9 @@ interface ConveyanceFormData {
   from_location: string;
   to_location: string;
   report_at: string;
+  report_at_other?: string;
   drop_location: string;
+  drop_location_other?: string;
   start_date: string;
   start_time: string;
   end_date: string;
@@ -141,8 +143,13 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       newErrors.from_location = "From location is required";
     if (!form.to_location) newErrors.to_location = "To location is required";
     if (!form.report_at) newErrors.report_at = "Report at is required";
+    if (form.report_at === "Other" && !form.report_at_other?.trim())
+      newErrors.report_at_other = "Please specify location";
+
     if (!form.drop_location)
       newErrors.drop_location = "Drop location is required";
+    if (form.drop_location === "Other" && !form.drop_location_other?.trim())
+      newErrors.drop_location_other = "Please specify location";
     if (!form.start_date) newErrors.start_date = "Start date is required";
     if (!form.end_date) newErrors.end_date = "End date is required";
     if (!form.start_time) newErrors.start_time = "Start time is required";
@@ -186,13 +193,14 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     // }
 
     // Conveyance location validation (residence/hotel <-> airport/station)
-    const conveyanceError = validateConveyanceLocations(
-      form.report_at,
-      form.drop_location,
-    );
-    if (conveyanceError && !isCarAtDisposal) {
-      newErrors.drop_location = conveyanceError;
-    }
+    // const conveyanceError = validateConveyanceLocations(
+    //   form.report_at,
+    //   form.drop_location,
+    //   false
+    // );
+    // if (conveyanceError && !isCarAtDisposal) {
+    //   newErrors.drop_location = conveyanceError;
+    // }
 
     // Date & Time range validation
     if (form.start_date && form.start_time && tripStartDate && tripEndDate) {
@@ -372,8 +380,15 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
     },
     {
       label: "Pick-up / Drop",
-      render: (row: ConveyanceFormData) =>
-        `${row.report_at} → ${row.drop_location}`,
+      render: (row: ConveyanceFormData) => {
+        const report =
+          row.report_at === "Other" ? row.report_at_other : row.report_at;
+        const drop =
+          row.drop_location === "Other"
+            ? row.drop_location_other
+            : row.drop_location;
+        return `${report} → ${drop}`;
+      },
     },
     {
       label: "Date & Time",
@@ -573,7 +588,13 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   label="Report At"
                   required
                   value={form.report_at}
-                  onChange={(value) => setForm({ ...form, report_at: value })}
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      report_at: value,
+                      report_at_other: value === "Other" ? "" : undefined,
+                    })
+                  }
                   options={locationOptions}
                   error={errors.report_at}
                 />
@@ -585,12 +606,47 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   required
                   value={form.drop_location}
                   onChange={(value) =>
-                    setForm({ ...form, drop_location: value })
+                    setForm({
+                      ...form,
+                      drop_location: value,
+                      drop_location_other: value === "Other" ? "" : undefined,
+                    })
                   }
                   options={locationOptions}
                   error={errors.drop_location}
                 />
               </div>
+
+              {/* Other Location Inputs */}
+              {form.report_at === "Other" && (
+                <div className="md:col-span-3 animate-fade-in">
+                  <FormInput
+                    label="Report At (Other)"
+                    required
+                    value={form.report_at_other || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, report_at_other: e.target.value })
+                    }
+                    placeholder="Enter location"
+                    error={errors.report_at_other}
+                  />
+                </div>
+              )}
+
+              {form.drop_location === "Other" && (
+                <div className="md:col-span-3 animate-fade-in">
+                  <FormInput
+                    label="Drop Location (Other)"
+                    required
+                    value={form.drop_location_other || ""}
+                    onChange={(e) =>
+                      setForm({ ...form, drop_location_other: e.target.value })
+                    }
+                    placeholder="Enter location"
+                    error={errors.drop_location_other}
+                  />
+                </div>
+              )}
 
               {/* Row 4: Start Date, Start Time */}
               <div className="md:col-span-3">
