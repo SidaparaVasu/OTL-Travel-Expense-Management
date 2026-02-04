@@ -82,6 +82,7 @@ export const getSubOptionLabel = (subOption: number): string => {
     8: 'SUV',
     9: 'Guest House',
     10: 'Hotel',
+    11: 'Bulk Booking',
   };
-  return subOptionMap[subOption] || `Option ${subOption}`;
+  return subOptionMap[subOption] || `${subOption || ''}`;
 };

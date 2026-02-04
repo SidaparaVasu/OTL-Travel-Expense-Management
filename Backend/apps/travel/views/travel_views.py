@@ -464,6 +464,10 @@ class TravelApplicationSubmitView(APIView):
                 status_code=400
             )
 
+        # 3.5) Auto-create "Bulk Upload" booking if file is present
+        # This ensures the application is routed to Travel Desk even if no other bookings exist.
+        travel_app.create_bulk_booking_if_needed()
+
         # EARLY CHECK - Collect all bookings
         all_bookings = []
         for trip in travel_app.trip_details.all():

@@ -48,6 +48,37 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
                 except Exception as e:
                     logger.error(f"Error generating duty slip attachment for log {log_id}: {str(e)}")
 
+            # General: Check for booking_file attachment (e.g. Bulk Upload Excel)
+            booking_id = payload.get('booking_id')
+            if booking_id:
+                try:
+                    from apps.travel.models import Booking
+                    import mimetypes
+                    import os
+                    
+                    # optimized query if not already fetched
+                    booking = Booking.objects.filter(id=booking_id).first()
+                    
+                    if booking and booking.booking_file:
+                        try:
+                            # Open file if not already open
+                            if booking.booking_file.closed:
+                                booking.booking_file.open('rb')
+                            
+                            file_content = booking.booking_file.read()
+                            file_name = os.path.basename(booking.booking_file.name)
+                            content_type, _ = mimetypes.guess_type(file_name)
+                            
+                            attachments.append({
+                                'name': file_name,
+                                'content': file_content,
+                                'mimetype': content_type or 'application/octet-stream'
+                            })
+                        except Exception as file_error:
+                             logger.error(f"Error reading booking file for log {log_id}: {str(file_error)}")
+                except Exception as e:
+                    logger.error(f"Error attaching booking file for log {log_id}: {str(e)}")
+
             provider.send(subject=subject, body_text=body_text, body_html=body_html, to_emails=to_emails, attachments=attachments)
         elif channel == 'in_app':
             # create an in-app notification record or push through websocket

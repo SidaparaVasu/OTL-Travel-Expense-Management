@@ -339,6 +339,51 @@ class TravelApplication(models.Model):
     #     # TODO: Implement StatusChangeLog model if detailed audit trail needed
     #     pass
 
+    def create_bulk_booking_if_needed(self):
+        """
+        Automatically create a 'Bulk Upload' booking if a bulk file is present
+        and no such booking exists.
+        """
+        if not self.bulk_upload_file:
+            return
+
+        from apps.travel.models.booking import Booking
+        from apps.master_data.models.travel import TravelModeMaster
+
+        # Get or Create 'Bulk Booking' mode (safety check)
+        bulk_mode, _ = TravelModeMaster.objects.get_or_create(
+            name="Bulk Booking", 
+            defaults={"description": "Bulk booking for guest(s) applications", "is_active": True}
+        )
+
+        # Check if already exists for this application
+        exists = Booking.objects.filter(
+            trip_details__travel_application=self,
+            booking_type=bulk_mode
+        ).exists()
+
+        if exists:
+            return
+
+        # We need a TripDetails to attach the booking to.
+        # Use the first one. If none exists (unlikely given validation), we can't create it.
+        trip = self.trip_details.first()
+        if not trip:
+            return
+
+        Booking.objects.create(
+            trip_details=trip,
+            booking_type=bulk_mode,
+            status='pending',
+            booking_file=self.bulk_upload_file, # Copy the file reference
+            special_instruction="Bulk Bookings Upload",
+            booking_details={
+                "is_system_generated": True,
+                "source": "bulk_booking"
+            },
+            estimated_cost=0
+        )
+
     def can_cancel(self, user):
         """Check if user can cancel this application"""
         # Can cancel if:

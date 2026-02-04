@@ -9,6 +9,7 @@ import {
   Send,
   MessageSquarePlus,
   FileUp,
+  FileDown,
   Plane,
   Train,
   Car,
@@ -73,6 +74,7 @@ const getBookingIcon = (type: string) => {
     lower.includes("guest")
   )
     return Home;
+  if (lower.includes("bulk")) return FileUp;
   return MapPin;
 };
 
@@ -499,7 +501,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </div>
                     )}
 
-                    {application.bulk_upload_file ? (
+                    {/* {application.bulk_upload_file ? (
                       <div className="col-span-2 md:col-span-4 mb-2">
                         <p className="text-md text-slate-800 mb-1">
                           Applicant uploaded Bulk Booking File for Guest(s).
@@ -514,7 +516,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                           View Bulk Booking File
                         </a>
                       </div>
-                    ) : (
+                    ) : ( */}
 
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
@@ -604,7 +606,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                           {booking.booking_type_name}
                                         </p>
                                         <p className="text-xs text-slate-500">
-                                          {booking.sub_option_name || "—"}
+                                          {booking.sub_option_name || "N/A"}
                                         </p>
                                         {(booking.booking_reference ||
                                           booking.vendor_reference ||
@@ -811,7 +813,36 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                   <TableCell className="text-center">
                                     <div className="flex justify-center gap-1">
+                                      {/* Bulk Download Action */}
+                                      {type.includes("bulk") &&
+                                        (booking as any).booking_file && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex items-center gap-1 bg-blue-50 text-blue-600 hover:text-blue-600 border-blue-200 hover:bg-blue-100 h-9 px-2 mr-1"
+                                            asChild
+                                            title="View Bulk Booking File"
+                                          >
+                                            <a
+                                              href={getFileUrl(
+                                                (booking as any).booking_file,
+                                              )}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              <FileDown className="w-3.5 h-3.5" />
+                                              <span className="text-xs">
+                                                View Booking File
+                                              </span>
+                                            </a>
+                                          </Button>
+                                        )}
+
                                       {/* View is always allowed */}
+                                      {!type.includes("bulk") && (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Button
@@ -827,7 +858,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         </TooltipTrigger>
                                         <TooltipContent>View</TooltipContent>
                                       </Tooltip>
-
+                                      )}
                                       {/* Actions disabled if fully completed */}
                                       {!isAllCompleted && (
                                         <>
@@ -925,7 +956,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                         </TableBody>
                       </Table>
                     </div>
-                    )}
+                    {/* )} */}
                   </CardContent>
                 </Card>
               ))}

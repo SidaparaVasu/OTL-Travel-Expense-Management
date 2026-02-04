@@ -40,6 +40,7 @@ const getBookingIcon = (type: number | string) => {
   if (t.includes("train")) return Train;
   if (t.includes("car") || t.includes("conveyance") || t.includes("taxi")) return Car;
   if (t.includes("accommodation") || t.includes("hotel") || t.includes("guest")) return Home;
+  if (t.includes("bulk booking")) return FileText;
   return MapPin;
 };
 
@@ -49,6 +50,7 @@ const getBookingColor = (type: number | string) => {
   if (t.includes("train")) return "text-primary bg-primary/10";
   if (t.includes("car") || t.includes("conveyance")) return "text-red-600 bg-red-600/10";
   if (t.includes("accommodation") || t.includes("hotel")) return "text-emerald-600 bg-emerald-600/10";
+  if (t.includes("bulk booking")) return "text-blue-600 bg-blue-600/10";
   return "text-muted-foreground bg-muted/20";
 };
 
@@ -147,6 +149,33 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               {renderRow("Meal Preference", details.meal_preference)}
             </>,
           )}
+
+          {/* Bulk Booking File Alert */}
+          {(booking.booking_type_name?.toLowerCase().includes("bulk") ||
+            booking.booking_type.toString().toLowerCase().includes("bulk")) &&
+            booking.booking_file && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4 flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-blue-900">
+                      Bulk Guest Data
+                    </h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      This booking contains bulk guest details. Content is in
+                      the attached file.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="w-full sm:w-auto self-start ml-8 bg-blue-600 hover:bg-blue-700"
+                  onClick={() => docViewer.onViewFile(booking.booking_file!)}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Guest Details (Excel/CSV)
+                </Button>
+              </div>
+            )}
 
           {/* Route */}
           {details.from_location_name && details.to_location_name && (
@@ -348,16 +377,20 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             </div>
           )}
 
-          {/* File */}
-          {booking.booking_file && (
-            <a
-              onClick={() => docViewer.onViewFile(booking.booking_file)}
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-primary text-sm underline hover:no-underline"
-            >
-              <Download className="w-4 h-4" /> Download Ticket / Receipt
-            </a>
-          )}
+          {/* File - Generic Link (Hidden for Bulk Booking) */}
+          {booking.booking_file &&
+            !(
+              booking.booking_type_name?.toLowerCase().includes("bulk") ||
+              booking.booking_type.toString().toLowerCase().includes("bulk")
+            ) && (
+              <a
+                onClick={() => docViewer.onViewFile(booking.booking_file!)}
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-primary text-sm underline hover:no-underline"
+              >
+                <Download className="w-4 h-4" /> Download Ticket / Receipt
+              </a>
+            )}
         </div>
 
         {/* Footer */}

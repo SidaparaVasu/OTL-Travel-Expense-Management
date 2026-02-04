@@ -317,7 +317,7 @@ class TravelDeskAssignBookingsView(APIView):
                 # Logic: Not self-arranged AND Not Flight/Train/Accommodation
                 attach_duty_slip = False
                 if not b.booking_details.get("is_self_arranged"):
-                    excluded_types = ["Flight", "Train", "Accommodation"]
+                    excluded_types = ["Flight", "Train", "Accommodation", "Bulk Booking"]
                     b_type = (b.booking_type.name or "").strip()
                     if b_type not in excluded_types:
                         attach_duty_slip = True
