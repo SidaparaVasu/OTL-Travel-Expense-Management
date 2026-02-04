@@ -16,7 +16,8 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             'id', 'travel_request_id', 'employee_name', 'employee_grade',
             'purpose', 'internal_order', 'general_ledger',
             'sanction_number', 'advance_amount', 'status', 'created_at',
-            'submitted_at', 'trips', 'bookings', 'approval_flow', 'audit_logs'
+            'submitted_at', 'trips', 'bookings', 'approval_flow', 'audit_logs',
+            'bulk_upload_file'
         ]
 
     def get_bookings(self, app):
@@ -294,6 +295,7 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
             "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
             "submitted_at", "created_at", "updated_at", "trips",
+            "bulk_upload_file",
         ]
 
     def get_employee_name(self, obj):

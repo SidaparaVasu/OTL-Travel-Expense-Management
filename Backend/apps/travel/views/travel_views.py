@@ -12,6 +12,7 @@ from ..models import TravelApplication, Booking
 from apps.travel.models import TravelApprovalFlow
 from ..serializers.travel_serializers import *
 from apps.authentication.permissions import IsEmployee, IsOwnerOrApprover
+from rest_framework.parsers import MultiPartParser, FormParser
 from apps.authentication.mixins import BranchFilterMixin
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
@@ -343,6 +344,40 @@ class TravelApplicationEditView(APIView):
             message="Application data fetched for editing"
         )
 
+
+
+class TravelApplicationBulkUploadView(APIView):
+    """
+    Upload bulk booking file (Excel/CSV) for an application
+    """
+    permission_classes = [IsAuthenticated, IsOwnerOrApprover]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request, pk):
+        try:
+            application = TravelApplication.objects.get(pk=pk)
+            self.check_object_permissions(request, application)
+            
+            if application.status != 'draft':
+                 return error_response(
+                    message="Cannot upload files to submitted application",
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+
+            serializer = BulkFileUploadSerializer(application, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return success_response(
+                    data=serializer.data,
+                    message="Bulk file uploaded successfully"
+                )
+            return validation_error_response(serializer.errors)
+            
+        except TravelApplication.DoesNotExist:
+            return error_response(
+                message="Travel application not found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
 
 
 class TravelApplicationSubmitView(APIView):

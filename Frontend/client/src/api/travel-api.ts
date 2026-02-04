@@ -16,6 +16,7 @@ export interface TravelApplicationRequest {
   accommodationNotRequired?: boolean;
   conveyanceNotRequired?: boolean;
   is_draft?: boolean;
+  bulk_upload_file?: string | null; // For removing file (sending null)
 }
 
 export interface GLCode {
@@ -246,6 +247,21 @@ export const travelAPI = {
   getTravelApplicationDetails: async (id: number) => {
     const { data } = await apiClient.get(`/travel/applications/${id}/details/`);
     return data.data;
+  },
+  // Upload Bulk File
+  uploadBulkFile: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("bulk_upload_file", file);
+    const { data } = await apiClient.post(
+      `/travel/applications/${id}/upload-bulk-file/`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return data;
   },
 };
 

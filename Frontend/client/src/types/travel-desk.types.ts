@@ -118,6 +118,7 @@ export interface Application {
   submitted_at: string;
   trip_details: TripDetail[];
   trips?: TripDetail[]; // Added for TravelDeskApplicationDetailSerializer consistency
+  bulk_upload_file?: string | null;
 }
 
 export interface DashboardApplication {

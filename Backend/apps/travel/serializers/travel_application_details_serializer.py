@@ -492,7 +492,8 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'department': obj.employee.department.name if hasattr(obj.employee, 'department') and obj.employee.department else "",
             'designation': obj.employee.designation.name if hasattr(obj.employee, 'designation') and obj.employee.designation else "",
             'status': obj.status,
-            'status_label': obj.get_status_display()
+            'status_label': obj.get_status_display(),
+            'bulk_upload_file': obj.bulk_upload_file.url if obj.bulk_upload_file else None
         }
 
     def get_travel_details(self, obj):

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Plane, Plus, Save, UserCheck } from "lucide-react";
+import { Plane, Plus, Save, UserCheck, FileText } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -64,6 +65,7 @@ interface TicketingSectionProps {
   travelModes?: TravelMode[];
   travelSubOptions?: Record<string, TravelSubOption[]>;
   bookingErrors?: Record<number, string>;
+  hasBulkFile?: boolean;
 }
 
 export const TicketingSection: React.FC<TicketingSectionProps> = ({
@@ -79,6 +81,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   travelModes: propModes,
   travelSubOptions: propSubOptions,
   bookingErrors = {},
+  hasBulkFile = false,
 }) => {
   const [form, setForm] = useState<TicketingFormData>({
     ...getEmptyTicketing(),
@@ -369,6 +372,16 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
           </p>
         </div>
       </div>
+
+      {hasBulkFile && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Bulk Upload Active:</strong> You have uploaded a bulk
+            booking file. Individual entries below are optional.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <NotRequiredToggle
         checked={notRequired}

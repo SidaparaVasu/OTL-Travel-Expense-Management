@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Car, Plus, Save, AlertTriangle } from "lucide-react";
+import { Car, Plus, Save, AlertTriangle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -24,7 +24,6 @@ import {
   isDateTimeInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
-  validateConveyanceLocations,
 } from "../lib/travel-validation";
 
 interface Guest {
@@ -70,6 +69,7 @@ interface ConveyanceSectionProps {
   travelModes: any[];
   travelSubOptions: Record<string, any[]>;
   bookingErrors?: Record<number, string>;
+  hasBulkFile?: boolean;
 }
 
 export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
@@ -84,6 +84,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   travelModes,
   travelSubOptions,
   bookingErrors = {},
+  hasBulkFile = false,
 }) => {
   const [form, setForm] = useState<ConveyanceFormData>({
     ...getEmptyConveyance(),
@@ -423,6 +424,16 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
           </p>
         </div>
       </div>
+
+      {hasBulkFile && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Bulk Upload Active:</strong> You have uploaded a bulk
+            booking file. Individual entries below are optional.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <NotRequiredToggle
         checked={notRequired}

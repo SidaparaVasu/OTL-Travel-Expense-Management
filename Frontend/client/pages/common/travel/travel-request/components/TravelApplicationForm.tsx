@@ -143,6 +143,11 @@ export const TravelApplicationForm: React.FC = () => {
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
   const [mealPreferences, setMealPreferences] = useState<MealPreference[]>([]);
 
+  // Bulk File Upload
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [existingBulkFile, setExistingBulkFile] = useState<string | null>(null);
+  const [isBulkFileRemoved, setIsBulkFileRemoved] = useState(false);
+
   // Self Preferences
   const [selfPreferences, setSelfPreferences] = useState<{
     flight_meal_preference?: number;
@@ -434,6 +439,12 @@ export const TravelApplicationForm: React.FC = () => {
           // Pre-fill purpose data
           if (app.trip_details && app.trip_details.length > 0) {
             const trip = app.trip_details[0];
+
+            // Set existing bulk file
+            if (app.bulk_upload_file) {
+              setExistingBulkFile(app.bulk_upload_file);
+            }
+
             setPurposeData({
               purpose: app.purpose || "",
               internal_order: app.internal_order || "",
@@ -754,6 +765,9 @@ export const TravelApplicationForm: React.FC = () => {
 
   // Tab validation status
   const isTravelForValid = () => {
+    // If a bulk file is uploaded (new or existing), we don't need to enforce guest selection
+    if (bulkFile || existingBulkFile) return true;
+
     if (travelFor === "self") return true;
     return selectedGuests.length > 0;
   };
@@ -773,18 +787,21 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const isTicketingValid = () => {
+    if (bulkFile) return true;
     if (ticketingNotRequired) return true;
     if (ticketing.length === 0) return false;
     return Object.keys(ticketingErrors).length === 0;
   };
 
   const isAccommodationValid = () => {
+    if (bulkFile) return true;
     if (accommodationNotRequired) return true;
     if (accommodation.length === 0) return false;
     return Object.keys(accommodationErrors).length === 0;
   };
 
   const isConveyanceValid = () => {
+    if (bulkFile) return true;
     if (conveyanceNotRequired) return true;
     if (conveyance.length === 0) return false;
     return Object.keys(conveyanceErrors).length === 0;
@@ -798,6 +815,7 @@ export const TravelApplicationForm: React.FC = () => {
     const conveyanceValid = isConveyanceValid();
 
     const hasAtLeastOneBooking =
+      bulkFile ||
       ticketing.length > 0 ||
       accommodation.length > 0 ||
       conveyance.length > 0 ||
@@ -828,6 +846,7 @@ export const TravelApplicationForm: React.FC = () => {
     accommodationErrors,
     conveyanceErrors,
     hasBookingErrors,
+    bulkFile,
   ]);
 
   const getTabStatus = (
@@ -889,6 +908,8 @@ export const TravelApplicationForm: React.FC = () => {
       return false;
     }
 
+    if (bulkFile) return true;
+
     const hasTicketing = ticketing.length > 0 || ticketingNotRequired;
     const hasAccommodation =
       accommodation.length > 0 || accommodationNotRequired;
@@ -942,6 +963,8 @@ export const TravelApplicationForm: React.FC = () => {
       advance_amount: purposeData.advance_amount
         ? parseFloat(purposeData.advance_amount)
         : 0,
+      // Handle bulk file removal
+      bulk_upload_file: isBulkFileRemoved && !bulkFile ? null : undefined,
 
       trip_details: [
         {
@@ -1156,6 +1179,17 @@ export const TravelApplicationForm: React.FC = () => {
 
       if (applicationId) {
         const shouldCallSubmit = !isEditMode || originalStatus === "draft";
+
+        // Upload Bulk File if exists
+        if (bulkFile) {
+          try {
+            await travelAPI.uploadBulkFile(applicationId, bulkFile);
+          } catch (uploadError) {
+            console.error("Bulk file upload failed:", uploadError);
+            toast.error("Application saved, but bulk file upload failed.");
+          }
+        }
+
         if (shouldCallSubmit) {
           await travelAPI.submitApplication(applicationId);
         }
@@ -1451,6 +1485,13 @@ export const TravelApplicationForm: React.FC = () => {
                 mealPreferences={mealPreferences}
                 selfPreferences={selfPreferences}
                 setSelfPreferences={setSelfPreferences}
+                bulkFile={bulkFile}
+                setBulkFile={setBulkFile}
+                existingBulkFile={existingBulkFile}
+                onRemoveExistingFile={() => {
+                  setExistingBulkFile(null);
+                  setIsBulkFileRemoved(true);
+                }}
               />
             )}
 
@@ -1479,6 +1520,7 @@ export const TravelApplicationForm: React.FC = () => {
                 )}
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
+                hasBulkFile={!!bulkFile}
               />
             )}
 
@@ -1498,6 +1540,7 @@ export const TravelApplicationForm: React.FC = () => {
                 arcHotels={arcHotels}
                 cities={cities}
                 bookingErrors={accommodationErrors}
+                hasBulkFile={!!bulkFile}
               />
             )}
 
@@ -1514,6 +1557,7 @@ export const TravelApplicationForm: React.FC = () => {
                 )}
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}
+                hasBulkFile={!!bulkFile}
               />
             )}
 

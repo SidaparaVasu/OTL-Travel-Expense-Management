@@ -8,6 +8,8 @@ import {
   Check,
   X,
   Loader2,
+  FileSpreadsheet,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +54,10 @@ interface TravelForSectionProps {
     flight_meal_preference?: number;
     accommodation_meal_preference?: number;
   }) => void;
+  bulkFile: File | null;
+  setBulkFile: (file: File | null) => void;
+  existingBulkFile: string | null;
+  onRemoveExistingFile: () => void;
 }
 
 export const TravelForSection: React.FC<TravelForSectionProps> = ({
@@ -62,6 +68,10 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
   mealPreferences,
   selfPreferences,
   setSelfPreferences,
+  bulkFile,
+  setBulkFile,
+  existingBulkFile,
+  onRemoveExistingFile,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GuestProfile[]>([]);
@@ -113,6 +123,14 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
 
   // Feature flag to control visibility of Self Meal Preferences
   const SHOW_SELF_MEAL_PREF = false;
+
+  const getFileName = (url: string) => {
+    try {
+      return url.split("/").pop() || "Attached File";
+    } catch {
+      return "Attached File";
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -466,19 +484,102 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
 
           {/* Add One More Guest Link - only if table has items/not searching */}
           {!showCreateForm && (
-            <button
-              onClick={() => {
-                // Focus on search input or just imply user should search
-                const input = document.querySelector(
-                  'input[placeholder^="Search guest"]',
-                ) as HTMLInputElement;
-                if (input) input.focus();
-                setSearchQuery("");
-              }}
-              className="text-primary hover:underline text-sm font-medium inline-flex items-center"
-            >
-              <Plus className="h-3 w-3 mr-1" /> Add one more guest
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  // Focus on search input or just imply user should search
+                  const input = document.querySelector(
+                    'input[placeholder^="Search guest"]',
+                  ) as HTMLInputElement;
+                  if (input) input.focus();
+                  setSearchQuery("");
+                }}
+                className="text-primary hover:underline text-sm font-medium inline-flex items-center"
+              >
+                <Plus className="h-3 w-3 mr-1" /> Add one more guest
+              </button>
+
+              <div className="h-4 w-px bg-border"></div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="bulk-upload-input"
+                  className="hidden"
+                  accept=".csv, .xlsx, .xls"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setBulkFile(file);
+                  }}
+                />
+
+                {!bulkFile && !existingBulkFile ? (
+                  <button
+                    onClick={() =>
+                      document.getElementById("bulk-upload-input")?.click()
+                    }
+                    className="text-primary hover:underline text-sm font-medium inline-flex items-center"
+                  >
+                    <Upload className="h-3 w-3 mr-1" /> Upload Bulk Data
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded text-sm text-primary">
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    {bulkFile ? (
+                      // New File Uploaded
+                      <>
+                        <span
+                          className="max-w-[150px] truncate"
+                          title={bulkFile.name}
+                        >
+                          {bulkFile.name}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setBulkFile(null);
+                            const input = document.getElementById(
+                              "bulk-upload-input",
+                            ) as HTMLInputElement;
+                            if (input) input.value = "";
+                          }}
+                          className="text-destructive hover:bg-destructive/10 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    ) : (
+                      // Existing File
+                      <>
+                        <a
+                          href={existingBulkFile || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="max-w-[150px] truncate hover:underline text-primary"
+                          title="View Uploaded File"
+                        >
+                          {getFileName(existingBulkFile || "")}
+                        </a>
+                        <button
+                          onClick={() => {
+                            if (
+                              confirm(
+                                "Are you sure you want to remove the existing file?",
+                              )
+                            ) {
+                              onRemoveExistingFile();
+                            }
+                          }}
+                          className="text-destructive hover:bg-destructive/10 rounded-full p-0.5"
+                          title="Remove Existing File"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}

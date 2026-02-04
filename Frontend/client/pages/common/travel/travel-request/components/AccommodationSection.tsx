@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Home, Plus, Save } from "lucide-react";
+import { Home, Plus, Save, FileText } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -59,6 +60,7 @@ interface AccommodationSectionProps {
   arcHotels: any[];
   cities: any[];
   bookingErrors?: Record<number, string>;
+  hasBulkFile?: boolean;
 }
 
 export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
@@ -76,6 +78,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   arcHotels,
   cities,
   bookingErrors = {},
+  hasBulkFile = false,
 }) => {
   const [form, setForm] = useState<AccommodationFormData>(
     getEmptyAccommodation(),
@@ -543,6 +546,16 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
           </p>
         </div>
       </div>
+
+      {hasBulkFile && (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Bulk Upload Active:</strong> You have uploaded a bulk
+            booking file. Individual entries below are optional.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <NotRequiredToggle
         checked={notRequired}

@@ -216,7 +216,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             'advance_amount', 'estimated_total_cost', 'status', 'is_settled',
             'settlement_due_date', 'travel_request_id', 'total_duration_days',
             'created_at', 'updated_at', 'submitted_at', 'trip_details',
-            'cancellation_reason', 'cancellation_requested_at', 'can_edit'
+            'cancellation_reason', 'cancellation_requested_at', 'can_edit',
+            'bulk_upload_file'
         ]
         read_only_fields = [
             'employee', 'status', 'is_settled', 'estimated_total_cost',
@@ -249,13 +250,19 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         # Validate Guest Data
         if travel_for in ['guest', 'self_guest']:
-            if not travelers_data:
-                raise serializers.ValidationError({'travelers_data': 'Travelers list is required for Guest travel.'})
+            # If bulk file is present, we might accept no guests initially.
+            # However, we can't easily check for file here if it's uploaded later.
+            # RELAXATION: We will allow empty travelers_data during creation/update,
+            # but strict validation should happen at SUBMISSION.
+            pass
             
-            # Check if guests are provided
-            has_guest = any('guest' in t for t in travelers_data)
-            if not has_guest:
-                raise serializers.ValidationError({'travelers_data': 'At least one guest must be selected.'})
+            # if not travelers_data:
+            #     raise serializers.ValidationError({'travelers_data': 'Travelers list is required for Guest travel.'})
+            
+            # # Check if guests are provided
+            # has_guest = any('guest' in t for t in travelers_data)
+            # if not has_guest:
+            #     raise serializers.ValidationError({'travelers_data': 'At least one guest must be selected.'})
 
         user = self.context['request'].user
         errors = {}
@@ -323,7 +330,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             )
         
         # 2. Handle Guests
-        if travel_for in ['guest', 'self_guest']:
+        if travel_for in ['guest', 'self_guest'] and travelers_data:
             for idx, t_data in enumerate(travelers_data):
                 guest_id = t_data.get('guest')
                 if guest_id:
@@ -455,6 +462,18 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
     def validate(self, data):
         travel_app = self.instance
         
+        # Validate Guest/Bulk Requirement
+        # At submission time, we MUST have either travelers (if guest) OR a bulk file.
+        # Check travelers count
+        is_guest_travel = travel_app.travel_for in ['guest', 'self_guest']
+        has_travelers = travel_app.display_travelers.exists()
+        has_bulk_file = bool(travel_app.bulk_upload_file)
+        
+        if is_guest_travel and not has_travelers and not has_bulk_file:
+            raise serializers.ValidationError({
+                'validation_error': 'For guest travel, you must either add guest details or upload a bulk file.'
+            })
+        
         # Run business validations before submission
         for trip in travel_app.trip_details.all():
             for booking in trip.bookings.all():
@@ -485,3 +504,8 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
                     })
         
         return data
+
+class BulkFileUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TravelApplication
+        fields = ['bulk_upload_file']

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/StatusBadge";
+import { API_BASE_URL } from "@/config/api.config";
 import {
   ChevronDown,
   ChevronUp,
@@ -9,9 +10,19 @@ import {
   Edit,
   ArrowLeft,
   UserCheck,
+  FileText,
 } from "lucide-react";
 import { travelAPI } from "@/src/api/travel-api";
 import { ROUTES } from "@/routes/routes";
+
+// Helper to get full file URL
+const getFileUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  // Remove /api from base url if present to get root
+  const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+  return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
 
 // Collapsible Section Component
 const CollapsibleSection: React.FC<{
@@ -333,745 +344,767 @@ export const TravelApplicationDetails: React.FC = () => {
             </h2>
           </div>
 
-          {/* Flight/Train Bookings */}
-          <div className="border-b border-slate-200">
-            <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
+          {/* Bulk File */}
+          {data?.application?.bulk_upload_file ? (
+            <div className="border-b border-slate-200">
+              <div className="p-4">
+                <span className="font-semibold text-slate-700">
+                  Bulk Upload Document:
+                </span>
+                <a
+                  href={getFileUrl(data.application.bulk_upload_file)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline inline-flex items-center gap-1 ml-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  View File
+                </a>
+              </div>
+            </div>
+          ) : (
+            <>
+
+              {/* Flight/Train Bookings */}
+              <div className="border-b border-slate-200">
+                <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
               Flight/Train Bookings [Bookings: {data.ticketing_bookings.length}]
-            </div>
-            {data.ticketing_bookings.map((booking, idx) => (
-              <div
-                key={booking.id}
-                className={idx > 0 ? "border-t border-slate-200" : ""}
-              >
-                {/* Booking Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100">
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Booking Type
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Class
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Ticket Number
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Route
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Departure
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Arrival
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Advance Taken
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Meal Preference
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="flex flex-row gap-1  border-slate-200 p-3">
-                          {booking.booking_type}
-                          {booking.is_self_arranged && (
-                            <div
-                              className="flex items-center text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full w-fit"
-                              title="Self Arranged"
-                            >
-                              <UserCheck className="w-3 h-3 mr-1" />
-                              Self
-                            </div>
-                          )}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.class_field}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.ticket_number}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.from_location} → {booking.to_location}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.departure_datetime}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.arrival_datetime}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.advance_taken}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.meal_preference || "N/A"}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          <StatusBadge
-                            statusType="booking"
-                            status={booking.status}
-                            variant="rounded"
-                          />
-                        </td>
-                      </tr>
-                      {booking.special_instructions && (
-                        <tr className="bg-blue-50/30">
-                          <td
-                            colSpan={9}
-                            className="border border-slate-200 p-3"
-                          >
-                            <strong className="text-slate-700">
-                              Special Instructions:
-                            </strong>{" "}
-                            <span className="text-slate-900">
-                              {booking.special_instructions || "N/A"}
-                            </span>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
                 </div>
-
-                {/* Travel Desk Details - Collapsible */}
-                <CollapsibleSection title="Travel Desk & Assignment Details">
-                  <div className="space-y-3">
-                    {/* Travel Desk Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Travel Desk:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.user || "N/A"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Forwarded:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.forwarded_at || "Pending"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Completed:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.completed_at}
-                        </span>
-                      </div>
-                      <div className="md:col-span-4">
-                        <span className="font-medium text-slate-700">
-                          Remarks:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking.travel_desk?.remarks}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-                {/* Booking Agent - Collapsible */}
-                {booking.assignments.length > 0 && (
-                  <CollapsibleSection title="Booking Agent Details">
-                    {booking.assignments.map((assignment, assignIdx) => (
-                      <div
-                        key={assignIdx}
-                        className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
-                      >
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Booking Agent:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.assigned_to}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Assigned:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.assigned_at}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Accepted:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.accepted_at || "action pending"}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Completed:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.completed_at || "action pending"}
-                          </span>
-                        </div>
-                        <div className="md:col-span-5">
-                          <span className="font-medium text-slate-700">
-                            Notes:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.notes || "No notes added"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </CollapsibleSection>
-                )}
-
-                {/* Booking Notes - Collapsible */}
-                {booking.booking_notes.length > 0 && (
-                  <CollapsibleSection title="Booking Notes">
-                    <div className="space-y-2">
-                      {booking.booking_notes.map((note, noteIdx) => (
-                        <div key={noteIdx} className="flex gap-2 text-sm">
-                          <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                          <div className="flex-1">
-                            <div className="font-medium text-xs text-slate-500">
-                              [{note.created_at}] {note.author}
-                            </div>
-                            <div className="text-sm text-slate-900">
-                              {note.note}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CollapsibleSection>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Divider */}
-          <div className="p-3 w-full"></div>
-
-          {/* Accommodation Bookings */}
-          <div className="border-b border-slate-200">
-            <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
-              Accommodation Bookings [Bookings:{" "}
-              {data.accommodation_bookings.length}]
-            </div>
-            {data.accommodation_bookings.map((booking, idx) => (
-              <div
-                key={booking.id}
-                className={idx > 0 ? "border-t border-slate-200" : ""}
-              >
-                {/* Booking Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100">
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Accommodation Type
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Location
-                        </th>
-                        {/* Conditionally show Allocated Hotel/Guest House column */}
-                        {booking.accommodation_type ===
-                          "Company-tied Hotel" && (
-                          <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                            Allocated Hotel
-                          </th>
-                        )}
-                        {booking.accommodation_type === "Guest House" && (
-                          <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                            Allocated Guest House
-                          </th>
-                        )}
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Check-in
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Check-out
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Advance Taken
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Meal Preference
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-200 p-3">
-                          {booking.accommodation_type}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.accommodation_type === "ARC Hotel" ? (
-                            <ol className="list-decimal list-inside">
-                              {booking.arc_hotel_preferences?.map(
-                                (pref, prefIdx) => (
-                                  <li key={prefIdx}>{pref}</li>
-                                ),
-                              )}
-                            </ol>
-                          ) : (
-                            booking.location
-                          )}
-                        </td>
-                        {/* Conditionally show Allocated Hotel/Guest House cell */}
-                        {booking.accommodation_type ===
-                          "Company-tied Hotel" && (
-                          <td className="border border-slate-200 p-3">
-                            {booking.allocated_hotel || "-"}
-                          </td>
-                        )}
-                        {booking.accommodation_type === "Guest House" && (
-                          <td className="border border-slate-200 p-3">
-                            {booking.allocated_guesthouse || "-"}
-                          </td>
-                        )}
-                        <td className="border border-slate-200 p-3">
-                          {booking.check_in_datetime}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.check_out_datetime}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.advance_taken}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.meal_preference || "N/A"}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          <StatusBadge
-                            statusType="booking"
-                            status={booking.status}
-                            variant="rounded"
-                          />
-                        </td>
-                      </tr>
-                      {booking.special_instructions && (
-                        <tr className="bg-blue-50/30">
-                          <td
-                            colSpan={8}
-                            className="border border-slate-200 p-3"
-                          >
-                            <strong className="text-slate-700">
-                              Special Instructions:
-                            </strong>{" "}
-                            <span className="text-slate-900">
-                              {booking.special_instructions || "N/A"}
-                            </span>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Travel Desk Details - Collapsible */}
-                <CollapsibleSection title="Travel Desk & Assignment Details">
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Travel Desk:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.user || "N/A"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Forwarded:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.forwarded_at ||
-                            "Pending" ||
-                            "Pending"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Completed:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.completed_at || "Pending"}
-                        </span>
-                      </div>
-                      <div className="md:col-span-4">
-                        <span className="font-medium text-slate-700">
-                          Remarks:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.remarks || "No remarks added"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-                {/* Booking Agent - Collapsible */}
-                {booking.assignments.length > 0 && (
-                  <CollapsibleSection title="Booking Agent">
-                    {booking.assignments.map((assignment, assignIdx) => (
-                      <div
-                        key={assignIdx}
-                        className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
-                      >
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Booking Agent:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.assigned_to}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Assigned:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.assigned_at}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Accepted:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.accepted_at}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Completed:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.completed_at}
-                          </span>
-                        </div>
-                        <div className="md:col-span-5">
-                          <span className="font-medium text-slate-700">
-                            Notes:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.notes}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </CollapsibleSection>
-                )}
-
-                {/* Booking Notes - Collapsible */}
-                {booking.booking_notes.length > 0 && (
-                  <CollapsibleSection title="Booking Notes">
-                    <div className="space-y-2">
-                      {booking.booking_notes.map((note, noteIdx) => (
-                        <div key={noteIdx} className="flex gap-2 text-sm">
-                          <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                          <div className="flex-1">
-                            <div className="font-medium text-xs text-slate-500">
-                              [{note.created_at}] {note.author}
-                            </div>
-                            <div className="text-sm text-slate-900">
-                              {note.note}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CollapsibleSection>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Divider */}
-          <div className="p-3 w-full"></div>
-
-          {/* Conveyance Bookings */}
-          <div>
-            <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
-              Conveyance Bookings [Bookings: {data.conveyance_bookings.length}]
-            </div>
-            {data.conveyance_bookings.map((booking, idx) => (
-              <div
-                key={booking.id}
-                className={idx > 0 ? "border-t border-slate-200" : ""}
-              >
-                {/* Booking Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100">
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Vehicle Type
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Sub-type
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Route
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Report At / Drop
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Start
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          End
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Distance (KM)
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Passengers
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Advance Taken
-                        </th>
-                        <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        <td className="border border-slate-200 p-3">
-                          {booking.vehicle_type}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.vehicle_subtype}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.from_location} → {booking.to_location}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.report_at} / {booking.drop_location}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.start_datetime}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.end_datetime}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.distance_km}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.passengers}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          {booking.advance_taken}
-                        </td>
-                        <td className="border border-slate-200 p-3">
-                          <StatusBadge
-                            statusType="booking"
-                            status={booking.status}
-                            variant="rounded"
-                          />
-                        </td>
-                      </tr>
-                      {booking.special_instructions && (
-                        <tr className="bg-blue-50/30">
-                          <td
-                            colSpan={10}
-                            className="border border-slate-200 p-3"
-                          >
-                            <strong className="text-slate-700">
-                              Special Instructions:
-                            </strong>{" "}
-                            <span className="text-slate-900">
-                              {booking.special_instructions || "N/A"}
-                            </span>
-                          </td>
-                        </tr>
-                      )}
-                      <tr className="bg-slate-50">
-                        <td
-                          colSpan={10}
-                          className="border border-slate-200 p-3"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <strong className="text-slate-700">
-                                Club Booking:
-                              </strong>{" "}
-                              <span className="text-slate-900">
-                                {booking.club_booking ? "Yes" : "No"}
-                              </span>
-                            </div>
-                            {booking.club_booking &&
-                              booking.club_booking_reason && (
-                                <div>
-                                  <strong className="text-slate-700">
-                                    Reason:
-                                  </strong>{" "}
-                                  <span className="text-slate-900">
-                                    {booking.club_booking_reason}
-                                  </span>
+                {data.ticketing_bookings.map((booking, idx) => (
+                  <div
+                    key={booking.id}
+                    className={idx > 0 ? "border-t border-slate-200" : ""}
+                  >
+                    {/* Booking Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Booking Type
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Class
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Ticket Number
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Route
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Departure
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Arrival
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Advance Taken
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Meal Preference
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="flex flex-row gap-1  border-slate-200 p-3">
+                              {booking.booking_type}
+                              {booking.is_self_arranged && (
+                                <div
+                                  className="flex items-center text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full w-fit"
+                                  title="Self Arranged"
+                                >
+                                  <UserCheck className="w-3 h-3 mr-1" />
+                                  Self
                                 </div>
                               )}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.class_field}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.ticket_number}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.from_location} → {booking.to_location}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.departure_datetime}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.arrival_datetime}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.advance_taken}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.meal_preference || "N/A"}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              <StatusBadge
+                                statusType="booking"
+                                status={booking.status}
+                                variant="rounded"
+                              />
+                            </td>
+                          </tr>
+                          {booking.special_instructions && (
+                            <tr className="bg-blue-50/30">
+                              <td
+                                colSpan={9}
+                                className="border border-slate-200 p-3"
+                              >
+                                <strong className="text-slate-700">
+                                  Special Instructions:
+                                </strong>{" "}
+                                <span className="text-slate-900">
+                                  {booking.special_instructions || "N/A"}
+                                </span>
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Travel Desk Details - Collapsible */}
+                    <CollapsibleSection title="Travel Desk & Assignment Details">
+                      <div className="space-y-3">
+                        {/* Travel Desk Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user || "N/A"}
+                            </span>
                           </div>
-                          {booking.guests.length > 0 && (
-                            <div className="mt-3">
-                              <strong className="block mb-2 text-slate-700">
-                                Guest Details:
-                              </strong>
-                              <div className="flex flex-wrap gap-2">
-                                {booking.guests.map((guest, guestIdx) => (
-                                  <span
-                                    key={guestIdx}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                      guest.is_colleague
-                                        ? "bg-blue-100 text-blue-700"
-                                        : "bg-green-100 text-green-700"
-                                    }`}
-                                  >
-                                    {guest.name}
-                                  </span>
-                                ))}
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Forwarded:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.forwarded_at || "Pending"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Completed:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.completed_at}
+                            </span>
+                          </div>
+                          <div className="md:col-span-4">
+                            <span className="font-medium text-slate-700">
+                              Remarks:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking.travel_desk?.remarks}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleSection>
+
+                    {/* Booking Agent - Collapsible */}
+                    {booking.assignments.length > 0 && (
+                      <CollapsibleSection title="Booking Agent Details">
+                        {booking.assignments.map((assignment, assignIdx) => (
+                          <div
+                            key={assignIdx}
+                            className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
+                          >
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Booking Agent:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.assigned_to}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Assigned:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.assigned_at}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Accepted:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.accepted_at || "action pending"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Completed:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.completed_at || "action pending"}
+                              </span>
+                            </div>
+                            <div className="md:col-span-5">
+                              <span className="font-medium text-slate-700">
+                                Notes:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.notes || "No notes added"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </CollapsibleSection>
+                    )}
+
+                    {/* Booking Notes - Collapsible */}
+                    {booking.booking_notes.length > 0 && (
+                      <CollapsibleSection title="Booking Notes">
+                        <div className="space-y-2">
+                          {booking.booking_notes.map((note, noteIdx) => (
+                            <div key={noteIdx} className="flex gap-2 text-sm">
+                              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                              <div className="flex-1">
+                                <div className="font-medium text-xs text-slate-500">
+                                  [{note.created_at}] {note.author}
+                                </div>
+                                <div className="text-sm text-slate-900">
+                                  {note.note}
+                                </div>
                               </div>
                             </div>
-                          )}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Travel Desk Details - Collapsible */}
-                <CollapsibleSection title="Travel Desk & Assignment Details">
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Travel Desk:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.user || "N/A"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Forwarded:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.forwarded_at || "Pending"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-slate-700">
-                          Completed:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.completed_at || "Pending"}
-                        </span>
-                      </div>
-                      <div className="md:col-span-4">
-                        <span className="font-medium text-slate-700">
-                          Remarks:
-                        </span>{" "}
-                        <span className="text-slate-900">
-                          {booking?.travel_desk?.remarks || "-"}
-                        </span>
-                      </div>
-                    </div>
+                          ))}
+                        </div>
+                      </CollapsibleSection>
+                    )}
                   </div>
-                </CollapsibleSection>
+                ))}
+              </div>
 
-                {/* Booking Agent - Collapsible */}
-                {booking.assignments.length > 0 && (
-                  <CollapsibleSection title="Booking Agent">
-                    {booking.assignments.map((assignment, assignIdx) => (
-                      <div
-                        key={assignIdx}
-                        className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
-                      >
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Booking Agent:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.assigned_to}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Assigned:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.assigned_at}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Accepted:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.accepted_at}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-slate-700">
-                            Completed:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.completed_at || "Pending"}
-                          </span>
-                        </div>
-                        <div className="md:col-span-5">
-                          <span className="font-medium text-slate-700">
-                            Notes:
-                          </span>{" "}
-                          <span className="text-slate-900">
-                            {assignment.notes}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </CollapsibleSection>
-                )}
+              {/* Divider */}
+              <div className="p-3 w-full"></div>
 
-                {/* Booking Notes - Collapsible */}
-                {booking.booking_notes.length > 0 && (
-                  <CollapsibleSection title="Booking Notes">
-                    <div className="space-y-2">
-                      {booking.booking_notes.map((note, noteIdx) => (
-                        <div key={noteIdx} className="flex gap-2 text-sm">
-                          <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                          <div className="flex-1">
-                            <div className="font-medium text-xs text-slate-500">
-                              [{note.created_at}] {note.author}
-                            </div>
-                            <div className="text-sm text-slate-900">
-                              {note.note}
-                            </div>
+              {/* Accommodation Bookings */}
+              <div className="border-b border-slate-200">
+                <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
+                  Accommodation Bookings [Bookings:{" "}
+                  {data.accommodation_bookings.length}]
+                </div>
+                {data.accommodation_bookings.map((booking, idx) => (
+                  <div
+                    key={booking.id}
+                    className={idx > 0 ? "border-t border-slate-200" : ""}
+                  >
+                    {/* Booking Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Accommodation Type
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Location
+                            </th>
+                            {/* Conditionally show Allocated Hotel/Guest House column */}
+                            {booking.accommodation_type ===
+                              "Company-tied Hotel" && (
+                              <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                                Allocated Hotel
+                              </th>
+                            )}
+                            {booking.accommodation_type === "Guest House" && (
+                              <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                                Allocated Guest House
+                              </th>
+                            )}
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Check-in
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Check-out
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Advance Taken
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Meal Preference
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="border border-slate-200 p-3">
+                              {booking.accommodation_type}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.accommodation_type === "ARC Hotel" ? (
+                                <ol className="list-decimal list-inside">
+                                  {booking.arc_hotel_preferences?.map(
+                                    (pref, prefIdx) => (
+                                      <li key={prefIdx}>{pref}</li>
+                                    ),
+                                  )}
+                                </ol>
+                              ) : (
+                                booking.location
+                              )}
+                            </td>
+                            {/* Conditionally show Allocated Hotel/Guest House cell */}
+                            {booking.accommodation_type ===
+                              "Company-tied Hotel" && (
+                              <td className="border border-slate-200 p-3">
+                                {booking.allocated_hotel || "-"}
+                              </td>
+                            )}
+                            {booking.accommodation_type === "Guest House" && (
+                              <td className="border border-slate-200 p-3">
+                                {booking.allocated_guesthouse || "-"}
+                              </td>
+                            )}
+                            <td className="border border-slate-200 p-3">
+                              {booking.check_in_datetime}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.check_out_datetime}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.advance_taken}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.meal_preference || "N/A"}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              <StatusBadge
+                                statusType="booking"
+                                status={booking.status}
+                                variant="rounded"
+                              />
+                            </td>
+                          </tr>
+                          {booking.special_instructions && (
+                            <tr className="bg-blue-50/30">
+                              <td
+                                colSpan={8}
+                                className="border border-slate-200 p-3"
+                              >
+                                <strong className="text-slate-700">
+                                  Special Instructions:
+                                </strong>{" "}
+                                <span className="text-slate-900">
+                                  {booking.special_instructions || "N/A"}
+                                </span>
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Travel Desk Details - Collapsible */}
+                    <CollapsibleSection title="Travel Desk & Assignment Details">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user || "N/A"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Forwarded:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.forwarded_at ||
+                                "Pending" ||
+                                "Pending"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Completed:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.completed_at || "Pending"}
+                            </span>
+                          </div>
+                          <div className="md:col-span-4">
+                            <span className="font-medium text-slate-700">
+                              Remarks:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                          {booking?.travel_desk?.remarks || "No remarks added"}
+                            </span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </CollapsibleSection>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+                      </div>
+                    </CollapsibleSection>
 
+                    {/* Booking Agent - Collapsible */}
+                    {booking.assignments.length > 0 && (
+                      <CollapsibleSection title="Booking Agent">
+                        {booking.assignments.map((assignment, assignIdx) => (
+                          <div
+                            key={assignIdx}
+                            className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
+                          >
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Booking Agent:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.assigned_to}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Assigned:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.assigned_at}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Accepted:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.accepted_at}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Completed:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.completed_at}
+                              </span>
+                            </div>
+                            <div className="md:col-span-5">
+                              <span className="font-medium text-slate-700">
+                                Notes:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.notes}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </CollapsibleSection>
+                    )}
+
+                    {/* Booking Notes - Collapsible */}
+                    {booking.booking_notes.length > 0 && (
+                      <CollapsibleSection title="Booking Notes">
+                        <div className="space-y-2">
+                          {booking.booking_notes.map((note, noteIdx) => (
+                            <div key={noteIdx} className="flex gap-2 text-sm">
+                              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                              <div className="flex-1">
+                                <div className="font-medium text-xs text-slate-500">
+                                  [{note.created_at}] {note.author}
+                                </div>
+                                <div className="text-sm text-slate-900">
+                                  {note.note}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleSection>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Divider */}
+              <div className="p-3 w-full"></div>
+
+              {/* Conveyance Bookings */}
+              <div>
+                <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
+              Conveyance Bookings [Bookings: {data.conveyance_bookings.length}]
+                </div>
+                {data.conveyance_bookings.map((booking, idx) => (
+                  <div
+                    key={booking.id}
+                    className={idx > 0 ? "border-t border-slate-200" : ""}
+                  >
+                    {/* Booking Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Vehicle Type
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Sub-type
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Route
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Report At / Drop
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Start
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              End
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Distance (KM)
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Passengers
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Advance Taken
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="border border-slate-200 p-3">
+                              {booking.vehicle_type}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.vehicle_subtype}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.from_location} → {booking.to_location}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.report_at} / {booking.drop_location}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.start_datetime}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.end_datetime}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.distance_km}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.passengers}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.advance_taken}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              <StatusBadge
+                                statusType="booking"
+                                status={booking.status}
+                                variant="rounded"
+                              />
+                            </td>
+                          </tr>
+                          {booking.special_instructions && (
+                            <tr className="bg-blue-50/30">
+                              <td
+                                colSpan={10}
+                                className="border border-slate-200 p-3"
+                              >
+                                <strong className="text-slate-700">
+                                  Special Instructions:
+                                </strong>{" "}
+                                <span className="text-slate-900">
+                                  {booking.special_instructions || "N/A"}
+                                </span>
+                              </td>
+                            </tr>
+                          )}
+                          <tr className="bg-slate-50">
+                            <td
+                              colSpan={10}
+                              className="border border-slate-200 p-3"
+                            >
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <strong className="text-slate-700">
+                                    Club Booking:
+                                  </strong>{" "}
+                                  <span className="text-slate-900">
+                                    {booking.club_booking ? "Yes" : "No"}
+                                  </span>
+                                </div>
+                                {booking.club_booking &&
+                                  booking.club_booking_reason && (
+                                    <div>
+                                      <strong className="text-slate-700">
+                                        Reason:
+                                      </strong>{" "}
+                                      <span className="text-slate-900">
+                                        {booking.club_booking_reason}
+                                      </span>
+                                    </div>
+                                  )}
+                              </div>
+                              {booking.guests.length > 0 && (
+                                <div className="mt-3">
+                                  <strong className="block mb-2 text-slate-700">
+                                    Guest Details:
+                                  </strong>
+                                  <div className="flex flex-wrap gap-2">
+                                    {booking.guests.map((guest, guestIdx) => (
+                                      <span
+                                        key={guestIdx}
+                                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                          guest.is_colleague
+                                            ? "bg-blue-100 text-blue-700"
+                                            : "bg-green-100 text-green-700"
+                                        }`}
+                                      >
+                                        {guest.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Travel Desk Details - Collapsible */}
+                    <CollapsibleSection title="Travel Desk & Assignment Details">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user || "N/A"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Forwarded:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.forwarded_at || "Pending"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Completed:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.completed_at || "Pending"}
+                            </span>
+                          </div>
+                          <div className="md:col-span-4">
+                            <span className="font-medium text-slate-700">
+                              Remarks:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.remarks || "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleSection>
+
+                    {/* Booking Agent - Collapsible */}
+                    {booking.assignments.length > 0 && (
+                      <CollapsibleSection title="Booking Agent">
+                        {booking.assignments.map((assignment, assignIdx) => (
+                          <div
+                            key={assignIdx}
+                            className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
+                          >
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Booking Agent:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.assigned_to}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Assigned:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.assigned_at}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Accepted:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.accepted_at}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium text-slate-700">
+                                Completed:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.completed_at || "Pending"}
+                              </span>
+                            </div>
+                            <div className="md:col-span-5">
+                              <span className="font-medium text-slate-700">
+                                Notes:
+                              </span>{" "}
+                              <span className="text-slate-900">
+                                {assignment.notes}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </CollapsibleSection>
+                    )}
+
+                    {/* Booking Notes - Collapsible */}
+                    {booking.booking_notes.length > 0 && (
+                      <CollapsibleSection title="Booking Notes">
+                        <div className="space-y-2">
+                          {booking.booking_notes.map((note, noteIdx) => (
+                            <div key={noteIdx} className="flex gap-2 text-sm">
+                              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                              <div className="flex-1">
+                                <div className="font-medium text-xs text-slate-500">
+                                  [{note.created_at}] {note.author}
+                                </div>
+                                <div className="text-sm text-slate-900">
+                                  {note.note}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleSection>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
         {/* Approval History */}
         <div className="bg-white border border-slate-200 overflow-hidden rounded-md shadow-sm  transition-shadow duration-300">
           <div className="bg-blue-500 border-b p-4">

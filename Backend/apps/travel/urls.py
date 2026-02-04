@@ -29,6 +29,7 @@ urlpatterns = [
     path('applications/<int:pk>/edit/', TravelApplicationEditView.as_view(), name='travel-application-edit'),
     path('applications/<int:pk>/submit/', TravelApplicationSubmitView.as_view(), name='travel-application-submit'),
     path('applications/<int:pk>/validate/', TravelApplicationValidationView.as_view(), name='travel-application-validate'),
+    path('applications/<int:pk>/upload-bulk-file/', TravelApplicationBulkUploadView.as_view(), name='travel-application-upload-bulk-file'),
     path('applications/<int:application_id>/request-accommodation/', RequestAccommodationBookingView.as_view()),
 
     # Approval Workflow

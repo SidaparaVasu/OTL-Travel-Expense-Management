@@ -43,6 +43,7 @@ import type {
   Booking,
   BookingAgent,
 } from "@/src/types/travel-desk.types";
+import { API_BASE_URL } from "@/config/api.config";
 
 interface ApplicationDrawerProps {
   isOpen: boolean;
@@ -50,6 +51,15 @@ interface ApplicationDrawerProps {
   applicationId: number | null;
   onRefresh?: () => void;
 }
+
+// Helper to get full file URL
+const getFileUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  // Remove /api from base url if present to get root
+  const baseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+  return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
 
 const getBookingIcon = (type: string) => {
   const lower = type.toLowerCase();
@@ -489,6 +499,23 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </div>
                     )}
 
+                    {application.bulk_upload_file ? (
+                      <div className="col-span-2 md:col-span-4 mb-2">
+                        <p className="text-md text-slate-800 mb-1">
+                          Applicant uploaded Bulk Booking File for Guest(s).
+                        </p>
+                        <a
+                          href={getFileUrl(application.bulk_upload_file)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 hover:underline flex items-center gap-2 p-3 mt-2 bg-blue-50/50 rounded-md border border-blue-100 hover:bg-blue-50 transition-colors w-fit"
+                        >
+                          <FileUp className="w-5 h-5" />
+                          View Bulk Booking File
+                        </a>
+                      </div>
+                    ) : (
+
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
                         <TableHeader>
@@ -898,6 +925,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                         </TableBody>
                       </Table>
                     </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

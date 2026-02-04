@@ -100,6 +100,14 @@ class TravelApplication(models.Model):
         blank=True,
         null=True
     )
+    
+    # Bulk Booking
+    bulk_upload_file = models.FileField(
+        upload_to='travel/bulk_uploads/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text="Excel/CSV file for bulk booking details (Guests)"
+    )
     estimated_total_cost = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
@@ -303,12 +311,13 @@ class TravelApplication(models.Model):
         if new_status in submit_statuses and not self.trip_details.exists():
             return False, "Cannot submit travel request without trip details"
 
-        # Cannot submit without bookings
+        # Cannot submit without bookings (unless bulk file is present)
         if new_status in submit_statuses:
             has_bookings = any(trip.bookings.exists() for trip in self.trip_details.all())
             no_bookings_required = all(trip.no_bookings_required for trip in self.trip_details.all())
+            has_bulk_file = bool(self.bulk_upload_file)
             
-            if not has_bookings and not no_bookings_required:
+            if not has_bookings and not no_bookings_required and not has_bulk_file:
                 return False, "Cannot submit travel request without booking details"
         
         # Cannot move to booking stages without approvals
