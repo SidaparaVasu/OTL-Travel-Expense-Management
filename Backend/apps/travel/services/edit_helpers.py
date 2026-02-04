@@ -23,9 +23,9 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
         'cancellation_requested',
         'completed',
         'booked',
-        'rejected_ceo',
-        'rejected_chro',
-        'rejected_manager'
+        # 'rejected_ceo',
+        # 'rejected_chro',
+        # 'rejected_manager'
     ]
     
     if application.status in non_editable_statuses:
