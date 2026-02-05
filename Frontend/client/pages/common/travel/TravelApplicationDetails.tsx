@@ -439,7 +439,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               {booking.arrival_datetime}
                             </td>
                             <td className="border border-slate-200 p-3">
-                              {booking.estimated_cost}
+                              {booking.advance_taken}
                             </td>
                             <td className="border border-slate-200 p-3">
                               {booking.meal_preference || "N/A"}
@@ -680,7 +680,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               {booking.check_out_datetime}
                             </td>
                             <td className="border border-slate-200 p-3">
-                              {booking.estimated_cost}
+                              {booking.advance_taken}
                             </td>
                             <td className="border border-slate-200 p-3">
                               {booking.meal_preference || "N/A"}
@@ -908,7 +908,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               {booking.passengers}
                             </td>
                             <td className="border border-slate-200 p-3">
-                              {booking.estimated_cost}
+                              {booking.advance_taken}
                             </td>
                             <td className="border border-slate-200 p-3">
                               <StatusBadge
