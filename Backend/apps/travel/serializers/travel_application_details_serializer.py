@@ -156,7 +156,7 @@ class TicketingBookingSerializer(serializers.Serializer):
         return ""
 
     def get_advance_taken(self, obj):
-        advance = obj.booking_details.get('advance_amount', 0)
+        advance = obj.booking_details.get('estimated_cost', 0)
         if advance and advance > 0:
             return f"₹{advance:,.0f}"
         return "Not taken"
@@ -252,7 +252,7 @@ class AccommodationBookingSerializer(serializers.Serializer):
 
     def get_advance_taken(self, obj):
         # obj IS the booking, get advance directly from booking_details
-        advance = obj.booking_details.get('advance_amount', 0)
+        advance = obj.booking_details.get('estimated_cost', 0)
         if advance and advance > 0:
             return f"₹{advance:,.0f}"
         return "Not taken"
@@ -370,7 +370,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
     def get_advance_taken(self, obj):
         # obj IS the booking, get advance directly from booking_details
-        advance = obj.booking_details.get('advance_amount', 0)
+        advance = obj.booking_details.get('estimated_cost', 0)
         if advance and advance > 0:
             return f"₹{advance:,.0f}"
         return "Not taken"
