@@ -323,7 +323,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           }}
           placeholder="Enter Sanction number"
           maxLength={SANCTION_NUMBER_MINMAX_LENGTH}
-          required
+          required={true}
           error={errors.sanction_number}
         />
 
