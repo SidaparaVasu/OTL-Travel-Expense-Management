@@ -77,6 +77,13 @@ const ROLE_CONFIG: Record<string, PortalConfig> = {
     route: ROUTES.adminDashboard,
     portalKey: "employee",
   },
+  global_travel_desk: {
+    title: "Global Travel Desk Portal",
+    desc: "Centralized view of all travel requests across all branches.",
+    icon: UserStar,
+    route: ROUTES.deskAgentDashboard,
+    portalKey: "travel_desk",
+  },
 };
 
 const ChoosePortal: React.FC = () => {

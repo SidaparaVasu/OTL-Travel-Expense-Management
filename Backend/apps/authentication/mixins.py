@@ -52,8 +52,8 @@ class BranchFilterMixin:
                 employee_field='travel_application__employee'
             )
         """
-        # CEO and CHRO have company-wide access
-        if user.has_role('CEO') or user.has_role('CHRO'):
+        # CEO and CHRO and Global Travel Desk have company-wide access
+        if user.has_role('CEO') or user.has_role('CHRO') or user.has_role('Global Travel Desk'):
             return queryset
         
         # Get user's organizational profile and base location

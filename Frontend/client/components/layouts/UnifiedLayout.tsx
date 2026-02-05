@@ -61,7 +61,7 @@ const getPrimaryDashboard = (): string => {
   if (roleTypes.some((r) => ["admin", "manager", "chro", "ceo"].includes(r))) {
     return ROUTES.adminDashboard;
   }
-  if (roleTypes.includes("travel_desk")) {
+  if (roleTypes.includes("travel_desk") || roleTypes.includes("global_travel_desk")) {
     return ROUTES.deskAgentDashboard;
   }
   if (roleTypes.includes("booking_agent")) {

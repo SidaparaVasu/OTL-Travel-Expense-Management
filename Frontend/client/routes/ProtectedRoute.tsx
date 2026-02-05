@@ -31,7 +31,7 @@ export default function ProtectedRoute({
   if (required === "admin") {
     hasAccess = roles.some((r) => adminRoles.includes(r));
   } else if (required === "travel_desk") {
-    hasAccess = roles.includes("travel_desk");
+    hasAccess = roles.includes("travel_desk") || roles.includes("global_travel_desk");
   } else if (required === "booking_agent") {
     hasAccess = roles.includes("booking_agent");
   } else if (required === "employee") {
