@@ -80,7 +80,7 @@ class LocationMaster(models.Model):
     """
     location_id = models.AutoField(primary_key=True)
     location_name = models.CharField(max_length=255)
-    location_code = models.CharField(max_length=10, unique=True)
+    location_code = models.CharField(max_length=100, unique=True)
     company = models.ForeignKey(CompanyInformation, on_delete=models.CASCADE)
     city = models.ForeignKey(CityMaster, on_delete=models.CASCADE)
     state = models.ForeignKey(StateMaster, on_delete=models.CASCADE)
