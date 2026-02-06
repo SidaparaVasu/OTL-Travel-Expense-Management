@@ -62,7 +62,7 @@ class SSOLoginView(View):
             # ----------------------------------------------------------
             if emp_id == '0':
                 user = self._get_or_create_admin(username)
-                return self._finalize_login(user, is_admin=True, is_hrms=False)
+                return self._finalize_login(user, is_admin=True, is_hrms=True)
 
             # ----------------------------------------------------------
             # Step 4: HRMS Employee SSO
