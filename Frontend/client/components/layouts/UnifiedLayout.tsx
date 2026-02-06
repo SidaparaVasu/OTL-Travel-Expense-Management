@@ -200,7 +200,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
     if (isHrmsUser) {
       localStorage.clear();
       // Redirect HRMS users back to HRMS portal
-      window.location.href = "https://hrms.orangetechnolab.com/tscsr_uat/";
+      window.location.href = "https://hrms.orangetechnolab.com/tscsr/";
     } else {
       localStorage.clear();
       navigate(ROUTES.login);

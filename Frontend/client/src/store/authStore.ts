@@ -115,7 +115,7 @@ export const useAuthStore = create<AuthState>()(
           
           // Redirect HRMS users to HRMS portal
           if (isHrmsUser) {
-            window.location.href = "https://hrms.orangetechnolab.com/tscsr_uat/";
+            window.location.href = "https://hrms.orangetechnolab.com/tscsr/";
           }
         }
       },
