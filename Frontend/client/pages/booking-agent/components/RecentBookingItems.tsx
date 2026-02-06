@@ -1,6 +1,14 @@
 import React from "react";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Plane, Train, Car, Bus, CarTaxiFront, Building2, ArrowRight } from "lucide-react";
+import {
+  Plane,
+  Train,
+  Car,
+  FileText,
+  CarTaxiFront,
+  Building2,
+  ArrowRight,
+} from "lucide-react";
 import type { Booking } from "@/src/api/bookingAgentAPI";
 import { getBookingTypeLabel } from "../utils/format";
 
@@ -10,79 +18,71 @@ interface RecentBookingItemProps {
   onClick?: () => void;
 }
 
-const getBookingIcon = (bookingType: string) => {
+const getBookingIcon = (bookingType: string | undefined) => {
+  if (!bookingType) return <Plane className="h-5 w-5 text-muted-foreground" />;
+
   switch (bookingType.toLowerCase()) {
     case "flight":
       return <Plane className="h-5 w-5 text-blue-600" />;
     case "train":
       return <Train className="h-5 w-5 text-purple-600" />;
-    case "conveyance":
-      return <Car className="h-5 w-5 text-orange-600" />;
-    case "car":
-      return <Car className="h-5 w-5 text-orange-600" />;
-    case "car at disposal":
-      return <Car className="h-5 w-5 text-orange-600" />;
-    case "pick-up and drop":
-      return <Bus className="h-5 w-5 text-red-600" />;
-    case "taxi":
-        return <CarTaxiFront className="h-5 w-5 text-yellow-600" />;
     case "accommodation":
       return <Building2 className="h-5 w-5 text-green-600" />;
+    case "bulk_booking":
+    case "bulk booking":
+      return <FileText className="h-5 w-5 text-blue-600" />;
     default:
-      return <Plane className="h-5 w-5 text-muted-foreground" />;
+      // Default maps to Car (Conveyance/Road/etc)
+      return <Car className="h-5 w-5 text-orange-600" />;
   }
 };
 
-const getIconBgColor = (bookingType: string) => {
+const getIconBgColor = (bookingType: string | undefined) => {
+  if (!bookingType) return "bg-muted";
+
   switch (bookingType.toLowerCase()) {
     case "flight":
       return "bg-blue-50";
     case "train":
       return "bg-purple-50";
-    case "conveyance":
-      return "bg-orange-50";  
-    case "car at disposal":
-      return "bg-orange-50";  
-    case "car":
-      return "bg-orange-50";
-    case "pick-up and drop":
-      return "bg-red-50";
-    case "taxi":
-      return "bg-yellow-50";
     case "accommodation":
       return "bg-green-50";
+    case "bulk_booking":
+    case "bulk booking":
+      return "bg-blue-50";
     default:
-      return "bg-muted";
+      return "bg-orange-50";
   }
 };
 
 function getRouteDisplay(booking: Booking): { from: string; to: string } {
   const details = booking.booking_details || {};
-  
+
   if (details.from_location_name && details.to_location_name) {
     return {
       from: details.from_location_name.split(" (")[0],
       to: details.to_location_name.split(" (")[0],
     };
   }
-  
+
   if (details.from_location && details.to_location) {
     return {
       from: String(details.from_location),
       to: String(details.to_location),
     };
   }
-  
+
   if (details.place) {
     return { from: details.place, to: "" };
   }
-  
-  return { from: "—", to: "" };
+
+  return { from: "", to: "" };
 }
 
 function RecentBookingItemBase({ booking, onClick }: RecentBookingItemProps) {
   const route = getRouteDisplay(booking);
-  const typeLabel = getBookingTypeLabel(booking.booking_type);
+  // Use booking_type_name directly as it contains the label from API
+  const typeLabel = booking.booking_type_name
 
   return (
     <div

@@ -397,7 +397,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
         `${row.start_date} ${row.start_time} - ${row.end_date} ${row.end_time}`,
     },
     {
-      label: "Cost (₹)",
+      label: "Advance Amount (₹)",
       align: "right" as const,
       render: (row: ConveyanceFormData) =>
         `₹${Number(row.estimated_cost || 0).toLocaleString("en-IN")}`,

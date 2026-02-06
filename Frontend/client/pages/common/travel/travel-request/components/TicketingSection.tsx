@@ -350,7 +350,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
           : "-",
     },
     {
-      label: "Cost (₹)",
+      label: "Advance Amount (₹)",
       align: "right" as const,
       render: (row: TicketingFormData) =>
         `₹${Number(row.estimated_cost || 0).toLocaleString("en-IN")}`,
