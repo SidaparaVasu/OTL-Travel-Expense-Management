@@ -34,7 +34,7 @@ export const CancellationRequestModal: React.FC<
           <DialogTitle>Cancel Travel Application</DialogTitle>
           <DialogDescription>
             Please provide a valid reason for cancelling this travel request.
-            This will be reviewed by your manager.
+            This will be reviewed by your manager/approver(s).
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -47,7 +47,7 @@ export const CancellationRequestModal: React.FC<
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Nevermind
+            No?
           </Button>
           <Button
             variant="destructive"

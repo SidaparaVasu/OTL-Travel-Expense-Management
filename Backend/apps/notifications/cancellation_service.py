@@ -267,3 +267,69 @@ class CancellationNotificationService:
         except Exception as e:
             logger.error(f"❌ Failed to get booking agent IDs: {str(e)}", exc_info=True)
             return []
+    @staticmethod
+    def send_immediate_cancellation_notification(travel_app: TravelApplication, cancelled_by):
+        """
+        Send notification when application is immediately cancelled (bypassing approval).
+        
+        Notifies:
+        - Reporting Manager / Approver
+        - Travel Desk
+        - Booking Agents
+        """
+        try:
+            # Get approver (Manager)
+            # If current_approver is null (e.g. was in booked state), try to get reporting manager from profile
+            approver_id = None
+            approver_name = "Manager"
+            
+            if travel_app.current_approver:
+                approver_id = travel_app.current_approver.id
+                approver_name = travel_app.current_approver.get_full_name()
+            elif hasattr(travel_app.employee, 'profile') and travel_app.employee.profile.reporting_manager:
+                approver_id = travel_app.employee.profile.reporting_manager.id
+                approver_name = travel_app.employee.profile.reporting_manager.get_full_name()
+
+            # Get travel desk user if assigned
+            travel_desk_id = travel_app.travel_desk_user.id if travel_app.travel_desk_user else None
+            
+            # Get booking agents
+            booking_agent_ids = CancellationNotificationService._get_booking_agent_ids(travel_app)
+            
+            # Get travel dates
+            start_date = travel_app.get_travel_start_date()
+            end_date = travel_app.get_travel_end_date()
+            travel_dates = f"{start_date} to {end_date}" if start_date and end_date else "N/A"
+            
+            # Prepare payload
+            payload = {
+                'employee_id': travel_app.employee.id,
+                'employee_name': travel_app.employee.get_full_name(),
+                'approver_id': approver_id,
+                'approver_name': approver_name,
+                'travel_desk_id': travel_desk_id,
+                'booking_agent_ids': booking_agent_ids,
+                'request_id': travel_app.get_travel_request_id(),
+                'purpose': travel_app.purpose,
+                'travel_dates': travel_dates,
+                'current_status': 'Cancelled', # Hardcoded as it's immediate cancellation
+                'cancellation_reason': travel_app.cancellation_reason,
+                'cancellation_date': timezone.now().strftime('%Y-%m-%d %H:%M'),
+                'cancelled_by_name': cancelled_by.get_full_name()
+            }
+            
+            # Reuse 'travel.cancellation.requested' event but with modified payload or new event?
+            # User requirement: "intimation of TA cancellation"
+            # If we reuse 'requested', the template might say "Cancellation Requested". 
+            # Ideally we need 'travel.application.cancelled'
+            
+            NotificationCenter.notify(
+                event_name='travel.application.cancelled', 
+                reference={'type': 'TravelApplication', 'id': travel_app.id},
+                payload=payload
+            )
+            
+            logger.info(f"✅ Immediate cancellation notification sent for {travel_app.get_travel_request_id()}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to send immediate cancellation notification: {str(e)}", exc_info=True)

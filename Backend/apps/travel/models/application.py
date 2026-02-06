@@ -458,35 +458,39 @@ class TravelApplication(models.Model):
              # The requirement says Applicant requests.
              pass
 
-        self.previous_status = self.status
-        self.status = 'cancellation_requested'
-        self.cancellation_requested_at = timezone.now()
-        self.cancellation_reason = reason
-        self.save()
+        # [MODIFIED]: Unlinked approval flow. Direct cancellation requested.
+        # self.previous_status = self.status
+        # self.status = 'cancellation_requested'
+        # self.cancellation_requested_at = timezone.now()
+        # self.cancellation_reason = reason
+        # self.save()
 
         # Audit Log
-        from apps.travel.models.audit import AuditLog
-        from django.contrib.contenttypes.models import ContentType
-        AuditLog.objects.create(
-            user=requested_by,
-            action='cancel', # Using 'cancel' action to denote request/start of flow
-            content_type=ContentType.objects.get_for_model(self),
-            object_id=self.id,
-            changes={
-                "previous_status": self.previous_status,
-                "current_status": "cancellation_requested",
-                "reason": reason
-            }
-        )
+        # from apps.travel.models.audit import AuditLog
+        # from django.contrib.contenttypes.models import ContentType
+        # AuditLog.objects.create(
+        #     user=requested_by,
+        #     action='cancel', # Using 'cancel' action to denote request/start of flow
+        #     content_type=ContentType.objects.get_for_model(self),
+        #     object_id=self.id,
+        #     changes={
+        #         "previous_status": self.previous_status,
+        #         "current_status": "cancellation_requested",
+        #         "reason": reason
+        #     }
+        # )
         
         # Send cancellation request notification
-        try:
-            from apps.notifications.cancellation_service import CancellationNotificationService
-            CancellationNotificationService.send_cancellation_request_notification(self)
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send cancellation request notification: {str(e)}", exc_info=True)
+        # try:
+        #     from apps.notifications.cancellation_service import CancellationNotificationService
+        #     CancellationNotificationService.send_cancellation_request_notification(self)
+        # except Exception as e:
+        #     import logging
+        #     logger = logging.getLogger(__name__)
+        #     logger.error(f"Failed to send cancellation request notification: {str(e)}", exc_info=True)
+
+        # Direct Cancellation Implementation
+        self._perform_hard_cancel(requested_by, reason)
 
     def approve_cancellation(self, approved_by, notes=""):
         """Step 2: Manager/Admin approves cancellation"""
@@ -578,7 +582,14 @@ class TravelApplication(models.Model):
         )
         
         # Send cancellation emails
-        self._send_cancellation_notifications()
+        # self._send_cancellation_notifications()
+        try:
+            from apps.notifications.cancellation_service import CancellationNotificationService
+            CancellationNotificationService.send_immediate_cancellation_notification(self, cancelled_by)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send cancellation notification: {str(e)}", exc_info=True)
 
     def _cancel_all_bookings(self):
         """Cancel all associated bookings and add audit notes"""

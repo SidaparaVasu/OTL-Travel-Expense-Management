@@ -82,11 +82,11 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
         path: ROUTES.travelCancellationRequest,
         Icon: FileX,
       },
-      {
-        label: "Cancellation Approvals",
-        path: ROUTES.travelCancellationApproval,
-        Icon: ShieldCheck,
-      },
+      // {
+      //   label: "Cancellation Approvals",
+      //   path: ROUTES.travelCancellationApproval,
+      //   Icon: ShieldCheck,
+      // },
     ],
   },
   {
@@ -186,11 +186,11 @@ export const getEmployeeSidebar = (
         path: ROUTES.travelCancellationRequest,
         Icon: FileX,
       },
-      {
-        label: "Cancellation Approvals",
-        path: ROUTES.travelCancellationApproval,
-        Icon: ShieldCheck,
-      },
+      // {
+      //   label: "Cancellation Approvals",
+      //   path: ROUTES.travelCancellationApproval,
+      //   Icon: ShieldCheck,
+      // },
     ],
   },
   {

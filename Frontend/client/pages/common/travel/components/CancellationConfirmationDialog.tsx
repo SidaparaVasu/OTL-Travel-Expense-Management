@@ -50,11 +50,11 @@ export const CancellationConfirmationDialog: React.FC<
             <AlertTriangle className="h-6 w-6 text-amber-600" />
           </div>
           <DialogTitle className="text-center">
-            Confirm Cancellation Request
+            Confirm Cancellation?
           </DialogTitle>
           <DialogDescription className="text-center">
-            Please review the details before submitting your cancellation
-            request
+            {/* Please review the details before submitting your cancellation request */}
+            Please review the details before submitting your cancellation of travel request
           </DialogDescription>
         </DialogHeader>
 
@@ -97,7 +97,7 @@ export const CancellationConfirmationDialog: React.FC<
                 </>
               )}
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Estimated Cost:</span>
+                <span className="text-muted-foreground">Advance Requested:</span>
                 <span className="font-medium flex items-center gap-1">
                   <IndianRupee className="h-3 w-3" />
                   {Number(application.estimated_total_cost || 0).toLocaleString(
@@ -118,9 +118,11 @@ export const CancellationConfirmationDialog: React.FC<
 
           {/* Information */}
           <p className="text-xs text-muted-foreground">
-            This request will be sent to your manager for approval. You will be
+            {/* This request will be sent to your manager for approval. You will be
             notified of their decision via email. You can withdraw this request
-            before it is approved or rejected.
+            before it is approved or rejected. */}
+            This request will be sent to your manager/approver(s). They will be
+            notified of the decision via email. You can withdraw this request later.
           </p>
         </div>
 
@@ -144,7 +146,8 @@ export const CancellationConfirmationDialog: React.FC<
                 Submitting...
               </>
             ) : (
-              "Confirm Cancellation Request"
+              // "Confirm Cancellation Request"
+              "Confirm Cancellation of this Travel Request"
             )}
           </Button>
         </DialogFooter>

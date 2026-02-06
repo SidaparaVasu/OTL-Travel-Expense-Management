@@ -52,7 +52,7 @@ export const CancelModal: React.FC<CancelModalProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-destructive/20">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" />
-            <h3 className="text-lg font-semibold text-foreground">Cancel Application</h3>
+            <h3 className="text-lg font-semibold text-foreground">Cancel Booking</h3>
           </div>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleClose}>
             <X className="w-4 h-4" />
@@ -62,10 +62,10 @@ export const CancelModal: React.FC<CancelModalProps> = ({
         <div className="p-4 space-y-4">
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <p className="text-sm text-destructive font-medium">
-              Are you sure you want to cancel this application?
+              Are you sure you want to cancel this Booking?
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              This action cannot be undone. All associated bookings will also be cancelled.
+              This action cannot be undone.
             </p>
           </div>
 
@@ -87,7 +87,7 @@ export const CancelModal: React.FC<CancelModalProps> = ({
 
         <div className="flex justify-end gap-3 p-4 border-t">
           <Button variant="outline" className="hover:bg-slate-100 hover:text-black" onClick={handleClose} disabled={isLoading}>
-            Keep Application
+            Don't Cancel
           </Button>
           <Button
             variant="destructive"
@@ -95,7 +95,7 @@ export const CancelModal: React.FC<CancelModalProps> = ({
             disabled={isLoading || isApplicationCompleted}
           >
             {isApplicationCompleted ? 'Cancellation Disabled' 
-              : isLoading ? 'Cancelling...' : 'Cancel Application'}
+              : isLoading ? 'Cancelling...' : 'Cancel Booking'}
           </Button>
         </div>
       </div>

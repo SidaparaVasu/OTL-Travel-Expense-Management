@@ -136,7 +136,8 @@ const TravelCancellationRequest = () => {
               Travel Cancellation Request
             </h1>
             <p className="text-sm text-muted-foreground">
-              Submit a request to cancel your travel application
+              {/* Submit a request to cancel your travel application */}
+              Cancel your travel application
             </p>
           </div>
         </div>
@@ -393,10 +394,10 @@ const TravelCancellationRequest = () => {
                     <FileX className="h-5 w-5 text-red-500" />
                     <div>
                       <p className="font-semibold text-red-500">
-                        Request Cancellation
+                        Travel Request Cancellation
                       </p>
                       <p className="text-sm text-red-500">
-                        This will notify your reporting manager for approval
+                        This will notify your reporting manager/approver(s).
                       </p>
                     </div>
                   </div>
