@@ -585,7 +585,7 @@ export default function TravelApplicationList() {
                         <TableHead>Request ID</TableHead>
                         <TableHead className="max-w-[200px]">Purpose</TableHead>
                         <TableHead className="max-w-2xs">Dates</TableHead>
-                        <TableHead>Total Cost</TableHead>
+                        <TableHead>Advance Amount</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead className="text-center">Actions</TableHead>
                       </TableRow>

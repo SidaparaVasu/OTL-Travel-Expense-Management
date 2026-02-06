@@ -419,7 +419,7 @@ export default function TravelRequestApprovals() {
                     {stats.data.total_budget}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Total Budget
+                    Total Advance Amount
                   </div>
                 </div>
               </div>
@@ -568,7 +568,7 @@ export default function TravelRequestApprovals() {
                     Travel Dates
                   </TableHead>
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
-                    Budget
+                    Advance Amount
                   </TableHead>
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Status

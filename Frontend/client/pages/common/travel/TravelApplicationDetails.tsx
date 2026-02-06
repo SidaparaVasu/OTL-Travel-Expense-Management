@@ -399,7 +399,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Arrival
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                              Advance Taken
+                              Advance Requested
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Meal Preference
@@ -633,7 +633,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Check-out
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                              Advance Taken
+                              Advance Requested
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Meal Preference
@@ -874,7 +874,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Passengers
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
-                              Advance Taken
+                              Advance Requested
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Status

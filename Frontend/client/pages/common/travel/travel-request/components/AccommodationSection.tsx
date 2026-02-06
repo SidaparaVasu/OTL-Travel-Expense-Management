@@ -524,7 +524,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         `${row.check_out_date} ${row.check_out_time || ""}`,
     },
     {
-      label: "Cost (₹)",
+      label: "Advance Amount (₹)",
       align: "right" as const,
       render: (row: AccommodationFormData) =>
         `₹${Number(row.estimated_cost || 0).toLocaleString("en-IN")}`,
