@@ -1331,7 +1331,7 @@ export const TravelApplicationForm: React.FC = () => {
                 onClick={() => setShowClearDialog(true)}
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Clear
+                Clear Form
               </Button>
 
               {/* Cancel Edit button - only in edit mode */}
@@ -1356,7 +1356,7 @@ export const TravelApplicationForm: React.FC = () => {
               )}
 
               {/* Save Draft button - hide in edit mode */}
-              {!isEditMode && (
+              {/* {!isEditMode && ( */}
                 <Button
                   variant="outline"
                   onClick={handleSaveAsDraft}
@@ -1365,7 +1365,7 @@ export const TravelApplicationForm: React.FC = () => {
                   <Save className="w-4 h-4 mr-2" />
                   {isSaving ? "Saving..." : "Save Draft"}
                 </Button>
-              )}
+              {/* )} */}
 
               {/* Submit/Update button */}
               <Button
@@ -1382,7 +1382,7 @@ export const TravelApplicationForm: React.FC = () => {
                 {isEditMode ? (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    {isSubmitting ? "Updating..." : "Update"}
+                    {isSubmitting ? "Updating..." : "Update & Submit"}
                   </>
                 ) : (
                   <>
