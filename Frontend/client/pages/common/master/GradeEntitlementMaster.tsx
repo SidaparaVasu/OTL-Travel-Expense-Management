@@ -247,7 +247,7 @@ export default function GradeEntitlementMaster() {
       setForm({
         grade: String(item.grade),
         sub_option: String(item.sub_option),
-        city_category: item.city_category ? String(item.city_category) : "",
+        city_category: item.city_category ? String(item.city_category) : "all",
         max_amount: item.max_amount || "",
         is_allowed: item.is_allowed,
         grades: [],
@@ -276,7 +276,8 @@ export default function GradeEntitlementMaster() {
         const submitData = {
           grade: form.grade,
           sub_option: form.sub_option,
-          city_category: form.city_category || null,
+          city_category:
+            form.city_category === "all" ? null : form.city_category || null,
           max_amount: form.max_amount ? parseFloat(form.max_amount) : null,
           is_allowed: form.is_allowed,
         };
@@ -630,8 +631,7 @@ export default function GradeEntitlementMaster() {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {items.map((item) => {
-                            const ModeIcon =
-                              MODE_ICONS[item.mode_name] || Car;
+                            const ModeIcon = MODE_ICONS[item.mode_name] || Car;
                             return (
                               <tr
                                 key={item.id}
@@ -798,7 +798,7 @@ export default function GradeEntitlementMaster() {
                           <SelectValue placeholder="All cities" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All cities</SelectItem>
+                          <SelectItem value="all">All cities</SelectItem>
                           {cityCategories.map((c) => (
                             <SelectItem key={c.id} value={String(c.id)}>
                               {c.name}
