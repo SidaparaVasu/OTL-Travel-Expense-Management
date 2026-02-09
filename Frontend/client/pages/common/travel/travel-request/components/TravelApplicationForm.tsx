@@ -776,6 +776,7 @@ export const TravelApplicationForm: React.FC = () => {
     return !!(
       purposeData.purpose.trim() &&
       purposeData.internal_order.trim() &&
+      purposeData.internal_order.length === 9 &&
       purposeData.general_ledger &&
       purposeData.sanction_number &&
       purposeData.trip_from_location &&
