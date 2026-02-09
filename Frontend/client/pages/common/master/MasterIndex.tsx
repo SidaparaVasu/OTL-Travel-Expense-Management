@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import { Layout } from "@/components/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Link } from "react-router-dom";
 import {
     Building2,
     MapPin,
@@ -39,9 +36,7 @@ const MASTER_CATEGORIES = [
         icon: MapPin,
         items: [
             { id: 'city-category', title: 'City Category', route: ROUTES.cityCategoryMaster },
-            { id: 'city', title: 'City', route: ROUTES.geographyMaster },
-            { id: 'state', title: 'State', route: ROUTES.geographyMaster },
-            { id: 'country', title: 'Country', route: ROUTES.geographyMaster },
+            { id: 'city', title: 'City, State, Country', route: ROUTES.geographyMaster },
         ],
     },
     {
@@ -59,9 +54,6 @@ const MASTER_CATEGORIES = [
             { id: 'travel-mode', title: 'Travel Mode', route: ROUTES.travelModeMaster },
             { id: 'travel-mode-sub', title: 'Travel Mode Sub Option', route: ROUTES.travelModeMaster },
             { id: 'grade-entitlement', title: 'Grade Entitlement', route: ROUTES.gradeEntitlementMaster },
-            // { id: 'vehicle-type', title: 'Vehicle Type Master', route: '/masters/vehicle-type' },
-            // { id: 'vehicle-policy', title: 'Vehicle Policy Master', route: '/masters/vehicle-policy' },
-            // { id: 'email-template', title: 'Email Template Master', route: '/masters/email-templates' },
         ],
     },
     {
@@ -93,19 +85,11 @@ const MASTER_CATEGORIES = [
             { id: 'claim-status', title: 'Claim Status', route: ROUTES.claimStatusMaster },
         ],
     },
-    // {
-    //     id: 'workflow',
-    //     title: 'Workflow',
-    //     icon: Repeat,
-    //     items: [{ id: 'approval-workflow', title: 'Approval Workflow', route: '/masters/approval-workflow' }],
-    // },
     {
         id: 'users',
         title: 'Users',
         icon: Users,
         items: [
-            // {id: 'employee', title: "Employees", route: ROUTES.employeeMasterPage},
-            // {id: 'user-mng', title: "User Management", route: ROUTES.userManagement},
             {id: 'users', title: "Users", route: ROUTES.users},
             {id: 'booking-agents', title: "Booking Agents", route: ROUTES.bookingAgents},
         ]
@@ -230,7 +214,6 @@ export default function MasterSettingsPage() {
     }, [selectedIndex]);
 
     return (
-        // <Layout>
             <div className="p-6 bg-gray-50 min-h-screen">
                 <div className="max-w-[960px] mx-auto">
                     <header className="mb-6">
@@ -293,10 +276,6 @@ export default function MasterSettingsPage() {
                                 </ul>
                             )}
                         </div>
-
-                        {/* <button className="px-3 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">
-                            Add Master
-                        </button> */}
                     </div>
 
                     {/* Grid layout */}
@@ -311,6 +290,5 @@ export default function MasterSettingsPage() {
                     </footer>
                 </div>
             </div>
-        // </Layout>
     );
 }
