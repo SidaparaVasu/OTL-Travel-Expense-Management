@@ -19,70 +19,82 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type PortalConfig = {
-  title: string;
+type RoleConfig = {
+  group: string;
+  route: string;
   desc: string;
   icon: any;
-  route: string;
-  portalKey: string;
+  priority: number;
 };
 
-const ROLE_CONFIG: Record<string, PortalConfig> = {
+const ROLE_CONFIG: Record<string, RoleConfig> = {
+  // Employee Portal Group
   admin: {
-    title: "Administrator Portal",
+    group: "Employee Portal",
+    route: ROUTES.adminDashboard,
     desc: "Manage system configurations, masters, and organization-wide approvals.",
     icon: ShieldCheck,
-    route: ROUTES.adminDashboard,
-    portalKey: "admin",
+    priority: 10,
   },
   ceo: {
-    title: "Administrator Portal",
-    desc: "Manage system configurations, masters, and organization-wide approvals.",
-    icon: ShieldCheck,
+    group: "Employee Portal",
     route: ROUTES.adminDashboard,
-    portalKey: "admin",
+    desc: "Executive dashboard for organizational oversight.",
+    icon: ShieldCheck,
+    priority: 10,
   },
   chro: {
-    title: "Administrator Portal",
-    desc: "Manage system configurations, masters, and organization-wide approvals.",
-    icon: ShieldCheck,
+    group: "Employee Portal",
     route: ROUTES.adminDashboard,
-    portalKey: "admin",
+    desc: "HR oversight and policy management.",
+    icon: ShieldCheck,
+    priority: 10,
   },
-  travel_desk: {
-    title: "Travel Desk Portal",
-    desc: "Process travel requests, manage itineraries, and coordinate with booking agents.",
-    icon: UserStar,
-    route: ROUTES.deskAgentDashboard,
-    portalKey: "travel_desk",
-  },
-  booking_agent: {
-    title: "Booking Agent Portal",
-    desc: "Handle ticket bookings, hotel reservations, and travel logistics.",
-    icon: Ticket,
-    route: ROUTES.bookingAgentDashboard,
-    portalKey: "booking_agent",
-  },
-  employee: {
-    title: "Employee Portal",
-    desc: "Create travel applications, submit expense claims, and track your history.",
-    icon: User,
-    route: ROUTES.employeeDashboard,
-    portalKey: "employee",
+  finance: {
+    group: "Employee Portal",
+    route: ROUTES.adminDashboard,
+    desc: "Financial oversight and reimbursement processing.",
+    icon: ShieldCheck,
+    priority: 10,
   },
   manager: {
-    title: "Manager Portal",
-    desc: "Review and approve travel and expense requests from your team.",
-    icon: ShieldCheck,
+    group: "Employee Portal",
     route: ROUTES.adminDashboard,
-    portalKey: "employee",
+    desc: "Managerial approvals and team oversight.",
+    icon: ShieldCheck,
+    priority: 8,
+  },
+  employee: {
+    group: "Employee Portal",
+    route: ROUTES.employeeDashboard,
+    desc: "Create travel applications, submit expense claims, and track your history.",
+    icon: User,
+    priority: 1,
+  },
+
+  // Travel Desk Portal Group
+  travel_desk: {
+    group: "Travel Desk Portal",
+    route: ROUTES.deskAgentDashboard,
+    desc: "Process travel requests, manage itineraries, and coordinate with booking agents.",
+    icon: UserStar,
+    priority: 10,
   },
   global_travel_desk: {
-    title: "Global Travel Desk Portal",
+    group: "Travel Desk Portal",
+    route: ROUTES.deskAgentDashboard,
     desc: "Centralized view of all travel requests across all branches.",
     icon: UserStar,
-    route: ROUTES.deskAgentDashboard,
-    portalKey: "travel_desk",
+    priority: 10,
+  },
+
+  // Booking Agent Portal Group
+  booking_agent: {
+    group: "Booking Agent Portal",
+    route: ROUTES.bookingAgentDashboard,
+    desc: "Handle ticket bookings, hotel reservations, and travel logistics.",
+    icon: Ticket,
+    priority: 10,
   },
 };
 
@@ -92,52 +104,59 @@ const ChoosePortal: React.FC = () => {
   const roles = JSON.parse(localStorage.getItem("roles") || "[]");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // roles except finance for portal selection
-  const portalRoles = roles.filter(
-    (r: any) => r.role_type?.toLowerCase() !== "finance",
-  );
+  // Determine unique portal groups available to user
+  const portals = React.useMemo(() => {
+    const portalMap: Record<string, RoleConfig & { isPrimary: boolean }> = {};
+
+    roles.forEach((role: any) => {
+      const roleKey = role.role_type?.toLowerCase();
+      const config = ROLE_CONFIG[roleKey];
+
+      if (config) {
+        // Check if we already have this group
+        const existing = portalMap[config.group];
+
+        // We want the route with the HIGHEST priority within the same group
+        // e.g. Admin (10) > Employee (1) -> Route to Admin Dashboard
+        if (!existing || config.priority > existing.priority) {
+          portalMap[config.group] = {
+            ...config,
+            isPrimary: existing?.isPrimary || !!role.is_primary, // Keep primary flag if any role in group is primary
+          };
+        } else {
+          // If existing has higher/equal priority, just update isPrimary flag if needed
+          if (role.is_primary) {
+            portalMap[config.group].isPrimary = true;
+          }
+        }
+      }
+    });
+
+    // Convert map to array and sort by primary status
+    return Object.values(portalMap).sort(
+      (a, b) => Number(b.isPrimary) - Number(a.isPrimary),
+    );
+  }, [roles]);
 
   React.useEffect(() => {
-    if (portalRoles.length === 0) {
-      // Redirect to saved primary dashboard OR default employee dashboard
+    // If user has access to exactly one portal group, auto-redirect
+    if (portals.length === 1) {
+      navigate(portals[0].route, { replace: true });
+    } else if (portals.length === 0) {
+      // Fallback if no roles match
       const primary =
         localStorage.getItem("primary_dashboard") || ROUTES.employeeDashboard;
-
-      navigate(primary, { replace: true });
+      // Check if we should redirect or stay?
+      // If no roles, stay to show "No roles found" message.
+      // But if they have roles that just aren't in our config?
+      // We'll let the "No roles found" UI handle it.
     }
-  }, [navigate, portalRoles.length]);
+  }, [portals, navigate]);
 
   const handleSelect = (route: string) => {
     localStorage.setItem("primary_dashboard", route);
     navigate(route);
   };
-
-  const portals: Array<PortalConfig & { isPrimary: boolean }> = Object.values(
-    portalRoles.reduce((acc: any, role: any) => {
-      const roleType = role.role_type?.toLowerCase();
-      const config = ROLE_CONFIG[roleType];
-
-      const safeConfig: PortalConfig =
-        config ||
-        ({
-          title: role.role_name || "Unknown Role",
-          desc: "Access your dashboard.",
-          icon: UserStar,
-          route: ROUTES.employeeDashboard,
-          portalKey: roleType || "employee",
-        } as PortalConfig);
-
-      const key = safeConfig.portalKey;
-
-      if (!acc[key]) {
-        acc[key] = { ...safeConfig, isPrimary: !!role.is_primary };
-      } else {
-        acc[key].isPrimary = acc[key].isPrimary || !!role.is_primary;
-      }
-
-      return acc;
-    }, {}),
-  ).sort((a: any, b: any) => Number(b.isPrimary) - Number(a.isPrimary));
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -153,13 +172,13 @@ const ChoosePortal: React.FC = () => {
 
         {portals.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-            {portals.map((portal: any) => {
+            {portals.map((portal) => {
               const Icon = portal.icon;
               const isPrimary = portal.isPrimary;
 
               return (
                 <Card
-                  key={portal.portalKey}
+                  key={portal.group}
                   className={cn(
                     "cursor-pointer border-2 transition-all duration-300 group hover:shadow-xl active:scale-[0.99]",
                     isPrimary
@@ -183,7 +202,7 @@ const ChoosePortal: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <CardTitle className="text-lg sm:text-xl leading-tight">
-                          {portal.title}
+                          {portal.group}
                         </CardTitle>
                       </div>
 
