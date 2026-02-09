@@ -345,7 +345,10 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         // If no entitlement limit found (e.g. self-arranged), use global max advance limit
         // EXCEPTION: Friends & Family does not have entitlement check
         if (cost > MAX_ADVANCE_AMOUNT) {
-          newErrors.estimated_cost = `Maximum allowed is ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+          const maxAmountStr = MAX_ADVANCE_AMOUNT
+            ? MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")
+            : "0";
+          newErrors.estimated_cost = `Maximum allowed is ₹${maxAmountStr}`;
         }
       } else if (
         maxAllowed !== undefined &&
@@ -353,7 +356,10 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         !isStayWithFriendsAndFamily
       ) {
         // Cost exceeds limit
-        newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowed.toLocaleString("en-IN")} for ${derivedCityCategory}`;
+        const maxAllowedStr = maxAllowed
+          ? maxAllowed.toLocaleString("en-IN")
+          : "0";
+        newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowedStr} for ${derivedCityCategory}`;
       }
     }
 
@@ -388,9 +394,10 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         ...form,
         estimated_cost: String(MAX_ADVANCE_AMOUNT),
       });
-      toast.warning(
-        `Amount capped to maximum allowed: ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
-      );
+      const maxAmountStr = MAX_ADVANCE_AMOUNT
+        ? MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")
+        : "0";
+      toast.warning(`Amount capped to maximum allowed: ₹${maxAmountStr}`);
     }
   };
 
@@ -741,7 +748,8 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   Advance Amount (₹)
                   {maxAllowed !== undefined && (
                     <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      (Max: ₹{maxAllowed.toLocaleString("en-IN")})
+                      (Max: ₹
+                      {maxAllowed ? maxAllowed.toLocaleString("en-IN") : "0"})
                     </span>
                   )}
                 </label>
@@ -751,7 +759,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   onBlur={handleCostBlur}
                   placeholder={
                     maxAllowed !== undefined
-                      ? `Max allowed ₹${maxAllowed.toLocaleString("en-IN")}`
+                      ? `Max allowed ₹${
+                          maxAllowed ? maxAllowed.toLocaleString("en-IN") : "0"
+                        }`
                       : "Enter Advance Amount"
                   }
                   className={errors.estimated_cost ? "border-destructive" : ""}
