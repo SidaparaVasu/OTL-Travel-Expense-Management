@@ -112,6 +112,7 @@ class TicketingBookingSerializer(serializers.Serializer):
     travel_desk = serializers.SerializerMethodField()
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
+    booking_file = serializers.SerializerMethodField()
 
     def get_booking_type(self, obj):
         return obj.booking_type.name if obj.booking_type else ""
@@ -127,33 +128,17 @@ class TicketingBookingSerializer(serializers.Serializer):
         return obj.booking_reference or obj.booking_details.get('ticket_number', '')
 
     def get_from_location(self, obj):
-        return obj.trip_details.from_location.city_name if obj.trip_details.from_location else ""
+        return obj.booking_details.get('from_location_name', '')
 
     def get_to_location(self, obj):
-        return obj.trip_details.to_location.city_name if obj.trip_details.to_location else ""
+        return obj.booking_details.get('to_location_name', '')
 
     def get_departure_datetime(self, obj):
         # Combine departure date and start time
-        if obj.trip_details.departure_date:
-            if obj.trip_details.start_time:
-                from datetime import datetime, time
-                dt = datetime.combine(obj.trip_details.departure_date, obj.trip_details.start_time)
-                return format_datetime(dt)
-            return format_date(obj.trip_details.departure_date)
-        return ""
+        return f"{obj.booking_details.get('departure_date')} {obj.booking_details.get('departure_time')}"
 
     def get_arrival_datetime(self, obj):
-        # Use booking details or trip return date
-        arrival = obj.booking_details.get('arrival_datetime', '')
-        if arrival:
-            return arrival
-        if obj.trip_details.return_date:
-            if obj.trip_details.end_time:
-                from datetime import datetime
-                dt = datetime.combine(obj.trip_details.return_date, obj.trip_details.end_time)
-                return format_datetime(dt)
-            return format_date(obj.trip_details.return_date)
-        return ""
+        return f"{obj.booking_details.get('arrival_date')} {obj.booking_details.get('arrival_time')}"
 
     def get_advance_taken(self, obj):
         advance = obj.estimated_cost
@@ -191,6 +176,9 @@ class TicketingBookingSerializer(serializers.Serializer):
         notes = obj.notes.all()
         return BookingNoteSerializer(notes, many=True).data
 
+    def get_booking_file(self, obj):
+        return obj.booking_file.url if obj.booking_file else None
+
 
 class AccommodationBookingSerializer(serializers.Serializer):
     """Serializer for accommodation bookings"""
@@ -209,6 +197,7 @@ class AccommodationBookingSerializer(serializers.Serializer):
     travel_desk = serializers.SerializerMethodField()
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
+    booking_file = serializers.SerializerMethodField()
 
     def get_accommodation_type(self, obj):
         # Get from sub_option name
@@ -306,6 +295,9 @@ class AccommodationBookingSerializer(serializers.Serializer):
             pass
         return []
 
+    def get_booking_file(self, obj):
+        return obj.booking_file.url if obj.booking_file else None
+
 
 class ConveyanceBookingSerializer(serializers.Serializer):
     """Serializer for conveyance bookings"""
@@ -329,6 +321,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     travel_desk = serializers.SerializerMethodField()
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
+    booking_file = serializers.SerializerMethodField()
 
     def get_vehicle_type(self, obj):
         # Get from sub_option name or booking_details
@@ -338,10 +331,10 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.sub_option.name if obj.sub_option else ""
     
     def get_from_location(self, obj):
-        return obj.trip_details.from_location.city_name if obj.trip_details and obj.trip_details.from_location else ""
+        return obj.booking_details.get('from_location', '')
     
     def get_to_location(self, obj):
-        return obj.trip_details.to_location.city_name if obj.trip_details and obj.trip_details.to_location else ""
+        return obj.booking_details.get('to_location', '')
     
     def get_report_at(self, obj):
         return obj.booking_details.get('report_at', '')
@@ -353,16 +346,10 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.booking_details.get('no_of_person', 1)
 
     def get_start_datetime(self, obj):
-        # Get from trip_details
-        if obj.trip_details:
-            return format_datetime_from_parts(obj.trip_details.departure_date, obj.trip_details.start_time)
-        return ""
+        return f"{obj.booking_details.get('start_date')} {obj.booking_details.get('start_time')}"
 
     def get_end_datetime(self, obj):
-        # Get from trip_details
-        if obj.trip_details:
-            return format_datetime_from_parts(obj.trip_details.return_date, obj.trip_details.end_time)
-        return ""
+        return f"{obj.booking_details.get('end_date')} {obj.booking_details.get('end_time')}"
 
     def get_distance_km(self, obj):
         distance = obj.booking_details.get('approx_km') or obj.booking_details.get('distance_km')
@@ -431,6 +418,9 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         except:
             pass
         return []
+
+    def get_booking_file(self, obj):
+        return obj.booking_file.url if obj.booking_file else None
 
 
 class ApprovalWorkflowSerializer(serializers.ModelSerializer):
