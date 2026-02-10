@@ -61,7 +61,10 @@ const getPrimaryDashboard = (): string => {
   if (roleTypes.some((r) => ["admin", "manager", "chro", "ceo"].includes(r))) {
     return ROUTES.adminDashboard;
   }
-  if (roleTypes.includes("travel_desk") || roleTypes.includes("global_travel_desk")) {
+  if (
+    roleTypes.includes("travel_desk") ||
+    roleTypes.includes("global_travel_desk")
+  ) {
     return ROUTES.deskAgentDashboard;
   }
   if (roleTypes.includes("booking_agent")) {
@@ -161,17 +164,70 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
 
   const user = useMemo(() => getUser(), []);
 
-  const primaryDashboard = useMemo(() => getPrimaryDashboard(), []);
+  // 1. Initialize from localStorage (so it's available on first render)
+  const [activeDashboard, setActiveDashboard] = useState<string>(() => {
+    return (
+      localStorage.getItem("primary_dashboard") || ROUTES.employeeDashboard
+    );
+  });
 
-  // DETERMINE ACTIVE PORTAL based on current URL path
-  const roleType = useMemo(
-    () => detectActivePortal(location.pathname, primaryDashboard),
-    [location.pathname, primaryDashboard],
-  );
+  // 2. Sync & Sense Context
+  useEffect(() => {
+    const path = location.pathname;
+    let detectedDashboard = null;
+
+    // A. Detect Definitive Portals (Anchors)
+    if (
+      path.startsWith("/admin_fe") ||
+      path.startsWith("/masters") ||
+      path.startsWith("/settings")
+    ) {
+      detectedDashboard = ROUTES.adminDashboard;
+    } else if (path.startsWith("/employee_fe")) {
+      detectedDashboard = ROUTES.employeeDashboard;
+    } else if (
+      path.startsWith("/travel_desk_fe") ||
+      path.startsWith("/travel-desk")
+    ) {
+      detectedDashboard = ROUTES.deskAgentDashboard;
+    } else if (
+      path.startsWith("/booking_agent_fe") ||
+      path.startsWith("/booking-agent")
+    ) {
+      detectedDashboard = ROUTES.bookingAgentDashboard;
+    }
+
+    // B. Logic:
+    // If we detected a SPECIFIC portal, we MUST use it.
+    // Use it to update localStorage so it persists for shared pages.
+    if (detectedDashboard) {
+      if (detectedDashboard !== activeDashboard) {
+        localStorage.setItem("primary_dashboard", detectedDashboard);
+        setActiveDashboard(detectedDashboard);
+      }
+    } else {
+      // If we are on a SHARED page (e.g. /profile, /travel/...),
+      // just trust whatever is in localStorage (or current state).
+      // But we should re-read localStorage in case it changed in another tab (edge case)
+      // or just rely on state. reliable enough.
+      const stored = localStorage.getItem("primary_dashboard");
+      if (stored && stored !== activeDashboard) {
+        setActiveDashboard(stored);
+      }
+    }
+  }, [location.pathname]); // Re-run on every navigation
+
+  // 3. Derive Role from the Active Dashboard
+  const roleType: UserRoleType = useMemo(() => {
+    if (activeDashboard.includes("admin")) return "admin";
+    if (activeDashboard.includes("travel_desk")) return "travel_desk";
+    if (activeDashboard.includes("booking_agent")) return "booking_agent";
+    return "employee";
+  }, [activeDashboard]);
 
   const sections = useMemo(
-    () => getSidebarSections(roleType, primaryDashboard),
-    [roleType, primaryDashboard],
+    () => getSidebarSections(roleType, activeDashboard),
+    [roleType, activeDashboard],
   );
 
   const expanded = !sidebarCollapsed;
