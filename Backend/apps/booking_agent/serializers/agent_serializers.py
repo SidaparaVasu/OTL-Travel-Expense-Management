@@ -54,6 +54,8 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.SerializerMethodField()
     employee_name = serializers.SerializerMethodField()
     purpose = serializers.CharField(source="trip_details.travel_application.purpose", read_only=True)
+    trip_start_date = serializers.CharField(source="trip_details.departure_date", read_only=True)
+    trip_end_date = serializers.CharField(source="trip_details.return_date", read_only=True)
     trip_segment = serializers.SerializerMethodField()
     booking_details = serializers.JSONField()
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
@@ -74,6 +76,8 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "assigned_agent",
             "meal_preference",
             "travel_application_status",
+            "trip_start_date",
+            "trip_end_date",
         ]
 
     meal_preference = serializers.SerializerMethodField()

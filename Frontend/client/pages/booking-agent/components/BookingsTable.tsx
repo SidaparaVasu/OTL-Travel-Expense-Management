@@ -15,10 +15,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-// import { StatusBadge } from './StatusBadge';
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   formatDateTime,
+  formatDateToDDMMYYYY,
   formatCurrency,
   getBookingTypeLabel,
   getSubOptionLabel,
@@ -93,6 +93,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
               <TableHead>Travel Request ID</TableHead>
               <TableHead>Purpose/ Route</TableHead>
               <TableHead>Booking Type</TableHead>
+              <TableHead>Travel Start Date</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Actual Cost</TableHead>
               <TableHead className="text-center">Actions</TableHead>
@@ -196,6 +197,12 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                       <p className="text-xs text-muted-foreground">
                         {booking.sub_option_name ||
                           getSubOptionLabel(booking.sub_option)}
+                      </p>
+                    </TableCell>
+
+                    <TableCell>
+                      <p className="text-sm font-medium">
+                        {formatDateToDDMMYYYY(booking.trip_start_date)}
                       </p>
                     </TableCell>
 

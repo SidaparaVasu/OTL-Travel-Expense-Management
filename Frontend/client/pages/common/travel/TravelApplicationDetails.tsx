@@ -379,7 +379,7 @@ export const TravelApplicationDetails: React.FC = () => {
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm border-collapse">
                         <thead>
-                          <tr className="bg-slate-100">
+                          <tr className="bg-slate-100 overflow-x-auto">
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Booking Type
                             </th>
@@ -407,10 +407,13 @@ export const TravelApplicationDetails: React.FC = () => {
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Status
                             </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Booking File
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="hover:bg-slate-50 transition-colors">
+                          <tr className="hover:bg-slate-50 transition-colors overflow-x-auto">
                             <td className="flex flex-row gap-1  border-slate-200 p-3">
                               {booking.booking_type}
                               {booking.is_self_arranged && (
@@ -451,11 +454,24 @@ export const TravelApplicationDetails: React.FC = () => {
                                 variant="rounded"
                               />
                             </td>
+                            <td>
+                              {booking.booking_file && (
+                                <a
+                                  href={getFileUrl(booking.booking_file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline inline-flex items-center gap-1 ml-2"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  View File
+                                </a>
+                              )}
+                            </td>
                           </tr>
                           {booking.special_instructions && (
                             <tr className="bg-blue-50/30">
                               <td
-                                colSpan={9}
+                                colSpan={10}
                                 className="border border-slate-200 p-3"
                               >
                                 <strong className="text-slate-700">
@@ -641,6 +657,9 @@ export const TravelApplicationDetails: React.FC = () => {
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Status
                             </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Booking File
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -692,11 +711,24 @@ export const TravelApplicationDetails: React.FC = () => {
                                 variant="rounded"
                               />
                             </td>
+                            <td>
+                              {booking.booking_file && (
+                                <a
+                                  href={getFileUrl(booking.booking_file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline inline-flex items-center gap-1 ml-2"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  View File
+                                </a>
+                              )}
+                            </td>
                           </tr>
                           {booking.special_instructions && (
                             <tr className="bg-blue-50/30">
                               <td
-                                colSpan={8}
+                                colSpan={9}
                                 className="border border-slate-200 p-3"
                               >
                                 <strong className="text-slate-700">
@@ -879,6 +911,9 @@ export const TravelApplicationDetails: React.FC = () => {
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Status
                             </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Booking File
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -917,11 +952,24 @@ export const TravelApplicationDetails: React.FC = () => {
                                 variant="rounded"
                               />
                             </td>
+                            <td>
+                              {booking.booking_file && (
+                                <a
+                                  href={getFileUrl(booking.booking_file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline inline-flex items-center gap-1 ml-2"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  View File
+                                </a>
+                              )}
+                            </td>
                           </tr>
                           {booking.special_instructions && (
                             <tr className="bg-blue-50/30">
                               <td
-                                colSpan={10}
+                                colSpan={11}
                                 className="border border-slate-200 p-3"
                               >
                                 <strong className="text-slate-700">
@@ -935,7 +983,7 @@ export const TravelApplicationDetails: React.FC = () => {
                           )}
                           <tr className="bg-slate-50">
                             <td
-                              colSpan={10}
+                              colSpan={11}
                               className="border border-slate-200 p-3"
                             >
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
