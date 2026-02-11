@@ -15,6 +15,7 @@ import {
   Car,
   Home,
   Info,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,7 @@ interface ApplicationDrawerProps {
   onClose: () => void;
   applicationId: number | null;
   onRefresh?: () => void;
+  forwardedBookingIds?: number[];
 }
 
 // Helper to get full file URL
@@ -90,6 +92,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   onClose,
   applicationId,
   onRefresh,
+  forwardedBookingIds,
 }) => {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,15 +102,29 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const [agents, setAgents] = useState<BookingAgent[]>([]);
 
   const [forwardModalOpen, setForwardModalOpen] = useState(false);
-  const [forwardType, setForwardType] = useState<"forward" | "reassign">(
-    "forward",
-  );
+  const [forwardType, setForwardType] = useState<
+    "forward" | "reassign" | "forward_to_desk"
+  >("forward");
   const [selectedBookingForAction, setSelectedBookingForAction] =
     useState<Booking | null>(null);
   const [addNoteModalOpen, setAddNoteModalOpen] = useState(false);
   const [viewBookingModalOpen, setViewBookingModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Current logged-in user context
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        setCurrentUser(JSON.parse(userStr));
+      }
+    } catch (e) {
+      console.error("Failed to parse user from local storage", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && applicationId) {
@@ -116,13 +133,25 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     }
   }, [isOpen, applicationId]);
 
+  // Check if the current user is the handler for a booking
+  const isBookingHandler = (booking: Booking) => {
+    if (!currentUser) return true; // Default to allowing actions if user context unavailable
+    if (!booking.handling_travel_desk_user) return true; // No handler assigned = allow
+    return booking.handling_travel_desk_user.id === currentUser.id;
+  };
+
   const fetchApplicationDetails = async () => {
     if (!applicationId) return;
     setLoading(true);
     setError(null);
 
     try {
-      const res = await travelDeskAPI.applications.detail(applicationId);
+      const isForwardedView = !!(
+        forwardedBookingIds && forwardedBookingIds.length > 0
+      );
+      const res = await travelDeskAPI.applications.detail(applicationId, {
+        forwarded_only: isForwardedView,
+      });
       console.log("In Drawer: ", res);
       setApplication(res.data);
     } catch (err: any) {
@@ -179,6 +208,31 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     setForwardModalOpen(true);
   };
 
+  const handleForwardToDesk = (booking: Booking) => {
+    setSelectedBookingForAction(booking);
+    setForwardType("forward_to_desk");
+    setForwardModalOpen(true);
+  };
+
+  const handleReclaim = async (booking: Booking) => {
+    if (!currentUser) return;
+    setActionLoading(true);
+    try {
+      await travelDeskAPI.bookings.forwardToDesk(booking.id, {
+        target_user_id: currentUser.id,
+        remarks: "Reclaimed by user",
+      });
+      toast.success("Booking reclaimed successfully");
+      await fetchApplicationDetails();
+      onRefresh?.();
+    } catch (err: any) {
+      console.log(err.request.response);
+      toast.error(err.request.response.errors || "You cannot forward a booking to yourself." || "Failed to reclaim booking");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAddNote = (booking: Booking) => {
     setSelectedBookingForAction(booking);
     setAddNoteModalOpen(true);
@@ -211,7 +265,15 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         ? [selectedBookingForAction.id]
         : selectedBookings;
 
-      if (forwardType === "reassign" && selectedBookingForAction) {
+      if (forwardType === "forward_to_desk" && selectedBookingForAction) {
+        await travelDeskAPI.bookings.forwardToDesk(
+          selectedBookingForAction.id,
+          {
+            target_user_id: agentId,
+            remarks: note || undefined,
+          },
+        );
+      } else if (forwardType === "reassign" && selectedBookingForAction) {
         await travelDeskAPI.bookings.reassign(selectedBookingForAction.id, {
           new_agent_id: agentId,
         });
@@ -396,17 +458,13 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">
-                        Internal Order
-                      </p>
+                      <p className="text-xs text-slate-500">Internal Order</p>
                       <p className="text-sm font-medium">
                         {application.internal_order}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">
-                        Sanction Number
-                      </p>
+                      <p className="text-xs text-slate-500">Sanction Number</p>
                       <p className="text-sm font-medium">
                         {application.sanction_number || "—"}
                       </p>
@@ -422,17 +480,13 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">
-                        Estimated Cost
-                      </p>
+                      <p className="text-xs text-slate-500">Estimated Cost</p>
                       <p className="text-sm font-semibold text-blue-600">
                         {formatCurrency(application.estimated_total_cost)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">
-                        Advance Amount
-                      </p>
+                      <p className="text-xs text-slate-500">Advance Amount</p>
                       <p className="text-sm font-semibold text-blue-600">
                         {formatCurrency(application.advance_amount)}
                       </p>
@@ -444,9 +498,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">
-                        Submitted On
-                      </p>
+                      <p className="text-xs text-slate-500">Submitted On</p>
                       <p className="text-sm font-medium">
                         {application.submitted_at
                           ? new Date(application.submitted_at).toLocaleString(
@@ -843,21 +895,21 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                       {/* View is always allowed */}
                                       {!type.includes("bulk") && (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800"
-                                            onClick={() =>
-                                              handleViewBooking(booking)
-                                            }
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>View</TooltipContent>
-                                      </Tooltip>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-800"
+                                              onClick={() =>
+                                                handleViewBooking(booking)
+                                              }
+                                            >
+                                              <Eye className="w-4 h-4" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>View</TooltipContent>
+                                        </Tooltip>
                                       )}
                                       {/* Actions disabled if fully completed */}
                                       {!isAllCompleted && (
@@ -871,78 +923,141 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                             </Badge>
                                           ) : (
                                             <>
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <span>
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="sm"
-                                                      className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                      onClick={() =>
-                                                        handleForwardBooking(
-                                                          booking,
-                                                        )
-                                                      }
-                                                      disabled={
-                                                        !booking.can_reassign
-                                                      }
-                                                    >
-                                                      {booking.status ===
-                                                      "pending" ? (
-                                                        <Send className="w-4 h-4" />
-                                                      ) : (
-                                                        <FileUp className="w-4 h-4" />
-                                                      )}
-                                                    </Button>
-                                                  </span>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                  {!booking.can_reassign
-                                                    ? "Cannot reassign active/completed booking"
-                                                    : booking.status ===
-                                                        "pending"
-                                                      ? "Forward"
-                                                      : "Reassign"}
-                                                </TooltipContent>
-                                              </Tooltip>
-
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
-                                                    onClick={() =>
-                                                      handleAddNote(booking)
-                                                    }
+                                              {!isBookingHandler(booking) ? (
+                                                <div className="flex items-center gap-2">
+                                                  {/* <Badge
+                                                    variant="outline"
+                                                    className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
                                                   >
-                                                    <MessageSquarePlus className="w-4 h-4" />
-                                                  </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                  Add Note
-                                                </TooltipContent>
-                                              </Tooltip>
+                                                    <UserCheck className="w-3 h-3 mr-1" />
+                                                    {booking
+                                                      .handling_travel_desk_user
+                                                      ?.name || "Forwarded"}
+                                                  </Badge> */}
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                          handleReclaim(booking)
+                                                        }
+                                                        disabled={actionLoading}
+                                                        className="text-indigo-600 bg-indigo-50 hover:text-indigo-800 hover:bg-indigo-50"
+                                                      >
+                                                        Assign back to me
+                                                      </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      Assign back to me
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </div>
+                                              ) : (
+                                                <>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <span>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                          onClick={() =>
+                                                            handleForwardBooking(
+                                                              booking,
+                                                            )
+                                                          }
+                                                          disabled={
+                                                            !booking.can_reassign
+                                                          }
+                                                        >
+                                                          {booking.status ===
+                                                          "pending" ? (
+                                                            <Send className="w-4 h-4" />
+                                                          ) : (
+                                                            <FileUp className="w-4 h-4" />
+                                                          )}
+                                                        </Button>
+                                                      </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      {!booking.can_reassign
+                                                        ? "Cannot reassign active/completed booking"
+                                                        : booking.status ===
+                                                            "pending"
+                                                          ? "Forward"
+                                                          : "Reassign"}
+                                                    </TooltipContent>
+                                                  </Tooltip>
 
-                                              <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
-                                                    onClick={() =>
-                                                      handleCancelBooking(
-                                                        booking,
-                                                      )
-                                                    }
-                                                  >
-                                                    <XCircle className="w-4 h-4" />
-                                                  </Button>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                  Cancel Booking
-                                                </TooltipContent>
-                                              </Tooltip>
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <span className="inline-block">
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="bg-indigo-100 text-indigo-600 hover:bg-indigo-200 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                          onClick={() =>
+                                                            handleForwardToDesk(
+                                                              booking,
+                                                            )
+                                                          }
+                                                          disabled={
+                                                            booking.is_forwardable ===
+                                                            false
+                                                          }
+                                                        >
+                                                          <UserCheck className="w-4 h-4" />
+                                                        </Button>
+                                                      </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      {booking.is_forwardable ===
+                                                      false
+                                                        ? "Cannot forward: Assigned to agent or invalid status"
+                                                        : "Forward to Other Travel Desk"}
+                                                    </TooltipContent>
+                                                  </Tooltip>
+
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
+                                                        onClick={() =>
+                                                          handleAddNote(booking)
+                                                        }
+                                                      >
+                                                        <MessageSquarePlus className="w-4 h-4" />
+                                                      </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      Add Note
+                                                    </TooltipContent>
+                                                  </Tooltip>
+
+                                                  <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
+                                                        onClick={() =>
+                                                          handleCancelBooking(
+                                                            booking,
+                                                          )
+                                                        }
+                                                      >
+                                                        <XCircle className="w-4 h-4" />
+                                                      </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                      Cancel Booking
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                </>
+                                              )}
                                             </>
                                           )}
                                         </>
@@ -972,7 +1087,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         }}
         onConfirm={confirmForward}
         title={
-          forwardType === "reassign" ? "Reassign Booking" : "Forward Booking"
+          forwardType === "reassign"
+            ? "Reassign Booking"
+            : forwardType === "forward_to_desk"
+              ? "Forward to Other Travel Desk"
+              : "Forward Booking"
         }
         type={forwardType}
         isLoading={actionLoading}

@@ -74,6 +74,11 @@ export interface Booking {
     assigned_at: string;
     scope: string;
   };
+  handling_travel_desk_user?: {
+    id: number;
+    name: string;
+  } | null;
+  is_forwardable?: boolean;
 }
 
 export interface TripDetail {
@@ -137,6 +142,7 @@ export interface DashboardApplication {
   total_bookings: number;
   pending_bookings: number;
   booked_bookings: number;
+  forwarded_booking_ids?: number[];
 }
 
 export interface DashboardStats {
@@ -297,4 +303,13 @@ export interface AgentAnalyticsDetail extends AgentAnalyticsSummary {
 export interface AgentAnalyticsResponse {
   agent: AgentAnalyticsDetail;
   recent_bookings: AgentRecentBooking[];
+}
+
+export interface TravelDeskUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  full_name: string;
+  role: string;
 }

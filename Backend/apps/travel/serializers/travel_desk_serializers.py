@@ -62,6 +62,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
     status_display = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
     booking_details = serializers.JSONField()
+    is_forwardable = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -74,12 +75,15 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "can_reassign",
             "notes",
             "requested_vehicle_type",
+            "handling_travel_desk_user",
+            "is_forwardable",
         ]
     
     meal_preference = serializers.SerializerMethodField()
     can_reassign = serializers.SerializerMethodField()
     notes = serializers.SerializerMethodField()
     requested_vehicle_type = serializers.SerializerMethodField()
+    handling_travel_desk_user = serializers.SerializerMethodField()
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -142,6 +146,27 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             })
         
         return data
+        
+    def get_handling_travel_desk_user(self, obj):
+        if not obj.handling_travel_desk_user:
+            return None
+        return {
+            "id": obj.handling_travel_desk_user.id,
+            "name": obj.handling_travel_desk_user.get_full_name() or obj.handling_travel_desk_user.username
+        }
+
+    def get_is_forwardable(self, obj):
+        # Logic: Can forward if status is pending/requested AND no active agent assignment
+        # Also cannot forward if cancelled, confirmed, completed, in_progress
+        if obj.status not in ['pending', 'requested']:
+            return False
+            
+        # Check for active assignment
+        has_active_assignment = hasattr(obj, 'assignment') and obj.assignment and obj.assignment.assigned_to
+        if has_active_assignment:
+            return False
+            
+        return True
 
     def get_can_reassign(self, obj):
         # Logic: Can only reassign if pending or requested.
@@ -177,9 +202,9 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
 class TravelDeskTripSerializer(serializers.ModelSerializer):
     from_location_name = serializers.CharField(source="from_location.city_name", read_only=True)
     to_location_name = serializers.CharField(source="to_location.city_name", read_only=True)
-    bookings = TravelDeskBookingSerializer(many=True, read_only=True)
     duration_days = serializers.SerializerMethodField()
     city_category = serializers.SerializerMethodField()
+    bookings = serializers.SerializerMethodField()
 
     class Meta:
         model = TripDetails
@@ -188,6 +213,16 @@ class TravelDeskTripSerializer(serializers.ModelSerializer):
             "departure_date", "return_date", "start_time", "end_time", 
             "duration_days", "city_category", "bookings",
         ]
+
+    def get_bookings(self, obj):
+        request = self.context.get('request')
+        qs = obj.bookings.all()
+        
+        # Filter for forwarded bookings if requested
+        if request and request.query_params.get('forwarded_only') == 'true':
+            qs = qs.filter(handling_travel_desk_user=request.user)
+            
+        return TravelDeskBookingSerializer(qs, many=True, context=self.context).data
 
     def get_from_location_name(self, obj):
         if obj.from_location:
@@ -221,6 +256,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     total_bookings = serializers.SerializerMethodField()
     pending_bookings = serializers.SerializerMethodField()
     booked_bookings = serializers.SerializerMethodField()
+    forwarded_booking_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -229,6 +265,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             "from_location", "to_location", "departure_date", "return_date", 
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
+            "forwarded_booking_ids",
         ]
 
     def get_employee_name(self, obj):
@@ -254,6 +291,16 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             trip_details__travel_application=obj,
             status__in=["confirmed", "completed"]
         ).count()
+    
+    def get_forwarded_booking_ids(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return []
+        
+        return Booking.objects.filter(
+            trip_details__travel_application=obj,
+            handling_travel_desk_user=request.user
+        ).values_list('id', flat=True)
     
     def get_first_trip(self, obj):
         trip = obj.trip_details.order_by("id").first()
