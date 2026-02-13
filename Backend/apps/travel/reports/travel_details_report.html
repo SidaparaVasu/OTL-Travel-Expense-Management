@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 1.5cm;
+    }
+
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 8pt;
+      line-height: 1.4;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin: 0;
+      padding: 0;
+    }
+
+    .header-box {
+      border: 1px solid #000;
+      padding: 12px;
+      margin-bottom: 20px;
+      background-color: #F8FAFC;
+    }
+
+    .section-title {
+      font-size: 13pt;
+      font-weight: bold;
+      margin: 25px 0 10px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      font-weight: bold;
+      text-align: left;
+      background-color: #F1F5F9;
+      padding: 6px;
+      border: 1px solid #000;
+    }
+
+    td {
+      padding: 6px;
+      vertical-align: top;
+      border: 1px solid #000;
+    }
+
+    .no-border td {
+      border: none;
+      padding: 4px 0;
+    }
+
+    .meta-table tr td {
+      width: 50%;
+    }
+
+    .meta-table td {
+      border: 1px solid #000;
+      padding: 6px;
+    }
+
+    .label {
+      width: 30%;
+      font-weight: bold;
+      background-color: #F8FAFC;
+    }
+
+    .value {
+      width: 70%;
+    }
+
+    .emp-table td {
+      width: 50%;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+
+    .small-text {
+      font-size: 9pt;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div class="header-box">
+    <h1>Travel Application Request</h1>
+  </div>
+
+  <!-- Meta Information -->
+  <table class="meta-table">
+    <tr>
+      <td><strong>Travel Request ID:</strong> {{ header.travel_request_id }}</td>
+      <td class="text-right"><strong>Application Status:</strong> {{ header.status }}</td>
+    </tr>
+    <tr>
+      <td><strong>Submitted Date:</strong> {{ header.submitted_date }}</td>
+      <td class="text-right"><strong>Generated On:</strong> {{ header.generated_on }}</td>
+    </tr>
+  </table>
+
+  <!-- Employee Details -->
+  <div class="section-title">Employee Details</div>
+  <table class="emp-table">
+    <tr>
+      <td><strong>Name:</strong> {{ employee.name }}</td>
+      <td><strong>Email:</strong> {{ employee.email }}</td>
+    </tr>
+    <tr>
+      <td><strong>Mobile No:</strong> {{ employee.mobile }}</td>
+      <td><strong>Gender:</strong> {{ employee.gender }}</td>
+    </tr>
+    <tr>
+      <td><strong>Department:</strong> {{ employee.department }}</td>
+      <td><strong>Designation:</strong> {{ employee.designation }}</td>
+    </tr>
+    <tr>
+      <td><strong>Branch Location:</strong> {{ employee.branch_location }}</td>
+      <td><strong>Grade:</strong> {{ employee.grade }}</td>
+    </tr>
+  </table>
+
+  <!-- Approver Details -->
+  <div class="section-title">Approver Details</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:8%;">Seqence</th>
+        <th style="width:15%;">Level</th>
+        <th style="width:20%;">Approver</th>
+        <th style="width:15%;">Status</th>
+        <th style="width:18%;">Action Date</th>
+        <th style="width:24%;">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for app in approvals %}
+      <tr>
+        <td>{{ app.sequence }}</td>
+        <td>{{ app.level }}</td>
+        <td>{{ app.approver }}</td>
+        <td>{{ app.status }}</td>
+        <td>{{ app.approved_at }}</td>
+        <td class="small-text">{{ app.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Trip Overview -->
+  <div class="section-title">Trip Overview</div>
+  <table>
+    <tr>
+      <td class="label">Purpose</td>
+      <td class="value">{{ overview.purpose }}</td>
+    </tr>
+    <tr>
+      <td class="label">Travel Type</td>
+      <td class="value">{{ overview.travel_type }}</td>
+    </tr>
+    <tr>
+      <td class="label">Internal Order</td>
+      <td class="value">{{ overview.internal_order }}</td>
+    </tr>
+    <tr>
+      <td class="label">Cost Center / GL Code</td>
+      <td class="value">{{ overview.cost_center_gl }}</td>
+    </tr>
+    <tr>
+      <td class="label">Sanction Number</td>
+      <td class="value">{{ overview.sanction_number }}</td>
+    </tr>
+    <tr>
+      <td class="label">Total Advance Requested</td>
+      <td class="value">{{ overview.total_advance }}</td>
+    </tr>
+  </table>
+
+  <!-- Itinerary -->
+  <div class="section-title">Itinerary</div>
+  <table>
+    <tr>
+      <td class="label">Locations</td>
+      <td class="value">{{ itinerary.locations }}</td>
+    </tr>
+    <tr>
+      <td class="label">Travel Dates</td>
+      <td class="value">{{ itinerary.dates }}</td>
+    </tr>
+    <tr>
+      <td class="label">Travel Times</td>
+      <td class="value">{{ itinerary.times }}</td>
+    </tr>
+    <tr>
+      <td class="label">Travel Duration</td>
+      <td class="value">{{ itinerary.duration }}</td>
+    </tr>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Booking: Ticketing -->
+  <div class="section-title">Booking: Ticketing</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Mode / Class<br>Ticket No.<br>SpecialInstruction</th>
+        <th>Travel Date & Time<br>Advance Req.</th>
+        <th>Route<br>Self-arranged<br>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in transportation %}
+      <tr>
+        <td>
+          {{ b.mode }} ({{ b.class }})<br>
+          {{ b.ticket_no }}<br>
+          {{ b.special_instruction }}
+        </td>
+        <td>
+          {{ b.travel_datetime }}<br>
+          {{ b.advance_req }}
+        </td>
+        <td>
+          {{ b.route }}<br>
+          {{ b.self_arranged }}<br>
+          {{ b.status }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Accommodation -->
+  <div class="section-title">Booking: Accommodation</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Type / Location</th>
+        <th>Check-in</th>
+        <th>Check-out</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in accommodation %}
+      <tr>
+        <td>
+          {{ b.type }}<br>
+          {{ b.location }}<br>
+          {{ b.special_instruction }}
+        </td>
+        <td>
+          {{ b.checkin_dates }}<br>
+          {{ b.advance_req }}
+        </td>
+        <td>
+          {{ b.checkout_dates }}<br>
+          {{ b.self_arranged }}<br>
+          {{ b.status }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Conveyance -->
+  <div class="section-title">Booking: Conveyance</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Type / Passengers</th>
+        <th>Route</th>
+        <th>Reporting</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in conveyance %}
+      <tr>
+        <td>
+          {{ b.type }} {% if b.sub_type %}({{ b.sub_type }}){% endif %}<br>
+          {{ b.passengers }}<br>
+          {{ b.special_instruction }}
+        </td>
+        <td>
+          {{ b.route }}<br>
+          {{ b.advance_req }}
+        </td>
+        <td>
+          {{ b.reporting }}<br>
+          {{ b.self_arranged }}<br>
+          {{ b.status }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

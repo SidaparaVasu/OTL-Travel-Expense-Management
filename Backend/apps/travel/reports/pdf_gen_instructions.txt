@@ -1,0 +1,313 @@
+PDF GENERATION OPTIMIZATION GUIDE (PLAYWRIGHT + DJANGO + CELERY + DOCKER)
+
+Author: Backend Engineering Notes
+Scope: Internal system (~400–500 users), Docker deployment (8GB RAM), Playwright-based HTML → PDF generation.
+
+
+────────────────────────────────────────
+1. PURPOSE
+────────────────────────────────────────
+
+This document defines the architectural, operational, and performance
+standards for generating PDFs in the Travel Application system.
+
+Goals:
+
+• Ensure stable memory usage
+• Prevent container crashes (OOM)
+• Avoid unnecessary disk storage
+• Maintain predictable performance
+• Keep implementation maintainable
+• Support moderate concurrency safely
+
+This policy applies to all current and future PDF-related features.
+
+
+────────────────────────────────────────
+2. DESIGN PRINCIPLES
+────────────────────────────────────────
+
+2.1 PDFs Are Views, Not Source of Truth
+
+PDFs represent formatted output of database state.
+They are not authoritative records.
+
+The database remains the single source of truth.
+
+2.2 On-Demand Generation
+
+PDFs must be generated dynamically from current data.
+They must not be permanently stored unless legally required.
+
+2.3 Controlled Resource Usage
+
+Browser instances must be reused.
+Concurrency must be limited.
+Memory usage must remain predictable.
+
+2.4 Isolation of Heavy Work
+
+PDF generation must not block HTTP request threads.
+Heavy rendering must be delegated to Celery workers.
+
+
+────────────────────────────────────────
+3. ARCHITECTURE
+────────────────────────────────────────
+
+Flow:
+
+Nginx
+   ↓
+Django API
+   ↓
+Celery Task Queue (Redis)
+   ↓
+Celery Worker (Limited Concurrency)
+   ↓
+Playwright (Single Global Browser)
+   ↓
+PDF Bytes (In Memory)
+   ↓
+HTTP Response (Streaming)
+
+No intermediate file storage.
+No persistent PDF storage by default.
+
+
+────────────────────────────────────────
+4. STORAGE POLICY
+────────────────────────────────────────
+
+4.1 Default Behavior
+
+PDFs are NOT stored on disk.
+PDF bytes are generated in memory and returned directly to client.
+
+4.2 Exceptions (If Required in Future)
+
+PDFs may be stored only if:
+
+• Legal audit requirements exist
+• Regulatory compliance mandates snapshot preservation
+• Final state must be immutable record
+
+If storage becomes required:
+
+• Store only FINAL state PDFs
+• Never store intermediate versions
+• Implement automatic retention cleanup (7–30 days or policy-defined)
+
+4.3 Temp Files
+
+Temporary HTML files must NOT be created.
+Use Playwright `page.set_content()`.
+
+
+────────────────────────────────────────
+5. PLAYWRIGHT EXECUTION POLICY
+────────────────────────────────────────
+
+5.1 Browser Lifecycle
+
+• One browser instance per Celery worker
+• Reused for all PDF generations
+• Do NOT launch new browser per request
+
+5.2 Page Lifecycle
+
+• Create new page per PDF
+• Always close page in finally block
+
+5.3 Headless Configuration
+
+Launch Chromium with:
+
+--no-sandbox
+--disable-dev-shm-usage
+
+Required for Docker stability.
+
+5.4 Async Usage
+
+Playwright must use async API:
+playwright.async_api
+
+Celery task must call asyncio.run() safely.
+
+
+────────────────────────────────────────
+6. CONCURRENCY CONTROL POLICY
+────────────────────────────────────────
+
+Each PDF generation consumes approximately 200–300MB RAM.
+
+Given:
+Worker baseline ≈ 700MB
+
+Allowed concurrency:
+
+Maximum: 3
+
+Configuration:
+
+celery worker --concurrency=3 --prefetch-multiplier=1
+
+Reasoning:
+
+700MB + (300MB × 3) ≈ 1.6GB
+Safe under 8GB system limit.
+
+Under no circumstances should concurrency exceed 4 without load testing.
+
+
+────────────────────────────────────────
+7. RATE LIMITING POLICY
+────────────────────────────────────────
+
+To prevent abuse:
+
+• Maximum 5 PDF generations per minute per user
+• Enforced using Redis counter or django-ratelimit
+
+If limit exceeded:
+Return HTTP 429 (Too Many Requests)
+
+This prevents accidental load spikes.
+
+
+────────────────────────────────────────
+8. MEMORY MANAGEMENT POLICY
+────────────────────────────────────────
+
+8.1 Monitoring
+
+Memory must be monitored using:
+
+docker stats
+
+During staging load tests and periodically in production.
+
+8.2 Expected Usage
+
+Idle worker: ~700MB
+During PDF generation (3 concurrent): ~1.5–2.5GB
+
+If worker memory exceeds 3GB:
+Reduce concurrency immediately.
+
+8.3 OOM Prevention
+
+Never allow unlimited Celery concurrency.
+Never spawn multiple browser instances per worker.
+
+
+────────────────────────────────────────
+9. PERFORMANCE EXPECTATIONS
+────────────────────────────────────────
+
+For lightweight tabular reports:
+
+Average generation time: 300–900ms
+Under concurrency=3: stable performance
+
+If generation time exceeds 2 seconds:
+
+• Inspect HTML complexity
+• Check for large images
+• Check for external assets
+• Profile CPU usage
+
+
+────────────────────────────────────────
+10. SECURITY POLICY
+────────────────────────────────────────
+
+10.1 HTML Safety
+
+Do not render untrusted user-provided HTML.
+Only render server-generated templates.
+
+10.2 Access Control
+
+User must have permission to access travel application
+before PDF generation is triggered.
+
+10.3 Sensitive Data
+
+PDF must include only authorized data.
+Do not expose hidden/internal metadata.
+
+
+────────────────────────────────────────
+11. SCALABILITY STRATEGY
+────────────────────────────────────────
+
+Current system (400–500 users):
+Single Celery worker sufficient.
+
+Future scaling options:
+
+• Add second Celery worker container
+• Maintain concurrency limit per worker
+• Horizontal scaling before increasing concurrency
+
+Do NOT increase concurrency before horizontal scaling.
+
+
+────────────────────────────────────────
+12. FAILURE HANDLING
+────────────────────────────────────────
+
+If Playwright fails:
+
+• Log full error
+• Return structured error response
+• Do not crash worker
+
+Ensure:
+
+page.close() always runs
+browser remains alive
+
+
+────────────────────────────────────────
+13. DEPLOYMENT CHECKLIST
+────────────────────────────────────────
+
+Before production release:
+
+[ ] Celery concurrency set to 3
+[ ] Prefetch multiplier set to 1
+[ ] Async Playwright implemented
+[ ] Browser reused globally
+[ ] No temp HTML files created
+[ ] Rate limiting enabled
+[ ] docker stats baseline recorded
+[ ] Load test performed (concurrency=3)
+[ ] Memory stable under load
+
+
+────────────────────────────────────────
+14. DECISION SUMMARY
+────────────────────────────────────────
+
+We do NOT store PDFs.
+We generate them on-demand.
+We reuse browser instance.
+We limit concurrency strictly.
+We monitor memory usage.
+We scale horizontally if required.
+
+This ensures:
+
+• Predictable memory usage
+• No storage waste
+• Clean architecture
+• Production stability
+• Maintainable backend system
+
+
+────────────────────────────────────────
+END OF POLICY DOCUMENT
+────────────────────────────────────────

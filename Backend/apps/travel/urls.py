@@ -11,6 +11,7 @@ from .views.approval_delegation import ApprovalDelegationView
 from .views.cancellation import *
 from .views.dashboards import *
 from .views.analytics import TravelAnalyticsView, ComplianceReportView
+from .views.reports import TravelApplicationReportView
 from .views.travel_desk_views import *
 from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
@@ -30,6 +31,7 @@ urlpatterns = [
     path('applications/<int:pk>/submit/', TravelApplicationSubmitView.as_view(), name='travel-application-submit'),
     path('applications/<int:pk>/validate/', TravelApplicationValidationView.as_view(), name='travel-application-validate'),
     path('applications/<int:pk>/upload-bulk-file/', TravelApplicationBulkUploadView.as_view(), name='travel-application-upload-bulk-file'),
+    path('applications/<int:pk>/report/', TravelApplicationReportView.as_view(), name='travel-application-report'),
     path('applications/<int:application_id>/request-accommodation/', RequestAccommodationBookingView.as_view()),
 
     # Approval Workflow

@@ -263,6 +263,14 @@ export const travelAPI = {
     );
     return data;
   },
+
+  // Download Travel Application Report
+  downloadTravelApplicationReport: async (id: number) => {
+    const response = await apiClient.get(`/travel/applications/${id}/report/`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
 };
 
 export const locationAPI = {

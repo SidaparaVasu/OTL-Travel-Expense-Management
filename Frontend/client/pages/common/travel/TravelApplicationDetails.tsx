@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   UserCheck,
   FileText,
+  Printer,
 } from "lucide-react";
 import { travelAPI } from "@/src/api/travel-api";
 import { ROUTES } from "@/routes/routes";
@@ -143,13 +144,40 @@ export const TravelApplicationDetails: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-md hover:bg-slate-200 transition-all duration-200"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Go Back
-        </button>
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-md hover:bg-slate-200 transition-all duration-200"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                const blob = await travelAPI.downloadTravelApplicationReport(
+                  parseInt(id!),
+                );
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Travel_Request_${data?.application?.travel_request_id || id}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+              } catch (error) {
+                console.error("Failed to download report", error);
+                // Optional: Add toast notification here
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white border border-blue-600 rounded-md hover:bg-blue-100 transition-all duration-200 shadow-sm ml-2"
+          >
+            <Printer className="w-4 h-4" />
+            Download Report
+          </button>
+        </div>
+
         {/* Application Header */}
         <div className="bg-white border border-slate-200 overflow-hidden rounded-md shadow-sm transition-shadow duration-300">
           {/* Header Title */}
@@ -364,11 +392,11 @@ export const TravelApplicationDetails: React.FC = () => {
             </div>
           ) : (
             <>
-
               {/* Flight/Train Bookings */}
               <div className="border-b border-slate-200">
                 <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
-              Flight/Train Bookings [Bookings: {data.ticketing_bookings.length}]
+                  Flight/Train Bookings [Bookings:{" "}
+                  {data.ticketing_bookings.length}]
                 </div>
                 {data.ticketing_bookings.map((booking, idx) => (
                   <div
@@ -779,7 +807,8 @@ export const TravelApplicationDetails: React.FC = () => {
                               Remarks:
                             </span>{" "}
                             <span className="text-slate-900">
-                          {booking?.travel_desk?.remarks || "No remarks added"}
+                              {booking?.travel_desk?.remarks ||
+                                "No remarks added"}
                             </span>
                           </div>
                         </div>
@@ -869,7 +898,8 @@ export const TravelApplicationDetails: React.FC = () => {
               {/* Conveyance Bookings */}
               <div>
                 <div className="bg-slate-50 p-4 font-semibold text-slate-700 border-b border-slate-200">
-              Conveyance Bookings [Bookings: {data.conveyance_bookings.length}]
+                  Conveyance Bookings [Bookings:{" "}
+                  {data.conveyance_bookings.length}]
                 </div>
                 {data.conveyance_bookings.map((booking, idx) => (
                   <div

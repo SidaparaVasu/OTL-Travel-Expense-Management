@@ -68,6 +68,21 @@ class Booking(models.Model):
     )
     uploaded_at = models.DateTimeField(null=True, blank=True)
     
+    # Travel Desk Forwarding
+    handling_travel_desk_user = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='handling_bookings',
+        help_text="The specific travel desk user currently working on this booking."
+    )
+    travel_desk_forwarded_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="When this booking was specifically forwarded to a desk user."
+    )
+    
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

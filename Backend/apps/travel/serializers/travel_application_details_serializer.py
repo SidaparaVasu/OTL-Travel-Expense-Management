@@ -194,10 +194,17 @@ class AccommodationBookingSerializer(serializers.Serializer):
     advance_taken = serializers.SerializerMethodField()
     meal_preference = serializers.SerializerMethodField()
     special_instructions = serializers.CharField(source='special_instruction')
+    is_self_arranged = serializers.SerializerMethodField()
     travel_desk = serializers.SerializerMethodField()
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+
+    def get_is_self_arranged(self, obj):
+        # Check sub_option name for 'Self'
+        if obj.sub_option and 'self' in obj.sub_option.name.lower():
+            return True
+        return obj.booking_details.get('is_self_arranged', False)
 
     def get_accommodation_type(self, obj):
         # Get from sub_option name
@@ -318,10 +325,17 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     club_booking = serializers.SerializerMethodField()
     club_booking_reason = serializers.SerializerMethodField()
     guests = serializers.SerializerMethodField()
+    is_self_arranged = serializers.SerializerMethodField()
     travel_desk = serializers.SerializerMethodField()
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+
+    def get_is_self_arranged(self, obj):
+        # Check sub_option name for 'Self'
+        if obj.sub_option and 'self' in obj.sub_option.name.lower():
+            return True
+        return obj.booking_details.get('is_self_arranged', False)
 
     def get_vehicle_type(self, obj):
         # Get from sub_option name or booking_details
