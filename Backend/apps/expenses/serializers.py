@@ -212,6 +212,10 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             "approval_history_count",
             "last_approver",
             "last_action_status",
+            "actual_travel_start_date",
+            "actual_travel_start_time",
+            "actual_travel_end_date",
+            "actual_travel_end_time",
             "created_on",
             "updated_on",
         ]
@@ -242,6 +246,12 @@ class ClaimValidateSerializer(serializers.Serializer):
     acknowledged_warnings = serializers.ListField(required=False)
     exception_reasons = serializers.ListField(required=False)
 
+    # Actual Travel Dates
+    actual_travel_start_date = serializers.DateField(required=False, allow_null=True)
+    actual_travel_start_time = serializers.TimeField(required=False, allow_null=True)
+    actual_travel_end_date = serializers.DateField(required=False, allow_null=True)
+    actual_travel_end_time = serializers.TimeField(required=False, allow_null=True)
+
     def validate(self, data):
         tr = TravelApplication.objects.filter(id=data["travel_application_id"]).first()
         if not tr:
@@ -268,6 +278,12 @@ class ClaimSubmitSerializer(serializers.Serializer):
     items = ExpenseItemSerializer(many=True)
     acknowledged_warnings = serializers.ListField(required=False)
     exception_reasons = serializers.ListField(required=False)
+
+    # Actual Travel Dates
+    actual_travel_start_date = serializers.DateField(required=False, allow_null=True)
+    actual_travel_start_time = serializers.TimeField(required=False, allow_null=True)
+    actual_travel_end_date = serializers.DateField(required=False, allow_null=True)
+    actual_travel_end_time = serializers.TimeField(required=False, allow_null=True)
 
     def validate(self, data):
         # basic TR validation
@@ -336,6 +352,10 @@ class ClaimSubmitSerializer(serializers.Serializer):
                 final_amount_payable=prepared["final_amount"],
                 status=default_status,
                 exceptions=prepared["warnings"] or {},
+                actual_travel_start_date=validated_data.get("actual_travel_start_date"),
+                actual_travel_start_time=validated_data.get("actual_travel_start_time"),
+                actual_travel_end_date=validated_data.get("actual_travel_end_date"),
+                actual_travel_end_time=validated_data.get("actual_travel_end_time"),
             )
 
             manager_approver = get_initial_claim_approver(tr)

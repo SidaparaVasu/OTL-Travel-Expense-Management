@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from django.core.exceptions import ValidationError
@@ -130,19 +130,26 @@ def _get_city_category_for_date(trips, current_date: date) -> str:
 def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
     """
     Calculate DA/Incidental for each day of travel.
+    Respects actual travel dates/times if provided.
     """
 
     # ---------- Extract travel dates ----------
-    start = _date_from_str(getattr(tr, "start_date", None))
-    end = _date_from_str(getattr(tr, "end_date", None))
+    # Use actual dates if provided, else fallback to TR dates
+    start = actual_start_date or _date_from_str(getattr(tr, "start_date", None))
+    end = actual_end_date or _date_from_str(getattr(tr, "end_date", None))
 
     trips = tr.trip_details.all()
 
-    # Fallback to TripDetails table
+    # Fallback to TripDetails table if basic dates missing (and no actuals)
     if not start or not end:
         if trips.exists():
-            start = _date_from_str(trips.order_by("departure_date").first().departure_date)
-            end = _date_from_str(trips.order_by("-return_date").first().return_date)
+            # If actuals not provided, try to infer from trips
+            if not start:
+                first_trip = trips.order_by("departure_date").first()
+                start = _date_from_str(first_trip.departure_date) if first_trip else None
+            if not end:
+                last_trip = trips.order_by("-return_date").first()
+                end = _date_from_str(last_trip.return_date) if last_trip else None
 
     if not start or not end:
         return []  # cannot calculate
@@ -154,9 +161,6 @@ def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
     # ---------- Build breakdown ----------
     results = []
     
-    # Sort trips by departure date
-    # sorted_trips = trips.order_by("departure_date") # Already sorted in definition or usage
-
     curr = start
     while curr <= end:
         # Determine City Category for this specific date
@@ -173,19 +177,32 @@ def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
         # Default: 24 hours (full day)
         duration_hours = Decimal(24)
         
-        # Check if Start Day (find matching trip departure)
-        # We look for a trip where departure_date == curr
-        start_trip = trips.filter(departure_date=curr).first()
+        # --- Logic for Start Time ---
+        st = None
+        # If Current Day is Actual Start Date -> Use Actual Start Time
+        if actual_start_date and curr == actual_start_date:
+            st = actual_start_time
+        # Else check trips for departure match (Standard logic)
+        elif not actual_start_date:
+            start_trip = trips.filter(departure_date=curr).first()
+            if start_trip:
+                st = start_trip.start_time
         
-        # Check if End Day (find matching trip return)
-        end_trip = trips.filter(return_date=curr).first()
+        # --- Logic for End Time ---
+        et = None
+        # If Current Day is Actual End Date -> Use Actual End Time
+        if actual_end_date and curr == actual_end_date:
+            et = actual_end_time
+        # Else check trips for return match (Standard logic)
+        elif not actual_end_date:
+            end_trip = trips.filter(return_date=curr).first()
+            if end_trip:
+                et = end_trip.end_time
         
-        if start_trip and end_trip and start_trip == end_trip:
-             # Single Day Trip
-             # Duration = End Time - Start Time
-             st = start_trip.start_time
-             et = start_trip.end_time
-             
+        # --- Compute Duration based on st/et ---
+        
+        # Case 1: Single Day (Start & End on same day)
+        if curr == start and curr == end:
              if st and et:
                  # Calculate diff
                  dt_start = datetime.combine(curr, st)
@@ -193,27 +210,22 @@ def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
                  diff = dt_end - dt_start
                  duration_hours = Decimal(diff.total_seconds() / 3600)
              else:
-                 # Fallback if times missing, though model says start_time mandatory
-                 duration_hours = Decimal(12) # Assume half day or full? Safer to assume full if unknown
+                 # Fallback
+                 duration_hours = Decimal(12) 
                  
-        elif start_trip:
-             # First day of multi-day trip
-             # Duration = 24h - Start Time
-             # e.g. Start 8 PM -> 4 hours travel
-             st = start_trip.start_time
+        # Case 2: Start Day (but not End Day)
+        elif curr == start:
              if st:
                  duration = 24 - (st.hour + st.minute/60.0)
                  duration_hours = Decimal(duration)
                  
-        elif end_trip:
-             # Last day of multi-day trip
-             # Duration = End Time
-             # e.g. End 10 AM -> 10 hours travel
-             et = end_trip.end_time
-             # Note: model says end_time can be null/blank? line 433
+        # Case 3: End Day (but not Start Day)
+        elif curr == end:
              if et:
                  duration = et.hour + et.minute/60.0
                  duration_hours = Decimal(duration)
+        
+        # Case 4: Middle Day -> 24 hours (already set)
         
         # Sanity check
         if duration_hours < 0: duration_hours = Decimal(0)
@@ -228,8 +240,6 @@ def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
         else:
             da = Decimal("0")
             inc = Decimal("0")
-
-        # Future: Add Stay Allowance check here if needed
 
         results.append({
             "date": curr,
@@ -339,8 +349,24 @@ def validate_claim_payload(
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
     # 4 — DA Breakdown
+    
+    # Helper to parse time string/obj
+    def _to_time(v):
+        if not v: return None
+        if isinstance(v, (datetime, time)): return v if isinstance(v, time) else v.time()
+        try: return datetime.strptime(str(v), "%H:%M:%S").time()
+        except: 
+            try: return datetime.strptime(str(v), "%H:%M").time()
+            except: return None
+
     try:
-        breakdown = calculate_da_breakdown(tr)
+        breakdown = calculate_da_breakdown(
+            tr,
+            actual_start_date=_date_from_str(payload.get("actual_travel_start_date")),
+            actual_start_time=_to_time(payload.get("actual_travel_start_time")),
+            actual_end_date=_date_from_str(payload.get("actual_travel_end_date")),
+            actual_end_time=_to_time(payload.get("actual_travel_end_time"))
+        )
     except ValidationError as e:
         errors.update(e.message_dict)
         return {"errors": errors, "warnings": warnings, "computed": computed}
