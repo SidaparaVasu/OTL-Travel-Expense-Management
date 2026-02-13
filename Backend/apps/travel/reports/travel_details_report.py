@@ -5,11 +5,11 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from apps.travel.models import TravelApplication
 from apps.travel.serializers.travel_application_details_serializer import TravelApplicationDetailsSerializer
-from apps.travel.reports.base_report import BaseReport
+from apps.travel.reports.base_report import BaseReport, TravelReportMixin
 
 logger = logging.getLogger(__name__)
 
-class TravelDetailsReport(BaseReport):
+class TravelDetailsReport(TravelReportMixin, BaseReport):
     """
     Report class for generating Travel Application Details PDF.
     """
@@ -31,25 +31,9 @@ class TravelDetailsReport(BaseReport):
         """
         Maps serialized data and model instance to the flat context structure.
         """
-        employee = application.employee
-        
         context = {
-            "header": {
-                "travel_request_id": serialized_data['application']['travel_request_id'],
-                "status": serialized_data['application']['status_label'],
-                "submitted_date": serialized_data['timestamps']['submitted_at'],
-                "generated_on": datetime.now().strftime("%d/%m/%Y %I:%M %p")
-            },
-            "employee": {
-                "name": employee.get_full_name(),
-                "email": employee.email,
-                "mobile": getattr(employee, 'mobile_number', 'N/A'),
-                "gender": getattr(employee, 'gender', 'N/A'),
-                "department": serialized_data['application']['department'],
-                "designation": serialized_data['application']['designation'],
-                "grade": serialized_data['application']['grade'],
-                "branch_location": getattr(employee, 'location', 'N/A')
-            },
+            "header": self._get_header_context(application, serialized_data),
+            "employee": self._get_employee_context(application, serialized_data),
             "overview": {
                 "purpose": serialized_data['application']['purpose'],
                 "travel_type": application.get_travel_for_display(),
@@ -67,19 +51,9 @@ class TravelDetailsReport(BaseReport):
             "transportation": self._format_transportation_list(serialized_data['ticketing_bookings']),
             "accommodation": self._format_accommodation_list(serialized_data['accommodation_bookings']),
             "conveyance": self._format_conveyance_list(serialized_data['conveyance_bookings']),
-            "approvals": self._format_approval_list(serialized_data.get('approval_workflow', []))
+            "approvals": self._get_approval_context(serialized_data)
         }
         return context
-
-    def _extract_time(self, datetime_str):
-        if not datetime_str: return ""
-        try:
-            parts = datetime_str.split(' ')
-            if len(parts) >= 3:
-                return f"{parts[1]} {parts[2]}"
-            return ""
-        except:
-            return ""
 
     def _format_transportation_list(self, bookings):
         formatted = []
@@ -127,19 +101,6 @@ class TravelDetailsReport(BaseReport):
                 "advance_req": b.get('advance_taken', ''),
                 "self_arranged": "Yes" if b.get('is_self_arranged') else "No",
                 "special_instruction": b.get('special_instructions', '')
-            })
-        return formatted
-
-    def _format_approval_list(self, approvals):
-        formatted = []
-        for app in approvals:
-            formatted.append({
-                "level": app.get('level', '').replace('_', ' ').title(),
-                "sequence": app.get('sequence', ''),
-                "approver": app.get('approver', ''),
-                "status": app.get('status', '').title(),
-                "approved_at": app.get('approved_at', ''),
-                "notes": app.get('notes', '')
             })
         return formatted
 

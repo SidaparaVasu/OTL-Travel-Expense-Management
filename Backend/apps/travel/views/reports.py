@@ -47,3 +47,38 @@ class TravelApplicationReportView(APIView):
         except Exception as e:
             logger.error(f"Error serving report for app {pk}: {str(e)}", exc_info=True)
             return Response({'error': 'An unexpected error occurred.'}, status=500)
+
+class AdvanceRequestReportView(APIView):
+    """
+    API View to download Advance Request Report (PDF).
+    Uses Celery for generation and enforces rate limits.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(ratelimit(key='user', rate='5/m', method='GET', block=True))
+    def get(self, request, pk):
+        try:
+            # Report Class Path
+            report_class = 'apps.travel.reports.advance_request_report.AdvanceRequestReport'
+            
+            # Trigger Celery Task
+            task = generate_report_task.delay(report_class, pk)
+            
+            try:
+                pdf_bytes = task.get(timeout=30)
+            except Exception as e:
+                logger.error(f"Task processing timed out or failed: {e}")
+                return Response({'error': 'Report generation timed out or failed. Please try again.'}, status=504)
+            
+            if not pdf_bytes:
+                 return Response({'error': 'Report generation returned no data.'}, status=500)
+
+            # Serve the PDF
+            filename = f"Advance_Request_{pk}.pdf"
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+
+        except Exception as e:
+            logger.error(f"Error serving report for app {pk}: {str(e)}", exc_info=True)
+            return Response({'error': 'An unexpected error occurred.'}, status=500)

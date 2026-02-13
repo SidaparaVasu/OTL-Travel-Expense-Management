@@ -59,3 +59,55 @@ class BaseReport(ABC):
         Synchronous wrapper to generate the PDF.
         """
         return self.generate_pdf()
+
+
+class TravelReportMixin:
+    """
+    Mixin providing common context helpers for Travel Reports.
+    """
+    
+    def _get_header_context(self, application, serialized_data):
+        from datetime import datetime
+        return {
+            "travel_request_id": serialized_data['application']['travel_request_id'],
+            "status": serialized_data['application']['status_label'],
+            "submitted_date": serialized_data['timestamps']['submitted_at'],
+            "generated_on": datetime.now().strftime("%d/%m/%Y %I:%M %p")
+        }
+
+    def _get_employee_context(self, application, serialized_data):
+        employee = application.employee
+        return {
+            "name": employee.get_full_name(),
+            "email": employee.email,
+            "mobile": getattr(employee, 'mobile_number', 'N/A'),
+            "gender": getattr(employee, 'gender', 'N/A'),
+            "department": serialized_data['application']['department'],
+            "designation": serialized_data['application']['designation'],
+            "grade": serialized_data['application']['grade'],
+            "branch_location": getattr(employee, 'location', 'N/A')
+        }
+
+    def _get_approval_context(self, serialized_data):
+        formatted = []
+        approvals = serialized_data.get('approval_workflow', [])
+        for app in approvals:
+            formatted.append({
+                "level": app.get('level', '').replace('_', ' ').title(),
+                "sequence": app.get('sequence', ''),
+                "approver": app.get('approver', ''),
+                "status": app.get('status', '').title(),
+                "approved_at": app.get('approved_at', ''),
+                "notes": app.get('notes', '')
+            })
+        return formatted
+
+    def _extract_time(self, datetime_str):
+        if not datetime_str: return ""
+        try:
+            parts = datetime_str.split(' ')
+            if len(parts) >= 3:
+                return f"{parts[1]} {parts[2]}"
+            return ""
+        except:
+            return ""

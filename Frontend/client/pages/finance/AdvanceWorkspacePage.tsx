@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, IndianRupee, CheckCircle, Clock } from "lucide-react";
+import { Search, Filter, IndianRupee, CheckCircle, Clock, Printer, Loader2} from "lucide-react";
+import { toast } from "sonner";
 import { financeAdvanceAPI } from "@/src/api/finance-advance";
 import { ROUTES } from "@/routes/routes";
 
@@ -12,6 +13,33 @@ const AdvanceWorkspacePage = () => {
     "pending",
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
+  const handleDownloadReport = async (req: any) => {
+    try {
+      setDownloadingId(req.id);
+      toast.loading("Generating report...", { id: "download-report" });
+      const blob = await financeAdvanceAPI.downloadAdvanceRequestReport(req.id);
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Advance_Request_${req.travel_request_id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      toast.success("Report downloaded successfully", {
+        id: "download-report",
+      });
+    } catch (error) {
+      console.error("Failed to download report", error);
+      toast.error("Failed to download report", { id: "download-report" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchRequests();
@@ -185,12 +213,32 @@ const AdvanceWorkspacePage = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex gap-2 justify-end">
                       <button
                         onClick={() => navigate(ROUTES.advanceRequisitionPage(req.id))}
                         className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded hover:bg-blue-100 transition-colors"
                       >
                         {activeTab === "pending" ? "Process" : "View Details"}
+                      </button>
+
+                      <button
+                        onClick={() => handleDownloadReport(req)}
+                        disabled={downloadingId === req.id}
+                        className={`flex items-center gap-2 bg-gray-100 px-3 py-1 text-sm font-medium rounded-md transition-all duration-200 ${
+                          downloadingId === req.id
+                            ? "bg-blue-50 text-blue-400 cursor-not-allowed"
+                            : "text-blue-600 hover:text-blue-800 bg-white hover:bg-blue-100"
+                        }`}
+                        title="Download Report"
+                      >
+                        {downloadingId === req.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Printer className="w-4 h-4" />
+                        )}
+                        {/* {downloadingId === req.id
+                          ? "Generating..."
+                          : "Download"} */}
                       </button>
                     </td>
                   </tr>
