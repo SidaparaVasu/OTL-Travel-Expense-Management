@@ -13,7 +13,7 @@ WORKDIR /app
 # ---- System dependencies ----
 # Added build-essential, gcc, and dev libraries for mysqlclient and pyodbc
 RUN apt-get update \
- && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
     gcc \
@@ -21,17 +21,20 @@ RUN apt-get update \
     pkg-config \
     default-libmysqlclient-dev \
     unixodbc-dev \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # ---- Install Python dependencies ----
 COPY requirements.txt .
 
 RUN pip install --upgrade pip \
- && pip install \
+    && pip install \
     --no-cache-dir \
     --default-timeout=120 \
     --retries=10 \
     -r requirements.txt
+
+# Install Playwright Browsers and Dependencies
+RUN playwright install --with-deps chromium
 
 # ---- Copy application code ----
 COPY . .

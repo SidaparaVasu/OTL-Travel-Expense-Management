@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { travelAPI } from "@/src/api/travel-api";
 import { ROUTES } from "@/routes/routes";
+import { toast } from "sonner";
 
 // Helper to get full file URL
 const getFileUrl = (url: string) => {
@@ -57,6 +58,7 @@ export const TravelApplicationDetails: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -152,12 +154,20 @@ export const TravelApplicationDetails: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             Go Back
           </button>
+
           <button
+            disabled={isDownloading}
             onClick={async () => {
               try {
+                setIsDownloading(true);
+                toast.loading("Generating report... This may take a moment.", {
+                  id: "report-download",
+                });
+
                 const blob = await travelAPI.downloadTravelApplicationReport(
                   parseInt(id!),
                 );
+
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
@@ -166,15 +176,33 @@ export const TravelApplicationDetails: React.FC = () => {
                 a.click();
                 window.URL.revokeObjectURL(url);
                 a.remove();
-              } catch (error) {
+
+                toast.success("Report downloaded successfully", {
+                  id: "report-download",
+                });
+              } catch (error: any) {
                 console.error("Failed to download report", error);
-                // Optional: Add toast notification here
+                const errorMessage =
+                  error.response?.data?.message ||
+                  error.message ||
+                  "Failed to download report";
+                toast.error(errorMessage, { id: "report-download" });
+              } finally {
+                setIsDownloading(false);
               }
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 bg-white border border-blue-600 rounded-md hover:bg-blue-100 transition-all duration-200 shadow-sm ml-2"
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-md transition-all duration-200 shadow-sm ml-2 ${
+              isDownloading
+                ? "bg-blue-50 text-blue-400 border-blue-200 cursor-not-allowed"
+                : "text-blue-600 hover:text-blue-800 bg-white border-blue-600 hover:bg-blue-100"
+            }`}
           >
-            <Printer className="w-4 h-4" />
-            Download Report
+            {isDownloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Printer className="w-4 h-4" />
+            )}
+            {isDownloading ? "Generating..." : "Download Report"}
           </button>
         </div>
 

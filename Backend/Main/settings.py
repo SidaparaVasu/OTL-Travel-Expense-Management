@@ -208,10 +208,10 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': f"redis://{env('REDIS_HOST', default='redis')}:{env('REDIS_PORT', default='6379')}/1",
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PASSWORD': env('REDIS_PASSWORD', default=None),
-        }
+        # 'OPTIONS': {
+        #     # 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        #     'PASSWORD': env('REDIS_PASSWORD', default=None),
+        # }
     }
 }
 
@@ -220,7 +220,7 @@ SENDGRID_API_KEY = env('SENDGRID_API_KEY', default='')
 
 # Celery Configuration
 CELERY_BROKER_URL = f"redis://{env('REDIS_HOST', default='redis')}:{env('REDIS_PORT', default='6379')}/0"
-CELERY_RESULT_BACKEND = 'django-db'  # Store results in Django database
+CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST', default='redis')}:{env('REDIS_PORT', default='6379')}/0"  # Store results in Redis to avoid Django ORM async issues
 CELERY_CACHE_BACKEND = 'default'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -228,7 +228,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
-CELERY_WORKER_PREFETCH_MULTIPLIER = 4
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_CONCURRENCY = 3
 CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
 # Celery Beat (Scheduler) Configuration
