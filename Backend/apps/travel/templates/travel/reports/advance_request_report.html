@@ -5,36 +5,49 @@
   <style>
     @page {
       size: A4 portrait;
-      margin: 1.5cm;
+      margin: 0.7cm;
     }
 
     body {
       font-family: Helvetica, Arial, sans-serif;
       font-size: 10pt;
       line-height: 1.4;
-      color: #222;
+      color: #333;
     }
 
     h1 {
       font-size: 18pt;
       margin: 0;
-      padding: 0;
-      
     }
 
     .header-box {
-      border: 1px solid #000;
+      border: 1px solid #444;
       padding: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       background-color: #F1F5F9;
     }
 
-    .section-title {
-      font-size: 13pt;
+    .summary-strip {
+      border: 1px solid #444;
+      margin-bottom: 18px;
+    }
+
+    .summary-strip td {
+      padding: 8px;
+      border-right: 1px solid #444;
       font-weight: bold;
-      margin: 25px 0 10px 0;
-      padding-bottom: 4px;
-      border-bottom: 1px solid #000;
+    }
+
+    .summary-strip td:last-child {
+      border-right: none;
+    }
+
+    .section-title {
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 18px 0 6px 0;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #444;
     }
 
     table {
@@ -48,37 +61,61 @@
       text-align: left;
       background-color: #F1F5F9;
       padding: 6px;
-      border: 1px solid #000;
+      border: 1px solid #999;
     }
 
     td {
       padding: 6px;
       vertical-align: top;
-      border: 1px solid #000;
+      border: 1px solid #999;
+      word-wrap: break-word;
     }
 
     .label {
-      width: 30%;
+      width: 20%;
+      font-weight: bold;
+      background-color: #F8FAFC;
+    }
+
+    .label-w-17 {
+      width: 17%;
       font-weight: bold;
       background-color: #F8FAFC;
     }
 
     .value {
-      width: 70%;
-    }
-
-    .no-border td {
-      border: none;
-      padding: 4px 0;
+      width: 30%;
     }
 
     .text-right {
       text-align: right;
+      white-space: nowrap;
+    }
+
+    .text-center {
+      text-align: center;
     }
 
     .total-row td {
       font-weight: bold;
+      background-color: #E2E8F0;
+      font-size: 11pt;
+    }
+
+    .finance-box {
+      border: 2px solid #444;
+      padding: 8px;
       background-color: #F8FAFC;
+      margin-top: 5px;
+    }
+
+    .footer {
+      text-align: right;
+      font-size: 8pt;
+      margin-top: 30px;
+      border-top: 1px solid #ccc;
+      padding-top: 5px;
+      color: #666;
     }
 
     .small-text {
@@ -95,32 +132,59 @@
     <h1>Advance Request</h1>
   </div>
 
+  <!-- Summary Strip -->
+  <table class="summary-strip">
+    <tr>
+      <td>Request ID:<br>{{ trip_details.travel_request_id }}</td>
+      <td>Total Requested:<br>{{ advance_breakdown.total }}</td>
+      <td>Processed Amount:<br>{{ finance_action.processed_amount }}</td>
+      <td>Status:<br>{{ finance_action.status }}</td>
+    </tr>
+  </table>
+
   <!-- Applicant Details -->
   <div class="section-title">Applicant Details</div>
   <table>
     <tr>
       <td class="label">Name</td>
       <td class="value">{{ employee.name }}</td>
-    </tr>
-    <tr>
       <td class="label">Email</td>
       <td class="value">{{ employee.email }}</td>
     </tr>
     <tr>
       <td class="label">Contact No.</td>
       <td class="value">{{ employee.mobile }}</td>
-    </tr>
-    <tr>
       <td class="label">Department</td>
       <td class="value">{{ employee.department }}</td>
     </tr>
     <tr>
       <td class="label">Designation</td>
       <td class="value">{{ employee.designation }}</td>
-    </tr>
-    <tr>
       <td class="label">Grade</td>
       <td class="value">{{ employee.grade }}</td>
+    </tr>
+  </table>
+
+  <!-- Trip Details -->
+  <div class="section-title">Trip Details</div>
+  <table>
+    <tr>
+      <td class="label-w-17">Purpose</td>
+      <td class="value">{{ trip_details.purpose }}</td>
+      <td class="label-w-17">Internal Order</td>
+      <td class="value">{{ trip_details.internal_order }}</td>
+    </tr>
+    <tr>
+      <td class="label-w-17">GL Code</td>
+      <td class="value">{{ trip_details.gl_code }}</td>
+      <td class="label-w-17">Sanction Number</td>
+      <td class="value">{{ trip_details.sanction_number }}</td>
+    </tr>
+    <tr>
+      <td class="label-w-17">Trip Start Date</td>
+      <td class="value">{{ trip_details.start_date }}</td>
+      <td class="label-w-17">Trip End Date</td>
+      <td class="value">{{ trip_details.end_date }}</td>
     </tr>
   </table>
 
@@ -129,17 +193,17 @@
   <table>
     <thead>
       <tr>
-        <th style="width:35%;">Approver Name</th>
-        <th style="width:20%; text-align: center;">Approved Date</th>
-        <th style="width:45%; text-align: right;">Remarks</th>
+        <th style="width:30%;">Approver Name</th>
+        <th style="width:25%;">Approved Date</th>
+        <th style="width:45%;">Remarks</th>
       </tr>
     </thead>
     <tbody>
       {% for approval in approvals %}
       <tr>
         <td>{{ approval.approver }}</td>
-        <td style="text-align: center;">{{ approval.approved_at }}</td>
-        <td class="small-text" style="text-align: right;">{{ approval.notes }}</td>
+        <td>{{ approval.approved_at }}</td>
+        <td class="small-text">{{ approval.notes }}</td>
       </tr>
       {% empty %}
       <tr>
@@ -149,64 +213,29 @@
     </tbody>
   </table>
 
-  <!-- Trip Details -->
-  <div class="section-title">Trip Details</div>
-  <table>
-    <tr>
-      <td class="label">Travel Request ID</td>
-      <td class="value">{{ trip_details.travel_request_id }}</td>
-    </tr>
-    <tr>
-      <td class="label">Purpose</td>
-      <td class="value">{{ trip_details.purpose }}</td>
-    </tr>
-    <tr>
-      <td class="label">Trip Start Date</td>
-      <td class="value">{{ trip_details.start_date }}</td>
-    </tr>
-    <tr>
-      <td class="label">Trip End Date</td>
-      <td class="value">{{ trip_details.end_date }}</td>
-    </tr>
-    <tr>
-      <td class="label">Internal Order</td>
-      <td class="value">{{ trip_details.internal_order }}</td>
-    </tr>
-    <tr>
-      <td class="label">GL Code</td>
-      <td class="value">{{ trip_details.gl_code }}</td>
-    </tr>
-    <tr>
-      <td class="label">Sanction Number</td>
-      <td class="value">{{ trip_details.sanction_number }}</td>
-    </tr>
-  </table>
-
   <!-- Advance Breakdown -->
   <div class="section-title">Advance Breakdown</div>
   <table>
     <thead>
       <tr>
-        <th style="width:30%;">Travel Mode</th>
-        <th style="width:30%; text-align: center;">Travel Sub Option</th>
-        <th style="width:40%; text-align: right;">Amount Requested</th>
+        <th style="width:70%;">Travel Mode</th>
+        <th style="width:30%;" class="text-right">Amount Requested</th>
       </tr>
     </thead>
     <tbody>
       {% for item in advance_breakdown.items %}
       <tr>
-        <td>{{ item.mode }}</td>
-        <td style="text-align: center;">{{ item.sub_option }}</td>
+        <td>{{ item.mode }} - {{ item.sub_option }}</td>
         <td class="text-right">{{ item.amount }}</td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="3">No advance requested.</td>
+        <td colspan="2">No advance requested.</td>
       </tr>
       {% endfor %}
 
       <tr class="total-row">
-        <td colspan="2">Total Requested Advance</td>
+        <td colspan="1">Total Requested Advance</td>
         <td class="text-right">{{ advance_breakdown.total }}</td>
       </tr>
     </tbody>
@@ -214,32 +243,33 @@
 
   <!-- Finance Action -->
   <div class="section-title">Finance Action</div>
-  <table>
-    <tr>
-      <td class="label">Processed Amount</td>
-      <td class="value">{{ finance_action.processed_amount }}</td>
-    </tr>
-    <tr>
-      <td class="label">Payment Mode</td>
-      <td class="value">{{ finance_action.payment_mode }}</td>
-    </tr>
-    <tr>
-      <td class="label">Reference Number</td>
-      <td class="value">{{ finance_action.reference_number }}</td>
-    </tr>
-    <tr>
-      <td class="label">Remarks</td>
-      <td class="value small-text">{{ finance_action.remarks }}</td>
-    </tr>
-    <tr>
-      <td class="label">Status</td>
-      <td class="value">{{ finance_action.status }}</td>
-    </tr>
-  </table>
-
+  <!-- <div class="finance-box"> -->
+    <table>
+      <tr>
+        <td class="label-w-17">Processed Amount</td>
+        <td class="value">{{ finance_action.processed_amount }}</td>
+       </tr>
+      <tr>
+        <td class="label-w-17">Payment Mode</td>
+        <td class="value">{{ finance_action.payment_mode }}</td>
+         </tr>
+      <tr>
+        <td class="label-w-17">Reference Number</td>
+        <td class="value">{{ finance_action.reference_number }}</td>
+         </tr>
+      <tr>
+        <td class="label-w-17">Status</td>
+        <td class="value">{{ finance_action.status }}</td>
+      </tr>
+      <tr>
+        <td class="label-w-17">Remarks</td>
+        <td colspan="3" class="small-text">{{ finance_action.remarks }}</td>
+      </tr>
+    </table>
+  <!-- </div> -->
 
   <!-- Footer -->
-  <div style="text-align: right; font-size: 8pt; margin-top: 30px; border-top: 1px solid #ccc; padding-top: 5px; color: #666;">
+  <div class="footer">
     Generated on: {{ header.generated_on }}
   </div>
 
