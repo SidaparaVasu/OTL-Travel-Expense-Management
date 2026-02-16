@@ -47,4 +47,5 @@ EXPOSE 8000
 # ---- Production server ----
 # Note: Keep gunicorn for prod, but you have 'runserver' in your docker-compose. 
 # I recommend using this CMD and removing the 'command' override in docker-compose.
-CMD ["gunicorn", "Main.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+# CMD ["gunicorn", "Main.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+CMD ["gunicorn", "Main.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "5", "--timeout", "120"]

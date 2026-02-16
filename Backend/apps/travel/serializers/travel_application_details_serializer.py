@@ -487,14 +487,48 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         ]
 
     def get_application(self, obj):
+        employee = obj.employee
+        # Try to get organizational profile
+        profile = getattr(employee, 'organizational_profile', None)
+
+        # Helper to safely get nested attribute
+        def get_attr(source, attr, nested_attr=None):
+            if not source: return None
+            val = getattr(source, attr, None)
+            if val and nested_attr:
+                return getattr(val, nested_attr, None)
+            return val
+
+        # 1. Employee ID
+        employee_id = get_attr(profile, 'employee_id')
+        if not employee_id:
+            employee_id = get_attr(employee, 'employee_id')
+        if not employee_id:
+            employee_id = employee.username
+
+        # 2. Grade
+        grade = get_attr(profile, 'grade', 'name')
+        if not grade:
+            grade = get_attr(employee, 'grade', 'name') or ""
+
+        # 3. Department
+        department = get_attr(profile, 'department', 'dept_name')
+        if not department:
+            department = get_attr(employee, 'department', 'dept_name') or ""
+
+        # 4. Designation
+        designation = get_attr(profile, 'designation', 'designation_name')
+        if not designation:
+            designation = get_attr(employee, 'designation', 'designation_name') or ""
+
         return {
             'travel_request_id': obj.get_travel_request_id(),
             'purpose': obj.purpose,
-            'employee_name': obj.employee.get_full_name(),
-            'employee_id': obj.employee.employee_id if hasattr(obj.employee, 'employee_id') else obj.employee.username,
-            'grade': obj.employee.grade.name if hasattr(obj.employee, 'grade') and obj.employee.grade else "",
-            'department': obj.employee.department.name if hasattr(obj.employee, 'department') and obj.employee.department else "",
-            'designation': obj.employee.designation.name if hasattr(obj.employee, 'designation') and obj.employee.designation else "",
+            'employee_name': employee.get_full_name(),
+            'employee_id': employee_id,
+            'grade': grade,
+            'department': department,
+            'designation': designation,
             'status': obj.status,
             'status_label': obj.get_status_display(),
             'bulk_upload_file': obj.bulk_upload_file.url if obj.bulk_upload_file else None

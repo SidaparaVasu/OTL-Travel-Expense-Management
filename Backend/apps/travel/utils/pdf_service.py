@@ -7,39 +7,53 @@ logger = logging.getLogger(__name__)
 
 class PDFService:
     """
-    Singleton service to handle Playwright browser instance and PDF generation.
-    Uses Sync API to avoid asyncio loop mismatch issues in Celery.
+    Service to handle Playwright browser instance and PDF generation.
+    Uses Sync API.
+    
+    Refactored to support non-Singleton usage for Thread Safety (ThreadPoolExecutor).
     """
-    _instance = None
-    _playwright: Playwright = None
-    _browser: Browser = None
-    _lock = threading.Lock()
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(PDFService, cls).__new__(cls)
-        return cls._instance
-
-    @classmethod
-    def get_browser(cls):
+    # Singleton storage (Uncomment below line if Singleton is needed in future)
+    # _instance = None
+    
+    def __init__(self, persistent: bool = False):
         """
-        Returns the global browser instance, initializing it if necessary.
+        Initialize the service.
+        
+        Args:
+            persistent (bool): If True, the browser instance is kept open across calls.
+                               If False (default), the browser is closed after each generation.
+                               Set to True ONLY if using a global singleton or proper thread management.
         """
-        with cls._lock:
+        self.persistent = persistent
+        self.playwright: Playwright = None
+        self.browser: Browser = None
+        self._lock = threading.Lock()
+
+    # Uncomment this block to enforce Singleton pattern globally
+    # def __new__(cls, *args, **kwargs):
+    #     if cls._instance is None:
+    #         cls._instance = super(PDFService, cls).__new__(cls)
+    #     return cls._instance
+
+    def get_browser(self):
+        """
+        Returns the browser instance, initializing it if necessary.
+        """
+        with self._lock:
             # Check if browser is alive
-            if cls._browser:
+            if self.browser:
                 try:
-                    if not cls._browser.is_connected():
+                    if not self.browser.is_connected():
                          logger.warning("Browser disconnected. Re-initializing...")
-                         cls._browser = None
+                         self.browser = None
                 except Exception:
-                    cls._browser = None
+                    self.browser = None
 
-            if cls._browser is None:
+            if self.browser is None:
                 logger.info("Initializing Playwright browser (Sync)...")
-                cls._playwright = sync_playwright().start()
+                self.playwright = sync_playwright().start()
                 # Launch options optimized for Docker/Server environment
-                cls._browser = cls._playwright.chromium.launch(
+                self.browser = self.playwright.chromium.launch(
                     headless=True,
                     args=[
                         "--no-sandbox",
@@ -50,20 +64,29 @@ class PDFService:
                     ]
                 )
                 logger.info("Playwright browser initialized successfully.")
-            return cls._browser
+            return self.browser
 
-    @classmethod
-    def close(cls):
+    def close(self):
         """
-        Closes the global browser instance.
+        Closes the browser instance.
         """
-        with cls._lock:
-            if cls._browser:
-                cls._browser.close()
-                cls._browser = None
-            if cls._playwright:
-                cls._playwright.stop()
-                cls._playwright = None
+        with self._lock:
+            if self.browser:
+                try:
+                    self.browser.close()
+                except Exception as e:
+                    logger.warning(f"Error closing browser: {e}")
+                finally:
+                    self.browser = None
+                    
+            if self.playwright:
+                try:
+                    self.playwright.stop()
+                except Exception as e:
+                    logger.warning(f"Error stopping playwright: {e}")
+                finally:
+                    self.playwright = None
+                    
             logger.info("Playwright browser closed.")
 
     def generate_pdf_from_html(self, html_content: str, pdf_options: dict = None) -> bytes:
@@ -104,12 +127,19 @@ class PDFService:
             
         except Exception as e:
             logger.error(f"Error generating PDF: {e}")
-            # If generation fails, it might be a browser issue. Close it to be safe.
-            # self.close() # Optional: aggressive recovery
             raise e
         finally:
             if page:
-                page.close()
+                try:
+                    page.close()
+                except Exception:
+                    pass
+            
+            # If NOT persistent, we must close the browser to free resources 
+            # and allow the thread to be reused safely.
+            if not self.persistent:
+                self.close()
 
-# Global instance
-pdf_service = PDFService()
+# Global instance (optional usage)
+# You can use this for Singleton behavior by setting persistent=True
+pdf_service = PDFService(persistent=False) 
