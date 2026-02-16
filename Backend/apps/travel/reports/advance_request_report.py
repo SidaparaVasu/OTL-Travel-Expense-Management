@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from apps.travel.models import TravelApplication, AdvanceProcessing
 from apps.travel.serializers.travel_application_details_serializer import TravelApplicationDetailsSerializer
 from apps.travel.reports.base_report import BaseReport, TravelReportMixin
+from django.utils.asyncio import async_unsafe
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class AdvanceRequestReport(TravelReportMixin, BaseReport):
     def get_template_name(self) -> str:
         return 'travel/reports/advance_request_report.html'
 
+    @async_unsafe
     def get_context_data(self):
         application = get_object_or_404(TravelApplication, pk=self.application_id)
         serializer = TravelApplicationDetailsSerializer(application)
