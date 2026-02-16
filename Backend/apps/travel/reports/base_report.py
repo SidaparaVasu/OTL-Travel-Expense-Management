@@ -1,5 +1,6 @@
 
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from django.conf import settings
@@ -50,8 +51,14 @@ class BaseReport(ABC):
         """
         html_content = self.render_html()
         service = PDFService() # Singleton instance
+
+        logger.info("PERFORMANCE LOG: Before Playwright")
+        start_time = time.time()
+        
         # You can customize options by overriding a method or passing args in init
         pdf_bytes = service.generate_pdf_from_html(html_content)
+        
+        logger.info(f"PERFORMANCE LOG: After Playwright (Took {time.time() - start_time:.4f}s)")
         return pdf_bytes
 
     def generate(self) -> bytes:

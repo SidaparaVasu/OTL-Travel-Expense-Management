@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from datetime import datetime
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -22,9 +23,16 @@ class TravelDetailsReport(TravelReportMixin, BaseReport):
         return 'travel/reports/travel_details_report.html'
 
     def get_context_data(self):
+        logger.info(f"[{self.application_id}] PERFORMANCE LOG: Before DB fetch")
+        start_time = time.time()
+        
         application = get_object_or_404(TravelApplication, pk=self.application_id)
+        logger.info(f"[{self.application_id}] PERFORMANCE LOG: DB fetch took {time.time() - start_time:.4f}s")
+
         serializer = TravelApplicationDetailsSerializer(application)
         data = serializer.data
+        
+        logger.info(f"[{self.application_id}] PERFORMANCE LOG: After serializer (Total context prep took {time.time() - start_time:.4f}s)")
         return self._prepare_report_context(application, data)
 
     def _prepare_report_context(self, application, serialized_data):

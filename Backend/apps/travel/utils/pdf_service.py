@@ -82,7 +82,7 @@ class PDFService:
         page = None
         try:
             page = browser.new_page()
-            page.set_content(html_content, wait_until="networkidle")
+            page.set_content(html_content, wait_until="load")
             
             default_options = {
                 "format": "A4",
