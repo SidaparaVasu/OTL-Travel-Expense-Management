@@ -42,9 +42,13 @@ export const travelDeskAPI = {
 
     detail: async (
       applicationId: number,
+      params?: { forwarded_only?: boolean },
     ): Promise<ApplicationDetailResponse> => {
+      const queryParams = new URLSearchParams();
+      if (params?.forwarded_only) queryParams.append("forwarded_only", "true");
+
       const { data } = await apiClient.get(
-        `/travel/travel-desk/applications/${applicationId}/`,
+        `/travel/travel-desk/applications/${applicationId}/${queryParams.toString() ? `?${queryParams}` : ""}`,
       );
       return data;
     },
@@ -112,12 +116,30 @@ export const travelDeskAPI = {
       return data;
     },
 
+    forwardToDesk: async (
+      bookingId: number,
+      payload: { target_user_id: number; remarks?: string },
+    ) => {
+      const { data } = await apiClient.post(
+        `/travel/travel-desk/bookings/${bookingId}/forward-to-desk/`,
+        payload,
+      );
+      return data;
+    },
+
     downloadDutySlip: async (bookingId: number) => {
       const response = await apiClient.get(
         `/travel/travel-desk/bookings/${bookingId}/duty-slip/`,
         { responseType: "blob" },
       );
       return response.data;
+    },
+  },
+
+  users: {
+    getTravelDeskUsers: async () => {
+      const { data } = await apiClient.get(`/travel/travel-desk/users/`);
+      return data;
     },
   },
 

@@ -11,6 +11,7 @@ from .views.approval_delegation import ApprovalDelegationView
 from .views.cancellation import *
 from .views.dashboards import *
 from .views.analytics import TravelAnalyticsView, ComplianceReportView
+from .views.reports import TravelApplicationReportView, AdvanceRequestReportView
 from .views.travel_desk_views import *
 from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
@@ -30,6 +31,8 @@ urlpatterns = [
     path('applications/<int:pk>/submit/', TravelApplicationSubmitView.as_view(), name='travel-application-submit'),
     path('applications/<int:pk>/validate/', TravelApplicationValidationView.as_view(), name='travel-application-validate'),
     path('applications/<int:pk>/upload-bulk-file/', TravelApplicationBulkUploadView.as_view(), name='travel-application-upload-bulk-file'),
+    path('applications/<int:pk>/report/', TravelApplicationReportView.as_view(), name='travel-application-report'),
+    path('applications/<int:pk>/advance-report/', AdvanceRequestReportView.as_view(), name='advance-request-report'),
     path('applications/<int:application_id>/request-accommodation/', RequestAccommodationBookingView.as_view()),
 
     # Approval Workflow
@@ -54,7 +57,9 @@ urlpatterns = [
     path("travel-desk/applications/<int:application_id>/recommended-agents/", TravelDeskRecommendedAgentsView.as_view(), name="travel-desk-recommended-agents"),
     path("travel-desk/agents/<int:agent_id>/vehicle-types/", TravelDeskAgentVehicleTypesView.as_view(), name="travel-desk-agent-vehicle-types"),
     path("travel-desk/bookings/<int:booking_id>/duty-slip/", GenerateDutySlipAPIView.as_view(), name="generate-duty-slip"),
-    
+    path("travel-desk/bookings/<int:booking_id>/forward-to-desk/", TravelDeskForwardToDeskView.as_view(), name="travel-desk-forward-booking"),
+    path("travel-desk/users/", TravelDeskUsersListView.as_view(), name="travel-desk-users"),
+
     # Analytics
     path("travel-desk/analytics/agents/", AgentAnalyticsListView.as_view(), name="agent-analytics-list"),
     path("travel-desk/analytics/agents/cities/", AgentReferencedCitiesView.as_view(), name="agent-analytics-cities"),

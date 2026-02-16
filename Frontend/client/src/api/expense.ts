@@ -38,8 +38,8 @@ export const expenseAPI = {
       return data;
     },
 
-    submit: async (formData: FormData) => {
-      const { data } = await apiClient.post("/expense/claims/", formData, {
+    submit: async (payload: any) => {
+      const { data } = await apiClient.post("/expense/claims/", payload, {
         headers: {
           "Content-Type": "application/json",
         },

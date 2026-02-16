@@ -25,6 +25,9 @@ TRAVEL_DESK_VISIBLE_STATUSES = [
     "pending_travel_desk",
     "booking_in_progress",
     "booked",
+    "cancellation_requested",
+    "cancelled",
+    "completed",
 ]
 
 class TravelDeskDashboardView(BranchFilterMixin, APIView):
@@ -178,11 +181,25 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         if date_to:
             qs = qs.filter(submitted_at__date__lte=date_to)
 
+        # Union with applications where bookings are forwarded to the current user
+        # These might be outside the user's branch
+        forwarded_app_ids = Booking.objects.filter(
+            handling_travel_desk_user=request.user
+        ).values_list('trip_details__travel_application_id', flat=True).distinct()
+        
+        if forwarded_app_ids:
+            forwarded_qs = TravelApplication.objects.select_related("employee").filter(
+                id__in=forwarded_app_ids,
+                status__in=TRAVEL_DESK_VISIBLE_STATUSES
+            )
+            qs = qs | forwarded_qs
+            qs = qs.distinct()
+
         qs = qs.order_by("-submitted_at", "-id")
 
         paginator = StandardResultsSetPagination()
         page = paginator.paginate_queryset(qs, request)
-        serializer = TravelDeskApplicationListSerializer(page, many=True)
+        serializer = TravelDeskApplicationListSerializer(page, many=True, context={'request': request})
 
         return paginated_response(
             serializer_data=serializer.data,
@@ -209,7 +226,7 @@ class TravelDeskApplicationDetailView(APIView):
         if not app:
             return error_response(message="Application not found", data={"id": ["Invalid id"]})
 
-        serializer = TravelDeskApplicationDetailSerializer(app)
+        serializer = TravelDeskApplicationDetailSerializer(app, context={'request': request})
         return success_response(data=serializer.data)
     
 
@@ -771,3 +788,149 @@ class GenerateDutySlipAPIView(APIView):
             logger.error(f"GenerateDutySlipAPIView Error: {str(e)}")
             logger.error(traceback.format_exc())
             return error_response(message=f"Error generating PDF: {str(e)}", status_code=500)
+
+
+class TravelDeskForwardToDeskView(APIView):
+    """
+    POST: Forward a specific booking to another travel desk user.
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def post(self, request, booking_id):
+        target_user_id = request.data.get("target_user_id")
+        remarks = request.data.get("remarks", "")
+
+        if not target_user_id:
+            return error_response(message="Target user ID is required")
+
+        booking = Booking.objects.select_related('trip_details__travel_application').filter(id=booking_id).first()
+        if not booking:
+            return error_response(message="Booking not found")
+
+        # Validate target user
+        target_user = User.objects.filter(id=target_user_id, is_active=True).first()
+        if not target_user:
+            return error_response(message="Target user not found")
+
+        # Check if target is actually a travel desk user
+        from apps.authentication.models import UserRole
+        if not UserRole.objects.filter(
+            user=target_user,
+            role__name__in=['Travel Desk', 'Global Travel Desk'],
+            is_active=True
+        ).exists():
+             return error_response(message="Target user is not a Travel Desk member")
+
+        # Validation Guards
+        # 1. Block if forwarding to self
+        if target_user == request.user:
+            return error_response(message="You cannot forward a booking to yourself.")
+
+        # 2. Block if already assigned to this user
+        if booking.handling_travel_desk_user == target_user:
+            return error_response(message="This booking is already assigned to the selected user.")
+
+        # 3. Block based on status
+        if booking.status == 'cancelled':
+            return error_response(message="This booking has been cancelled and cannot be forwarded.")
+        if booking.status in ['confirmed', 'completed']:
+            return error_response(message=f"This booking is {booking.status} and cannot be forwarded.")
+        if booking.status == 'in_progress':
+            return error_response(message="This booking is currently being processed by the assigned agent and cannot be forwarded.")
+
+        # 4. Block if actively assigned to a booking agent
+        has_active_assignment = hasattr(booking, 'assignment') and booking.assignment and booking.assignment.assigned_to
+        if has_active_assignment:
+            return error_response(message="This booking has already been forwarded to a booking agent and cannot be reassigned to another desk user.")
+
+        current_handler = booking.handling_travel_desk_user
+        
+        with transaction.atomic():
+            # 1. Update Booking
+            booking.handling_travel_desk_user = target_user
+            booking.travel_desk_forwarded_at = timezone.now()
+            booking.save(update_fields=["handling_travel_desk_user", "travel_desk_forwarded_at"])
+
+            # 2. Add System Note
+            note_text = f"Forwarded to {target_user.get_full_name()} by {request.user.get_full_name()}"
+            if remarks:
+                note_text += f". Remarks: {remarks}"
+            
+            BookingNote.objects.create(
+                booking=booking,
+                author=request.user,
+                note=f"[SYSTEM] {note_text}"
+            )
+
+            # 3. Audit Log
+            AuditLog.objects.create(
+                user=request.user,
+                action="forward_to_travel_desk",
+                content_object=booking,
+                changes={
+                    "booking_id": booking.id,
+                    "previous_handler": current_handler.id if current_handler else None,
+                    "new_handler": target_user.id,
+                    "remarks": remarks
+                }
+            )
+            
+            # 4. Notification
+            try:
+                NotificationCenter.notify(
+                    event_name="travel.booking.forwarded_to_desk",
+                    reference={"type": "Booking", "id": booking.id},
+                    payload={
+                        "booking_id": booking.id,
+                        "forwarded_by_name": request.user.get_full_name(),
+                        "forwarded_to_id": target_user.id,
+                        "booking_type": booking.booking_type.name,
+                        "travel_request_id": booking.trip_details.travel_application.get_travel_request_id()
+                    }
+                )
+            except Exception as e:
+                # Log but don't fail transaction
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send forward notification: {str(e)}")
+
+        return success_response(
+            message="Booking forwarded successfully",
+            data={
+                "booking_id": booking.id,
+                "new_handler": {
+                    "id": target_user.id,
+                    "name": target_user.get_full_name()
+                }
+            }
+        )
+
+class TravelDeskUsersListView(APIView):
+    """
+    GET: List all users with 'Travel Desk' role.
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def get(self, request):
+        from apps.authentication.models import UserRole
+        
+        # Get users with active 'Travel Desk' role assignment
+        user_roles = UserRole.objects.filter(
+            role__name__in=['Travel Desk', 'Global Travel Desk'],
+            is_active=True,
+            user__is_active=True
+        ).select_related('user')
+        
+        data = []
+        for ur in user_roles:
+            user = ur.user
+            data.append({
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "full_name": user.get_full_name() or f'{user.first_name} {user.last_name}',
+                "role": ur.role.name
+            })
+            
+        return success_response(data=data)

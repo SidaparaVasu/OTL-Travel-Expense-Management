@@ -31,6 +31,9 @@ const TravelDeskDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('pending_travel_desk');
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [activeForwardedIds, setActiveForwardedIds] = useState<
+    number[] | undefined
+  >(undefined);
 
   // Modal/Drawer states
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -107,7 +110,7 @@ const TravelDeskDashboard: React.FC = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(app =>
-        app.employee_name.toLowerCase().includes(query) ||
+          app.employee_name.toLowerCase().includes(query) ||
         `TSF-TR-2025-${String(app.id).padStart(6, '0')}`.toLowerCase().includes(query)
       );
     }
@@ -142,6 +145,7 @@ const TravelDeskDashboard: React.FC = () => {
   // Handlers
   const handleView = (app: DashboardApplication) => {
     setSelectedApplicationId(app.id);
+    setActiveForwardedIds(app.forwarded_booking_ids);
     setDrawerOpen(true);
   };
 
@@ -178,7 +182,7 @@ const TravelDeskDashboard: React.FC = () => {
 
   const confirmForward = async (
     assignments: { agent_id: number; booking_ids: number[] }[],
-    note: string
+    note: string,
   ) => {
     if (!selectedApplication) return;
 
@@ -197,7 +201,6 @@ const TravelDeskDashboard: React.FC = () => {
       toast.success("Bookings forwarded successfully");
       setForwardModalOpen(false);
       setSelectedApplication(null);
-      setRecommendations(null);
       fetchApplications();
       fetchDashboard();
     } catch (err: any) {
@@ -215,12 +218,12 @@ const TravelDeskDashboard: React.FC = () => {
     try {
       await travelDeskAPI.applications.cancel(selectedApplication.id, { reason });
 
-      toast.success('Application cancelled successfully');
+      toast.success("Application cancelled successfully");
       setCancelModalOpen(false);
       setSelectedApplication(null);
       fetchDashboard();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to cancel application');
+      toast.error(err.message || "Failed to cancel application");
     } finally {
       setActionLoading(false);
     }
@@ -270,8 +273,10 @@ const TravelDeskDashboard: React.FC = () => {
         onClose={() => {
           setDrawerOpen(false);
           setSelectedApplicationId(null);
+          setActiveForwardedIds(undefined);
         }}
         applicationId={selectedApplicationId}
+        forwardedBookingIds={activeForwardedIds}
         onRefresh={fetchDashboard}
       />
 

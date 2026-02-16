@@ -112,6 +112,12 @@ class ExpenseClaim(models.Model):
     paid_on = models.DateTimeField(null=True, blank=True)
     closed_on = models.DateTimeField(null=True, blank=True)
 
+    # Actual Travel Dates (overrides trip dates for DA calc)
+    actual_travel_start_date = models.DateField(null=True, blank=True)
+    actual_travel_start_time = models.TimeField(null=True, blank=True)
+    actual_travel_end_date = models.DateField(null=True, blank=True)
+    actual_travel_end_time = models.TimeField(null=True, blank=True)
+
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
 

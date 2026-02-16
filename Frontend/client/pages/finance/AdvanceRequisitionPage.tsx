@@ -128,7 +128,7 @@ const AdvanceRequisitionPage = () => {
         </div>
       </div>
 
-      <div className="max-w-full mx-auto mt-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="max-w-full mx-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-6 border rounded-b-lg border-gray-200 bg-neutral-50">
         {/* Left Column: Details (Printable Section) */}
         <div className="md:col-span-2 space-y-6">
           {/* Applicant Info */}

@@ -38,4 +38,20 @@ export const financeAdvanceAPI = {
       throw error;
     }
   },
+
+  // Download Advance Request Report
+  downloadAdvanceRequestReport: async (id: string | number) => {
+    try {
+      const response = await client.get(
+        `/travel/applications/${id}/advance-report/`,
+        {
+          responseType: "blob",
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to download advance report:", error);
+      throw error;
+    }
+  },
 };

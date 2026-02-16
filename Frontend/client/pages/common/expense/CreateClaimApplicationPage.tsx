@@ -33,11 +33,22 @@ import {
   PlusCircle,
   Trash2,
   CheckCircle2,
-  AlertTriangle,
   ArrowLeft,
   X,
   FileText,
+  Info,
+  AlertTriangle,
 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DatePickerField } from "@/pages/common/travel/travel-request/components/DatePickerField";
+import { TimePickerField } from "@/pages/common/travel/travel-request/components/TimePickerField";
 import { expenseAPI } from "@/src/api/expense";
 import { ROUTES } from "@/routes/routes";
 
@@ -48,6 +59,45 @@ const formatDate = (dateString: string) => {
     month: "short",
     year: "numeric",
   });
+};
+
+const formatDateTime = (dateStr: string, timeStr?: string) => {
+  if (!dateStr) return "";
+  const date = new Date(`${dateStr}T${timeStr || "00:00"}`);
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+};
+
+const calculateDuration = (
+  startDate: string,
+  startTime: string,
+  endDate: string,
+  endTime: string,
+) => {
+  if (!startDate || !endDate) return "";
+  const start = new Date(`${startDate}T${startTime || "00:00"}`);
+  const end = new Date(`${endDate}T${endTime || "23:59"}`);
+  const diff = end.getTime() - start.getTime();
+
+  if (diff < 0) return "Invalid Duration";
+
+  const totalHours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days === 0 && hours === 0) return "0 Hours";
+
+  const parts = [];
+  if (days > 0) parts.push(`${days} Days`);
+  if (hours > 0) parts.push(`${hours} Hours`);
+
+  return parts.join(" ");
 };
 
 export default function CreateClaimApplicationPage() {
@@ -76,6 +126,13 @@ export default function CreateClaimApplicationPage() {
   const isEditMode = Boolean(claimId);
   const [existingClaim, setExistingClaim] = useState<any>(null);
   const [financeRemarks, setFinanceRemarks] = useState<string>("");
+
+  // Actual Travel Dates State
+  const [useActualDates, setUseActualDates] = useState(false);
+  const [actualStartDate, setActualStartDate] = useState("");
+  const [actualStartTime, setActualStartTime] = useState("");
+  const [actualEndDate, setActualEndDate] = useState("");
+  const [actualEndTime, setActualEndTime] = useState("");
 
   // Load applications + expenses
   useEffect(() => {
@@ -375,6 +432,10 @@ export default function CreateClaimApplicationPage() {
     return {
       travel_application_id: selectedApp.id,
       claim_id: isEditMode && claimId ? Number(claimId) : undefined,
+      actual_travel_start_date: useActualDates ? actualStartDate : null,
+      actual_travel_start_time: useActualDates ? actualStartTime : null,
+      actual_travel_end_date: useActualDates ? actualEndDate : null,
+      actual_travel_end_time: useActualDates ? actualEndTime : null,
       items: [
         ...bookingRows.map((b) => ({
           expense_type: Number(b.expense_type),
@@ -734,13 +795,189 @@ export default function CreateClaimApplicationPage() {
               </div>
             </Card>
 
+            {/* ACTUAL DATE AND TIME SELECTION AREA */}
+            <Card className="p-6 mb-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <h3 className="text-lg font-semibold">
+                  DA & Incidentals Calculation Basis
+                </h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        <span>
+                          Select “Use Actual Travel Date & Time” only if your
+                          actual travel duration differed from the approved
+                          schedule.
+                        </span>
+                        <br />
+                        <span>
+                          DA & Incidentals will be calculated based on the
+                          selected option.
+                        </span>
+                        <br />
+                        <span>
+                          <b>Note:</b> Actual dates must fall within the
+                          approved trip window.
+                        </span>
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <RadioGroup
+                value={useActualDates ? "actual" : "approved"}
+                onValueChange={(val) => {
+                  if (val === "actual") {
+                    setUseActualDates(true);
+                  } else {
+                    setUseActualDates(false);
+                  }
+                }}
+                className="flex flex-col space-y-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="approved" id="r-approved" />
+                  <Label htmlFor="r-approved">
+                    Use Approved Trip Schedule (Recommended)
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="actual" id="r-actual" />
+                  <Label htmlFor="r-actual">
+                    Calculate based on Actual Travel Date & Time
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {/* DURATION PREVIEW (Use Approved) */}
+              {!useActualDates && selectedApp?.trip_details?.[0] && (
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
+                    Calculation Basis (Approved)
+                  </p>
+                  <p className="font-medium text-sm">
+                    {formatDateTime(
+                      selectedApp.trip_details[0].departure_date,
+                      selectedApp.trip_details[0].departure_time,
+                    )}
+                    {" → "}
+                    {formatDateTime(
+                      selectedApp.trip_details[0].return_date,
+                      selectedApp.trip_details[0].return_time,
+                    )}
+                  </p>
+                  <p className="text-sm font-semibold text-primary mt-1">
+                    Duration:{" "}
+                    {calculateDuration(
+                      selectedApp.trip_details[0].departure_date,
+                      selectedApp.trip_details[0].departure_time,
+                      selectedApp.trip_details[0].return_date,
+                      selectedApp.trip_details[0].return_time,
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {useActualDates && (
+                <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6 border-l-2 border-primary/20">
+                    <div className="space-y-2">
+                      <DatePickerField
+                        label="Actual Start Date"
+                        required
+                        value={actualStartDate}
+                        onChange={(val) => setActualStartDate(val)}
+                        min={selectedApp?.trip_details?.[0]?.departure_date}
+                        max={selectedApp?.trip_details?.[0]?.return_date}
+                        // Disable error prop for now or pass local error if needed
+                      />
+                      <TimePickerField
+                        label="Actual Start Time"
+                        required
+                        value={actualStartTime}
+                        onChange={(val) => setActualStartTime(val)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <DatePickerField
+                        label="Actual End Date"
+                        required
+                        value={actualEndDate}
+                        onChange={(val) => setActualEndDate(val)}
+                        min={
+                          actualStartDate ||
+                          selectedApp?.trip_details?.[0]?.departure_date
+                        }
+                        max={selectedApp?.trip_details?.[0]?.return_date}
+                      />
+                      <TimePickerField
+                        label="Actual End Time"
+                        required
+                        value={actualEndTime}
+                        onChange={(val) => setActualEndTime(val)}
+                      />
+                    </div>
+
+                    {actualEndDate &&
+                      actualStartDate &&
+                      actualEndDate < actualStartDate && (
+                        <p className="text-destructive text-sm col-span-2">
+                          End date cannot be before start date.
+                        </p>
+                      )}
+                  </div>
+
+                  {/* INFO BOX & WARNING */}
+                  {actualStartDate && actualEndDate && (
+                    <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-blue-600 uppercase font-semibold mb-1">
+                            Calculation Basis (Actual)
+                          </p>
+                          <p className="font-medium text-sm text-slate-700">
+                            {formatDateTime(actualStartDate, actualStartTime)}
+                            {" → "}
+                            {formatDateTime(actualEndDate, actualEndTime)}
+                          </p>
+                          <p className="text-sm font-semibold text-blue-700 mt-1">
+                            Duration:{" "}
+                            {calculateDuration(
+                              actualStartDate,
+                              actualStartTime,
+                              actualEndDate,
+                              actualEndTime,
+                            )}
+                          </p>
+
+                          <div className="mt-3 flex items-center gap-2 text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 w-fit">
+                            <AlertTriangle className="h-3 w-3" />
+                            Changing travel duration may affect DA & Incidentals
+                            amount.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
             {/* BOOKING EXPENSES TABLE */}
             <Card className="p-6 mb-6">
               <h3 className="text-base font-medium text-foreground mb-4">
                 Claim Items — Bookings
               </h3>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto no-scrollbar">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -849,6 +1086,8 @@ export default function CreateClaimApplicationPage() {
                                 ? "border-destructive"
                                 : ""
                             }
+                            min={0}
+                            step={0.01}
                           />
                         </TableCell>
 
@@ -877,6 +1116,8 @@ export default function CreateClaimApplicationPage() {
                                 ? "border-destructive"
                                 : ""
                             }
+                            min={0}
+                            step={0.01}
                           />
                         </TableCell>
 
@@ -1088,6 +1329,8 @@ export default function CreateClaimApplicationPage() {
                                     ? "border-destructive"
                                     : ""
                                 }
+                                min={0}
+                                step={0.01}
                               />
                             </TableCell>
 
@@ -1110,6 +1353,8 @@ export default function CreateClaimApplicationPage() {
                                     ? "border-destructive"
                                     : ""
                                 }
+                                min={0}
+                                step={0.01}
                               />
                             </TableCell>
 

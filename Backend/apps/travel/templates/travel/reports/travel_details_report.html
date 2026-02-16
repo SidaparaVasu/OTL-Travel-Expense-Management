@@ -1,0 +1,291 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 0.8cm;
+    }
+
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.4;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin: 0;
+    }
+
+    .header-box {
+      border: 1px solid #000;
+      padding: 12px;
+      margin-bottom: 15px;
+      background-color: #F1F5F9;
+    }
+
+    .section-title {
+      font-size: 12pt;
+      font-weight: bold;
+      margin: 20px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th {
+      font-weight: bold;
+      text-align: left;
+      background-color: #F1F5F9;
+      padding: 8px;
+      border: 1px solid #000;
+    }
+
+    td {
+      padding: 8px;
+      vertical-align: top;
+      border: 1px solid #000;
+      word-wrap: break-word;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .no-border td {
+      border: none;
+      padding: 3px 0;
+    }
+
+    .small-text {
+      font-size: 7.5pt;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+
+    .label {
+      font-weight: bold;
+      background-color: #F1F5F9;
+      width: 20%;
+    }
+
+    .value {
+      width: 30%;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div class="header-box">
+    <h1>Travel Application Request</h1>
+  </div>
+
+  <!-- Compact Meta Info -->
+  <table>
+    <tr>
+      <td><strong>Travel Request ID:</strong> <br/> {{ header.travel_request_id }}</td>
+      <td><strong>Status:</strong><br/> {{ header.status }}</td>
+      <td><strong>Submitted on:</strong><br/> {{ header.submitted_date }}</td>
+      <td class="text-right"><strong>Generated on:</strong><br/> {{ header.generated_on }}</td>
+    </tr>
+  </table>
+
+  <!-- Employee Details (3 Columns Layout) -->
+  <div class="section-title">Employee Details</div>
+  <table>
+    <tr>
+      <td><strong>Name:</strong> {{ employee.name }}</td>
+      <td><strong>Email:</strong> {{ employee.email }}</td>
+      <td><strong>Mobile:</strong> {{ employee.mobile }}</td>
+    </tr>
+    <tr>
+      <td><strong>Gender:</strong> {{ employee.gender }}</td>
+      <td><strong>Department:</strong> {{ employee.department }}</td>
+      <td><strong>Designation:</strong> {{ employee.designation }}</td>
+    </tr>
+    <tr>
+      <td><strong>Branch:</strong> {{ employee.branch_location }}</td>
+      <td><strong>Grade:</strong> {{ employee.grade }}</td>
+      <td></td>
+    </tr>
+  </table>
+
+  <!-- Approver Details -->
+  <div class="section-title">Approver Details</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5%;">#</th>
+        <th style="width:10%;">Level</th>
+        <th style="width:20%;">Approver</th>
+        <th style="width:10%;">Status</th>
+        <th style="width:15%;">Action Date</th>
+        <th style="width:40%;">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for app in approvals %}
+      <tr>
+        <td>{{ app.sequence }}</td>
+        <td>{{ app.level }}</td>
+        <td>{{ app.approver }}</td>
+        <td>{{ app.status }}</td>
+        <td>{{ app.approved_at }}</td>
+        <td>{{ app.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Trip Overview (2 Fields Per Row) -->
+  <div class="section-title">Trip Overview</div>
+  <table>
+    <tr>
+      <td class="label">Purpose</td>
+      <td class="value">{{ overview.purpose }}</td>
+      <td class="label">Travel Type</td>
+      <td class="value">{{ overview.travel_type }}</td>
+    </tr>
+    <tr>
+      <td class="label">Internal Order</td>
+      <td class="value">{{ overview.internal_order }}</td>
+      <td class="label">Cost Center / GL</td>
+      <td class="value">{{ overview.cost_center_gl }}</td>
+    </tr>
+    <tr>
+      <td class="label">Sanction No.</td>
+      <td class="value">{{ overview.sanction_number }}</td>
+      <td class="label">Total Advance</td>
+      <td class="value">{{ overview.total_advance }}</td>
+    </tr>
+  </table>
+
+  <!-- Itinerary -->
+  <div class="section-title">Itinerary</div>
+  <table>
+    <tr>
+      <td class="label">Locations</td>
+      <td class="value">{{ itinerary.locations }}</td>
+      <td class="label">Dates</td>
+      <td class="value">{{ itinerary.dates }}</td>
+    </tr>
+    <tr>
+      <td class="label">Times</td>
+      <td class="value">{{ itinerary.times }}</td>
+      <td class="label">Duration</td>
+      <td class="value">{{ itinerary.duration }}</td>
+    </tr>
+  </table>
+
+  <!-- Transportation (Proper Column Separation) -->
+  <div class="section-title">Booking: Ticketing</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Mode</th>
+        <th>Class</th>
+        <th>Ticket No</th>
+        <th>Travel Date & Time</th>
+        <th>Route</th>
+        <th>Advance</th>
+        <th>Self Arranged</th>
+        <th>Status</th>
+        <th>Special Instruction</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in transportation %}
+      <tr>
+        <td>{{ b.mode }}</td>
+        <td>{{ b.class }}</td>
+        <td>{{ b.ticket_no }}</td>
+        <td>{{ b.travel_datetime }}</td>
+        <td>{{ b.route }}</td>
+        <td>{{ b.advance_req }}</td>
+        <td>{{ b.self_arranged }}</td>
+        <td>{{ b.status }}</td>
+        <td class="small-text">{{ b.special_instruction }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Accommodation -->
+  <div class="section-title">Booking: Accommodation</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Location</th>
+        <th>Check-in</th>
+        <th>Check-out</th>
+        <th>Advance</th>
+        <th>Self Arranged</th>
+        <th>Status</th>
+        <th>Special Instruction</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in accommodation %}
+      <tr>
+        <td>{{ b.type }}</td>
+        <td>{{ b.location }}</td>
+        <td>{{ b.checkin_dates }}</td>
+        <td>{{ b.checkout_dates }}</td>
+        <td>{{ b.advance_req }}</td>
+        <td>{{ b.self_arranged }}</td>
+        <td>{{ b.status }}</td>
+        <td class="small-text">{{ b.special_instruction }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Conveyance -->
+  <div class="section-title">Booking: Conveyance</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Sub Type</th>
+        <th>Passengers</th>
+        <th>Route</th>
+        <th>Reporting</th>
+        <th>Advance</th>
+        <th>Self Arranged</th>
+        <th>Status</th>
+        <th>Special Instruction</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in conveyance %}
+      <tr>
+        <td>{{ b.type }}</td>
+        <td>{{ b.sub_type }}</td>
+        <td>{{ b.passengers }}</td>
+        <td>{{ b.route }}</td>
+        <td>{{ b.reporting }}</td>
+        <td>{{ b.advance_req }}</td>
+        <td>{{ b.self_arranged }}</td>
+        <td>{{ b.status }}</td>
+        <td class="small-text">{{ b.special_instruction }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
