@@ -127,7 +127,13 @@ def _get_city_category_for_date(trips, current_date: date) -> str:
 # MAIN: DA CALCULATION WITH FIXED DATE EXTRACTION
 # --------------------------------------------------------------------
 
-def calculate_da_breakdown(tr: TravelApplication) -> List[Dict[str, Any]]:
+def calculate_da_breakdown(
+    tr: TravelApplication,
+    actual_start_date: Optional[date] = None,
+    actual_start_time: Optional[time] = None,
+    actual_end_date: Optional[date] = None,
+    actual_end_time: Optional[time] = None
+) -> List[Dict[str, Any]]:
     """
     Calculate DA/Incidental for each day of travel.
     Respects actual travel dates/times if provided.
