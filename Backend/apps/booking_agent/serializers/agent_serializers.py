@@ -49,6 +49,21 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             return assignment.agent.user.first_name + " " + assignment.agent.user.last_name
         return None
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        booking_details = data.get('booking_details')
+        
+        if booking_details and isinstance(booking_details, dict):
+            place_id = booking_details.get('place')
+            if place_id and str(place_id).isdigit():
+                try:
+                    from apps.master_data.models import CityMaster
+                    city = CityMaster.objects.get(id=place_id)
+                    booking_details['place'] = city.city_name
+                except Exception:
+                    pass
+        return data
+
 class AgentBookingListSerializer(serializers.ModelSerializer):
     application_id = serializers.IntegerField(source="trip_details.travel_application.id", read_only=True)
     travel_request_id = serializers.SerializerMethodField()
@@ -147,6 +162,21 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
         if policy and policy.rule_parameters:
             return policy.rule_parameters.get("max_amount")
         return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        booking_details = data.get('booking_details')
+        
+        if booking_details and isinstance(booking_details, dict):
+            place_id = booking_details.get('place')
+            if place_id and str(place_id).isdigit():
+                try:
+                    from apps.master_data.models import CityMaster
+                    city = CityMaster.objects.get(id=place_id)
+                    booking_details['place'] = city.city_name
+                except Exception:
+                    pass
+        return data
 
 
 class AgentBookingDetailSerializer(serializers.ModelSerializer):
@@ -269,6 +299,21 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "assigned_at": assignment.assigned_at,
             "scope": assignment.assignment_scope,
         }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        booking_details = data.get('booking_details')
+        
+        if booking_details and isinstance(booking_details, dict):
+            place_id = booking_details.get('place')
+            if place_id and str(place_id).isdigit():
+                try:
+                    from apps.master_data.models import CityMaster
+                    city = CityMaster.objects.get(id=place_id)
+                    booking_details['place'] = city.city_name
+                except Exception:
+                    pass
+        return data
 
 
 class BookingStatusUpdateSerializer(serializers.Serializer):

@@ -56,7 +56,7 @@ const BookingAgentDashboard: React.FC = () => {
           <h1 className="text-[26px] font-bold text-foreground">
             Dashboard Overview
           </h1>
-          <p className="mt-2 text-lg text-muted-foreground">
+          <p className="mt-1 text-lg text-muted-foreground">
             Welcome back! Here's your booking summary.
           </p>
         </div>
@@ -154,7 +154,7 @@ const BookingAgentDashboard: React.FC = () => {
         <div className="rounded-[10px] bg-card p-6 shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-bold text-foreground">
-              Recent Bookings
+              Recent Requested Bookings
             </h2>
             <button
               className="text-base font-bold text-primary underline"

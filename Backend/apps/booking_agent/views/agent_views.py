@@ -148,9 +148,9 @@ class BookingAgentDashboardView(APIView):
         )
 
         # ---------------------------
-        # 6. Recent Bookings (last 10)
+        # 6. Recent Bookings (last 5)
         # ---------------------------
-        recent = bookings.order_by("-updated_at")[:10]
+        recent = bookings.filter(status="requested").order_by("-updated_at")[:5]
 
         return success_response(
             message="Dashboard data",
