@@ -59,6 +59,7 @@ import UsersPage from "./pages/common/master/users/Index";
 import GuestHouseMaster from "./pages/common/master/guest-house/Index";
 import ARCHotelMaster from "./pages/common/master/arc-hotel/Index";
 import LocationSPOCMasterPage from "./pages/common/master/LocationSPOCMaster";
+import SPOCAssignmentList from "./pages/common/master/SPOC-management";
 import GeographyMasters from "./pages/common/master/GeographyMaster";
 import CityCategoriesMaster from "./pages/common/master/CityCategoriesMaster";
 import LocationMasterPage from "./pages/common/master/LocationMaster";
@@ -596,6 +597,17 @@ const App = () => (
                 <ProtectedRoute requiredDashboard="admin">
                   <UnifiedLayout>
                     <LocationSPOCMasterPage />
+                  </UnifiedLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path={ROUTES.spocAssignmentMaster}
+              element={
+                <ProtectedRoute requiredDashboard="admin">
+                  <UnifiedLayout>
+                    <SPOCAssignmentList />
                   </UnifiedLayout>
                 </ProtectedRoute>
               }

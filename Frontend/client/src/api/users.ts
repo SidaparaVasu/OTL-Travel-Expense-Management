@@ -94,11 +94,10 @@ export const userAPI = {
   },
 
   // Search colleagues for guest selection
-  searchColleagues: async (query: string) => {
-    const { data } = await apiClient.get(
-      `/employees/search/?q=${encodeURIComponent(query)}`,
-    );
-    console.log(data);
-    return data.data || [];
+  searchColleagues: async (query: string, includeSelf: boolean = false) => {
+    const { data } = await apiClient.get("/employees/search/", {
+      params: { q: query, include_self: includeSelf },
+    });
+    return data.data;
   },
 };

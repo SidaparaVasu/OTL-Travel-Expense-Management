@@ -92,6 +92,7 @@ export const ROUTES = {
 
   // SPOC
   locationSPOCMaster: "/masters/location-spoc",
+  spocAssignmentMaster: "/masters/spoc-assignment",
 
   // Conveyance Rate
   conveyanceRateMaster: "/masters/conveyance-rate",
