@@ -152,8 +152,8 @@ class BookingAssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(BookingNote)
 class BookingNoteAdmin(admin.ModelAdmin):
-    list_display = ("id", "booking", "author", "created_at")
-    search_fields = ("booking__id", "author__username")
+    list_display = ("id", "booking", "author", "note", "created_at")
+    search_fields = ("booking__id", "author__username", "note")
     ordering = ("-created_at",)
 
 @admin.register(AuditLog)

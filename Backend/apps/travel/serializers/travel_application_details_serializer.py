@@ -43,10 +43,30 @@ class BookingNoteSerializer(serializers.ModelSerializer):
     """Serializer for booking notes"""
     author = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
+    color = serializers.SerializerMethodField()
 
     class Meta:
         model = BookingNote
-        fields = ['author', 'note', 'created_at']
+        fields = ['author', 'note', 'created_at', 'role', 'color']
+
+    def get_role(self, obj):
+        if obj.author:
+            if obj.author.has_role('Travel Desk'):
+                return "Travel Desk"
+            elif obj.author.has_role('Booking Agent'):
+                return "Agent"
+            elif obj.author.has_role('Admin'):
+                return "Admin"
+        return "Employee"
+
+    def get_color(self, obj):
+        role = self.get_role(obj)
+        if role == "Agent":
+            return "#2b7fff"
+        elif role == "Travel Desk":
+            return "#ff6900"
+        return "#45556c"
 
     def get_author(self, obj):
         if obj.author:
@@ -154,16 +174,15 @@ class TicketingBookingSerializer(serializers.Serializer):
         if obj.sub_option and 'self' in obj.sub_option.name.lower():
             return None
         
-        try:
-            assignment = obj.assignment
-            return {
-                'user': assignment.assigned_by.get_full_name() if assignment.assigned_by else "",
-                'forwarded_at': format_datetime(assignment.assigned_at),
-                'completed_at': format_datetime(assignment.completed_at),
-                'remarks': assignment.notes
-            }
-        except BookingAssignment.DoesNotExist:
+        # Use Booking model fields directly
+        if not obj.handling_travel_desk_user:
             return None
+            
+        return {
+            'user': obj.handling_travel_desk_user.get_full_name(),
+            'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
+            'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
+        }
 
     def get_assignments(self, obj):
         try:
@@ -262,16 +281,15 @@ class AccommodationBookingSerializer(serializers.Serializer):
         if obj.sub_option and 'self' in obj.sub_option.name.lower():
             return None
         
-        try:
-            assignment = obj.assignment
-            return {
-                'user': assignment.assigned_by.get_full_name() if assignment.assigned_by else "",
-                'forwarded_at': format_datetime(assignment.assigned_at),
-                'completed_at': format_datetime(assignment.completed_at),
-                'remarks': assignment.notes
-            }
-        except BookingAssignment.DoesNotExist:
+        # Use Booking model fields directly
+        if not obj.handling_travel_desk_user:
             return None
+            
+        return {
+            'user': obj.handling_travel_desk_user.get_full_name(),
+            'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
+            'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
+        }
 
     def get_assignments(self, obj):
         # Get assignment from related booking
@@ -393,16 +411,15 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         if obj.sub_option and 'self' in obj.sub_option.name.lower():
             return None
         
-        try:
-            assignment = obj.assignment
-            return {
-                'user': assignment.assigned_by.get_full_name() if assignment.assigned_by else "",
-                'forwarded_at': format_datetime(assignment.assigned_at),
-                'completed_at': format_datetime(assignment.completed_at),
-                'remarks': assignment.notes
-            }
-        except BookingAssignment.DoesNotExist:
+        # Use Booking model fields directly
+        if not obj.handling_travel_desk_user:
             return None
+            
+        return {
+            'user': obj.handling_travel_desk_user.get_full_name(),
+            'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
+            'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
+        }
 
     def get_assignments(self, obj):
         # Get assignment from related booking

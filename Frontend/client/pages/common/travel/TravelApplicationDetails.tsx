@@ -316,7 +316,9 @@ export const TravelApplicationDetails: React.FC = () => {
               </span>
             </div>
             <div className="p-4 flex-1 min-w-[200px]">
-              <span className="font-semibold text-slate-700">Updated At:</span>{" "}
+              <span className="font-semibold text-slate-700">
+                Last Updated At:
+              </span>{" "}
               <span className="text-slate-900">
                 {data?.timestamps?.updated_at || ""}
               </span>
@@ -553,7 +555,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "N/A"}
+                              {booking?.travel_desk?.user || "Not assigned yet."}
                             </span>
                           </div>
                           <div>
@@ -569,15 +571,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Completed:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at}
-                            </span>
-                          </div>
-                          <div className="md:col-span-4">
-                            <span className="font-medium text-slate-700">
-                              Remarks:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking.travel_desk?.remarks}
+                              {booking?.travel_desk?.completed_at || "Pending"}
                             </span>
                           </div>
                         </div>
@@ -613,7 +607,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.accepted_at || "action pending"}
+                                {assignment.accepted_at || "Action Pending"}
                               </span>
                             </div>
                             <div>
@@ -621,17 +615,17 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Completed:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.completed_at || "action pending"}
+                                {assignment.completed_at || "Action Pending"}
                               </span>
                             </div>
-                            <div className="md:col-span-5">
+                            {/* <div className="md:col-span-5">
                               <span className="font-medium text-slate-700">
                                 Notes:
                               </span>{" "}
                               <span className="text-slate-900">
                                 {assignment.notes || "No notes added"}
                               </span>
-                            </div>
+                            </div> */}
                           </div>
                         ))}
                       </CollapsibleSection>
@@ -643,7 +637,10 @@ export const TravelApplicationDetails: React.FC = () => {
                         <div className="space-y-2">
                           {booking.booking_notes.map((note, noteIdx) => (
                             <div key={noteIdx} className="flex gap-2 text-sm">
-                              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                              <div
+                                className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5`}
+                                style={{ backgroundColor: note.color }}
+                              ></div>
                               <div className="flex-1">
                                 <div className="font-medium text-xs text-slate-500">
                                   [{note.created_at}] {note.author}
@@ -809,7 +806,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "N/A"}
+                              {booking?.travel_desk?.user || "Not assigned yet."}
                             </span>
                           </div>
                           <div>
@@ -828,15 +825,6 @@ export const TravelApplicationDetails: React.FC = () => {
                             </span>{" "}
                             <span className="text-slate-900">
                               {booking?.travel_desk?.completed_at || "Pending"}
-                            </span>
-                          </div>
-                          <div className="md:col-span-4">
-                            <span className="font-medium text-slate-700">
-                              Remarks:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.remarks ||
-                                "No remarks added"}
                             </span>
                           </div>
                         </div>
@@ -880,7 +868,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Completed:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.completed_at}
+                                {assignment.completed_at || "Pending"}
                               </span>
                             </div>
                             <div className="md:col-span-5">
@@ -902,7 +890,10 @@ export const TravelApplicationDetails: React.FC = () => {
                         <div className="space-y-2">
                           {booking.booking_notes.map((note, noteIdx) => (
                             <div key={noteIdx} className="flex gap-2 text-sm">
-                              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                              <div
+                                className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5`}
+                                style={{ backgroundColor: note.color }}
+                              ></div>
                               <div className="flex-1">
                                 <div className="font-medium text-xs text-slate-500">
                                   [{note.created_at}] {note.author}
@@ -1101,7 +1092,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "N/A"}
+                              {booking?.travel_desk?.user || "Not assigned yet."}
                             </span>
                           </div>
                           <div>
@@ -1118,14 +1109,6 @@ export const TravelApplicationDetails: React.FC = () => {
                             </span>{" "}
                             <span className="text-slate-900">
                               {booking?.travel_desk?.completed_at || "Pending"}
-                            </span>
-                          </div>
-                          <div className="md:col-span-4">
-                            <span className="font-medium text-slate-700">
-                              Remarks:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.remarks || "-"}
                             </span>
                           </div>
                         </div>
@@ -1191,7 +1174,10 @@ export const TravelApplicationDetails: React.FC = () => {
                         <div className="space-y-2">
                           {booking.booking_notes.map((note, noteIdx) => (
                             <div key={noteIdx} className="flex gap-2 text-sm">
-                              <div className="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                              <div
+                                className={`flex-shrink-0 w-2 h-2 rounded-full mt-1.5`}
+                                style={{ backgroundColor: note.color }}
+                              ></div>
                               <div className="flex-1">
                                 <div className="font-medium text-xs text-slate-500">
                                   [{note.created_at}] {note.author}
