@@ -812,7 +812,7 @@ class TravelDeskForwardToDeskView(APIView):
         if not target_user:
             return error_response(message="Target user not found")
 
-        # Check if target is actually a travel desk user
+        # 1. Check if target is actually a travel desk user
         from apps.authentication.models import UserRole
         if not UserRole.objects.filter(
             user=target_user,
@@ -820,11 +820,6 @@ class TravelDeskForwardToDeskView(APIView):
             is_active=True
         ).exists():
              return error_response(message="Target user is not a Travel Desk member")
-
-        # Validation Guards
-        # 1. Block if forwarding to self
-        if target_user == request.user:
-            return error_response(message="You cannot forward a booking to yourself.")
 
         # 2. Block if already assigned to this user
         if booking.handling_travel_desk_user == target_user:

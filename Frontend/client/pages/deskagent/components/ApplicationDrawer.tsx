@@ -227,7 +227,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
       onRefresh?.();
     } catch (err: any) {
       console.log(err.request.response);
-      toast.error(err.request.response.errors || "You cannot forward a booking to yourself." || "Failed to reclaim booking");
+      toast.error(
+        err.request.response.errors ||
+          "You cannot forward a booking to yourself." ||
+          "Failed to reclaim booking",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -294,7 +298,11 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
       await fetchApplicationDetails();
       onRefresh?.();
     } catch (err: any) {
-      toast.error(err.message || "Failed to forward booking");
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to forward booking",
+      );
     } finally {
       setActionLoading(false);
     }
