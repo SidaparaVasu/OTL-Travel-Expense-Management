@@ -138,7 +138,7 @@ export default function ImportExportMaster() {
         </p>
       </header>
 
-      <div className="grid gap-6 max-w-4xl mx-auto">
+      <div className="grid gap-6 max-w-full mx-auto">
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -172,7 +172,7 @@ export default function ImportExportMaster() {
         <Card>
           <Tabs defaultValue="import" className="w-full">
             <div className="px-6 pt-6">
-              <TabsList className="grid w-full grid-cols-2 max-w-md">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="import">Import</TabsTrigger>
                 <TabsTrigger value="export" disabled>
                   export

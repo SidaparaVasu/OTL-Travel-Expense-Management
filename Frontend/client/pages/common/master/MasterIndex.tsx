@@ -204,7 +204,7 @@ export default function MasterSettingsPage() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-[960px] mx-auto">
+      <div className="max-w-full mx-auto">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold text-slate-800">
             Master Settings
