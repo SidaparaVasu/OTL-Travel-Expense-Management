@@ -1,6 +1,13 @@
 from django.urls import path
 from .views import *
 
+# SPOC Assignments Router
+from rest_framework.routers import DefaultRouter
+from .spoc_views import LocationSPOCAssignmentViewSet
+
+router = DefaultRouter()
+router.register(r'spoc-assignments', LocationSPOCAssignmentViewSet, basename='spoc-assignments')
+
 urlpatterns = [
     # Authentication
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
@@ -32,4 +39,5 @@ urlpatterns = [
 
     # Notification Preferences
     path('preferences/notifications/', NotificationPreferencesView.as_view()),
-]   
+]
+urlpatterns += router.urls

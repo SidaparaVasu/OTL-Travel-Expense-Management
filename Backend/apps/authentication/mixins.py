@@ -8,6 +8,8 @@ across different views and viewsets.
 from django.db.models import Q
 
 
+ENABLE_SPOC_BASED_FILTERING = True
+
 class BranchFilterMixin:
     """
     Mixin to apply branch-based filtering to querysets.
@@ -70,8 +72,41 @@ class BranchFilterMixin:
         if (user.has_role('Admin') or user.has_role('admin') or 
             user.has_role('Travel Desk') or user.has_role('Finance') or 
             user.has_role('Manager') or user.has_role('Branch Admin')):
+
+            # SPOC Based Filtering Logic
+            if ENABLE_SPOC_BASED_FILTERING:
+                from apps.authentication.models.spoc import LocationSPOCAssignment
+                
+                # Determine relevant role for SPOC check
+                # We check assignments for ALL roles user has that are relevant (Travel Desk / Finance)
+                # Or just check if they have ANY assignment that matches their current capabilities
+                
+                # Ideally, we find assignments where user=user AND is_active=True
+                assignments = LocationSPOCAssignment.objects.filter(
+                    user=user, 
+                    is_active=True
+                ).prefetch_related('locations')
+
+                if assignments.exists():
+                    # Check for Global assignment
+                    if assignments.filter(is_global=True).exists():
+                        return queryset
+
+                    # Collect all assigned location IDs
+                    spoc_location_ids = set()
+                    for assignment in assignments:
+                        spoc_location_ids.update(assignment.locations.values_list('location_id', flat=True))
+                    
+                    # Also include user's own branch location
+                    spoc_location_ids.add(user_location.location_id)
+                    
+                    filter_kwargs = {
+                        f'{employee_field}__organizational_profile__base_location__location_id__in': list(spoc_location_ids)
+                    }
+                    return queryset.filter(**filter_kwargs)
+
             
-            # Build filter to match employee's base_location with user's base_location
+            # Default / Fallback: Build filter to match employee's base_location with user's base_location
             filter_kwargs = {
                 f'{employee_field}__organizational_profile__base_location': user_location
             }

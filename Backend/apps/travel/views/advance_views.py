@@ -12,7 +12,9 @@ from apps.travel.serializers.advance_serializers import (
     AdvanceProcessingSerializer
 )
 
-class AdvanceWorkspaceViewSet(viewsets.ReadOnlyModelViewSet):
+from apps.authentication.mixins import BranchFilterMixin
+
+class AdvanceWorkspaceViewSet(BranchFilterMixin, viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for Finance Advance Workspace.
     Allows viewing applications with advance requests and processing them.
@@ -33,6 +35,9 @@ class AdvanceWorkspaceViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         
+        # Apply branch/SPOC filtering
+        qs = self.apply_branch_filter(qs, self.request.user)
+
         # Filter by processing status
         # status = request.query_params.get('status', 'pending')
         # 'pending' = AdvanceProcessing does NOT exist OR status='pending'

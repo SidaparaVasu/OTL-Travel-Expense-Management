@@ -427,10 +427,20 @@ class SwitchRoleView(APIView):
 class RoleListCreateView(ListCreateAPIView):
     """
     List and create roles (Admin only)
+    Supports filtering for SPOC assignment
     """
     queryset = Role.objects.filter(is_active=True).prefetch_related('rolepermission_set__permission')
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
+    
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.request.query_params.get('spoc_roles') == 'true':
+            # Filter for specific roles allowed for SPOC assignment
+            # Default: Travel Desk and Finance
+            allowed_roles = ['Travel Desk', 'Finance']
+            qs = qs.filter(name__in=allowed_roles)
+        return qs
 
 class RoleDetailView(RetrieveUpdateDestroyAPIView):
     """
@@ -610,7 +620,12 @@ class EmployeeSearchView(BranchFilterMixin, APIView):
             Q(username__icontains=query),
             is_active=True,
             user_type='organizational'
-        ).exclude(id=request.user.id).select_related(
+        )
+        
+        if request.query_params.get('include_self') != 'true':
+            employees = employees.exclude(id=request.user.id)
+            
+        employees = employees.select_related(
             'organizational_profile__department',
             'organizational_profile__base_location'
         )
