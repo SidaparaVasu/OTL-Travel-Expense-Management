@@ -118,7 +118,7 @@ class IsTravelDesk(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.has_role('Travel Desk')
+        return request.user.has_role('Travel Desk') or request.user.has_role('Global Travel Desk')
     
     message = "Travel Desk access required"
 

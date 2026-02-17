@@ -146,7 +146,7 @@ class User(AbstractUser):
     def has_role(self, role_name):
         """Check if user has specific role"""
         return self.userrole_set.filter(
-            role__name=role_name,
+            role__name__iexact=role_name,
             role__is_active=True,
             is_active=True
         ).exists()
