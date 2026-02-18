@@ -721,10 +721,11 @@ export const TravelApplicationDetails: React.FC = () => {
                               {booking.accommodation_type}
                             </td>
                             <td className="border border-slate-200 p-3">
-                              {booking.accommodation_type === "ARC Hotel" ? (
+                              {booking.arc_hotel_preferences &&
+                              booking.arc_hotel_preferences.length > 0 ? (
                                 <ol className="list-decimal list-inside">
-                                  {booking.arc_hotel_preferences?.map(
-                                    (pref, prefIdx) => (
+                                  {booking.arc_hotel_preferences.map(
+                                    (pref: string, prefIdx: number) => (
                                       <li key={prefIdx}>{pref}</li>
                                     ),
                                   )}

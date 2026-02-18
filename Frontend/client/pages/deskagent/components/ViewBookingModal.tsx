@@ -304,6 +304,32 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                     "Check-Out Time",
                     formatTime(details.check_out_time),
                   )}
+                  {renderRow("Place", details.place || "N/A")}
+
+                  {/* ARC Hotel Preferences */}
+                  {details.arc_hotel_preferences &&
+                    details.arc_hotel_preferences.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-sm text-black block mb-3 mt-4">
+                          ARC Hotel Preferences
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {(
+                            details.arc_hotel_preferences_data ||
+                            details.arc_hotel_preferences
+                          ).map((pref: any, idx: number) => (
+                            <p
+                              key={idx}
+                              className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
+                            >
+                              {typeof pref === "object" && pref.name
+                                ? idx + 1 + ". " + pref.name
+                                : idx + 1 + ". " + pref}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </>
               )}
 

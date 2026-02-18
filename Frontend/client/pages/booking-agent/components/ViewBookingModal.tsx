@@ -35,21 +35,31 @@ interface ViewBookingModalProps {
 }
 
 const getBookingIcon = (type: number | string) => {
-  const t = typeof type === 'string' ? type.toLowerCase() : getBookingTypeLabel(type).toLowerCase();
+  const t =
+    typeof type === "string"
+      ? type.toLowerCase()
+      : getBookingTypeLabel(type).toLowerCase();
   if (t.includes("flight")) return Plane;
   if (t.includes("train")) return Train;
-  if (t.includes("car") || t.includes("conveyance") || t.includes("taxi")) return Car;
-  if (t.includes("accommodation") || t.includes("hotel") || t.includes("guest")) return Home;
+  if (t.includes("car") || t.includes("conveyance") || t.includes("taxi"))
+    return Car;
+  if (t.includes("accommodation") || t.includes("hotel") || t.includes("guest"))
+    return Home;
   if (t.includes("bulk booking")) return FileText;
   return MapPin;
 };
 
 const getBookingColor = (type: number | string) => {
-  const t = typeof type === 'string' ? type.toLowerCase() : getBookingTypeLabel(type).toLowerCase();
+  const t =
+    typeof type === "string"
+      ? type.toLowerCase()
+      : getBookingTypeLabel(type).toLowerCase();
   if (t.includes("flight")) return "text-primary bg-primary/10";
   if (t.includes("train")) return "text-primary bg-primary/10";
-  if (t.includes("car") || t.includes("conveyance")) return "text-red-600 bg-red-600/10";
-  if (t.includes("accommodation") || t.includes("hotel")) return "text-emerald-600 bg-emerald-600/10";
+  if (t.includes("car") || t.includes("conveyance"))
+    return "text-red-600 bg-red-600/10";
+  if (t.includes("accommodation") || t.includes("hotel"))
+    return "text-emerald-600 bg-emerald-600/10";
   if (t.includes("bulk booking")) return "text-blue-600 bg-blue-600/10";
   return "text-muted-foreground bg-muted/20";
 };
@@ -64,11 +74,15 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
   console.log(booking);
 
   const details = booking.booking_details || {};
-  const Icon = getBookingIcon(booking.booking_type_name || booking.booking_type);
-  const colorClass = getBookingColor(booking.booking_type_name || booking.booking_type);
+  const Icon = getBookingIcon(
+    booking.booking_type_name || booking.booking_type,
+  );
+  const colorClass = getBookingColor(
+    booking.booking_type_name || booking.booking_type,
+  );
 
   const renderRow = (label: string, value: React.ReactNode) => {
-    if (!value || value === '—') return null;
+    if (!value || value === "—") return null;
     return (
       <div className="flex justify-between py-2 border-b last:border-0 border-border">
         <span className="text-sm text-muted-foreground">{label}</span>
@@ -77,7 +91,11 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
     );
   };
 
-  const renderSection = (title: string, icon: React.ElementType, children: React.ReactNode) => {
+  const renderSection = (
+    title: string,
+    icon: React.ElementType,
+    children: React.ReactNode,
+  ) => {
     const SectionIcon = icon;
     return (
       <div className="space-y-2">
@@ -85,9 +103,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
           <SectionIcon className="w-4 h-4 text-primary" />
           {title}
         </h4>
-        <div className="bg-card border rounded-lg p-3">
-          {children}
-        </div>
+        <div className="bg-card border rounded-lg p-3">{children}</div>
       </div>
     );
   };
@@ -104,20 +120,29 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}
+            >
               <Icon className="w-6 h-6" />
             </div>
             <div>
               <h3 className="text-lg font-semibold">
-                {booking.booking_type_name || getBookingTypeLabel(booking.booking_type)}
+                {booking.booking_type_name ||
+                  getBookingTypeLabel(booking.booking_type)}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {booking.sub_option_name || getSubOptionLabel(booking.sub_option)}
+                {booking.sub_option_name ||
+                  getSubOptionLabel(booking.sub_option)}
               </p>
             </div>
           </div>
 
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 hover:text-slate-600" onClick={onClose}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-slate-100 hover:text-slate-600"
+            onClick={onClose}
+          >
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -130,7 +155,9 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             <StatusBadge statusType="booking" status={booking.status} />
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Estimated Cost</p>
-              <p className="text-xl font-semibold">{formatCurrency(booking.estimated_cost)}</p>
+              <p className="text-xl font-semibold">
+                {formatCurrency(booking.estimated_cost)}
+              </p>
             </div>
           </div>
 
@@ -240,6 +267,31 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                   "Check-Out Time",
                   formatTime(details.check_out_time),
                 )}
+
+                {/* ARC Hotel Preferences */}
+                  {details.arc_hotel_preferences &&
+                    details.arc_hotel_preferences.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-sm text-black block mb-3 mt-4">
+                          ARC Hotel Preferences
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {(
+                            details.arc_hotel_preferences_data ||
+                            details.arc_hotel_preferences
+                          ).map((pref: any, idx: number) => (
+                            <p
+                              key={idx}
+                              className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
+                            >
+                              {typeof pref === "object" && pref.name
+                                ? idx + 1 + ". " + pref.name
+                                : idx + 1 + ". " + pref}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
               </>,
             )}
 

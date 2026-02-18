@@ -35,6 +35,7 @@ export interface BookingDetails {
   drop_location?: string;
   has_six_airbags?: boolean;
   accommodation_type?: "company" | "self";
+  arc_hotel_preferences?: any[];
 }
 
 export interface Booking {

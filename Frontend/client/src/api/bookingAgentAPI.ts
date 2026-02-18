@@ -79,6 +79,7 @@ export interface BookingDetails {
   check_out_date?: string;
   check_out_time?: string;
   guest_house_preferences?: number[];
+  arc_hotel_preferences?: any[];
 
   // Conveyance
   start_date?: string;

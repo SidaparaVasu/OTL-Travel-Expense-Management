@@ -475,6 +475,7 @@ export const TravelApplicationForm: React.FC = () => {
                 if (modeName === "Flight" || modeName === "Train") {
                   // Ticketing
                   ticketingData.push({
+                    id: booking.id, // Store ID
                     booking_type: String(booking.booking_type),
                     sub_option: String(booking.sub_option),
                     estimated_cost: booking.estimated_cost || "",
@@ -500,6 +501,7 @@ export const TravelApplicationForm: React.FC = () => {
                 } else if (modeName === "Accommodation") {
                   // Accommodation
                   accommodationData.push({
+                    id: booking.id, // Store ID
                     accommodation_type: booking.booking_type,
                     accommodation_type_label: booking.booking_type_name || "",
                     accommodation_sub_option: String(booking.sub_option),
@@ -516,6 +518,8 @@ export const TravelApplicationForm: React.FC = () => {
                       booking.booking_details?.check_out_time || "",
                     meal_preference:
                       booking.booking_details?.meal_preference || "",
+                    arc_hotel_preferences:
+                      booking.booking_details?.arc_hotel_preferences || [],
                   });
                 } else {
                   // Conveyance
@@ -533,6 +537,7 @@ export const TravelApplicationForm: React.FC = () => {
                     dropLocation !== "Other";
 
                   conveyanceData.push({
+                    id: booking.id, // Store ID
                     vehicle_type: String(booking.booking_type),
                     vehicle_sub_option: String(booking.sub_option),
                     estimated_cost: booking.estimated_cost || "",
@@ -970,6 +975,7 @@ export const TravelApplicationForm: React.FC = () => {
 
       trip_details: [
         {
+          id: purposeData.trip_id, // Add Trip ID if exists
           from_location: purposeData?.trip_from_location || null,
           to_location: purposeData?.trip_to_location || null,
           departure_date: purposeData?.departure_date || null,
@@ -983,6 +989,7 @@ export const TravelApplicationForm: React.FC = () => {
 
           bookings: [
             ...ticketing.map((t) => ({
+              id: (t as any).id, // Pass ID if exists
               booking_type: parseInt(t.booking_type), // // Ticketing mode ID
               sub_option: parseInt(t.sub_option),
               estimated_cost: parseFloat(t.estimated_cost) || null,
@@ -1002,12 +1009,14 @@ export const TravelApplicationForm: React.FC = () => {
               },
             })),
             ...accommodation.map((a) => ({
+              id: (a as any).id, // Pass ID if exists
               booking_type: a.accommodation_type, // Accommodation mode ID
               sub_option: parseInt(a.accommodation_sub_option),
               estimated_cost: parseFloat(a.estimated_cost),
               special_instruction: a.special_instruction || "",
               booking_details: {
                 guest_house_preferences: [],
+                arc_hotel_preferences: a.arc_hotel_preferences || [],
                 place: a.place,
                 check_in_date: a.check_in_date,
                 check_out_date: a.check_out_date,
@@ -1017,6 +1026,7 @@ export const TravelApplicationForm: React.FC = () => {
               },
             })),
             ...conveyance.map((c) => ({
+              id: (c as any).id, // Pass ID if exists
               booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
               sub_option: parseInt(c.vehicle_sub_option),
               estimated_cost: parseFloat(c.estimated_cost),
@@ -1358,14 +1368,14 @@ export const TravelApplicationForm: React.FC = () => {
 
               {/* Save Draft button - hide in edit mode */}
               {/* {!isEditMode && ( */}
-                <Button
-                  variant="outline"
-                  onClick={handleSaveAsDraft}
-                  disabled={isSaving}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? "Saving..." : "Save Draft"}
-                </Button>
+              <Button
+                variant="outline"
+                onClick={handleSaveAsDraft}
+                disabled={isSaving}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? "Saving..." : "Save Draft"}
+              </Button>
               {/* )} */}
 
               {/* Submit/Update button */}

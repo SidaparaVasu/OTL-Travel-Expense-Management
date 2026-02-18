@@ -134,7 +134,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     // }
     const selectedCity = cities.find((c) => String(c.id) === form.place);
     derivedCityCategory = selectedCity?.category_name;
-  } else if (isARCHotelSelected && form.arc_hotel_preferences.length > 0) {
+  } else if (isARCHotelSelected && form.arc_hotel_preferences?.length > 0) {
     const hotel = arcHotels.find((h) => h.id === form.arc_hotel_preferences[0]);
     // The new serializer provides city_category directly
     derivedCityCategory = hotel?.city_category;
@@ -256,7 +256,10 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     // }
 
     // Companies-tied Hotels (ARC Hotels) preferences required for Companies-tied Hotels (ARC Hotels)
-    if (isARCHotelSelected && form.arc_hotel_preferences.length === 0) {
+    if (
+      isARCHotelSelected &&
+      (!form.arc_hotel_preferences || form.arc_hotel_preferences.length === 0)
+    ) {
       newErrors.arc_hotel_preferences =
         "At least one hotel preference is required";
     }
