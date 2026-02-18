@@ -22,20 +22,23 @@ class SSOTokenHandler:
             Decrypted string: "P1:1$P2:admin@sandip$P3:1$P4:0$P5:True"
         """
         try:
-            # 1. Strip any whitespace/newlines that might affect length
+            # 1. Handle URL encoding FIRST (replace URL-safe chars)
+            # Standard URL parsers convert '+' to ' ', so we must convert it back
+            # We do this BEFORE strip() because a trailing '+' might have become a ' ' 
+            # and strip() would remove it, corrupting the token.
+            encrypted_base64 = encrypted_base64.replace(' ', '+').replace('-', '+').replace('_', '/')
+
+            # 2. Strip any whitespace/newlines that might affect length
+            # Now that meaningful spaces are converted to '+', strip() only removes garbage
             encrypted_base64 = encrypted_base64.strip()
             
-            # 2. Remove a trailing slash if it was accidentally appended to the param by the browser
+            # 3. Remove a trailing slash if it was accidentally appended to the param by the browser
             # Base64 strings can end with '/' but not if it's an accidental URL append
             # However, if it's a valid part of the token, we should be careful.
             # In HRMS tokens, if it's 4-byte aligned and ends with /, it's usually part of the cipher.
             # If it's NOT 4-byte aligned and ends with /, it's almost certainly a URL artifact.
             if len(encrypted_base64) % 4 != 0 and encrypted_base64.endswith('/'):
                 encrypted_base64 = encrypted_base64[:-1]
-
-            # 3. Handle URL encoding (replace URL-safe chars)
-            # Standard URL parsers convert '+' to ' ', so we must convert it back
-            encrypted_base64 = encrypted_base64.replace(' ', '+').replace('-', '+').replace('_', '/')
             
             # 4. Add padding if needed
             padding_needed = len(encrypted_base64) % 4
