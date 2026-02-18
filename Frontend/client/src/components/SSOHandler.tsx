@@ -20,7 +20,12 @@ export const SSOHandler = () => {
     const handleSSOLogin = async () => {
       // Check for auth parameter in URL
       const urlParams = new URLSearchParams(window.location.search);
-      const authToken = urlParams.get("auth")?.trim();
+      
+      // trim() method removes ' ' empty trailing space because while we getting 'auth' param it converts '+' to ' ' empty string, 
+      // which later in backend recieves only 63 character which led invalid padding size error.
+      // to prevent this edge case scenario, we do not gonna use trim for cleaning URL.
+      // const authToken = urlParams.get("auth")?.trim();
+      const authToken = urlParams.get("auth");
 
       if (!authToken) {
         return; // No SSO token, skip
