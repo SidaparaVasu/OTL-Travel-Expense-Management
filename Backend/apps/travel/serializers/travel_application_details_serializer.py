@@ -230,15 +230,24 @@ class AccommodationBookingSerializer(serializers.Serializer):
         return obj.sub_option.name if obj.sub_option else obj.booking_details.get('accommodation_type', '')
 
     def get_arc_hotel_preferences(self, obj):
-        # obj IS the booking, get preferences directly from booking_details
-        if obj.sub_option and 'arc' in obj.sub_option.name.lower():
-            prefs = obj.booking_details.get('arc_hotel_preferences', [])
-            return prefs if prefs else []
+        # obj IS the booking
+        # Check if preferences exist in booking_details
+        prefs = obj.booking_details.get('arc_hotel_preferences', [])
+        if prefs and isinstance(prefs, list):
+            try:
+                from apps.master_data.models import ARCHotelMaster
+                hotels = ARCHotelMaster.objects.filter(id__in=prefs).select_related('city', 'state')
+                return [
+                    f"{h.name}"
+                    for h in hotels
+                ]
+            except Exception:
+                pass
         return []
 
     def get_location(self, obj):
-        if obj.sub_option and obj.sub_option.name == 'guest_house':
-            return obj.trip_details.to_location.city_name if obj.trip_details.to_location else ""
+        if obj.trip_details and obj.trip_details.to_location:
+            return obj.trip_details.to_location.city_name
         return ""
 
     def get_allocated_hotel(self, obj):

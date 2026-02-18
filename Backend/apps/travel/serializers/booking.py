@@ -54,6 +54,11 @@ class TravelDocumentSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.file.url)
         return None
 
+    def get_location(self, obj):
+        if obj.sub_option and obj.trip_details and obj.trip_details.to_location:
+            return obj.trip_details.to_location.city_name
+        return None 
+
 class AccommodationRequestSerializer(serializers.Serializer):
     trip_id = serializers.IntegerField()
     guest_count = serializers.IntegerField(default=1, min_value=1)

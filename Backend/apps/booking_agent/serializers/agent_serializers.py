@@ -62,6 +62,19 @@ class AgentBookingSerializer(serializers.ModelSerializer):
                     booking_details['place'] = city.city_name
                 except Exception:
                     pass
+            
+            # ARC Hotel Preferences Name Resolution
+            arc_prefs = booking_details.get('arc_hotel_preferences')
+            if arc_prefs and isinstance(arc_prefs, list):
+                try:
+                    from apps.master_data.models import ARCHotelMaster
+                    hotels = ARCHotelMaster.objects.filter(id__in=arc_prefs).select_related('city', 'state')
+                    booking_details['arc_hotel_preferences'] = [
+                        f"{h.name} - {h.city.city_name}, {h.state.state_name}"
+                        for h in hotels
+                    ]
+                except Exception:
+                    pass
         return data
 
 class AgentBookingListSerializer(serializers.ModelSerializer):
@@ -174,6 +187,19 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
                     from apps.master_data.models import CityMaster
                     city = CityMaster.objects.get(id=place_id)
                     booking_details['place'] = city.city_name
+                except Exception:
+                    pass
+
+            # ARC Hotel Preferences Name Resolution
+            arc_prefs = booking_details.get('arc_hotel_preferences')
+            if arc_prefs and isinstance(arc_prefs, list):
+                try:
+                    from apps.master_data.models import ARCHotelMaster
+                    hotels = ARCHotelMaster.objects.filter(id__in=arc_prefs).select_related('city', 'state')
+                    booking_details['arc_hotel_preferences'] = [
+                        f"{h.name} - {h.city.city_name}, {h.state.state_name}"
+                        for h in hotels
+                    ]
                 except Exception:
                     pass
         return data
@@ -311,6 +337,19 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
                     from apps.master_data.models import CityMaster
                     city = CityMaster.objects.get(id=place_id)
                     booking_details['place'] = city.city_name
+                except Exception:
+                    pass
+
+            # ARC Hotel Preferences Name Resolution
+            arc_prefs = booking_details.get('arc_hotel_preferences')
+            if arc_prefs and isinstance(arc_prefs, list):
+                try:
+                    from apps.master_data.models import ARCHotelMaster
+                    hotels = ARCHotelMaster.objects.filter(id__in=arc_prefs).select_related('city', 'state')
+                    booking_details['arc_hotel_preferences'] = [
+                        f"{h.name} - {h.city.city_name}, {h.state.state_name}"
+                        for h in hotels
+                    ]
                 except Exception:
                     pass
         return data

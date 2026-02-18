@@ -196,6 +196,21 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             except Exception:
                 pass
         
+        # ARC Hotel Preferences Name Resolution
+        if booking_details:
+            arc_prefs = booking_details.get('arc_hotel_preferences')
+            if arc_prefs and isinstance(arc_prefs, list):
+                try:
+                    from apps.master_data.models import ARCHotelMaster
+                    hotels = ARCHotelMaster.objects.filter(id__in=arc_prefs).select_related('city', 'state')
+                    booking_details['arc_hotel_preferences'] = [
+                        f"{h.name} - {h.city.city_name}, {h.state.state_name}"
+                        for h in hotels
+                    ]
+                    ret['booking_details'] = booking_details
+                except Exception:
+                    pass
+        
         return ret
 
 

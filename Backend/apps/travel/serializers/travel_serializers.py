@@ -26,6 +26,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'meal_preference',
         ]
     
+    id = serializers.IntegerField(required=False)
+    
     meal_preference = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def to_representation(self, instance):
@@ -144,6 +146,8 @@ class TripDetailsSerializer(serializers.ModelSerializer):
             'departure_date', 'start_time', 'return_date', 'end_time', 'trip_purpose', 'guest_count', 'estimated_distance_km',
             'duration_days', 'city_category', 'bookings', 'travel_advance', 'no_bookings_required'
         ]
+
+    id = serializers.IntegerField(required=False)
     
     def get_duration_days(self, obj):
         return obj.get_duration_days()
@@ -423,31 +427,75 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         # Update trip details if provided
         if trip_details_data is not None:
-            # Delete existing trip details and recreate
-            instance.trip_details.all().delete()
-            
-            for trip_data in trip_details_data:
-                bookings_data = trip_data.pop('bookings', [])
-                trip_detail = TripDetails.objects.create(
-                    travel_application=instance,
-                    **trip_data
-                )
+            # Get existing trip IDs
+            existing_trip_ids = set(instance.trip_details.values_list('id', flat=True))
+            incoming_trip_ids = set()
 
-                advance_data = validated_data.pop('travel_advance', None)
-                if advance_data:
-                    TravelAdvanceRequest.objects.update_or_create(
-                        trip_detail=instance, defaults=advance_data
+            for trip_data in trip_details_data:
+                trip_id = trip_data.pop('id', None)
+                bookings_data = trip_data.pop('bookings', [])
+                
+                if trip_id and trip_id in existing_trip_ids:
+                    incoming_trip_ids.add(trip_id)
+                    trip_detail = TripDetails.objects.get(id=trip_id, travel_application=instance)
+                    for attr, value in trip_data.items():
+                        setattr(trip_detail, attr, value)
+                    trip_detail.save()
+                else:
+                    trip_detail = TripDetails.objects.create(
+                        travel_application=instance,
+                        **trip_data
                     )
                 
+                # Handle Bookings for this trip
+                existing_booking_ids = set(trip_detail.bookings.values_list('id', flat=True))
+                incoming_booking_ids = set()
+
                 for booking_data in bookings_data:
-                    # Handle meal_preference
+                    booking_id = booking_data.pop('id', None)
+                    
+                    # Handle meal_preference (nested extraction)
                     meal_preference = booking_data.pop('meal_preference', None)
                     if meal_preference:
                         if 'booking_details' not in booking_data:
                             booking_data['booking_details'] = {}
                         booking_data['booking_details']['meal_preference'] = meal_preference
 
-                    Booking.objects.create(trip_details=trip_detail, **booking_data)
+                    if booking_id and booking_id in existing_booking_ids:
+                        incoming_booking_ids.add(booking_id)
+                        booking = Booking.objects.get(id=booking_id, trip_details=trip_detail)
+                        
+                        # Update fields
+                        for attr, value in booking_data.items():
+                            setattr(booking, attr, value)
+                        booking.save()
+                    else:
+                        booking = Booking.objects.create(trip_details=trip_detail, **booking_data)
+                        
+                        # Auto-confirm self-arranged accommodation (no vendor required)
+                        sub_option = booking.sub_option
+                        if sub_option and 'self' in sub_option.name.lower():
+                            booking.status = 'confirmed'
+                            booking.save(update_fields=['status'])
+
+                # Delete removed bookings
+                bookings_to_delete = existing_booking_ids - incoming_booking_ids
+                if bookings_to_delete:
+                    # logger.info(f"Deleting bookings: {bookings_to_delete}")
+                    Booking.objects.filter(id__in=bookings_to_delete).delete()
+
+                # Handle Advance Request
+                advance_data = validated_data.pop('travel_advance', None)
+                if advance_data:
+                    TravelAdvanceRequest.objects.update_or_create(
+                        trip_detail=trip_detail, defaults=advance_data
+                    )
+            
+            # Delete removed trips
+            trips_to_delete = existing_trip_ids - incoming_trip_ids
+            if trips_to_delete:
+                # logger.info(f"Deleting trips: {trips_to_delete}")
+                TripDetails.objects.filter(id__in=trips_to_delete).delete()
             
             # Recalculate estimated cost
             instance.calculate_estimated_cost()
