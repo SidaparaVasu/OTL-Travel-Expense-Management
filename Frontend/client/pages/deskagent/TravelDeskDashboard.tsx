@@ -232,8 +232,8 @@ const TravelDeskDashboard: React.FC = () => {
   const filteredApplications = getFilteredApplications();
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen">
+      <div className="space-y-6">
         {/* KPI Cards */}
         <KPICards stats={stats} isLoading={loading} />
 

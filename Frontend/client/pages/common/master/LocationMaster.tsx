@@ -331,22 +331,37 @@ const LocationMaster = () => {
 
         {/* Controls */}
         <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
+          <div className="flex flex-col gap-6">
+            {/* Row 1 — Search + Add Button */}
+            <div className="flex flex-col xs:flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              {/* Search */}
+              <div className="relative flex-1">
                 <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-                  size={20}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
                 />
                 <input
                   type="text"
                   placeholder="Search by location name, code, or city..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
+              {/* Add Button */}
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium w-full sm:w-auto"
+              >
+                <Plus size={18} />
+                <span>Add New</span>
+              </button>
+            </div>
+
+            {/* Row 2 — Filters Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 gap-3">
+              {/* Company */}
               <select
                 value={filterCompany}
                 onChange={(e) => setFilterCompany(e.target.value)}
@@ -360,6 +375,7 @@ const LocationMaster = () => {
                 ))}
               </select>
 
+              {/* State */}
               <select
                 value={filterState}
                 onChange={(e) => {
@@ -376,6 +392,7 @@ const LocationMaster = () => {
                 ))}
               </select>
 
+              {/* City */}
               <select
                 value={filterCity}
                 onChange={(e) => setFilterCity(e.target.value)}
@@ -393,49 +410,30 @@ const LocationMaster = () => {
                     </option>
                   ))}
               </select>
-            </div>
 
-            <div className="flex gap-3 justify-between items-center">
-              <div className="flex bg-slate-100 rounded-lg p-1">
-                <button
-                  onClick={() => setFilterActive("all")}
-                  className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
-                    filterActive === "all"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-slate-600"
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilterActive("active")}
-                  className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
-                    filterActive === "active"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-slate-600"
-                  }`}
-                >
-                  Active
-                </button>
-                <button
-                  onClick={() => setFilterActive("inactive")}
-                  className={`px-4 py-1.5 rounded-md transition-all text-sm font-medium ${
-                    filterActive === "inactive"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-slate-600"
-                  }`}
-                >
-                  Inactive
-                </button>
+              {/* Status Filter */}
+              <div className="w-full">
+                <div className="inline-flex w-full bg-slate-100 rounded-lg p-1">
+                  {["all", "active", "inactive"].map((type) => {
+                    const isActive = filterActive === type;
+
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setFilterActive(type)}
+                        className={`w-auto   flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all
+                          ${
+                            isActive
+                              ? "bg-white text-blue-600 shadow-sm"
+                              : "text-slate-600"
+                          }`}
+                      >
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-
-              <button
-                onClick={() => setShowModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
-              >
-                <Plus size={20} />
-                <span className="hidden sm:inline">Add New</span>
-              </button>
             </div>
           </div>
         </div>
@@ -456,7 +454,7 @@ const LocationMaster = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
+                  <tr className="whitespace-nowrap">
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
                       Location Name
                     </th>
@@ -487,7 +485,7 @@ const LocationMaster = () => {
                   {filteredLocations.map((location) => (
                     <tr
                       key={location.location_id}
-                      className="hover:bg-slate-50 transition-colors"
+                      className="hover:bg-slate-50 transition-colors whitespace-nowrap"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">

@@ -357,7 +357,7 @@ export default function MyClaimsPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="whitespace-nowrap">
                   <TableHead>Travel Request</TableHead>
                   <TableHead>Total Expenses</TableHead>
                   <TableHead>Advance Taken</TableHead>
@@ -380,7 +380,7 @@ export default function MyClaimsPage() {
                   </TableRow>
                 ) : (
                   claims?.map((claim: any) => (
-                    <TableRow key={claim.id}>
+                    <TableRow key={claim.id} className="whitespace-nowrap">
                       <TableCell className="font-medium">
                         {claim.travel_request_id || claim.travel_application}
                       </TableCell>

@@ -608,7 +608,7 @@ export default function GradeEntitlementMaster() {
                     <div className="overflow-x-auto">
                       <table className="min-w-full">
                         <thead className="bg-gray-50">
-                          <tr>
+                          <tr className="whitespace-nowrap">
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                               Mode
                             </th>
@@ -635,7 +635,7 @@ export default function GradeEntitlementMaster() {
                             return (
                               <tr
                                 key={item.id}
-                                className="hover:bg-gray-50 transition-colors"
+                                className="hover:bg-gray-50 transition-colors whitespace-nowrap"
                               >
                                 <td className="px-6 py-4">
                                   <div className="flex items-center gap-2">

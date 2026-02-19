@@ -173,7 +173,7 @@ const ARCHotelList = ({ onEdit }) => {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b border-gray-200">
-                                    <tr>
+                                    <tr className="whitespace-nowrap">
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hotel Name</th>
                                         {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category & Rating</th> */}
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
@@ -187,7 +187,7 @@ const ARCHotelList = ({ onEdit }) => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {data.map(item => (
-                                        <tr key={item.id} className="hover:bg-gray-50">
+                                        <tr key={item.id} className="hover:bg-gray-50 whitespace-nowrap">
                                             <td className="px-6 py-4">
                                                 <div className="font-medium text-gray-900">{item.name}</div>
                                                 <div className="text-sm text-gray-500 capitalize">{item.hotel_type?.replace('_', ' ')}</div>
@@ -209,7 +209,7 @@ const ARCHotelList = ({ onEdit }) => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-900">{item.phone_number}</div>
-                                                <div className="text-sm text-gray-500">{item.email}</div>
+                                                <div className="text-sm text-gray-500 w-[200px] truncate">{item.email}</div>
                                             </td>
                                             {/* <td className="px-6 py-4 text-sm text-gray-700">
                                                 {item.total_rooms || '-'}

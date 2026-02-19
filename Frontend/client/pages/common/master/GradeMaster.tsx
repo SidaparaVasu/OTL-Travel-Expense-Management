@@ -126,7 +126,7 @@ export default function GradeMasterPage() {
                     <CardContent>
                         <Table>
                             <TableHeader>
-                                <TableRow>
+                                <TableRow className="whitespace-nowrap">
                                     <TableHead>Sort no.</TableHead>
                                     <TableHead>Grade</TableHead>
                                     <TableHead>Description</TableHead>
@@ -138,7 +138,7 @@ export default function GradeMasterPage() {
                             <TableBody>
                                 {grades.length > 0 ? (
                                     grades.map((grade) => (
-                                        <TableRow key={grade.id} className="border-b last:border-none">
+                                        <TableRow key={grade.id} className="border-b last:border-none whitespace-nowrap">
                                             <TableCell>{grade.sorting_no}</TableCell>
                                             <TableCell>{grade.name}</TableCell>
                                             <TableCell>{grade.description}</TableCell>

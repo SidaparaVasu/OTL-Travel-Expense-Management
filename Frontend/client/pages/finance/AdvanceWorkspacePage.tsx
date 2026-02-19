@@ -134,7 +134,7 @@ const AdvanceWorkspacePage = () => {
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
-                <tr>
+                <tr className="whitespace-nowrap">
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Req ID / Date
                   </th>
@@ -156,7 +156,7 @@ const AdvanceWorkspacePage = () => {
                 {filteredRequests.map((req) => (
                   <tr
                     key={req.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50 transition-colors whitespace-nowrap"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

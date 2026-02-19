@@ -366,7 +366,7 @@ export default function TravelApplicationList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-semibold">My Travel Applications</h1>
           <p className="text-lg text-muted-foreground mt-1">
@@ -382,68 +382,81 @@ export default function TravelApplicationList() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Card */}
+          <Card className="bg-white border shadow-sm shadow-[0_2px_2px_0_rgba(59,130,247,0.30)] transition-all">
+            <CardContent className="p-4 sm:p-5 lg:p-6">
               <div className="flex items-center gap-4">
-                <div className="w-[70px] h-[70px] rounded-lg bg-blue-50 flex items-center justify-center">
-                  <ClipboardList className="h-7 w-7 text-blue-500" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
                 </div>
+
                 <div>
-                  <div className="text-2xl font-bold text-foreground">
+                  <div className="text-xl sm:text-2xl font-semibold">
                     {stats.total_applications}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs sm:text-sm text-muted-foreground">
                     Total Applications
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
-            <CardContent className="p-6">
+
+          {/* Draft */}
+          <Card className="bg-white border shadow-sm shadow-[0_2px_2px_0_rgba(59,130,247,0.30)] transition-all">
+            <CardContent className="p-4 sm:p-5 lg:p-6">
               <div className="flex items-center gap-4">
-                <div className="w-[70px] h-[70px] rounded-lg bg-gray-100 flex items-center justify-center">
-                  <SquarePen className="h-7 w-7 text-gray-500" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <SquarePen className="h-5 w-5 sm:h-6 sm:w-6 text-gray-500" />
                 </div>
+
                 <div>
-                  <div className="text-2xl font-bold text-foreground">
+                  <div className="text-xl sm:text-2xl font-semibold">
                     {stats.draft}
                   </div>
-                  <div className="text-sm text-muted-foreground">Draft(s)</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">
+                    Draft(s)
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
-            <CardContent className="p-6">
+
+          {/* Pending */}
+          <Card className="bg-white border shadow-sm shadow-[0_2px_2px_0_rgba(59,130,247,0.30)] transition-all">
+            <CardContent className="p-4 sm:p-5 lg:p-6">
               <div className="flex items-center gap-4">
-                <div className="w-[70px] h-[70px] rounded-lg bg-orange-50 flex items-center justify-center">
-                  <Clock className="h-7 w-7 text-orange-500" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg bg-orange-50 flex items-center justify-center">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-orange-500" />
                 </div>
+
                 <div>
-                  <div className="text-2xl font-bold text-foreground">
+                  <div className="text-xl sm:text-2xl font-semibold">
                     {stats.pending}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Remaining submissions
+                  <div className="text-xs sm:text-sm text-muted-foreground">
+                    Remaining Submissions
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white shadow-[0_2px_2px_0_rgba(59,130,247,0.30)]">
-            <CardContent className="p-6">
+
+          {/* Approved */}
+          <Card className="bg-white border shadow-sm shadow-[0_2px_2px_0_rgba(59,130,247,0.30)] transition-all">
+            <CardContent className="p-4 sm:p-5 lg:p-6">
               <div className="flex items-center gap-4">
-                <div className="w-[70px] h-[70px] rounded-lg bg-green-50 flex items-center justify-center">
-                  <CheckCircle className="h-7 w-7 text-green-500" />
+                <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-lg bg-green-50 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
                 </div>
+
                 <div>
-                  <div className="text-2xl font-bold text-foreground">
+                  <div className="text-xl sm:text-2xl font-semibold">
                     {stats.approved}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Approved applications
+                  <div className="text-xs sm:text-sm text-muted-foreground">
+                    Approved Applications
                   </div>
                 </div>
               </div>
@@ -581,7 +594,7 @@ export default function TravelApplicationList() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="whitespace-nowrap">
                         <TableHead>Request ID</TableHead>
                         <TableHead className="max-w-[200px]">Purpose</TableHead>
                         <TableHead className="max-w-2xs">Dates</TableHead>
@@ -613,7 +626,7 @@ export default function TravelApplicationList() {
                         </TableRow>
                       ) : (
                         applications.map((app) => (
-                          <TableRow key={app.id}>
+                          <TableRow key={app.id} className="whitespace-nowrap">
                             <TableCell className="font-medium">
                               {app.travel_request_id}
                             </TableCell>

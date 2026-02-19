@@ -350,32 +350,34 @@ const FinanceDashboard = () => {
               />
             </div>
 
-            <div className="w-full sm:w-[200px]">
-              <Select
-                value={statusFilter}
-                onValueChange={handleStatusFilterChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Filter status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="revision_required">Returned</SelectItem>
-                  <SelectItem value="paid">Processed</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="w-full sm:w-[200px]">
+                <Select
+                  value={statusFilter}
+                  onValueChange={handleStatusFilterChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="revision_required">Returned</SelectItem>
+                    <SelectItem value="paid">Processed</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="hover:bg-slate-100 hover:text-black"
-                onClick={handleClearFilters}
-              >
-                Clear
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="hover:bg-slate-100 hover:text-black"
+                  onClick={handleClearFilters}
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -385,7 +387,7 @@ const FinanceDashboard = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/40">
+                <TableRow className="bg-muted/40 whitespace-nowrap">
                   <TableHead className="text-slate-800">
                     Employee Name
                   </TableHead>
@@ -431,7 +433,7 @@ const FinanceDashboard = () => {
                   claims.map((claim) => (
                     <TableRow
                       key={claim.claim_application_id}
-                      className="hover:bg-muted/50 transition"
+                      className="hover:bg-muted/50 transition whitespace-nowrap"
                     >
                       <TableCell className="font-medium">
                         {claim.employee_name}

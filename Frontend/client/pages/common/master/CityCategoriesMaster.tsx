@@ -137,7 +137,7 @@ export default function CityCategoriesMasterPage() {
 
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
-            <header className="flex justify-between items-center mb-6">
+            <header className="flex justify-between items-center mb-6 sm:flex-row sm:gap-2 flex-col">
                 <h1 className="text-2xl font-semibold text-slate-800">City Category Master</h1>
                 <button
                     onClick={handleAdd}
@@ -154,7 +154,7 @@ export default function CityCategoriesMasterPage() {
                 <CardContent>
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="whitespace-nowrap">
                                 <TableHead>Category</TableHead>
                                 <TableHead>Description</TableHead>
                                 <TableHead className="text-center">Actions</TableHead>
@@ -163,7 +163,7 @@ export default function CityCategoriesMasterPage() {
                         <TableBody>
                             {categories.length > 0 ? (
                                 categories.map((category) => (
-                                    <TableRow key={category.id}>
+                                    <TableRow key={category.id} className="whitespace-nowrap">
                                         <TableCell>{category.name}</TableCell>
                                         <TableCell>{category.description || '-'}</TableCell>
                                         <TableCell className="text-center">

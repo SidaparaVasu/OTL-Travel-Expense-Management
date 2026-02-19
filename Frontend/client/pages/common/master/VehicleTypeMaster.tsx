@@ -10,7 +10,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit2, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  Filter,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,7 +53,9 @@ export default function VehicleTypeMasterPage() {
     const fetchCategories = async () => {
       try {
         const data = await vehicleMasterAPI.category.getDropdown();
-        setCategoryOptions(data.map((cat: any) => ({ label: cat.name, value: cat.id })));
+        setCategoryOptions(
+          data.map((cat: any) => ({ label: cat.name, value: cat.id })),
+        );
       } catch (err) {
         console.error("Failed to load vehicle categories dropdown", err);
       }
@@ -62,9 +73,9 @@ export default function VehicleTypeMasterPage() {
         is_active: statusFilter === "all" ? undefined : statusFilter,
         category: categoryFilter === "all" ? undefined : categoryFilter,
       };
-      
+
       const data = await vehicleMasterAPI.type.getAll(params);
-      
+
       if (data.results) {
         setVehicleTypes(data.results);
         console.log(data.results);
@@ -93,8 +104,8 @@ export default function VehicleTypeMasterPage() {
   };
 
   const handleClearSearch = () => {
-      setSearch("");
-      setPage(1);
+    setSearch("");
+    setPage(1);
   };
 
   // Open modal for adding
@@ -137,10 +148,10 @@ export default function VehicleTypeMasterPage() {
   const confirmDelete = async () => {
     try {
       if (selectedType) {
-          await vehicleMasterAPI.type.delete(selectedType.id);
-          toast.success("Vehicle type deleted (deactivated) successfully.");
-          setIsDeleteOpen(false);
-          fetchVehicleTypes();
+        await vehicleMasterAPI.type.delete(selectedType.id);
+        toast.success("Vehicle type deleted (deactivated) successfully.");
+        setIsDeleteOpen(false);
+        fetchVehicleTypes();
       }
     } catch (err) {
       console.error("Failed to delete vehicle type", err);
@@ -173,11 +184,11 @@ export default function VehicleTypeMasterPage() {
       placeholder: "e.g. 5",
     },
     {
-        name: "is_active",
-        label: "Is Active",
-        type: "checkbox",
-        default: true
-    }
+      name: "is_active",
+      label: "Is Active",
+      type: "checkbox",
+      default: true,
+    },
   ];
 
   return (
@@ -196,76 +207,79 @@ export default function VehicleTypeMasterPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle>Vehicle Types List</CardTitle>
-            <div className="flex gap-3">
-               {/* Search Input */}
-               <div className="flex gap-2">
-                <div className="relative w-64">
-                    <Search className="absolute left-2 top-1/2 h-4 w-6 -translate-y-1/2 text-gray-500" />
-                    <Input
-                    placeholder="Search name, code or category..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSearch();
-                    }}
-                    className="pl-10"
-                    />
-                </div>
-                <Button variant="default" onClick={handleSearch} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700">
-                    Search
-                </Button>
+          <div className="grid grid-cols-1 md:grid-cols-[70%_30%] sm:grid-cols-1 gap-2 w-full">
+            {/* Search Input */}
+            <div className="flex gap-2 w-full">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 h-4 w-6 -translate-y-1/2 text-gray-500" />
+                <Input
+                  placeholder="Search name, code or category..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSearch();
+                  }}
+                  className="pl-10 w-full"
+                />
               </div>
+              <Button
+                variant="default"
+                onClick={handleSearch}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Search
+              </Button>
+            </div>
 
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              {/* Category Filter */}
+              <Select
+                value={categoryFilter.toString()}
+                onValueChange={(val) => {
+                  setCategoryFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    <SelectValue placeholder="Category" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categoryOptions.map((opt: any) => (
+                    <SelectItem key={opt.value} value={opt.value.toString()}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-               {/* Category Filter */}
-               <Select
-                  value={categoryFilter.toString()}
-                  onValueChange={(val) => {
-                      setCategoryFilter(val);
-                      setPage(1); 
-                  }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <div className="flex items-center gap-2">
-                         <Filter className="w-4 h-4" />
-                         <SelectValue placeholder="Category" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categoryOptions.map((opt: any) => (
-                        <SelectItem key={opt.value} value={opt.value.toString()}>
-                            {opt.label}
-                        </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-               {/* Status Filter */}
-               <Select
-                  value={statusFilter}
-                  onValueChange={(val) => {
-                      setStatusFilter(val);
-                      setPage(1); 
-                  }}
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <div className="flex items-center gap-2">
-                         <Filter className="w-4 h-4" />
-                         <SelectValue placeholder="Status" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="true">Active</SelectItem>
-                    <SelectItem value="false">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Status Filter */}
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => {
+                  setStatusFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    <SelectValue placeholder="Status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
@@ -279,26 +293,35 @@ export default function VehicleTypeMasterPage() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                  <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
-                          <div className="flex justify-center items-center gap-2">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                            <span>Loading...</span>
-                          </div>
-                      </TableCell>
-                  </TableRow>
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    <div className="flex justify-center items-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                      <span>Loading...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : vehicleTypes.length > 0 ? (
                 vehicleTypes.map((vType) => (
-                  <TableRow key={vType.id} className="border-b last:border-none">
-                    <TableCell className="font-medium text-slate-700">{vType.name}</TableCell>
+                  <TableRow
+                    key={vType.id}
+                    className="border-b last:border-none"
+                  >
+                    <TableCell className="font-medium text-slate-700">
+                      {vType.name}
+                    </TableCell>
                     <TableCell>
-                        {vType.category_name || <span className="text-gray-400 italic">Unknown</span>}
+                      {vType.category_name || (
+                        <span className="text-gray-400 italic">Unknown</span>
+                      )}
                     </TableCell>
                     <TableCell>{vType.capacity} (Seater)</TableCell>
                     <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${vType.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {vType.is_active ? "Active" : "Inactive"}
-                        </span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${vType.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      >
+                        {vType.is_active ? "Active" : "Inactive"}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-center gap-2">
@@ -310,13 +333,13 @@ export default function VehicleTypeMasterPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         {vType.is_active && (
-                            <button
+                          <button
                             onClick={() => handleDelete(vType)}
                             className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Deactivate"
-                            >
+                          >
                             <Trash2 className="w-4 h-4" />
-                            </button>
+                          </button>
                         )}
                       </div>
                     </TableCell>
@@ -324,7 +347,10 @@ export default function VehicleTypeMasterPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-gray-500 py-8"
+                  >
                     No vehicle types found.
                   </TableCell>
                 </TableRow>
@@ -334,42 +360,37 @@ export default function VehicleTypeMasterPage() {
 
           {/* Pagination Controls */}
           <div className="flex justify-between items-center mt-4">
-              <div className="text-sm text-gray-500">
-                  Showing {vehicleTypes.length} of {totalCount} entries
+            <div className="text-sm text-gray-500">
+              Showing {vehicleTypes.length} of {totalCount} entries
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+              >
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </Button>
+              <div className="flex items-center gap-1 px-2 text-sm">
+                Page {page} of {totalPages}
               </div>
-              <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1 || loading}
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </Button>
-                  <div className="flex items-center gap-1 px-2 text-sm">
-                        Page {page} of {totalPages}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages || loading}
-                  >
-                     Next <ChevronRight className="h-4 w-4" />
-                  </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || loading}
+              >
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-
         </CardContent>
       </Card>
 
       {/* Add / Edit Modal */}
       <FormModal
-        title={
-          selectedType
-            ? "Update Vehicle Type"
-            : "Add New Vehicle Type"
-        }
+        title={selectedType ? "Update Vehicle Type" : "Add New Vehicle Type"}
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         fields={fields}

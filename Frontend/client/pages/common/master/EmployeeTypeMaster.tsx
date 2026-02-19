@@ -111,7 +111,7 @@ export default function GradeMasterPage() {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="whitespace-nowrap">
                 <TableHead>Type</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
@@ -120,7 +120,7 @@ export default function GradeMasterPage() {
             <TableBody>
               {employeeType.length > 0 ? (
                 employeeType.map((type) => (
-                  <TableRow key={type.id} className="border-b last:border-none">
+                  <TableRow key={type.id} className="border-b last:border-none whitespace-nowrap">
                     <TableCell>{type.type}</TableCell>
                     <TableCell>{type.description || "-"}</TableCell>
                     <TableCell className="text-right">

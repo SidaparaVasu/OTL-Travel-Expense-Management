@@ -281,7 +281,7 @@ export default function ClaimDetailPage() {
               <CardContent className="pt-4">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-slate-200">
+                    <TableRow className="border-slate-200 whitespace-nowrap">
                       <TableHead className="text-xs font-semibold">
                         Expense Type
                       </TableHead>
@@ -303,7 +303,7 @@ export default function ClaimDetailPage() {
                     {claim.items?.map((item: any) => (
                       <TableRow
                         key={item.id}
-                        className="border-slate-200 hover:bg-slate-50"
+                        className="border-slate-200 hover:bg-slate-50 whitespace-nowrap"
                       >
                         <TableCell className="text-sm font-medium text-slate-800">
                           {item.expense_type_display}
@@ -373,7 +373,7 @@ export default function ClaimDetailPage() {
                 >
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-slate-200">
+                      <TableRow className="border-slate-200 whitespace-nowrap">
                         <TableHead className="text-xs font-semibold">
                           Date
                         </TableHead>
@@ -392,7 +392,7 @@ export default function ClaimDetailPage() {
                       {claim.da_breakdown?.map((item: any, idx: number) => (
                         <TableRow
                           key={idx}
-                          className="border-slate-200 hover:bg-slate-50"
+                          className="border-slate-200 hover:bg-slate-50 whitespace-nowrap"
                         >
                           <TableCell className="text-sm font-medium text-slate-800">
                             {formatDate(item.date)}

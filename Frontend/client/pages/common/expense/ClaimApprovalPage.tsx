@@ -377,7 +377,7 @@ export default function ClaimApprovalsPage() {
           <div className="overflow-x-auto max-h-[65vh] rounded-md">
             <Table>
               <TableHeader>
-                <TableRow className="sticky top-0 z-10 bg-slate-50">
+                <TableRow className="sticky top-0 z-10 bg-slate-50 whitespace-nowrap">
                   <TableHead className="whitespace-nowrap">
                     Travel Request
                   </TableHead>
@@ -407,9 +407,9 @@ export default function ClaimApprovalsPage() {
 
                   let rowClass = "";
                   if (finalPayable < 0) {
-                    rowClass = "bg-rose-50";
+                    rowClass = "bg-rose-50 whitespace-nowrap";
                   } else if (totalExpenses >= 10000 || finalPayable >= 10000) {
-                    rowClass = "bg-amber-50/50";
+                    rowClass = "bg-amber-50/50 whitespace-nowrap";
                   }
 
                   return (

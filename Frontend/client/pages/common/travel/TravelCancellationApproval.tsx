@@ -165,7 +165,7 @@ const TravelCancellationApproval: React.FC = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-blue-50/30">
+                <TableRow className="bg-blue-50/30 whitespace-nowrap">
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Employee
                   </TableHead>
@@ -213,7 +213,7 @@ const TravelCancellationApproval: React.FC = () => {
                   </TableRow>
                 ) : (
                   filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
+                    <TableRow key={request.id} className="whitespace-nowrap">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold shadow-md">

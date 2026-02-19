@@ -47,15 +47,15 @@ export const ApplicationsTable = ({
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
+            <TableRow className="bg-blue-50/40 text-blue-500 whitespace-nowrap">
               {/* <TableHead className="w-[50px]" /> */}
-              <TableHead>Travel Request ID</TableHead>
-              <TableHead>Employee & Route</TableHead>
+              <TableHead className="text-blue-500">Travel Request ID</TableHead>
+              <TableHead className="text-blue-500">Employee & Route</TableHead>
               {/* <TableHead>Route</TableHead> */}
-              <TableHead>Departure</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-center">Bookings</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead className="text-blue-500">Departure</TableHead>
+              <TableHead className="text-center text-blue-500">Status</TableHead>
+              <TableHead className="text-center text-blue-500">Bookings</TableHead>
+              <TableHead className="text-center text-blue-500 ">Actions</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -74,7 +74,7 @@ export const ApplicationsTable = ({
             ) : (
               applications.map((app) => (
                 <React.Fragment key={app.id}>
-                  <TableRow className="hover:bg-muted/50 transition">
+                  <TableRow className="hover:bg-muted/50 transition whitespace-nowrap">
                     {/* <TableCell>
                       <Button
                         variant="ghost"

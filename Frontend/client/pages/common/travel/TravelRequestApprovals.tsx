@@ -101,17 +101,18 @@ function Pagination({ pagination, onPageChange }) {
       px-3 
       flex flex-col gap-3 
       md:flex-row md:items-center md:justify-between
+      sm:gap-4
       z-20
     "
     >
       {/* LEFT — Jump to page */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:justify-center xs:justify-center">
         <span className="text-sm text-gray-600">Jump to:</span>
 
         <Input
           value={jumpPage}
           onChange={(e) => setJumpPage(e.target.value)}
-          className="w-16 h-8 text-center"
+          className="w-auto h-8 text-center"
           placeholder="Page"
           type="number"
           min={1}
@@ -557,7 +558,7 @@ export default function TravelRequestApprovals() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-blue-50/30">
+                <TableRow className="bg-blue-50/30 whitespace-nowrap">
                   <TableHead className="text-dark-600 text-center font-semibold text-xs uppercase tracking-wider">
                     Employee
                   </TableHead>
@@ -583,7 +584,7 @@ export default function TravelRequestApprovals() {
               </TableHeader>
               <TableBody>
                 {applications.results.map((request) => (
-                  <TableRow key={request.id}>
+                  <TableRow key={request.id} className="whitespace-nowrap">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold shadow-lg">

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import type { Pagination } from '@/src/types/travel-desk.types';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { Pagination } from "@/src/types/travel-desk.types";
 
 interface PaginationControlsProps {
   pagination: Pagination | null;
@@ -12,7 +12,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   pagination,
   onPageChange,
 }) => {
-  const [jumpPage, setJumpPage] = React.useState('');
+  const [jumpPage, setJumpPage] = React.useState("");
 
   if (!pagination) return null;
 
@@ -22,11 +22,11 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
     const pageNum = parseInt(jumpPage, 10);
     if (!pageNum || pageNum < 1 || pageNum > total_pages) return;
     onPageChange(pageNum);
-    setJumpPage('');
+    setJumpPage("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleJump();
     }
   };
@@ -42,17 +42,21 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
     pages.push(1);
 
     if (current_page > 3) {
-      pages.push('...');
+      pages.push("...");
     }
 
-    for (let i = Math.max(2, current_page - 1); i <= Math.min(total_pages - 1, current_page + 1); i++) {
+    for (
+      let i = Math.max(2, current_page - 1);
+      i <= Math.min(total_pages - 1, current_page + 1);
+      i++
+    ) {
       if (!pages.includes(i)) {
         pages.push(i);
       }
     }
 
     if (current_page < total_pages - 2) {
-      pages.push('...');
+      pages.push("...");
     }
 
     if (total_pages > 1) {
@@ -63,14 +67,20 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   };
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-card border-t mt-4 py-4 px-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between z-20">
-      <div className="flex items-center gap-2">
+    <div
+      className="sticky bottom-0 left-0 right-0 bg-white 
+      rounded-b-md border shadow-[0_2px_2px_0_rgba(59,130,247,0.30)] overflow-hidden 
+      bg-card mt-0 py-4 px-4 flex flex-col gap-3 
+      md:flex-row md:items-center md:justify-between sm:gap-4 z-20"
+      style={{ marginTop: "0px" }}
+    >
+      <div className="flex items-center gap-2 md:justify-start sm:justify-center xs:justify-center">
         <span className="text-sm text-muted-foreground">Jump to:</span>
         <Input
           value={jumpPage}
           onChange={(e) => setJumpPage(e.target.value)}
           onKeyPress={handleKeyPress}
-          className="w-16 h-8 text-center"
+          className="w-auto h-8 text-center"
           placeholder="Page"
           type="number"
           min={1}
@@ -99,21 +109,24 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
 
         <div className="flex flex-wrap gap-1 justify-center">
           {getPageNumbers().map((page, idx) =>
-            typeof page === 'number' ? (
+            typeof page === "number" ? (
               <Button
                 key={page}
                 size="sm"
-                variant={page === current_page ? 'default' : 'outline'}
+                variant={page === current_page ? "default" : "outline"}
                 className="h-8 px-3"
                 onClick={() => onPageChange(page)}
               >
                 {page}
               </Button>
             ) : (
-              <span key={`ellipsis-${idx}`} className="px-2 py-1 text-muted-foreground">
+              <span
+                key={`ellipsis-${idx}`}
+                className="px-2 py-1 text-muted-foreground"
+              >
                 {page}
               </span>
-            )
+            ),
           )}
         </div>
 
