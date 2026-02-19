@@ -304,7 +304,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                     "Check-Out Time",
                     formatTime(details.check_out_time),
                   )}
-                  {renderRow("Place", details.place || "N/A")}
+                  {renderRow("Place", details.place_name || "N/A")}
 
                   {/* ARC Hotel Preferences */}
                   {details.arc_hotel_preferences &&
