@@ -180,6 +180,8 @@ class TicketingBookingSerializer(serializers.Serializer):
             
         return {
             'user': obj.handling_travel_desk_user.get_full_name(),
+            'user_email': obj.handling_travel_desk_user.email,
+            'user_contact': obj.handling_travel_desk_user.mobile_no,
             'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
             'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
         }
@@ -296,6 +298,8 @@ class AccommodationBookingSerializer(serializers.Serializer):
             
         return {
             'user': obj.handling_travel_desk_user.get_full_name(),
+            'user_email': obj.handling_travel_desk_user.email,
+            'user_contact': obj.handling_travel_desk_user.mobile_no,
             'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
             'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
         }
@@ -426,6 +430,8 @@ class ConveyanceBookingSerializer(serializers.Serializer):
             
         return {
             'user': obj.handling_travel_desk_user.get_full_name(),
+            'user_email': obj.handling_travel_desk_user.email,
+            'user_contact': obj.handling_travel_desk_user.mobile_no,
             'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
             'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
         }

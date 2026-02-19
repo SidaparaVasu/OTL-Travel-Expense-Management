@@ -549,13 +549,29 @@ export const TravelApplicationDetails: React.FC = () => {
                     <CollapsibleSection title="Travel Desk & Assignment Details">
                       <div className="space-y-3">
                         {/* Travel Desk Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                           <div>
                             <span className="font-medium text-slate-700">
-                              Travel Desk:
+                              Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
                               {booking?.travel_desk?.user || "Not assigned yet."}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk Email:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk Contact:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user_contact || "N/A"}
                             </span>
                           </div>
                           <div>
@@ -801,13 +817,29 @@ export const TravelApplicationDetails: React.FC = () => {
                     {/* Travel Desk Details - Collapsible */}
                     <CollapsibleSection title="Travel Desk & Assignment Details">
                       <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                           <div>
                             <span className="font-medium text-slate-700">
-                              Travel Desk:
+                              Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
                               {booking?.travel_desk?.user || "Not assigned yet."}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk Email:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk Contact:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user_contact || "N/A"}
                             </span>
                           </div>
                           <div>
@@ -1087,13 +1119,29 @@ export const TravelApplicationDetails: React.FC = () => {
                     {/* Travel Desk Details - Collapsible */}
                     <CollapsibleSection title="Travel Desk & Assignment Details">
                       <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                           <div>
                             <span className="font-medium text-slate-700">
-                              Travel Desk:
+                              Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
                               {booking?.travel_desk?.user || "Not assigned yet."}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk Email:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-700">
+                              Travel Desk Contact:
+                            </span>{" "}
+                            <span className="text-slate-900">
+                              {booking?.travel_desk?.user_contact || "N/A"}
                             </span>
                           </div>
                           <div>
