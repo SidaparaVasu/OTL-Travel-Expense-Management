@@ -13,7 +13,9 @@ import {
   FileText,
   Printer,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { travelAPI } from "@/src/api/travel-api";
+import { approvalAPI } from "@/src/api/approval";
 import { ROUTES } from "@/routes/routes";
 import { toast } from "sonner";
 
@@ -59,6 +61,7 @@ export const TravelApplicationDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -90,6 +93,34 @@ export const TravelApplicationDetails: React.FC = () => {
 
     fetchData();
   }, [id]);
+
+  const handleStatusUpdate = async (action: "approve" | "reject") => {
+    if (!id) return;
+    const applicationId = id;
+
+    try {
+      setUpdatingId(applicationId);
+      if (action === "approve") {
+        await approvalAPI.approve(applicationId);
+        toast.success("Application approved successfully");
+        navigate(-1);
+      } else {
+        const notes = prompt("Enter reason for rejection") || "";
+        if (!notes) {
+          toast.error("Rejection reason is required");
+          return;
+        }
+        await approvalAPI.reject(applicationId, notes);
+        toast.success("Application rejected");
+        navigate(-1);
+      }
+    } catch (error: any) {
+      console.error("Failed to update status:", error);
+      toast.error(error.response?.data?.message || "Failed to update status");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -143,8 +174,10 @@ export const TravelApplicationDetails: React.FC = () => {
     (data.accommodation_bookings || []).length +
     (data.conveyance_bookings || []).length;
 
+  const canApprove = data?.current_approval?.can_approve;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8 pb-24">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <button
@@ -1366,6 +1399,67 @@ export const TravelApplicationDetails: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Approval Footer */}
+      {canApprove && (
+        <div className="w-full bg-white border-t border-slate-200 mt-5 p-4 shadow-lg">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="text-slate-700 font-medium">
+              <span className="bg-blue-100 text-blue-700 py-1 px-3 rounded-full text-sm mr-2">
+                Approval Required
+              </span>
+              Take action on this travel request
+            </div>
+            <div className="flex gap-3">
+              {/* <button
+                onClick={() => handleStatusUpdate("reject")}
+                disabled={updatingId === id}
+                className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:border-red-300 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {updatingId === id
+                  ? "Processing..."
+                  : "Reject"}
+              </button> */}
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleStatusUpdate("reject")}
+                disabled={updatingId === id}
+              >
+                Reject
+              </Button>
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                onClick={() => handleStatusUpdate("approve")}
+                disabled={updatingId === id}
+              >
+                {updatingId === id ? (
+                  <>
+                    <Loader2 size={16} className="text-white animate-spin" /> Processing
+                  </>
+                ) : (
+                  "Approve"
+                )}
+              </Button>
+              {/* <button
+                onClick={() => handleStatusUpdate("approve")}
+                disabled={updatingId === id}
+                className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {updatingId === id ? (
+                  <>
+                    <Loader2 size={16} className="text-white animate-spin" />{" "}
+                    Processing
+                  </>
+                ) : (
+                  "Approve"
+                )}
+              </button> */}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

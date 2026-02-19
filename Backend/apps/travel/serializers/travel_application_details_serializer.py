@@ -502,6 +502,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
     settlement = serializers.SerializerMethodField()
     timestamps = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
+    current_approval = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -512,6 +513,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'accommodation_bookings',
             'conveyance_bookings',
             'approval_workflow',
+            'current_approval',
             'cancellation',
             'settlement',
             'timestamps',
@@ -648,6 +650,25 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
     def get_approval_workflow(self, obj):
         approvals = obj.approval_flows.all().select_related('approver').order_by('sequence')
         return ApprovalWorkflowSerializer(approvals, many=True).data
+
+    def get_current_approval(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return None
+            
+        current_flow = obj.approval_flows.filter(
+            approver=request.user,
+            status='pending'
+        ).first()
+        
+        if current_flow:
+            return {
+                'approval_level': current_flow.approval_level,
+                'sequence': current_flow.sequence,
+                'can_approve': current_flow.can_approve,
+                'triggered_by_rule': current_flow.triggered_by_rule
+            }
+        return None
 
     def get_cancellation(self, obj):
         if obj.status == 'cancelled' or obj.cancellation_requested_at:
