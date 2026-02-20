@@ -58,6 +58,7 @@ urlpatterns = [
     path("travel-desk/agents/<int:agent_id>/vehicle-types/", TravelDeskAgentVehicleTypesView.as_view(), name="travel-desk-agent-vehicle-types"),
     path("travel-desk/bookings/<int:booking_id>/duty-slip/", GenerateDutySlipAPIView.as_view(), name="generate-duty-slip"),
     path("travel-desk/bookings/<int:booking_id>/forward-to-desk/", TravelDeskForwardToDeskView.as_view(), name="travel-desk-forward-booking"),
+    path("travel-desk/assigned-locations/", TravelDeskAssignedLocationsView.as_view(), name="travel-desk-assigned-locations"),
     path("travel-desk/users/", TravelDeskUsersListView.as_view(), name="travel-desk-users"),
 
     # Analytics

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
+import React, { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
+import { Briefcase, Share2 } from "lucide-react";
 import {
   KPICards,
   SearchFilterBar,
@@ -8,15 +9,16 @@ import {
   ApplicationDrawer,
   CancelModal,
   ForwardModal,
-} from './components/';
-import { travelDeskAPI } from '@/src/api/travel-desk';
+  DashboardTabs,
+} from "./components/";
+import { travelDeskAPI } from "@/src/api/travel-desk";
 import type {
   DashboardStats,
   DashboardApplication,
   Pagination,
   BookingAgent,
   RecommendedAgentsResponse,
-} from '@/src/types/travel-desk.types';
+} from "@/src/types/travel-desk.types";
 
 const TravelDeskDashboard: React.FC = () => {
   // State
@@ -26,21 +28,41 @@ const TravelDeskDashboard: React.FC = () => {
   const [agents, setAgents] = useState<BookingAgent[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('urgency');
-  const [statusFilter, setStatusFilter] = useState('pending_travel_desk');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("urgency");
+  const [statusFilter, setStatusFilter] = useState("pending_travel_desk");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [activeForwardedIds, setActiveForwardedIds] = useState<
     number[] | undefined
   >(undefined);
+  const [activeTab, setActiveTab] = useState("my_requests");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [assignedLocations, setAssignedLocations] = useState<string[]>([]);
+
+  // Fetch assigned locations
+  const fetchLocations = useCallback(async () => {
+    try {
+      const response = await travelDeskAPI.locations.list();
+      if (response.success && response.data) {
+        setAssignedLocations(response.data.map((l: any) => l.name));
+      } else if (Array.isArray(response)) {
+        setAssignedLocations(response.map((l: any) => l.name));
+      }
+    } catch (err) {
+      console.error("Failed to fetch locations:", err);
+    }
+  }, []);
 
   // Modal/Drawer states
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<
+    number | null
+  >(null);
   const [forwardModalOpen, setForwardModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState<DashboardApplication | null>(null);
+  const [selectedApplication, setSelectedApplication] =
+    useState<DashboardApplication | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch dashboard data
@@ -54,8 +76,8 @@ const TravelDeskDashboard: React.FC = () => {
         // setApplications(response.data.recent_applications);
       }
     } catch (err: any) {
-      console.error('Failed to fetch dashboard:', err);
-      toast.error('Failed to load dashboard data');
+      console.error("Failed to fetch dashboard:", err);
+      toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
@@ -77,8 +99,8 @@ const TravelDeskDashboard: React.FC = () => {
         setPagination(response.meta?.pagination || null);
       }
     } catch (err) {
-      console.error('Failed to fetch applications:', err);
-      toast.error('Failed to load applications');
+      console.error("Failed to fetch applications:", err);
+      toast.error("Failed to load applications");
     } finally {
       setLoading(false);
     }
@@ -98,49 +120,95 @@ const TravelDeskDashboard: React.FC = () => {
   // Initial load
   useEffect(() => {
     fetchDashboard();
+    fetchLocations();
     fetchApplications();
     fetchAgents();
-  }, [fetchDashboard, fetchApplications, fetchAgents]);
+  }, [fetchDashboard, fetchApplications, fetchAgents, fetchLocations]);
 
   // Filter and sort applications
   const getFilteredApplications = useCallback(() => {
     let filtered = [...applications];
 
+    // Tab Filter
+    if (activeTab === "my_requests") {
+      filtered = filtered.filter(
+        (app) =>
+          !app.forwarded_booking_ids || app.forwarded_booking_ids.length === 0,
+      );
+    } else if (activeTab === "forwarded") {
+      filtered = filtered.filter(
+        (app) =>
+          app.forwarded_booking_ids && app.forwarded_booking_ids.length > 0,
+      );
+    }
+
+    // Location Filter
+    if (locationFilter && locationFilter !== "all") {
+      filtered = filtered.filter(
+        (app) => app.employee_location === locationFilter,
+      );
+    }
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(app =>
+      filtered = filtered.filter(
+        (app) =>
           app.employee_name.toLowerCase().includes(query) ||
-        `TSF-TR-2025-${String(app.id).padStart(6, '0')}`.toLowerCase().includes(query)
+          `TSF-TR-2025-${String(app.id).padStart(6, "0")}`
+            .toLowerCase()
+            .includes(query),
       );
     }
 
     // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(app => app.status === statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((app) => app.status === statusFilter);
     }
 
     // Sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'urgency':
+        case "urgency":
           // Sort by departure date ascending (most urgent first)
-          return new Date(a.departure_date).getTime() - new Date(b.departure_date).getTime();
-        case 'date_asc':
-          return new Date(a.departure_date).getTime() - new Date(b.departure_date).getTime();
-        case 'date_desc':
-          return new Date(b.departure_date).getTime() - new Date(a.departure_date).getTime();
-        case 'submitted_asc':
-          return new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime();
-        case 'submitted_desc':
-          return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+          return (
+            new Date(a.departure_date).getTime() -
+            new Date(b.departure_date).getTime()
+          );
+        case "date_asc":
+          return (
+            new Date(a.departure_date).getTime() -
+            new Date(b.departure_date).getTime()
+          );
+        case "date_desc":
+          return (
+            new Date(b.departure_date).getTime() -
+            new Date(a.departure_date).getTime()
+          );
+        case "submitted_asc":
+          return (
+            new Date(a.submitted_at).getTime() -
+            new Date(b.submitted_at).getTime()
+          );
+        case "submitted_desc":
+          return (
+            new Date(b.submitted_at).getTime() -
+            new Date(a.submitted_at).getTime()
+          );
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [applications, searchQuery, statusFilter, sortBy]);
+  }, [
+    applications,
+    searchQuery,
+    statusFilter,
+    sortBy,
+    activeTab,
+    locationFilter,
+  ]);
 
   // Handlers
   const handleView = (app: DashboardApplication) => {
@@ -216,7 +284,9 @@ const TravelDeskDashboard: React.FC = () => {
     setActionLoading(true);
 
     try {
-      await travelDeskAPI.applications.cancel(selectedApplication.id, { reason });
+      await travelDeskAPI.applications.cancel(selectedApplication.id, {
+        reason,
+      });
 
       toast.success("Application cancelled successfully");
       setCancelModalOpen(false);
@@ -237,15 +307,47 @@ const TravelDeskDashboard: React.FC = () => {
         {/* KPI Cards */}
         <KPICards stats={stats} isLoading={loading} />
 
-        {/* Search & Filters */}
-        <SearchFilterBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-        />
+        <div>
+          <DashboardTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            tabs={[
+              {
+                id: "my_requests",
+                label: "My Assignments",
+                icon: Briefcase,
+                count: applications.filter(
+                  (app) =>
+                    !app.forwarded_booking_ids ||
+                    app.forwarded_booking_ids.length === 0,
+                ).length,
+              },
+              {
+                id: "forwarded",
+                label: "Forwarded Requests to other SPOC",
+                icon: Share2,
+                count: applications.filter(
+                  (app) =>
+                    app.forwarded_booking_ids &&
+                    app.forwarded_booking_ids.length > 0,
+                ).length,
+              },
+            ]}
+          />
+
+          {/* Search & Filters */}
+          <SearchFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            locationFilter={locationFilter} // Ensure these are defined in state if not already
+            onLocationFilterChange={setLocationFilter}
+            locations={assignedLocations}
+          />
+        </div>
 
         {/* Applications Table */}
         <ApplicationsTable

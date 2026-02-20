@@ -165,6 +165,15 @@ export const travelDeskAPI = {
     },
   },
 
+  locations: {
+    list: async () => {
+      const { data } = await apiClient.get<{ id: number; name: string }[]>(
+        "/travel/travel-desk/assigned-locations/",
+      );
+      return data;
+    },
+  },
+
   analytics: {
     agents: {
       list: async (search?: string, cityId?: number | null) => {

@@ -47,7 +47,7 @@ export const ApplicationsTable = ({
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-blue-50/40 text-blue-500 whitespace-nowrap">
+            <TableRow className="bg-white text-blue-500 whitespace-nowrap">
               {/* <TableHead className="w-[50px]" /> */}
               <TableHead className="text-blue-500">Travel Request ID</TableHead>
               <TableHead className="text-blue-500">Employee & Route</TableHead>

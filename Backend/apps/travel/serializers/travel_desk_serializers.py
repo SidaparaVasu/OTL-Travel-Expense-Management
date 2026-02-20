@@ -272,11 +272,12 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     pending_bookings = serializers.SerializerMethodField()
     booked_bookings = serializers.SerializerMethodField()
     forwarded_booking_ids = serializers.SerializerMethodField()
+    employee_location = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
         fields = [
-            "id", "travel_request_id", "employee", "employee_name", "employee_grade", 
+            "id", "travel_request_id", "employee", "employee_name", "employee_grade", "employee_location",
             "from_location", "to_location", "departure_date", "return_date", 
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
@@ -341,6 +342,12 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
         trip = self.get_first_trip(obj)
         return trip.return_date if trip else None
 
+    def get_employee_location(self, obj):
+        if hasattr(obj.employee, 'get_profile'):
+            profile = obj.employee.get_profile()
+            if profile and profile.base_location:
+                 return profile.base_location.location_name
+        return None
 
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.CharField(source='get_travel_request_id', read_only=True)
