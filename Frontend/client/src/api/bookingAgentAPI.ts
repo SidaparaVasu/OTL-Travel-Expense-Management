@@ -35,6 +35,9 @@ export interface Booking {
   travel_request_id?: string;
   purpose?: string;
   employee_name?: string;
+  employee_email?: string;
+  employee_mobile?: string;
+  employee_gender?: string;
   employee_grade?: string;
   assigned_agent?: {
     id: number;

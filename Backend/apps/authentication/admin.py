@@ -54,7 +54,7 @@ class BookingAgentProfileInline(admin.StackedInline):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'user_type', 'hrms_id', 'is_active')
+    list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'gender', 'date_of_birth', 'user_type', 'hrms_id', 'is_active')
     list_filter = ('user_type', 'organizational_profile__grade', 'is_staff', 'is_superuser', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name')
     ordering = ('username',)
@@ -74,7 +74,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal info', {
-            'fields': ('first_name', 'last_name', 'email', 'gender', 'user_type', 'hrms_id', 'mobile_no')
+            'fields': ('first_name', 'last_name', 'email', 'gender', 'date_of_birth', 'user_type', 'hrms_id', 'mobile_no')
         }),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
@@ -85,7 +85,7 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'user_type', 'gender'),
+            'fields': ('username', 'password1', 'password2', 'user_type', 'gender', 'date_of_birth'),
         }),
     )
 

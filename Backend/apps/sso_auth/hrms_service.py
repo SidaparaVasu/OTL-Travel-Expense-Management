@@ -245,6 +245,7 @@ class HRMSSyncService:
                     "last_name": last_name,
                     "mobile_no": data.get("Mobile_No"),
                     "gender": cls._map_gender(data.get("Gender")),
+                    "date_of_birth": cls._parse_date(data.get("Date_of_Birth")),
                     "is_active": is_active,
                 },
             )
@@ -255,10 +256,11 @@ class HRMSSyncService:
                 user.first_name = first_name
                 user.last_name = last_name
                 user.mobile_no = data.get("Mobile_No")
+                user.date_of_birth = cls._parse_date(data.get("Date_of_Birth"))
                 user.is_active = is_active
                 user.save(update_fields=[
                     "username", "email", "first_name",
-                    "last_name", "mobile_no", "is_active"
+                    "last_name", "mobile_no", "date_of_birth", "is_active"
                 ])
 
             company, _ = cls._safe_get_or_create(
@@ -351,6 +353,19 @@ class HRMSSyncService:
         if value == "female":
             return "F"
         return "N"
+
+    @staticmethod
+    def _parse_date(date_str: str | None) -> str | None:
+        if not date_str:
+            return None
+        # HRMS might return "1990-01-01" or "01-01-1990" or "1990-01-01T00:00:00"
+        # We try to handle common formats or at least take the date part
+        try:
+            if "T" in date_str:
+                return date_str.split("T")[0]
+            return date_str
+        except Exception:
+            return None
 
     @staticmethod
     def _safe_code(value: str | None, length: int = 10) -> str:

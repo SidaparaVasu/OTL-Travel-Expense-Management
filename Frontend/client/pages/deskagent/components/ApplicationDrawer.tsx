@@ -523,6 +523,45 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                   </div>
+
+                  <div className="mt-6 pt-6 border-t">
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-slate-700">
+                      <UserCheck className="w-4 h-4 text-blue-600" />
+                      Applicant Details
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-500">Name</p>
+                        <p className="text-sm font-medium">
+                          {application.employee_name}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Email</p>
+                        <p className="text-sm font-medium">
+                          {application.employee_email || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Mobile Number</p>
+                        <p className="text-sm font-medium">
+                          {application.employee_mobile || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Gender</p>
+                        <p className="text-sm font-medium">
+                          {application.employee_gender || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Age</p>
+                        <p className="text-sm font-medium">
+                          {application.employee_age || "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

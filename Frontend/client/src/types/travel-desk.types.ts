@@ -105,6 +105,9 @@ export interface Application {
   id: number;
   employee: number;
   employee_name: string;
+  employee_email?: string;
+  employee_mobile?: string;
+  employee_gender?: string;
   employee_grade: string;
   purpose: string;
   internal_order: string;

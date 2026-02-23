@@ -2,6 +2,7 @@ from rest_framework import serializers
 from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
 from apps.travel.models.audit import AuditLog
 from apps.travel.serializers.travel_serializers import TripDetailsSerializer, BookingSerializer
+from utils.date_utils import calculate_age
 
 
 class ApplicationDetailSerializer(serializers.ModelSerializer):
@@ -352,6 +353,10 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.CharField(source='get_travel_request_id', read_only=True)
     employee_name = serializers.SerializerMethodField()
+    employee_email = serializers.SerializerMethodField()
+    employee_mobile = serializers.SerializerMethodField()
+    employee_gender = serializers.SerializerMethodField()
+    employee_age = serializers.SerializerMethodField()
     employee_grade = serializers.CharField(read_only=True)
     status_label = serializers.SerializerMethodField()
     gl_code_text = serializers.SerializerMethodField()
@@ -360,7 +365,8 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelApplication
         fields = [
-            "id", "travel_request_id", "employee", "employee_name", "employee_grade", 
+            "id", "travel_request_id", 
+            "employee", "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_age", "employee_grade", 
             "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
             "submitted_at", "created_at", "updated_at", "trips",
@@ -369,6 +375,18 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
 
     def get_employee_name(self, obj):
         return getattr(obj.employee, "get_full_name", lambda: obj.employee.username)()
+
+    def get_employee_email(self, obj):
+        return getattr(obj.employee, "get_email", lambda: obj.employee.email)()
+
+    def get_employee_mobile(self, obj):
+        return getattr(obj.employee, "mobile_no", "")
+
+    def get_employee_gender(self, obj):
+        return obj.employee.get_gender_display()
+
+    def get_employee_age(self, obj):
+        return calculate_age(obj.employee.date_of_birth)
 
     def get_status_label(self, obj):
         return obj.get_status_display()

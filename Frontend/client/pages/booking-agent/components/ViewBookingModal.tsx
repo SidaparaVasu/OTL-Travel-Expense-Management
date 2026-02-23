@@ -9,6 +9,7 @@ import {
   Calendar,
   Clock,
   User,
+  UserCheck,
   FileText,
   Download,
   IndianRupee,
@@ -161,6 +162,20 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             </div>
           </div>
 
+          {/* Applicant Details */}
+          {renderSection(
+            "Applicant Details",
+            UserCheck,
+            <>
+              {renderRow("Name", booking.employee_name)}
+              {renderRow("Email", booking.employee_email)}
+              {renderRow("Mobile Number", booking.employee_mobile)}
+              {renderRow("Gender", booking.employee_gender)}
+              {renderRow("Grade", booking.employee_grade)}
+              {renderRow("Age", booking.employee_age)}
+            </>,
+          )}
+
           {/* Basic Info */}
           {renderSection(
             "Basic Information",
@@ -171,8 +186,6 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 `BK-${String(booking.id).padStart(5, "0")}`,
               )}
               {renderRow("Travel Request", booking.travel_request_id)}
-              {renderRow("Employee", booking.employee_name)}
-              {renderRow("Grade", booking.employee_grade)}
               {renderRow("Meal Preference", details.meal_preference)}
             </>,
           )}
@@ -269,29 +282,29 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 )}
 
                 {/* ARC Hotel Preferences */}
-                  {details.arc_hotel_preferences &&
-                    details.arc_hotel_preferences.length > 0 && (
-                      <div className="col-span-2">
-                        <span className="text-sm text-black block mb-3 mt-4">
-                          ARC Hotel Preferences
-                        </span>
-                        <div className="flex flex-col gap-2">
-                          {(
-                            details.arc_hotel_preferences_data ||
-                            details.arc_hotel_preferences
-                          ).map((pref: any, idx: number) => (
-                            <p
-                              key={idx}
-                              className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
-                            >
-                              {typeof pref === "object" && pref.name
-                                ? idx + 1 + ". " + pref.name
-                                : idx + 1 + ". " + pref}
-                            </p>
-                          ))}
-                        </div>
+                {details.arc_hotel_preferences &&
+                  details.arc_hotel_preferences.length > 0 && (
+                    <div className="col-span-2">
+                      <span className="text-sm text-black block mb-3 mt-4">
+                        ARC Hotel Preferences
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        {(
+                          details.arc_hotel_preferences_data ||
+                          details.arc_hotel_preferences
+                        ).map((pref: any, idx: number) => (
+                          <p
+                            key={idx}
+                            className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
+                          >
+                            {typeof pref === "object" && pref.name
+                              ? idx + 1 + ". " + pref.name
+                              : idx + 1 + ". " + pref}
+                          </p>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
               </>,
             )}
 
