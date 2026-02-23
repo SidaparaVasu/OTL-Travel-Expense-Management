@@ -1553,6 +1553,12 @@ export const TravelApplicationForm: React.FC = () => {
                 cities={cities}
                 bookingErrors={accommodationErrors}
                 hasBulkFile={!!bulkFile}
+                defaultCityId={
+                  purposeData.trip_to_location
+                    ? Number(purposeData.trip_to_location)
+                    : null
+                }
+                defaultCityLabel={purposeData.trip_to_location_label}
               />
             )}
 

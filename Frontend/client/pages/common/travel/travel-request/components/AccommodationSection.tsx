@@ -14,6 +14,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { TimePickerField } from "./TimePickerField";
 import { CityCombobox } from "./CityCombobox";
 import { DatePickerField } from "./DatePickerField";
+import { travelAPI } from "@/src/api/travel-api";
 import {
   getEmptyAccommodation,
   MAX_ADVANCE_AMOUNT,
@@ -61,6 +62,8 @@ interface AccommodationSectionProps {
   cities: any[];
   bookingErrors?: Record<number, string>;
   hasBulkFile?: boolean;
+  defaultCityId?: number | null;
+  defaultCityLabel?: string;
 }
 
 export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
@@ -79,12 +82,25 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   cities,
   bookingErrors = {},
   hasBulkFile = false,
+  defaultCityId = null,
+  defaultCityLabel = "",
 }) => {
   const [form, setForm] = useState<AccommodationFormData>(
     getEmptyAccommodation(),
   );
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ARC Hotel Search State
+  const [arcSearchCity, setArcSearchCity] = useState<{
+    id: number | null;
+    label: string;
+  }>({
+    id: defaultCityId,
+    label: defaultCityLabel,
+  });
+  const [filteredHotels, setFilteredHotels] = useState<any[]>(arcHotels);
+  const [isFetchingHotels, setIsFetchingHotels] = useState(false);
 
   const currentSubOptions = travelSubOptions[form.accommodation_type] || [];
   console.log("In AccommodationSection: ", currentSubOptions);
@@ -232,6 +248,45 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       }
     }
   }, [form.accommodation_type_label, currentSubOptions]);
+
+  // Sync default city when ARC is selected and no search city is set
+  useEffect(() => {
+    if (isARCHotelSelected && !arcSearchCity.id && defaultCityId) {
+      setArcSearchCity({
+        id: defaultCityId,
+        label: defaultCityLabel,
+      });
+    }
+  }, [isARCHotelSelected, defaultCityId, defaultCityLabel, arcSearchCity.id]);
+
+  // Fetch hotels when search city changes
+  useEffect(() => {
+    const fetchHotels = async () => {
+      if (!isARCHotelSelected) return;
+
+      const cityIds: number[] = [];
+      if (arcSearchCity.id) {
+        cityIds.push(arcSearchCity.id);
+      }
+
+      if (cityIds.length > 0) {
+        try {
+          setIsFetchingHotels(true);
+          const hotels = await travelAPI.getARCHotelsDropdown(cityIds);
+          setFilteredHotels(hotels);
+        } catch (error) {
+          console.error("Failed to fetch ARC hotels:", error);
+          toast.error("Failed to load hotels for selected city");
+        } finally {
+          setIsFetchingHotels(false);
+        }
+      } else {
+        setFilteredHotels([]);
+      }
+    };
+
+    fetchHotels();
+  }, [arcSearchCity.id, isARCHotelSelected]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -663,14 +718,29 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                     error={errors.place}
                   />
                 ) : isARCHotelSelected ? (
-                  <ARCHotelSelector
-                    selectedPreferences={form.arc_hotel_preferences}
-                    setSelectedPreferences={(prefs) =>
-                      setForm({ ...form, arc_hotel_preferences: prefs })
-                    }
-                    arcHotels={arcHotels}
-                    error={errors.arc_hotel_preferences}
-                  />
+                  <div className="space-y-4">
+                    <CityCombobox
+                      label="Search Hotel Location"
+                      cities={cities}
+                      value={arcSearchCity.id}
+                      displayValue={arcSearchCity.label}
+                      onChange={(id, label) => setArcSearchCity({ id, label })}
+                      placeholder="Enter city to find ARC hotels"
+                    />
+                    <ARCHotelSelector
+                      selectedPreferences={form.arc_hotel_preferences}
+                      setSelectedPreferences={(prefs) =>
+                        setForm({ ...form, arc_hotel_preferences: prefs })
+                      }
+                      arcHotels={filteredHotels}
+                      error={errors.arc_hotel_preferences}
+                    />
+                    {isFetchingHotels && (
+                      <p className="text-xs text-muted-foreground animate-pulse">
+                        Fetching hotels for selected city...
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <CityCombobox
                     label="Place/Location"
