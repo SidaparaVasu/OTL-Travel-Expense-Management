@@ -17,6 +17,7 @@ import {
   Info,
   UserCheck,
 } from "lucide-react";
+import { ROUTES } from "@/routes/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -559,6 +560,19 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                         <p className="text-sm font-medium">
                           {application.employee_age || "—"}
                         </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">
+                          Full Travel Application Details
+                        </p>
+                        <a
+                          href={ROUTES.travelApplicationView(application.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                        >
+                          View Details
+                        </a>
                       </div>
                     </div>
                   </div>
