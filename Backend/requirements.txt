@@ -88,6 +88,7 @@ tzdata==2025.2
 six==1.17.0
 packaging==25.0
 colorama==0.4.6
+python-dotenv==1.2.1
 
 # ============================================
 # Timezone Support

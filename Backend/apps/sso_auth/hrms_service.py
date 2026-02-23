@@ -11,6 +11,10 @@ from apps.master_data.models import (
     LocationMaster, CityMaster, StateMaster, CountryMaster,
     CompanyInformation
 )
+try:
+    import dotenv
+except ImportError:
+    dotenv = None
 
 logger = logging.getLogger('sso_auth')
 User = get_user_model()
@@ -24,6 +28,7 @@ class HRMSSyncService:
 
     # BASE_URL = os.getenv('HRMS_API_BASE_URL', 'http://192.168.1.251:8583')
     BASE_URL = os.getenv('HRMS_API_BASE_URL', 'https://hrms.orangetechnolab.com:8598')
+    ENV_FILE_PATH = os.getenv("HRMS_ENV_PATH", ".env.prod")
 
     # ------------------------------------------------------------------
     # HTTP helpers
@@ -42,6 +47,88 @@ class HRMSSyncService:
         }
 
     # ------------------------------------------------------------------
+    # [DORMANT] New Auth Resolver Logic
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def _regenerate_hrms_token(cls) -> str | None:
+        """
+        Calls HRMS API to generate a new token and persists it to the env file.
+        Requires HRMS_API_USERNAME and HRMS_API_PASSWORD in environment.
+        """
+        username = os.getenv("HRMS_API_USERNAME")
+        password = os.getenv("HRMS_API_PASSWORD")
+
+        if not username or not password:
+            logger.error("HRMS token regeneration failed: Credentials missing in environment")
+            return None
+
+        url = f"{cls.BASE_URL}/api/Account/GenerateToken"
+        params = {"UserName": username, "Password": password}
+
+        try:
+            logger.info(f"HRMS: Attempting token regeneration for user={username}")
+            resp = requests.get(url, params=params, timeout=15)
+            resp.raise_for_status()
+            
+            # Assuming API returns {"data": "new_token_string", ...} or similar based on user description
+            # Adjusting based on standard pattern: retrieve token from response
+            res_data = resp.json()
+            new_token = res_data.get("data")
+
+            if not new_token:
+                logger.error(f"HRMS: Regeneration API responded but 'data' (token) is missing: {res_data}")
+                return None
+
+            # 1. Update current process memory
+            os.environ["HRMS_API_TOKEN"] = new_token
+            logger.info("HRMS: New token applied to current process memory.")
+
+            # 2. Persist to .env file for future reboots/processes
+            if dotenv:
+                try:
+                    dotenv.set_key(cls.ENV_FILE_PATH, "HRMS_API_TOKEN", new_token)
+                    logger.info(f"HRMS: Token persisted successfully to {cls.ENV_FILE_PATH}")
+                except Exception as env_err:
+                    logger.warning(f"HRMS: Token updated in memory but persistence to {cls.ENV_FILE_PATH} failed: {env_err}")
+            else:
+                logger.warning("HRMS: python-dotenv not installed. Skipping file persistence.")
+
+            return new_token
+
+        except Exception as exc:
+            logger.error(f"HRMS: Token regeneration API call failed: {exc}")
+            return None
+
+    @classmethod
+    def _make_hrms_request(cls, method: str, url: str, **kwargs) -> requests.Response:
+        """
+        Unified request wrapper with 401 detection and single auto-retry.
+        """
+        # Ensure headers include the latest token
+        headers = cls._get_headers()
+        kwargs['headers'] = headers
+
+        # Step 1: Initial Attempt
+        response = requests.request(method, url, **kwargs)
+
+        # Step 2: Detection of expiry (401)
+        if response.status_code == 401:
+            logger.info("HRMS: Received 401 Unauthorized. Attempting token regeneration...")
+            new_token = cls._regenerate_hrms_token()
+            
+            if new_token:
+                # Step 3: Single Retry with NEW token
+                logger.info("HRMS: Retrying original request with new token.")
+                # Refresh headers for the retry
+                kwargs['headers'] = cls._get_headers()
+                return requests.request(method, url, **kwargs)
+            else:
+                logger.error("HRMS: Token regeneration failed. Cannot retry request.")
+
+        return response
+
+    # ------------------------------------------------------------------
     # HRMS API calls
     # ------------------------------------------------------------------
 
@@ -51,8 +138,12 @@ class HRMSSyncService:
         params = {"cmpId": company_id, "empId": emp_id}
 
         try:
+            # --- [FUTURE LINKER] ---
+            # To enable auto-token-regeneration, replace the next 2 lines with:
+            # resp = cls._make_hrms_request("GET", url, params=params, timeout=10)
             resp = requests.get(url, params=params, headers=cls._get_headers(), timeout=10)
             resp.raise_for_status()
+            
             records = resp.json().get("data", {}).get("data", [])
             return records[0] if records else None
         except Exception as exc:
