@@ -566,7 +566,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                           Full Travel Application Details
                         </p>
                         <a
-                          href={ROUTES.travelApplicationView(application.id)}
+                          href={ROUTES.travelApplicationDetails(application.id)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
