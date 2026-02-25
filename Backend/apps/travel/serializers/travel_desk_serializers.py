@@ -2,6 +2,7 @@ from rest_framework import serializers
 from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
 from apps.travel.models.audit import AuditLog
 from apps.travel.serializers.travel_serializers import TripDetailsSerializer, BookingSerializer
+from apps.travel.serializers.travel_application_details_serializer import ApplicationTravelerSerializer
 from utils.date_utils import calculate_age
 
 
@@ -274,6 +275,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     booked_bookings = serializers.SerializerMethodField()
     forwarded_booking_ids = serializers.SerializerMethodField()
     employee_location = serializers.SerializerMethodField()
+    travelers = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -282,7 +284,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             "from_location", "to_location", "departure_date", "return_date", 
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
-            "forwarded_booking_ids",
+            "forwarded_booking_ids", "travelers",
         ]
 
     def get_employee_name(self, obj):
@@ -350,6 +352,14 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
                  return profile.base_location.location_name
         return None
 
+    def get_travelers(self, obj):
+        if obj.travel_for in ['guest', 'self_guest']:
+            return ApplicationTravelerSerializer(
+                obj.display_travelers.filter(guest__isnull=False), 
+                many=True
+            ).data
+        return []
+
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.CharField(source='get_travel_request_id', read_only=True)
     employee_name = serializers.SerializerMethodField()
@@ -361,6 +371,7 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     status_label = serializers.SerializerMethodField()
     gl_code_text = serializers.SerializerMethodField()
     trips = TravelDeskTripSerializer(source="trip_details", many=True, read_only=True)
+    travelers = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -370,7 +381,7 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
             "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
             "submitted_at", "created_at", "updated_at", "trips",
-            "bulk_upload_file",
+            "bulk_upload_file", "travelers",
         ]
 
     def get_employee_name(self, obj):
@@ -395,6 +406,14 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
         if obj.general_ledger:
             return f"{obj.general_ledger.gl_code} - {obj.general_ledger.vertical_name}"
         return None
+
+    def get_travelers(self, obj):
+        if obj.travel_for in ['guest', 'self_guest']:
+            return ApplicationTravelerSerializer(
+                obj.display_travelers.filter(guest__isnull=False), 
+                many=True
+            ).data
+        return []
 
 
 class BookingAssignmentSerializer(serializers.ModelSerializer):

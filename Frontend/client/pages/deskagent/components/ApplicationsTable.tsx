@@ -48,10 +48,8 @@ export const ApplicationsTable = ({
         <Table>
           <TableHeader>
             <TableRow className="bg-white text-blue-500 whitespace-nowrap">
-              {/* <TableHead className="w-[50px]" /> */}
-              <TableHead className="text-blue-500">Travel Request ID</TableHead>
+              <TableHead className="text-blue-500">Travel Request ID & Purpose</TableHead>
               <TableHead className="text-blue-500">Employee & Route</TableHead>
-              {/* <TableHead>Route</TableHead> */}
               <TableHead className="text-blue-500">Departure</TableHead>
               <TableHead className="text-center text-blue-500">Status</TableHead>
               <TableHead className="text-center text-blue-500">Bookings</TableHead>
@@ -75,47 +73,28 @@ export const ApplicationsTable = ({
               applications.map((app) => (
                 <React.Fragment key={app.id}>
                   <TableRow className="hover:bg-muted/50 transition whitespace-nowrap">
-                    {/* <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-8 w-8 hover:bg-slate-100 hover:text-black"
-                        onClick={() => onExpandRow(expandedRow === app.id ? null : app.id)}
-                      >
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${expandedRow === app.id ? 'rotate-180' : ''
-                            }`}
-                        />
-                      </Button>
-                    </TableCell> */}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-semibold">
+                          {app.travel_request_id ||
+                            `TR/TSF/2025/${String(app.id).padStart(7, "0")}`}
+                        </p>
+                        <p className="text-sm truncate max-w-[300px]">{app.purpose}</p>
+                      </div>
+                    </TableCell>
 
                     <TableCell>
-                      <span className="font-mono text-sm font-medium">
-                        {app.travel_request_id ||
-                          `TR/TSF/2025/${String(app.id).padStart(7, "0")}`}
-                      </span>
-                    </TableCell>
-
-                    <TableCell className="flex flex-col">
-                      <p className="font-medium">{app.employee_name}</p>
-                      <div className="text-sm">
-                        <p>
-                          {app.from_location}
-                          <span className="mx-2 text-muted-foreground">→</span>
-                          {app.to_location}
-                        </p>
+                      <div className="flex flex-col">
+                        <p className="font-medium">{app.employee_name}</p>
+                        <div className="text-sm">
+                          <p>
+                            {app.from_location}
+                            <span className="mx-2 text-muted-foreground">→</span>
+                            {app.to_location}
+                          </p>
+                        </div>
                       </div>
                     </TableCell>
-
-                    {/* <TableCell>
-                      <div className="text-sm">
-                        <p>
-                          {app.from_location}
-                          <span className="mx-2 text-muted-foreground">→</span>
-                          {app.to_location}
-                        </p>
-                      </div>
-                    </TableCell> */}
 
                     <TableCell>
                       <span className="text-sm">
@@ -124,7 +103,6 @@ export const ApplicationsTable = ({
                     </TableCell>
 
                     <TableCell className="text-center">
-                      {/* <StatusBadge status={app.status} /> */}
                       <StatusBadge statusType="travel" status={app.status} />
                     </TableCell>
 
@@ -160,28 +138,6 @@ export const ApplicationsTable = ({
                           </TooltipTrigger>
                           <TooltipContent>View</TooltipContent>
                         </Tooltip>
-
-                        {/* <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm"
-                              className="bg-green-100 hover:bg-green-100 text-green-600 hover:text-green-600"
-                              onClick={() => onForward(app)}>
-                              <Send className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Forward</TooltipContent>
-                        </Tooltip> */}
-
-                        {/* <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="sm"
-                              className="bg-orange-100 hover:bg-orange-100 text-orange-600 hover:text-orange-600"
-                              onClick={() => onCancel(app)}>
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Cancel</TooltipContent>
-                        </Tooltip> */}
                       </div>
                     </TableCell>
                   </TableRow>

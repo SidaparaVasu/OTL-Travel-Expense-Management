@@ -28,6 +28,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     assigned_agent_name = serializers.SerializerMethodField()
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)   
+    employee_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -36,7 +37,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file',
             'assigned_agent_name',
-            'meal_preference'
+            'meal_preference', 'employee_name'
         ]
     
     meal_preference = serializers.SerializerMethodField()
@@ -49,6 +50,11 @@ class AgentBookingSerializer(serializers.ModelSerializer):
         if assignment and assignment.agent:
             return assignment.agent.user.first_name + " " + assignment.agent.user.last_name
         return None
+
+    def get_employee_name(self, obj):
+        app = obj.trip_details.travel_application
+        user = app.employee
+        return user.get_full_name() or user.username
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -249,7 +255,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            "id", "application_id", "travel_request_id", "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_grade", 
+            "id", "application_id", "travel_request_id", "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_grade", "employee_age",
             "purpose", "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
             "status", "status_label", "estimated_cost", "actual_cost", 
             "booking_reference", "vendor_reference", 
@@ -313,6 +319,11 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
         app = obj.trip_details.travel_application
         user = app.employee
         return user.get_gender_display()
+
+    def get_employee_age(self, obj):
+        app = obj.trip_details.travel_application
+        user = app.employee
+        return calculate_age(user.date_of_birth)
 
     def get_trip_segment(self, obj):
         td: TripDetails = obj.trip_details

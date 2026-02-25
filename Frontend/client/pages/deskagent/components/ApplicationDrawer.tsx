@@ -35,6 +35,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { ForwardModal, AddNoteModal, ViewBookingModal, CancelModal } from "./";
@@ -574,6 +581,90 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                           View Details
                         </a>
                       </div>
+                      {/* Guest(s) Details */}
+                      {application.travelers?.length > 0 && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <div className="cursor-pointer">
+                              <p className="text-xs text-slate-500">
+                                Guest(s) Details
+                              </p>
+                              <p className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                                Guests ({application.travelers?.length})
+                              </p>
+                            </div>
+                          </DialogTrigger>
+
+                          <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                              <DialogTitle>
+                                Guest Details ({application.travelers.length})
+                              </DialogTitle>
+                            </DialogHeader>
+
+                            <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                              <table className="w-full text-sm border-collapse whitespace-nowrap">
+                                <thead>
+                                  <tr className="border-b text-left text-blue-600">
+                                    <th className="py-2 pr-4 font-medium">
+                                      Name
+                                    </th>
+                                    <th className="py-2 pr-4 font-medium">
+                                      Email
+                                    </th>
+                                    <th className="py-2 pr-4 font-medium">
+                                      Contact
+                                    </th>
+                                    <th className="py-2 pr-4 font-medium">
+                                      Gender
+                                    </th>
+                                    <th className="py-2 pr-4 font-medium">
+                                      Age
+                                    </th>
+                                    <th className="py-2 pr-4 font-medium">
+                                      Nationality
+                                    </th>
+                                    <th className="py-2 pr-4 font-medium">
+                                      Flight / Stay Meal
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {application.travelers.map((traveler) => (
+                                    <tr
+                                      key={traveler.id}
+                                      className="border-b last:border-0"
+                                    >
+                                      <td className="py-2 pr-4 font-medium whitespace-nowrap">
+                                        {traveler.full_name}
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        {traveler.email || "—"}
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        {traveler.contact || "—"}
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        {traveler.gender}
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        {traveler.age}
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        {traveler.nationality}
+                                      </td>
+                                      <td className="py-2 pr-4">
+                                        {traveler.flight_meal_preference} /{" "}
+                                        {traveler.accommodation_meal_preference}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
                     </div>
                   </div>
                 </CardContent>

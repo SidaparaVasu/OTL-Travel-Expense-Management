@@ -630,7 +630,10 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'status_label': obj.get_status_display(),
             'travel_for': obj.travel_for,
             'travel_for_label': obj.get_travel_for_display(),
-            'travelers': ApplicationTravelerSerializer(obj.display_travelers.all(), many=True).data,
+            'travelers': ApplicationTravelerSerializer(
+                obj.display_travelers.filter(guest__isnull=False), 
+                many=True
+            ).data if obj.travel_for in ['guest', 'self_guest'] else [],
             'bulk_upload_file': obj.bulk_upload_file.url if obj.bulk_upload_file else None
         }
 
