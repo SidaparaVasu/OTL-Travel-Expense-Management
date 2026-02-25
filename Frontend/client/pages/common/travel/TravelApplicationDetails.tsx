@@ -12,6 +12,7 @@ import {
   UserCheck,
   FileText,
   Printer,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { travelAPI } from "@/src/api/travel-api";
@@ -77,8 +78,8 @@ export const TravelApplicationDetails: React.FC = () => {
         const response = await travelAPI.getTravelApplicationDetails(
           parseInt(id),
         );
+        console.log("response", response);
         setData(response);
-        console.log(response);
       } catch (err: any) {
         console.error("Failed to fetch travel application details:", err);
         setError(
@@ -426,6 +427,81 @@ export const TravelApplicationDetails: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Traveler Details */}
+        {data?.application?.travelers &&
+          data.application.travelers.length > 0 && (
+            <div className="bg-white border border-slate-200 overflow-hidden rounded-md shadow-sm transition-shadow duration-300">
+              <div className="bg-blue-500 border-b p-4">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Guest(s)/Traveler Details
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100">
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Name
+                      </th>
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Email
+                      </th>
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Contact
+                      </th>
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Gender
+                      </th>
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Age
+                      </th>
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Nationality
+                      </th>
+                      <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                        Meal (Flight/Hotel)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data?.application?.travelers.map((traveler: any, idx: number) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="border border-slate-200 p-3 font-medium">
+                          {traveler.full_name}
+                        </td>
+                        <td className="border border-slate-200 p-3">
+                          {traveler.email || "—"}
+                        </td>
+                        <td className="border border-slate-200 p-3">
+                          {traveler.contact || "—"}
+                        </td>
+                        <td className="border border-slate-200 p-3">
+                          {traveler.gender || "—"}
+                        </td>
+                        <td className="border border-slate-200 p-3">
+                          {traveler.age || "—"}
+                        </td>
+                        <td className="border border-slate-200 p-3 capitalize">
+                          {traveler.nationality || "—"}
+                        </td>
+                        <td className="border border-slate-200 p-3">
+                          {traveler.flight_meal_preference ||
+                          traveler.accommodation_meal_preference
+                            ? `${traveler.flight_meal_preference || "None"} / ${traveler.accommodation_meal_preference || "None"}`
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
         {/* Booking Details */}
         <div className="bg-white border border-slate-200 overflow-hidden rounded-md shadow-sm  transition-shadow duration-300">
@@ -1436,7 +1512,8 @@ export const TravelApplicationDetails: React.FC = () => {
               >
                 {updatingId === id ? (
                   <>
-                    <Loader2 size={16} className="text-white animate-spin" /> Processing
+                    <Loader2 size={16} className="text-white animate-spin" />{" "}
+                    Processing
                   </>
                 ) : (
                   "Approve"

@@ -7,8 +7,10 @@ from apps.travel.models import (
     BookingNote,
     TravelApprovalFlow,
 )
+from apps.travel.models.traveler import ApplicationTraveler, GuestProfile
 from apps.travel.models.booking_extended import AccommodationBooking, VehicleBooking
 from django.utils.dateformat import DateFormat
+from utils.date_utils import calculate_age
 
 import logging
 logger = logging.getLogger(__name__)
@@ -112,6 +114,67 @@ class BookingAssignmentSerializer(serializers.ModelSerializer):
 
     def get_completed_at(self, obj):
         return format_datetime(obj.completed_at)
+
+
+class ApplicationTravelerSerializer(serializers.ModelSerializer):
+    """Serializer for application travelers (self or guests)"""
+    full_name = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    contact = serializers.SerializerMethodField()
+    gender = serializers.SerializerMethodField()
+    age = serializers.SerializerMethodField()
+    nationality = serializers.SerializerMethodField()
+    flight_meal_preference = serializers.SerializerMethodField()
+    accommodation_meal_preference = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ApplicationTraveler
+        fields = [
+            'id', 'full_name', 'email', 'contact', 'gender', 'age', 
+            'nationality', 'flight_meal_preference', 'accommodation_meal_preference', 'is_primary'
+        ]
+
+    def get_full_name(self, obj):
+        if obj.user:
+            return obj.user.get_full_name()
+        if obj.guest:
+            return f"{obj.guest.first_name} {obj.guest.last_name}"
+        return "Unknown"
+
+    def get_email(self, obj):
+        return obj.user.email if obj.user else (obj.guest.email if obj.guest else "")
+
+    def get_contact(self, obj):
+        return obj.user.mobile_no if obj.user else (obj.guest.contact_number if obj.guest else "")
+
+    def get_gender(self, obj):
+        gender_code = ""
+        if obj.user:
+            # Assuming user has a gender field or choices
+            gender_code = getattr(obj.user, 'gender', '')
+        elif obj.guest:
+            gender_code = obj.guest.gender
+        
+        gender_map = {'M': 'Male', 'F': 'Female', 'O': 'Other'}
+        return gender_map.get(gender_code, gender_code)
+
+    def get_age(self, obj):
+        if obj.guest:
+            return obj.guest.age
+        # For users, age not be directly available, calculating if dob exists
+        if obj.user:
+            return calculate_age(obj.user.date_of_birth)
+
+    def get_nationality(self, obj):
+        if obj.guest:
+            return obj.guest.get_nationality_type_display()
+        return "Indian" # Default for internal users if not specified
+
+    def get_flight_meal_preference(self, obj):
+        return obj.flight_meal_preference.name if obj.flight_meal_preference else ""
+
+    def get_accommodation_meal_preference(self, obj):
+        return obj.accommodation_meal_preference.name if obj.accommodation_meal_preference else ""
 
 
 class TicketingBookingSerializer(serializers.Serializer):
@@ -565,6 +628,9 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'designation': designation,
             'status': obj.status,
             'status_label': obj.get_status_display(),
+            'travel_for': obj.travel_for,
+            'travel_for_label': obj.get_travel_for_display(),
+            'travelers': ApplicationTravelerSerializer(obj.display_travelers.all(), many=True).data,
             'bulk_upload_file': obj.bulk_upload_file.url if obj.bulk_upload_file else None
         }
 

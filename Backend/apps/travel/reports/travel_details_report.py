@@ -61,6 +61,7 @@ class TravelDetailsReport(TravelReportMixin, BaseReport):
             "transportation": self._format_transportation_list(serialized_data['ticketing_bookings']),
             "accommodation": self._format_accommodation_list(serialized_data['accommodation_bookings']),
             "conveyance": self._format_conveyance_list(serialized_data['conveyance_bookings']),
+            "travelers": serialized_data['application'].get('travelers', []),
             "approvals": self._get_approval_context(serialized_data)
         }
         return context

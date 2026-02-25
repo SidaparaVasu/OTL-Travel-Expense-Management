@@ -190,6 +190,35 @@
     </tr>
   </table>
 
+  <!-- Traveler Details -->
+  <div class="section-title">Traveler Details</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:15%">Full Name</th>
+        <th style="width:20%">Email</th>
+        <th style="width:15%">Contact</th>
+        <th style="width:10%">Gender</th>
+        <th style="width:10%">Age</th>
+        <th style="width:10%">Nationality</th>
+        <th style="width:20%">Meal (Flight/Hotel)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in travelers %}
+      <tr>
+        <td>{{ t.full_name }}</td>
+        <td>{{ t.email }}</td>
+        <td>{{ t.contact }}</td>
+        <td>{{ t.gender }}</td>
+        <td>{{ t.age }}</td>
+        <td>{{ t.nationality }}</td>
+        <td>{{ t.flight_meal_preference }} / {{ t.accommodation_meal_preference }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <!-- Transportation (Proper Column Separation) -->
   <div class="section-title">Booking: Ticketing</div>
   <table>

@@ -290,7 +290,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                     trip_errors['duration'] = str(e)
             
             # Check for duplicate travel (only if not draft and dates present)
-            if not self.instance and self.context.get('status') != 'draft':
+            # RELAXATION: Only check for user himself (Self). Don't check for Guest-only applications.
+            if not self.instance and self.context.get('status') != 'draft' and travel_for != 'guest':
                 if departure and return_date:
                     try:
                         validate_duplicate_travel_request(user, departure, return_date)
