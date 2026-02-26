@@ -25,7 +25,7 @@ from utils.audit import log_action
 import logging
 logger = logging.getLogger(__name__)
 
-class ManagerApprovalsView(BranchFilterMixin, ListAPIView):
+class ManagerApprovalsView(ListAPIView):
     """
     List travel applications filtered by approval status (pending, approved, rejected, all).
     Enhanced with branch-based access control - managers only see approvals from their branch.
@@ -48,8 +48,7 @@ class ManagerApprovalsView(BranchFilterMixin, ListAPIView):
             'trip_details__bookings', 'trip_details__bookings__booking_type'
         ).distinct()
         
-        # Apply branch filtering - Managers see only their branch
-        queryset = self.apply_branch_filter(queryset, user, employee_field='employee')
+        # Base queryset already filters by approver=user
 
         # Status filtering
         if status_filter == 'pending':
@@ -92,7 +91,7 @@ class ManagerApprovalsView(BranchFilterMixin, ListAPIView):
             message=f"{request.query_params.get('status', 'pending').capitalize()} approvals retrieved successfully"
         )
 
-class ManagerPendingApprovalsView(BranchFilterMixin, ListAPIView):
+class ManagerPendingApprovalsView(ListAPIView):
     """
     List of travel applications pending manager's approval.
     Enhanced with branch-based access control - managers only see pending approvals from their branch.
@@ -112,8 +111,7 @@ class ManagerPendingApprovalsView(BranchFilterMixin, ListAPIView):
             'trip_details__from_location', 'trip_details__to_location'
         ).distinct()
         
-        # Apply branch filtering - Managers see only their branch
-        queryset = self.apply_branch_filter(queryset, self.request.user, employee_field='employee')
+        # Base queryset already filters by approver=user and status=pending
 
         # Apply advanced filters
         filter_params = self.request.GET.copy()
@@ -275,19 +273,17 @@ class ApprovalActionView(APIView):
 
             # Choose event name based on action
             event_name = "travel.approved" if action == "approved" else "travel.rejected"
+            status_label = "Approved" if action == "approved" else "Rejected"
 
-            payload = {
-                "employee_id": employee.id,
+            # Use rich payload helper
+            payload = travel_app.get_notification_payload()
+            payload.update({
                 "approver_id": approver.id,
-                "employee_name": employee.get_full_name(),
+                "recipients": [employee.id, approver.id], # Notify both
                 "approver_name": approver.get_full_name(),
-                "request_id": travel_app.get_travel_request_id(),
-                "purpose": travel_app.purpose,
-            }
-
-            # Add notes only for rejection
-            if action == "rejected":
-                payload["notes"] = approval_flow.notes
+                "status_label": status_label,
+                "remarks": approval_flow.notes or "No remarks provided",
+            })
 
             NotificationCenter.notify(
                 event_name=event_name,
