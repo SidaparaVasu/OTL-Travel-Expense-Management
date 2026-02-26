@@ -339,6 +339,17 @@ class TravelDeskAssignBookingsView(APIView):
                     if b_type not in excluded_types:
                         attach_duty_slip = True
 
+                # Dynamic Event Selection for Vendors
+                # b_type_name = (b.booking_type.name or "").strip().lower()
+                # event_name = "travel.booking.assigned" # Default
+                
+                # if "accommodation" in b_type_name:
+                #     event_name = "travel.hotel.requested"
+                # elif any(word in b_type_name for word in ["flight", "train"]):
+                #     event_name = "travel.ticket.requested"
+                # else:
+                #     event_name = "travel.vehicle.requested"
+
                 NotificationCenter.notify(
                     event_name="travel.booking.assigned",
                     reference={"type": "Booking", "id": b.id},
@@ -353,6 +364,18 @@ class TravelDeskAssignBookingsView(APIView):
                         "attach_duty_slip": attach_duty_slip,
                     },
                 )
+
+                # NotificationCenter.notify(
+                #     event_name=event_name,
+                #     reference={"type": "Booking", "id": b.id},
+                #     payload={
+                #         **b.get_booking_payload(),
+                #         "booking_agent_id": booking_agent.id,
+                #         "booking_agent_name": booking_agent.get_full_name(),
+                #         "action_required": "Processing requested",
+                #         "attach_duty_slip": attach_duty_slip,
+                #     },
+                # )
 
             # Application status bump
             if app.status in [
@@ -798,51 +821,6 @@ class TravelDeskForwardToDeskView(APIView):
 
     def post(self, request, booking_id):
         target_user_id = request.data.get("target_user_id")
-
-class TravelDeskAssignedLocationsView(APIView):
-    """
-    GET: List of locations assigned to the current Travel Desk user (SPOC).
-    Used for filtering the dashboard.
-    """
-    permission_classes = [IsAuthenticated, IsTravelDesk]
-
-    def get(self, request):
-        user = request.user
-        locations = set()
-
-        # 1. Get user's own base location
-        profile = user.get_profile()
-        if profile and profile.base_location:
-            locations.add(profile.base_location)
-
-        # 2. Get assigned SPOC locations
-        from apps.authentication.models.spoc import LocationSPOCAssignment
-        
-        assignments = LocationSPOCAssignment.objects.filter(
-            user=user, 
-            is_active=True
-        ).prefetch_related('locations')
-
-        for assignment in assignments:
-            if assignment.is_global:
-                # If global, they effectively have access to all locations.
-                # However, for the filter dropdown, listing ALL cities might be too much.
-                # For now, we just return the explicitly assigned ones + base.
-                # Or we could return a flag "is_global": True?
-                # The prompt asked to "retrieve allocated locations".
-                pass
-            
-            locations.update(assignment.locations.all())
-
-        data = [
-            {"id": loc.pk, "name": loc.location_name}
-            for loc in locations
-        ]
-        
-        # Sort by name
-        data.sort(key=lambda x: x['name'])
-
-        return success_response(data=data)
         remarks = request.data.get("remarks", "")
 
         if not target_user_id:
@@ -944,6 +922,51 @@ class TravelDeskAssignedLocationsView(APIView):
                 }
             }
         )
+
+class TravelDeskAssignedLocationsView(APIView):
+    """
+    GET: List of locations assigned to the current Travel Desk user (SPOC).
+    Used for filtering the dashboard.
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def get(self, request):
+        user = request.user
+        locations = set()
+
+        # 1. Get user's own base location
+        profile = user.get_profile()
+        if profile and profile.base_location:
+            locations.add(profile.base_location)
+
+        # 2. Get assigned SPOC locations
+        from apps.authentication.models.spoc import LocationSPOCAssignment
+        
+        assignments = LocationSPOCAssignment.objects.filter(
+            user=user, 
+            is_active=True
+        ).prefetch_related('locations')
+
+        for assignment in assignments:
+            if assignment.is_global:
+                # If global, they effectively have access to all locations.
+                # However, for the filter dropdown, listing ALL cities might be too much.
+                # For now, we just return the explicitly assigned ones + base.
+                # Or we could return a flag "is_global": True?
+                # The prompt asked to "retrieve allocated locations".
+                pass
+            
+            locations.update(assignment.locations.all())
+
+        data = [
+            {"id": loc.pk, "name": loc.location_name}
+            for loc in locations
+        ]
+        
+        # Sort by name
+        data.sort(key=lambda x: x['name'])
+
+        return success_response(data=data)
 
 class TravelDeskUsersListView(APIView):
     """
