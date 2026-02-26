@@ -762,12 +762,16 @@ def generate_duty_slip_pdf(booking):
     # Reporting Person
     reporting_person = ""
     reporting_mobile = ""
-    # try:
-    #     emp = booking.trip_details.travel_application.employee
-    #     reporting_person = ((emp.first_name or "") + " " + (emp.last_name or "")).strip()
-    #     reporting_mobile = emp.phone or ""
-    # except:
-    #     pass
+    
+    # Requester / Applicant Details
+    requester_name = ""
+    requester_mobile = ""
+    try:
+        emp = booking.trip_details.travel_application.employee
+        requester_name = ((emp.first_name or "") + " " + (emp.last_name or "")).strip()
+        requester_mobile = emp.mobile_no or ""
+    except:
+        pass
     
     # Booking Details
     bd = booking.booking_details or {}
@@ -812,8 +816,8 @@ def generate_duty_slip_pdf(booking):
         "ac_status": ac_status,
         "reporting_place": reporting_place,
         "visiting_place": visiting_place,
-        "requester_name": reporting_person,
-        "requester_mobile": reporting_mobile
+        "requester_name": requester_name,
+        "requester_mobile": requester_mobile
     }
 
     # -------------------------
