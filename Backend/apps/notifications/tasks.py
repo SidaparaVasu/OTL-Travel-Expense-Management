@@ -105,18 +105,25 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
 def mark_travel_as_completed(travel_id):
     try:
         travel = TravelApplication.objects.get(id=travel_id)
+        logger.info(f"Task started for TravelApplication {travel_id}. Current status: {travel.status}")
 
         if travel.status in ["completed", "cancelled"]:
+            logger.info(f"TravelApplication {travel_id} is already {travel.status}. Skipping.")
             return
 
-        end_date = travel.get_travel_end_date()
-        if not end_date:
+        end_datetime = travel.get_travel_end_datetime()
+        if not end_datetime:
+            logger.warning(f"No end datetime found for TravelApplication {travel_id}")
             return
 
-        if timezone.now().date() >= end_date:
+        # Explicitly check if we have reached or passed the end datetime
+        now = timezone.now()
+        logger.info(f"Checking completion: Now({now}) >= End({end_datetime})")
+        
+        if now >= end_datetime:
             travel.status = "completed"
-            travel.is_claimable = True  # if this field exists
-            travel.save(update_fields=["status", "is_claimable"])
+            travel.save(update_fields=["status"])
+            logger.info(f"Successfully marked TravelApplication {travel_id} as completed.")
 
             NotificationCenter.notify(
                 "travel.settlement.reminder",
@@ -125,27 +132,36 @@ def mark_travel_as_completed(travel_id):
                     "employee_id": travel.employee.id,
                     "employee_name": travel.employee.get_full_name(),
                     "request_id": travel.get_travel_request_id(),
-                    "settlement_due_date": travel.settlement_due_date,
+                    "settlement_due_date": str(travel.settlement_due_date) if travel.settlement_due_date else None,
                 }
             )
+        else:
+            logger.warning(f"Task for {travel_id} triggered too early. Now: {now}, End: {end_datetime}")
 
     except TravelApplication.DoesNotExist:
         logger.warning("TravelApplication not found for id=%s", travel_id)
+    except Exception as e:
+        logger.error(f"Error in mark_travel_as_completed for {travel_id}: {str(e)}", exc_info=True)
 
 
 def schedule_travel_completion(travel_app):
-    end_date = travel_app.get_travel_end_date()
+    run_datetime = travel_app.get_travel_end_datetime()
 
-    if not end_date:
+    if not run_datetime:
         logger.warning(
             "Cannot schedule completion: no trip dates for travel_app=%s",
             travel_app.id
         )
         return
 
-    run_datetime = timezone.make_aware(
-        datetime.datetime.combine(end_date, datetime.time(hour=1))
-    )
+    # Add a 1-minute safety buffer to ensure we are definitely past the end time 
+    # when the task triggers.
+    run_datetime = run_datetime + datetime.timedelta(minutes=1)
+
+    # Buffer: if run_datetime is in the past, run it 2 minutes from now
+    now = timezone.now()
+    if run_datetime <= now:
+        run_datetime = now + datetime.timedelta(minutes=2)
 
     clocked, _ = ClockedSchedule.objects.get_or_create(
         clocked_time=run_datetime
@@ -153,7 +169,7 @@ def schedule_travel_completion(travel_app):
 
     PeriodicTask.objects.update_or_create(
         name=f"travel_complete_{travel_app.id}",
-        task="notifications.tasks.mark_travel_as_completed",
+        task="apps.notifications.tasks.mark_travel_as_completed",
         one_off=True,
         clocked=clocked,
         args=json.dumps([travel_app.id])

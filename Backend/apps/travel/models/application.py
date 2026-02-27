@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+import datetime
 from apps.master_data.models.geography import CityMaster
 
 class TravelApplication(models.Model):
@@ -286,6 +287,9 @@ class TravelApplication(models.Model):
                     import logging
                     logger = logging.getLogger(__name__)
                     logger.error(f"Failed to auto-forward bookings for app {self.id}: {str(e)}")
+            
+            # Schedule auto-completion task
+            self.schedule_completion_task()
             
             return
         
@@ -668,7 +672,14 @@ class TravelApplication(models.Model):
         if all(b.status == 'confirmed' for b in all_bookings):
             self.status = 'booked'
             self.booking_completed_at = timezone.now()
-            self.save(update_fields=['status', 'booking_completed_at'])
+
+            # Proactive check: if travel has already ended, move to completed
+            end_datetime = self.get_travel_end_datetime()
+            if end_datetime and timezone.now() >= end_datetime:
+                self.status = 'completed'
+                self.save(update_fields=['status', 'booking_completed_at'])
+            else:
+                self.save(update_fields=['status', 'booking_completed_at'])
 
     def get_travel_start_date(self):
         """Earliest departure date across all trips"""
@@ -681,6 +692,27 @@ class TravelApplication(models.Model):
         return self.trip_details.aggregate(
             max_date=models.Max('return_date')
         )['max_date']
+
+    def schedule_completion_task(self):
+        """Schedule the background task to mark travel as completed"""
+        from apps.notifications.tasks import schedule_travel_completion
+        try:
+            schedule_travel_completion(self)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to schedule completion task for TA {self.id}: {e}")
+
+    def get_travel_end_datetime(self):
+        """Latest return date and time across all trips"""
+        last_trip = self.trip_details.order_by('-return_date', '-end_time').first()
+        if not last_trip or not last_trip.return_date:
+            return None
+
+        # Combine date and time
+        end_time = last_trip.end_time or datetime.time(hour=23, minute=59)
+        dt = datetime.datetime.combine(last_trip.return_date, end_time)
+        return timezone.make_aware(dt)
 
 
 class TripDetails(models.Model):

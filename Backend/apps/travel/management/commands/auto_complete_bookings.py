@@ -23,10 +23,10 @@ class Command(BaseCommand):
     help = "Auto-complete bookings for trips that have ended and confirm self-arranged bookings."
 
     def handle(self, *args, **options):
-        # 1. Auto-complete past trip bookings
+        # 1. Auto-complete past trip bookings & applications
         completed_count = auto_complete_past_trip_bookings()
         self.stdout.write(
-            self.style.SUCCESS(f"Successfully auto-completed {completed_count} booking(s).")
+            self.style.SUCCESS(f"Successfully processed auto-completions for past trips. Marked booking(s) status as completed: {completed_count}")
         )
         
         # 2. Auto-confirm any self-arranged bookings that are still pending

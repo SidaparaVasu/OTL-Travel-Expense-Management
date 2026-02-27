@@ -21,16 +21,34 @@ def auto_complete_past_trip_bookings():
     """
     today = timezone.now().date()
     
+    # 1. Update individual bookings: confirmed -> completed
     # Find trips that have ended (return_date is in the past)
     past_trip_ids = TripDetails.objects.filter(
         return_date__lt=today
     ).values_list('id', flat=True)
-
-    # Update bookings for those trips: confirmed -> completed
+    
     updated_count = Booking.objects.filter(
         trip_details_id__in=past_trip_ids,
         status='confirmed'  # Only confirmed, not cancelled or already completed
     ).update(status='completed')
     
+    # 2. Update parent applications: booked -> completed
+    # This acts as a safety net if the one-off task failed or wasn't scheduled
+    from apps.travel.models import TravelApplication
+    
+    # Logic: Applications that are in 'booked' state but their latest return datetime is in the past
+    booked_apps = TravelApplication.objects.filter(status='booked')
+    app_count = 0
+    
+    for app in booked_apps:
+        end_dt = app.get_travel_end_datetime()
+        if end_dt and timezone.now() >= end_dt:
+            app.status = 'completed'
+            app.save(update_fields=['status'])
+            app_count += 1
+    
+    if app_count > 0:
+        logger.info(f"Auto-completed {app_count} TravelApplications.")
+
     logger.info(f"Auto-completed {updated_count} bookings for past trips.")
     return updated_count

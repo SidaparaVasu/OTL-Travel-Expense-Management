@@ -553,10 +553,13 @@ class TravelApplicationSubmitView(APIView):
             travel_app.current_approver = None
             travel_app.set_settlement_due_date()
             travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"]) 
-
+            
             from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
             auto_forward_flight_train_bookings(travel_app, system_user=request.user)
             auto_confirm_self_arranged_bookings(travel_app, system_user=request.user)
+
+            # Schedule auto-completion
+            travel_app.schedule_completion_task()
 
             return success_response(
                 data={
