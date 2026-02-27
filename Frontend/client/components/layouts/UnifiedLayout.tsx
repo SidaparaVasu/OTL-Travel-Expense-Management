@@ -139,9 +139,14 @@ const getSidebarSections = (
   role: UserRoleType,
   primaryDashboard: string,
 ): SidebarSection[] => {
+  const userRoles = getRoleTypes();
+  const isAdmin = userRoles.includes("admin");
+
   switch (role) {
     case "admin":
-      return getAdminSidebar(primaryDashboard);
+      return isAdmin
+        ? getAdminSidebar(primaryDashboard)
+        : getEmployeeSidebar(primaryDashboard);
     case "travel_desk":
       return getTravelDeskSidebar();
     case "booking_agent":
@@ -432,9 +437,11 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
                     <Users className="mr-2 h-4 w-4" /> Profile
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem onClick={() => navigate(ROUTES.master)}>
-                    <Settings className="mr-2 h-4 w-4" /> Settings
-                  </DropdownMenuItem>
+                  {getRoleTypes().includes("admin") && (
+                    <DropdownMenuItem onClick={() => navigate(ROUTES.master)}>
+                      <Settings className="mr-2 h-4 w-4" /> Settings
+                    </DropdownMenuItem>
+                  )}
 
                   {JSON.parse(localStorage.getItem("roles") || "[]").length >
                     1 && (
