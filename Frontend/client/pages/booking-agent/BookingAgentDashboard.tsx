@@ -21,8 +21,10 @@ import { ViewBookingModal } from "@/pages/booking-agent/components/ViewBookingMo
 import { bookingAgentAPI, type Booking } from "@/src/api/bookingAgentAPI";
 import { formatHours } from "./utils/format";
 import { ROUTES } from "@/routes/routes";
+import { useToast } from "@/hooks/use-toast";
 
 const BookingAgentDashboard: React.FC = () => {
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -46,6 +48,43 @@ const BookingAgentDashboard: React.FC = () => {
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsViewModalOpen(true);
+  };
+
+  const handleAccept = async (booking: Booking) => {
+    try {
+      await bookingAgentAPI.bookings.accept(booking.id);
+      toast({
+        title: "Booking Accepted",
+        description: "The booking has been moved to in-progress status.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Acceptance failed",
+        description: "Unable to accept booking",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (booking: Booking) => {
+    const remarks = window.prompt("Please enter rejection remarks:");
+    if (!remarks) return;
+
+    try {
+      await bookingAgentAPI.bookings.reject(booking.id, remarks);
+      toast({
+        title: "Booking Rejected",
+        description: "The booking has been successfully rejected.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Rejection failed",
+        description: "Unable to reject booking",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -225,12 +264,14 @@ const BookingAgentDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* View Modal */}
       <ViewBookingModal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         booking={selectedBooking}
+        onAccept={handleAccept}
+        onReject={handleReject}
       />
     </div>
   );

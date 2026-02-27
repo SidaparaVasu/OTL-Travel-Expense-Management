@@ -25,6 +25,7 @@ urlpatterns = [
     path("booking-agent/bookings/<int:pk>/upload-file/", BookingAgentFileUploadView.as_view(), name="agent-booking-upload-file"),
     path("booking-agent/bookings/<int:pk>/notes/", BookingAgentNotesView.as_view(), name="agent-booking-notes"),
     path("booking-agent/bookings/<int:pk>/accept/", BookingAgentAcceptBookingView.as_view(), name="agent-booking-accept"),
+    path("booking-agent/bookings/<int:pk>/reject/", BookingAgentRejectBookingView.as_view(), name="agent-booking-reject"),
     path("booking-agent/bookings/<int:pk>/complete/", BookingAgentCompleteBookingView.as_view(), name="agent-booking-complete"),
 
     # Master Data

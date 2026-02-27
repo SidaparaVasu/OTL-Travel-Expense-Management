@@ -152,6 +152,12 @@ class NotificationCenter:
             elif resolver_key == 'desk_agent' and payload.get('desk_agent_id'):
                 users = list(User.objects.filter(id=payload.get('desk_agent_id')))
             
+            elif resolver_key == 'employee_and_desk':
+                if payload.get('employee_id'):
+                    users.extend(User.objects.filter(id=payload.get('employee_id')))
+                if payload.get('travel_desk_id'):
+                    users.extend(User.objects.filter(id=payload.get('travel_desk_id')))
+            
             # Cancellation-specific resolvers
             elif resolver_key == 'approver_and_stakeholders':
                 # Primary approver
@@ -182,7 +188,7 @@ class NotificationCenter:
                     from apps.authentication.models import Role
                     travel_desk_role = Role.objects.filter(name='Travel Desk').first()
                     if travel_desk_role:
-                        users = list(User.objects.filter(roles=travel_desk_role))
+                        users = list(User.objects.filter(userrole__role=travel_desk_role, userrole__is_active=True))
             
             elif resolver_key == 'default_resolver':
                 # payload['recipients'] can be list of user ids, or list of contact dicts

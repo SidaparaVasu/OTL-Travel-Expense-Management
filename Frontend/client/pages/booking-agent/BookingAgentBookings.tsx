@@ -16,8 +16,10 @@ import {
   type BookingsListParams,
 } from "@/src/api/bookingAgentAPI";
 import { useDebouncedCallback } from "./hooks/useDebouncedCallback";
+import { useToast } from "@/hooks/use-toast";
 
 const BookingAgentBookings: React.FC = () => {
+  const { toast } = useToast();
   const [filters, setFilters] = useState<BookingsListParams>({
     page: 1,
     status: "requested",
@@ -83,6 +85,43 @@ const BookingAgentBookings: React.FC = () => {
   const handleAddNote = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsNoteModalOpen(true);
+  };
+
+  const handleAccept = async (booking: Booking) => {
+    try {
+      await bookingAgentAPI.bookings.accept(booking.id);
+      toast({
+        title: "Booking Accepted",
+        description: "The booking has been moved to in-progress status.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Acceptance failed",
+        description: "Unable to accept booking",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReject = async (booking: Booking) => {
+    const remarks = window.prompt("Please enter rejection remarks:");
+    if (!remarks) return;
+
+    try {
+      await bookingAgentAPI.bookings.reject(booking.id, remarks);
+      toast({
+        title: "Booking Rejected",
+        description: "The booking has been successfully rejected.",
+      });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Rejection failed",
+        description: "Unable to reject booking",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSuccess = () => {
@@ -155,6 +194,8 @@ const BookingAgentBookings: React.FC = () => {
               isLoading={isLoading}
               onView={handleView}
               onUpdateStatus={handleUpdateStatus}
+              onAccept={handleAccept}
+              onReject={handleReject}
               onAddNote={handleAddNote}
               showTravelRequestId={true}
               showEmployeeName={true}
@@ -174,6 +215,8 @@ const BookingAgentBookings: React.FC = () => {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         booking={selectedBooking}
+        onAccept={handleAccept}
+        onReject={handleReject}
       />
 
       <UpdateStatusModal

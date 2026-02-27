@@ -165,6 +165,26 @@ export const bookingAgentAPI = {
       return response.data;
     },
 
+    accept: async (
+      bookingId: number,
+    ): Promise<{ success: boolean; message: string; data: any }> => {
+      const response = await apiClient.post(
+        `/booking_agent/booking-agent/bookings/${bookingId}/accept/`,
+      );
+      return response.data;
+    },
+
+    reject: async (
+      bookingId: number,
+      remarks: string,
+    ): Promise<{ success: boolean; message: string; data: any }> => {
+      const response = await apiClient.post(
+        `/booking_agent/booking-agent/bookings/${bookingId}/reject/`,
+        { remarks },
+      );
+      return response.data;
+    },
+
     updateStatus: async (
       bookingId: number,
       formData: FormData,

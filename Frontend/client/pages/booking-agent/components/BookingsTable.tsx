@@ -1,5 +1,11 @@
 import React from "react";
-import { Eye, RefreshCw, MessageSquarePlus } from "lucide-react";
+import {
+  Eye,
+  RefreshCw,
+  MessageSquarePlus,
+  CheckCircle,
+  CircleX,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +36,8 @@ interface BookingsTableProps {
   isLoading: boolean;
   onView: (booking: Booking) => void;
   onUpdateStatus: (booking: Booking) => void;
+  onAccept?: (booking: Booking) => void;
+  onReject?: (booking: Booking) => void;
   onAddNote: (booking: Booking) => void;
   showTravelRequestId: boolean;
   showEmployeeName: boolean;
@@ -50,11 +58,12 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
   isLoading,
   onView,
   onUpdateStatus,
+  onAccept,
+  onReject,
   onAddNote,
   showTravelRequestId,
   showEmployeeName,
 }) => {
-
   console.log(bookings);
   /** ------------------------------
    *  SMART ROUTE BUILDER (All types)
@@ -240,29 +249,66 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                           <TooltipContent>View Details</TooltipContent>
                         </Tooltip>
 
-                        {/* Update Status */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                onClick={() => onUpdateStatus(booking)}
-                                disabled={isOnHold || isCancelled}
-                              >
-                                <RefreshCw className="w-4 h-4" />
-                              </Button>
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {isOnHold
-                              ? "Actions disabled - Cancellation pending"
-                              : isCancelled
-                                ? "Actions disabled - Application cancelled"
-                                : "Update Status"}
-                          </TooltipContent>
-                        </Tooltip>
+                        {/* Accept / Reject (ONLY for requested) */}
+                        {booking.status === "requested" ? (
+                          <>
+                            {/* Accept Button */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-600 hover:text-emerald-700"
+                                  onClick={() => onAccept?.(booking)}
+                                  disabled={isOnHold || isCancelled}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Accept Booking</TooltipContent>
+                            </Tooltip>
+
+                            {/* Reject Button */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700"
+                                  onClick={() => onReject?.(booking)}
+                                  disabled={isOnHold || isCancelled}
+                                >
+                                  <CircleX className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Reject Booking</TooltipContent>
+                            </Tooltip>
+                          </>
+                        ) : (
+                          /* Update Status (ONLY if not requested) */
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  onClick={() => onUpdateStatus(booking)}
+                                  disabled={isOnHold || isCancelled}
+                                >
+                                  <RefreshCw className="w-4 h-4" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isOnHold
+                                ? "Actions disabled - Cancellation pending"
+                                : isCancelled
+                                  ? "Actions disabled - Application cancelled"
+                                  : "Update Status"}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
 
                         {/* Add Note */}
                         <Tooltip>

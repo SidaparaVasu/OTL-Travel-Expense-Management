@@ -594,8 +594,22 @@ class BookingAgentAcceptBookingView(APIView):
             changes={
                 "booking_id": booking.id,
                 "new_status": "in_progress",
-                "accepted_at": assignment.accepted_at
+                "accepted_at": assignment.accepted_at.isoformat() if assignment.accepted_at else None
             }
+        )
+
+        # Trigger Notification
+        NotificationCenter.notify(
+            event_name="travel.booking.accepted",
+            reference={"type": "Booking", "id": booking.id},
+            payload={
+                "request_id": application.get_travel_request_id(),
+                "employee_id": application.employee.id,
+                "employee_name": application.employee.get_full_name(),
+                "booking_agent_name": user.get_full_name(),
+                "booking_type": booking.booking_type.name,
+                "travel_desk_id": application.travel_desk_user_id,
+            },
         )
 
         return success_response(
@@ -604,6 +618,107 @@ class BookingAgentAcceptBookingView(APIView):
                 "booking_id": booking.id,
                 "status": "in_progress",
                 "accepted_at": assignment.accepted_at
+            }
+        )
+
+
+class BookingAgentRejectBookingView(APIView):
+    """
+    POST /travel/booking-agent/bookings/<id>/reject/
+    Booking agent rejects the assigned booking.
+    This clears the assignment so travel desk can re-forward it.
+    """
+
+    permission_classes = [IsAuthenticated, IsBookingAgent]
+
+    def post(self, request, pk):
+        user = request.user
+        remarks = request.data.get("remarks", "").strip()
+
+        if not remarks:
+            return error_response(
+                message="Remarks are required for rejection.",
+                data={"remarks": ["This field is required"]}
+            )
+
+        # Fetch booking that is assigned to this agent
+        booking = (
+            Booking.objects
+            .select_related("assignment", "trip_details__travel_application", "trip_details__travel_application__employee")
+            .filter(id=pk, assignment__assigned_to=user)
+            .first()
+        )
+
+        if not booking:
+            return error_response(
+                message="Booking not found or not assigned to you.",
+                data={"id": ["Invalid booking id"]}
+            )
+
+        application = booking.trip_details.travel_application
+        
+        # Check if travel application is cancelled or cancellation requested
+        if application.status in ['cancelled', 'cancellation_requested']:
+            return error_response(
+                message="Cannot reject booking - Travel application has been cancelled",
+                data={
+                    "status": [f"This travel application is {application.get_status_display()}. Booking actions are disabled."]
+                },
+                status_code=403
+            )
+
+        assignment = booking.assignment
+
+        # Rejection is only allowed for 'requested' bookings
+        if booking.status not in ["requested"]:
+            return error_response(
+                message="Booking cannot be rejected in current status.",
+                data={"status": [f"Current status: {booking.status}. Rejection is only allowed for new requests."]}
+            )
+
+        # Log audit BEFORE deleting assignment
+        AuditLog.objects.create(
+            user=user,
+            action="update_booking_status",
+            content_object=booking,
+            changes={
+                "booking_id": booking.id,
+                "action": "rejected",
+                "remarks": remarks,
+                "rejected_by": user.get_full_name()
+            }
+        )
+
+        # Add a note about rejection
+        BookingNote.objects.create(
+            booking=booking,
+            author=user,
+            note=f"REJECTED: {remarks}"
+        )
+
+        # Trigger Notification
+        NotificationCenter.notify(
+            event_name="travel.booking.rejected",
+            reference={"type": "Booking", "id": booking.id},
+            payload={
+                "request_id": application.get_travel_request_id(),
+                "employee_id": application.employee.id,
+                "employee_name": application.employee.get_full_name(),
+                "booking_agent_name": user.get_full_name(),
+                "booking_type": booking.booking_type.name,
+                "rejection_remarks": remarks,
+                "travel_desk_id": application.travel_desk_user_id,
+            },
+        )
+
+        # Clear assignment
+        assignment.delete()
+
+        return success_response(
+            message="Booking rejected successfully. It has been returned to the travel desk.",
+            data={
+                "booking_id": pk,
+                "status": "requested"
             }
         )
 

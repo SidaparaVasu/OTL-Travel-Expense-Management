@@ -33,6 +33,8 @@ interface ViewBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   booking: Booking | null;
+  onAccept?: (booking: Booking) => void;
+  onReject?: (booking: Booking) => void;
 }
 
 const getBookingIcon = (type: number | string) => {
@@ -69,8 +71,14 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
   isOpen,
   onClose,
   booking,
+  onAccept,
+  onReject,
 }) => {
   if (!isOpen || !booking) return null;
+
+  const isRequested = booking.status === "requested";
+  const isOnHold =
+    booking.travel_application_status === "cancellation_requested";
 
   console.log(booking);
 
@@ -461,8 +469,34 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t flex justify-end">
-          <Button onClick={onClose}>Close</Button>
+        <div className="px-6 py-4 border-t flex justify-end gap-3">
+          {isRequested ? (
+            <>
+              <Button
+                variant="outline"
+                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                onClick={() => {
+                  onReject?.(booking);
+                  onClose();
+                }}
+                disabled={isOnHold}
+              >
+                Reject Booking
+              </Button>
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={() => {
+                  onAccept?.(booking);
+                  onClose();
+                }}
+                disabled={isOnHold}
+              >
+                Accept Booking
+              </Button>
+            </>
+          ) : (
+            <Button onClick={onClose}>Close</Button>
+          )}
         </div>
       </div>
     </div>

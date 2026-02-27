@@ -460,23 +460,22 @@ class TravelDeskReassignBookingView(APIView):
 
         with transaction.atomic():
 
+            # Find existing assignment if any
             assignment = BookingAssignment.objects.filter(booking=booking).first()
-            if not assignment:
-                return error_response(message="Assignment does not exist for this booking")
+            old_agent = assignment.assigned_to if assignment else None
 
-            old_agent = assignment.assigned_to
-
-            # Update assignment (NO new row)
-            assignment.assigned_to = new_agent
-            assignment.assigned_by = request.user
-            assignment.assignment_scope = "single_booking"
-            assignment.assigned_at = timezone.now()
-            assignment.accepted_at = None
-            assignment.completed_at = None
-            assignment.save(update_fields=[
-                "assigned_to", "assigned_by", "assignment_scope",
-                "assigned_at", "accepted_at", "completed_at"
-            ])
+            # Update or create assignment
+            assignment, created = BookingAssignment.objects.update_or_create(
+                booking=booking,
+                defaults={
+                    "assigned_to": new_agent,
+                    "assigned_by": request.user,
+                    "assignment_scope": "single_booking",
+                    "assigned_at": timezone.now(),
+                    "accepted_at": None,
+                    "completed_at": None,
+                }
+            )
 
             # Add note
             if remarks:
