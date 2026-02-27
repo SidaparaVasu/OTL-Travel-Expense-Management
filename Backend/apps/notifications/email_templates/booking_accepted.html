@@ -1,170 +1,140 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        background: #f3f6fb;
-        font-family: Arial, sans-serif;
-        color: #1a1a1a;
-      }
-      .wrapper {
-        max-width: 760px;
-        margin: 0 auto;
-        padding: 28px 16px;
-      }
-      .header-bar {
-        background: #ffffff;
-        border-radius: 10px;
-        padding: 22px 28px;
-        border: 1px solid #e3e8f1;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 26px;
-      }
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .icon-box {
-        background: #e7f9ed;
-        color: #22c55e;
-        font-size: 22px;
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-      }
-      .header-title {
-        font-size: 17px;
-        font-weight: bold;
-        margin: 0;
-      }
-      .header-sub {
-        font-size: 13px;
-        color: #6d7480;
-        margin: 2px 0 0 0;
-      }
-      .header-meta {
-        text-align: right;
-        font-size: 13px;
-        color: #6b7080;
-      }
-      .card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 30px;
-        border: 1px solid #e3e8f1;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-      }
-      .title-main {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #166534;
-      }
-      .subtitle-main {
-        font-size: 14px;
-        color: #5e6470;
-        margin-bottom: 28px;
-      }
-      .section {
-        background: #f0fdf4;
-        border: 1px solid #dcfce7;
-        border-radius: 10px;
-        padding: 20px 24px;
-        margin-bottom: 22px;
-      }
-      .section-title {
-        font-size: 15px;
-        font-weight: bold;
-        color: #166534;
-        margin-bottom: 14px;
-      }
-      .row {
-        font-size: 14px;
-        margin-bottom: 8px;
-      }
-      .label {
-        color: #6c7380;
-        font-weight: bold;
-      }
-      .value {
-        color: #1f2430;
-        font-weight: 600;
-      }
-      .footer {
-        text-align: center;
-        font-size: 12px;
-        color: #7d8290;
-        margin-top: 22px;
-        line-height: 1.4;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrapper">
-      <div class="header-bar">
-        <div class="header-left">
-          <div class="icon-box">✅</div>
-          <div>
-            <div class="header-title">Booking Accepted</div>
-            <div class="header-sub">Travel & Expense Management</div>
-          </div>
-        </div>
-        <div class="header-meta">
-          <div>Request ID: <strong>{{ request_id }}</strong></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="title-main">Booking Request Accepted</div>
-        <div class="subtitle-main">
-          A booking agent has accepted your booking request and is now
-          processing it.
-        </div>
-        <p style="font-size: 14px; line-height: 1.6">
-          Dear Team,<br /><br />
-          The booking request for <strong>{{ employee_name }}</strong> has been
-          accepted by <strong>{{ booking_agent_name }}</strong>.
-        </p>
-        <div class="section">
-          <div class="section-title">Booking Details</div>
-          <div class="row">
-            <span class="label">Employee:</span>
-            <span class="value">{{ employee_name }}</span>
-          </div>
-          <div class="row">
-            <span class="label">Booking Type:</span>
-            <span class="value">{{ booking_type }}</span>
-          </div>
-          <div class="row">
-            <span class="label">Agent:</span>
-            <span class="value">{{ booking_agent_name }}</span>
-          </div>
-          <div class="row">
-            <span class="label">Request ID:</span>
-            <span class="value">{{ request_id }}</span>
-          </div>
-        </div>
-        <p style="font-size: 14px; margin-top: 26px; line-height: 1.5">
-          You will receive further updates once the booking is confirmed.
-          <br /><br />
-          Thank you,<br />
-          <strong>Travel Management System</strong>
-        </p>
-      </div>
-      <div class="footer">
-        This is an automated email. Please do not reply.<br />
-        © 2025 Travel Expenses Pro. All rights reserved.
-      </div>
-    </div>
+<html>
+  <body style="margin:0; padding:0; background-color:#f3f6fb; font-family:Arial, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fb">
+      <tr>
+        <td align="center" style="padding:30px 15px;">
+
+          <!-- MAIN CONTAINER -->
+          <table width="700" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff; border:1px solid #e3e8f1;">
+
+            <!-- HEADER -->
+            <tr>
+              <td style="padding:20px 25px; border-bottom:1px solid #e3e8f1;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    
+                    <!-- LEFT -->
+                    <td valign="middle">
+                      <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td valign="middle" style="font-size:28px;">✅</td>
+                          <td width="10"></td>
+                          <td valign="middle">
+                            <div style="font-size:16px; font-weight:bold; color:#1a1a1a;">
+                              Booking Accepted
+                            </div>
+                            <div style="font-size:13px; color:#6d7480;">
+                              Travel & Expense Management
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+
+                    <!-- RIGHT -->
+                    <td align="right" valign="middle" style="font-size:13px; color:#6b7080;">
+                      Request ID: <strong>{{ request_id }}</strong>
+                    </td>
+
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- BODY -->
+            <tr>
+              <td style="padding:30px;">
+
+                <div style="font-size:20px; font-weight:bold; color:#166534; margin-bottom:8px;">
+                  Booking Request Accepted
+                </div>
+
+                <div style="font-size:14px; color:#5e6470; margin-bottom:25px;">
+                  A booking agent has accepted your booking request and is now processing it.
+                </div>
+
+                <div style="font-size:14px; line-height:1.6; margin-bottom:25px;">
+                  Dear Team,<br><br>
+                  The booking request for 
+                  <strong>{{ employee_name }}</strong> 
+                  has been accepted by 
+                  <strong>{{ booking_agent_name }}</strong>.
+                </div>
+
+                <!-- BOOKING DETAILS BOX -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+                       style="background:#f0fdf4; border:1px solid #dcfce7; padding:20px;">
+
+                  <tr>
+                    <td colspan="2" style="font-size:15px; font-weight:bold; color:#166534; padding-bottom:15px;">
+                      Booking Details
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="font-size:14px; color:#6c7380; padding-bottom:8px;">
+                      <strong>Employee:</strong>
+                    </td>
+                    <td style="font-size:14px; font-weight:600; padding-bottom:8px;">
+                      {{ employee_name }}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="font-size:14px; color:#6c7380; padding-bottom:8px;">
+                      <strong>Booking Type:</strong>
+                    </td>
+                    <td style="font-size:14px; font-weight:600; padding-bottom:8px;">
+                      {{ booking_type }}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="font-size:14px; color:#6c7380; padding-bottom:8px;">
+                      <strong>Agent:</strong>
+                    </td>
+                    <td style="font-size:14px; font-weight:600; padding-bottom:8px;">
+                      {{ booking_agent_name }}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="font-size:14px; color:#6c7380;">
+                      <strong>Request ID:</strong>
+                    </td>
+                    <td style="font-size:14px; font-weight:600;">
+                      {{ request_id }}
+                    </td>
+                  </tr>
+
+                </table>
+
+                <div style="font-size:14px; line-height:1.6; margin-top:25px;">
+                  You will receive further updates once the booking is confirmed.
+                  <br><br>
+                  Thank you,<br>
+                  <strong>Travel Management System</strong>
+                </div>
+
+              </td>
+            </tr>
+
+            <!-- FOOTER -->
+            <tr>
+              <td align="center" style="padding:20px; font-size:12px; color:#7d8290; border-top:1px solid #e3e8f1;">
+                This is an automated email. Please do not reply.<br>
+                © 2025 Travel Expenses Pro. All rights reserved.
+              </td>
+            </tr>
+
+          </table>
+          <!-- END CONTAINER -->
+
+        </td>
+      </tr>
+    </table>
+
   </body>
 </html>
