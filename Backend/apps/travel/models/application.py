@@ -644,42 +644,22 @@ class TravelApplication(models.Model):
         if self.status != 'pending_travel_desk':
             raise ValidationError("Can only mark as booking in progress from 'pending_travel_desk' status.")
 
-        self.status = 'booking_in_progress'
         if travel_desk_user:
             self.travel_desk_user = travel_desk_user
         if not self.booking_forwarded_at:
             self.booking_forwarded_at = timezone.now()
 
-        self.save(update_fields=['status', 'travel_desk_user', 'booking_forwarded_at'])
+        # Refresh status using unified service (this will set it to 'booking_in_progress' correctly)
+        from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+        refresh_application_booking_status(self)
 
     def refresh_booking_status_from_children(self):
         """
         Recompute application-level booking status based on child bookings.
-        If all bookings are confirmed -> set status to 'booked'.
+        - Bugfixed to handle 'cancelled' status (via unified service).
         """
-        trips = self.trip_details.all()
-        if not trips.exists():
-            return
-
-        all_bookings = []
-        for trip in trips:
-            all_bookings.extend(list(trip.bookings.all()))
-
-        if not all_bookings:
-            return
-
-        # All confirmed -> mark booked
-        if all(b.status == 'confirmed' for b in all_bookings):
-            self.status = 'booked'
-            self.booking_completed_at = timezone.now()
-
-            # Proactive check: if travel has already ended, move to completed
-            end_datetime = self.get_travel_end_datetime()
-            if end_datetime and timezone.now() >= end_datetime:
-                self.status = 'completed'
-                self.save(update_fields=['status', 'booking_completed_at'])
-            else:
-                self.save(update_fields=['status', 'booking_completed_at'])
+        from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+        refresh_application_booking_status(self)
 
     def get_travel_start_date(self):
         """Earliest departure date across all trips"""

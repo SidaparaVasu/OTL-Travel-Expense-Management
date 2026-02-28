@@ -377,15 +377,10 @@ class TravelDeskAssignBookingsView(APIView):
                 #     },
                 # )
 
-            # Application status bump
-            if app.status in [
-                "approved_manager",
-                "approved_chro",
-                "approved_ceo",
-                "pending_travel_desk",
-            ]:
-                app.status = "booking_in_progress"  
-                app.save(update_fields=["status"])
+            # Refresh application level booking status using the unified service
+            from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+            refresh_application_booking_status(app)
+            app.refresh_from_db()
 
 
         return success_response(
@@ -489,6 +484,10 @@ class TravelDeskReassignBookingView(APIView):
             if booking.status in ["pending", "in_progress"]:
                 booking.status = "requested"
                 booking.save(update_fields=["status"])
+
+            # Refresh application level booking status using the unified service
+            from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+            refresh_application_booking_status(booking.trip_details.travel_application)
 
             # Audit logging
             AuditLog.objects.create(
@@ -621,15 +620,10 @@ class ForwardApplicationView(APIView):
                     },
                 )
 
-            #  Bump application status
-            if app.status in [
-                "approved_manager",
-                "approved_chro",
-                "approved_ceo",
-                "pending_travel_desk",
-            ]:
-                app.status = "booking_in_progress"
-                app.save(update_fields=["status"])
+            # Refresh application level booking status using the unified service
+            from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+            refresh_application_booking_status(app)
+            app.refresh_from_db()
 
             # High-level forward audit
             AuditLog.objects.create(
@@ -715,6 +709,10 @@ class TravelDeskCancelBookingView(APIView):
                 old_status = booking.status
                 booking.status = "cancelled"
                 booking.save(update_fields=["status"])
+
+                # Refresh application level booking status using the unified service
+                from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+                refresh_application_booking_status(booking.trip_details.travel_application)
                 
                 # Add cancellation note
                 if reason:

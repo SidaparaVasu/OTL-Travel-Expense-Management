@@ -13,21 +13,15 @@ def refresh_application_booking_status(application: TravelApplication):
 
     statuses = set(qs.values_list("status", flat=True))
 
-    # All done
-    if statuses.issubset({"confirmed", "completed"}):
-        # Only allow valid transitions
-        if application.status in [
-            "pending_travel_desk",
-            "booking_in_progress",
-            "approved_manager",
-            "approved_chro",
-            "approved_ceo",
-        ]:
-            application.status = "booked"
+    # 1. Handle "All Cancelled" Scenario
+    if statuses == {"cancelled"}:
+        if application.status != "cancelled":
+            application.status = "cancelled"
             application.save(update_fields=["status"])
         return
 
-    # If any work remains and app was still before, move it to booking_in_progress
+    # 2. Handle "Processing" Scenario
+    # If any work remains, mark it as 'booking_in_progress'
     if any(s in {"pending", "requested", "in_progress"} for s in statuses):
         if application.status in [
             "pending_travel_desk",
@@ -37,3 +31,28 @@ def refresh_application_booking_status(application: TravelApplication):
         ]:
             application.status = "booking_in_progress"
             application.save(update_fields=["status"])
+        return
+
+    # 3. Handle "All Finished" Scenario (mixture of confirmed/completed/cancelled)
+    # If no work remains and we have at least one confirmed/completed booking
+    if statuses.issubset({"confirmed", "completed", "cancelled"}) and any(s in {"confirmed", "completed"} for s in statuses):
+        # Only allow valid transitions
+        if application.status in [
+            "pending_travel_desk",
+            "booking_in_progress",
+            "approved_manager",
+            "approved_chro",
+            "approved_ceo",
+        ]:
+            # [ENHANCED] Proactive check: if travel has already ended, move to completed
+            # Otherwise, move to 'booked'
+            from django.utils import timezone
+            end_datetime = application.get_travel_end_datetime()
+            
+            if end_datetime and timezone.now() >= end_datetime:
+                application.status = "completed"
+            else:
+                application.status = "booked"
+                
+            application.save(update_fields=["status"])
+        return

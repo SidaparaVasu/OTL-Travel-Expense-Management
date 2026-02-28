@@ -376,6 +376,7 @@ class BookingAgentUpdateStatusView(APIView):
 
         booking.save()
 
+        # [RESTORED] Add note if provided
         if remarks:
             BookingNote.objects.create(
                 booking=booking,
@@ -383,16 +384,9 @@ class BookingAgentUpdateStatusView(APIView):
                 note=remarks
             )
 
-        all_bookings = Booking.objects.filter(
-            trip_details__travel_application=application
-        )
-
-        if (
-            all_bookings.exists()
-            and all_bookings.filter(status="confirmed").count() == all_bookings.count()
-        ):
-            application.status = "booked"
-            application.save(update_fields=["status"])
+        # Refresh application level booking status using the unified service
+        refresh_application_booking_status(application)
+        application.refresh_from_db()
 
         if new_status == "confirmed":
             NotificationCenter.notify(
@@ -586,6 +580,9 @@ class BookingAgentAcceptBookingView(APIView):
         booking.status = "in_progress"
         booking.save(update_fields=["status"])
 
+        # Refresh application level booking status using the unified service
+        refresh_application_booking_status(application)
+
         # Audit
         AuditLog.objects.create(
             user=user,
@@ -778,19 +775,18 @@ class BookingAgentCompleteBookingView(APIView):
         booking.status = "completed"
         booking.save()
 
-        # 4) Add note if provided
+        # [RESTORED] 4) Add note if provided
         if remarks:
+            # Fix: author/created_by field name check (BookingNote uses 'author')
             BookingNote.objects.create(
                 booking=booking,
-                created_by=user,
+                author=user,
                 note=remarks,
             )
 
-        
+        # [RESTORED] Cost escalation checks for final completion
         from apps.travel.services.cost_escalation import (requires_ceo_escalation, escalate_application_to_ceo)
-
         application = booking.trip_details.travel_application
-
         needs_ceo, reason = requires_ceo_escalation(application, booking)
 
         if needs_ceo:
@@ -801,6 +797,7 @@ class BookingAgentCompleteBookingView(APIView):
                 reason=reason,
             )
 
+            # CEO approval is a hard stop for the current completion attempt
             return error_response(
                 message="CEO approval required due to booking cost escalation",
                 data={
@@ -811,17 +808,10 @@ class BookingAgentCompleteBookingView(APIView):
                 status_code=409
             )
 
-        # 5) If all bookings for this application are completed -> mark app as completed
-        all_bookings_qs = Booking.objects.filter(
-            trip_details__travel_application=application
-        )
-
-        if (
-            all_bookings_qs.exists()
-            and all_bookings_qs.filter(status="completed").count() == all_bookings_qs.count()
-        ):
-            application.status = "completed"
-            application.save(update_fields=["status"])
+        # Refresh application level booking status using the unified service
+        # This will move app to 'completed' if all bookings are 'completed'
+        refresh_application_booking_status(application)
+        application.refresh_from_db()
 
         # 6) Audit log
         AuditLog.objects.create(

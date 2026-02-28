@@ -108,6 +108,10 @@ class PartialCancellationView(APIView):
         for trip in trips:
             trip.bookings.all().update(status='cancelled')
         
+        # Refresh application level booking status using the unified service
+        from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+        refresh_application_booking_status(travel_app)
+
         # Recalculate cost
         travel_app.calculate_estimated_cost()
         travel_app.save()
