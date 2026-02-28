@@ -94,9 +94,17 @@ export const userAPI = {
   },
 
   // Search colleagues for guest selection
-  searchColleagues: async (query: string, includeSelf: boolean = false) => {
+  searchColleagues: async (
+    query: string,
+    includeSelf: boolean = false,
+    ignoreBranch: boolean = false,
+  ) => {
     const { data } = await apiClient.get("/employees/search/", {
-      params: { q: query, include_self: includeSelf },
+      params: {
+        q: query,
+        include_self: includeSelf,
+        ignore_branch: ignoreBranch,
+      },
     });
     return data.data;
   },

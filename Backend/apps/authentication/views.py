@@ -632,20 +632,29 @@ class EmployeeSearchView(BranchFilterMixin, APIView):
         
         # Apply branch filtering
         user = request.user
+        ignore_branch = request.query_params.get('ignore_branch') == 'true'
         
-        # CEO and CHRO can search all employees
-        if not (user.has_role('CEO') or user.has_role('CHRO')):
+        # CEO and CHRO can search all employees. 
+        # Others can also search all if ignore_branch is true and they have a privileged role.
+        can_ignore_branch = (
+            user.has_role('CEO') or 
+            user.has_role('CHRO') or 
+            (ignore_branch and (
+                user.has_role('Admin') or user.has_role('admin') or 
+                user.has_role('Travel Desk') or user.has_role('Finance') or 
+                user.has_role('Branch Admin')
+            ))
+        )
+        
+        if not can_ignore_branch:
             # Get user's branch
             profile = user.get_profile()
             
             if profile and profile.base_location:
-                # Admin, Manager, etc. search only their branch
-                if (user.has_role('Admin') or user.has_role('admin') or 
-                    user.has_role('Travel Desk') or user.has_role('Finance') or 
-                    user.has_role('Manager') or user.has_role('Branch Admin')):
-                    employees = employees.filter(
-                        organizational_profile__base_location=profile.base_location
-                    )
+                # Regular employees, or Managers without ignore_branch, etc.
+                employees = employees.filter(
+                    organizational_profile__base_location=profile.base_location
+                )
         
         # Limit results
         employees = employees[:20]

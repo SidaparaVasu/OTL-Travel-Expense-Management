@@ -70,7 +70,11 @@ const SPOCAssignmentModal = ({
     searchDebounceRef.current = setTimeout(async () => {
       setSearchingUsers(true);
       try {
-        const response = await userAPI.searchColleagues(userSearchQuery, true); // Include self
+        const response = await userAPI.searchColleagues(
+          userSearchQuery,
+          true,
+          true,
+        ); // Include self, Ignore branch
         setUsersList(response || []);
       } catch (error) {
         console.error("User search failed", error);
