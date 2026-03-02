@@ -6,9 +6,7 @@
       "event_name": "travel.submitted",
       "description": "Triggered when employee submits a new travel request",
       "template": 1,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "approver",
       "is_active": true,
       "send_reminder": false,
@@ -25,9 +23,7 @@
       "event_name": "travel.approved",
       "description": "Triggered when approver approves travel request",
       "template": 2,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": false,
@@ -44,9 +40,7 @@
       "event_name": "travel.rejected",
       "description": "Triggered when travel request is rejected by approver",
       "template": 3,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": false,
@@ -63,9 +57,7 @@
       "event_name": "travel.booking.confirmed",
       "description": "Booking agent confirms travel booking",
       "template": 4,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": false,
@@ -82,9 +74,7 @@
       "event_name": "travel.booking.cancelled",
       "description": "Booking agent cancels travel booking",
       "template": 5,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": false,
@@ -101,17 +91,11 @@
       "event_name": "travel.settlement.reminder",
       "description": "Reminder for travel settlement pending",
       "template": 6,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": true,
-      "reminder_intervals": [
-        864000,
-        1728000,
-        2419200
-      ],
+      "reminder_intervals": [864000, 1728000, 2419200],
       "escalation_resolver": null,
       "created_at": "2025-12-11T13:26:00Z",
       "updated_at": "2025-12-11T13:26:00Z"
@@ -124,9 +108,7 @@
       "event_name": "travel.settlement.expired",
       "description": "Settlement period expired for travel request",
       "template": 7,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": false,
@@ -143,9 +125,7 @@
       "event_name": "travel.booking.auto_assigned",
       "description": "Auto assignment of booking to booking agent",
       "template": 8,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "booking_agent",
       "is_active": true,
       "send_reminder": false,
@@ -161,9 +141,7 @@
       "event_name": "travel.booking.assigned",
       "description": "Booking assigned by Travel Desk",
       "template": 9,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "booking_agent",
       "is_active": true,
       "send_reminder": false,
@@ -179,9 +157,7 @@
       "event_name": "travel.cost.escalation",
       "description": "Travel booking paused due to cost escalation",
       "template": 10,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "employee",
       "is_active": true,
       "send_reminder": false,
@@ -197,9 +173,7 @@
       "event_name": "travel.ceo.reapproval_required",
       "description": "CEO re-approval required due to revised cost",
       "template": 11,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "approver",
       "is_active": true,
       "send_reminder": false,
@@ -215,9 +189,7 @@
       "event_name": "travel.ceo.reapproval_approved",
       "description": "CEO approved revised travel cost",
       "template": 12,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "default_resolver",
       "is_active": true,
       "send_reminder": false,
@@ -233,9 +205,7 @@
       "event_name": "travel.ceo.reapproval_rejected",
       "description": "CEO rejected revised travel cost",
       "template": 13,
-      "channels": [
-        "email"
-      ],
+      "channels": ["email"],
       "recipient_resolver": "default_resolver",
       "is_active": true,
       "send_reminder": false,
@@ -327,6 +297,23 @@
       "escalation_resolver": null,
       "created_at": "2025-12-29T05:50:00Z",
       "updated_at": "2025-12-29T05:50:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 19,
+    "fields": {
+      "event_name": "travel.assigned.travel_desk",
+      "description": "Triggered to notify Travel Desk team when a TR is approved and ready for booking",
+      "template": 19,
+      "channels": ["email"],
+      "recipient_resolver": "travel_desk",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "escalation_resolver": null,
+      "created_at": "2026-03-02T05:50:00Z",
+      "updated_at": "2026-03-02T05:50:00Z"
     }
   }
 ]

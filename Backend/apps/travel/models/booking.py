@@ -110,7 +110,91 @@ class Booking(models.Model):
             return False
         except:
             return True
+           
+    def get_booking_payload(self):
+        """
+        Enriched payload for vendor-specific notifications.
+        Prioritizes booking_details (JSON) for consistency with frontend structure.
+        """
+        from datetime import datetime, date, time
         
+        app = self.trip_details.travel_application
+        payload = app.get_notification_payload() # base app fields
+        
+        # Add TSF identifiers
+        gl_code_obj = app.general_ledger
+        payload.update({
+            "io_number": app.internal_order or "N/A",
+            "gl_code": gl_code_obj.gl_code if gl_code_obj else "N/A",
+            "gl_description": gl_code_obj.vertical_name if gl_code_obj else "N/A",
+            "sanc_number": app.sanction_number or "N/A",
+        })
+
+        details = self.booking_details or {}
+        b_type = (self.booking_type.name or "").strip()
+
+        def format_val(val, fmt="%d-%b-%y"):
+            if not val: return "N/A"
+            if isinstance(val, (datetime, date)):
+                return val.strftime(fmt)
+            if isinstance(val, time):
+                return val.strftime("%H:%M")
+            if isinstance(val, str):
+                try:
+                    # Try parsing ISO format if string
+                    dt = datetime.fromisoformat(val.replace('Z', '+00:00'))
+                    return dt.strftime(fmt)
+                except:
+                    return val
+            return str(val)
+
+        # 1. Ticket (Flight/Train)
+        if b_type in ["Flight", "Train"]:
+            payload.update({
+                "from_city": details.get("from_location_name") or (self.trip_details.from_location.city_name if self.trip_details.from_location else "N/A"),
+                "to_city": details.get("to_location_name") or (self.trip_details.to_location.city_name if self.trip_details.to_location else "N/A"),
+                "departure_date": format_val(details.get("departure_date") or self.trip_details.departure_date),
+                "departure_time": format_val(details.get("departure_time") or self.trip_details.start_time, "%H:%M"),
+                "booking_type": b_type,
+                "booking_sub_option": self.sub_option.name if self.sub_option else "N/A",
+            })
+            
+        # 2. Accommodation (Hotel)
+        elif b_type == "Accommodation":
+            # Resolve City Name from place ID
+            city_name = "N/A"
+            place_id = details.get("place")
+            if place_id:
+                from apps.master_data.models import CityMaster
+                city = CityMaster.objects.filter(id=place_id).first()
+                if city: city_name = city.city_name
+
+            payload.update({
+                "check_in_date": format_val(details.get("check_in_date")),
+                "check_out_date": format_val(details.get("check_out_date")),
+                "city": city_name,
+                "occupancy": details.get("occupancy") or "N/A",
+                "meal_preference": "Yes" if "breakfast" in (details.get("amenities") or "").lower() else "No",
+                "special_instruction": self.special_instruction or "N/A",
+            })
+
+        # 3. Vehicle / Conveyance
+        else:
+            # Fetch vehicle type from assignment if exists
+            v_type = "N/A"
+            if hasattr(self, 'assignment') and self.assignment.requested_vehicle_type:
+                v_type = self.assignment.requested_vehicle_type.name
+
+            payload.update({
+                "pickup_date": format_val(details.get("start_date")),
+                "pickup_time": format_val(details.get("start_time"), "%H:%M"),
+                "pickup_location": details.get("report_at") or "N/A",
+                "drop_location": details.get("drop_location") or "N/A",
+                "approx_km": str(details.get("distance_km") or "N/A"),
+                "vehicle_type": v_type,
+            })
+
+        return payload
 
 class BookingAssignment(models.Model):
     """

@@ -281,8 +281,9 @@ class ApprovalActionView(APIView):
                 "approver_id": approver.id,
                 "recipients": [employee.id, approver.id], # Notify both
                 "approver_name": approver.get_full_name(),
-                "status_label": status_label,
-                "remarks": approval_flow.notes or "No remarks provided",
+                "status": status_label,  # Fixed: template uses {{ status }} in subject
+                "notes": approval_flow.notes or "No remarks provided", # Fixed: template uses {{ notes }} for remarks
+                "portal_url": "https://hrms.orangetechnolab.com/tscsr/",
             })
 
             NotificationCenter.notify(

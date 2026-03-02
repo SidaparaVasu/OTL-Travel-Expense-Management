@@ -389,6 +389,15 @@ class BookingAgentUpdateStatusView(APIView):
         application.refresh_from_db()
 
         if new_status == "confirmed":
+            # Map internal mode name to human readable for email
+            mode_name = booking.booking_type.name
+            if mode_name in ["Flight", "Train"]:
+                display_type = mode_name
+            elif mode_name == "Accommodation":
+                display_type = "Accommodation"
+            else:
+                display_type = "Vehicle"
+
             NotificationCenter.notify(
                 event_name="travel.booking.confirmed",
                 reference={"type": "Booking", "id": booking.id},
@@ -398,6 +407,7 @@ class BookingAgentUpdateStatusView(APIView):
                     "employee_name": application.employee.get_full_name(),
                     "booking_agent_name": user.get_full_name(),
                     "ticket_number": booking.booking_reference or booking.vendor_reference,
+                    "booking_type": display_type,
                 },
             )
 

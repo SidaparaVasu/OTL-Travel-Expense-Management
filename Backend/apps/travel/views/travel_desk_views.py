@@ -340,42 +340,29 @@ class TravelDeskAssignBookingsView(APIView):
                         attach_duty_slip = True
 
                 # Dynamic Event Selection for Vendors
-                # b_type_name = (b.booking_type.name or "").strip().lower()
-                # event_name = "travel.booking.assigned" # Default
+                b_type_name = (b.booking_type.name or "").strip().lower()
                 
-                # if "accommodation" in b_type_name:
-                #     event_name = "travel.hotel.requested"
-                # elif any(word in b_type_name for word in ["flight", "train"]):
-                #     event_name = "travel.ticket.requested"
-                # else:
-                #     event_name = "travel.vehicle.requested"
+                if "accommodation" in b_type_name:
+                    event_name = "travel.hotel.requested"
+                elif any(word in b_type_name for word in ["flight", "train"]):
+                    event_name = "travel.ticket.requested"
+                else:
+                    event_name = "travel.vehicle.requested"
+
+                # Get enriched payload from booking
+                notification_payload = b.get_booking_payload()
+                notification_payload.update({
+                    "booking_agent_id": booking_agent.id,
+                    "booking_agent_name": booking_agent.get_full_name(),
+                    "booking_id": b.id,
+                    "attach_duty_slip": attach_duty_slip,
+                })
 
                 NotificationCenter.notify(
-                    event_name="travel.booking.assigned",
+                    event_name=event_name,
                     reference={"type": "Booking", "id": b.id},
-                    payload={
-                        "request_id": app.get_travel_request_id(),
-                        "employee_id": app.employee.id,
-                        "employee_name": app.employee.get_full_name(),
-                        "booking_agent_id": booking_agent.id,
-                        "booking_agent_name": booking_agent.get_full_name(),
-                        "booking_id": b.id,
-                        "action_required": "Booking assigned by Travel Desk",
-                        "attach_duty_slip": attach_duty_slip,
-                    },
+                    payload=notification_payload
                 )
-
-                # NotificationCenter.notify(
-                #     event_name=event_name,
-                #     reference={"type": "Booking", "id": b.id},
-                #     payload={
-                #         **b.get_booking_payload(),
-                #         "booking_agent_id": booking_agent.id,
-                #         "booking_agent_name": booking_agent.get_full_name(),
-                #         "action_required": "Processing requested",
-                #         "attach_duty_slip": attach_duty_slip,
-                #     },
-                # )
 
             # Refresh application level booking status using the unified service
             from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
@@ -733,6 +720,31 @@ class TravelDeskCancelBookingView(APIView):
                         "new_status": "cancelled",
                         "reason": reason
                     }
+                )
+
+                # Send Notification
+                from apps.notifications.center import NotificationCenter
+                application = booking.trip_details.travel_application
+                
+                # Map internal mode name to human readable for email
+                mode_name = booking.booking_type.name
+                if mode_name in ["Flight", "Train"]:
+                    display_type = mode_name
+                elif mode_name == "Accommodation":
+                    display_type = "Accommodation"
+                else:
+                    display_type = "Vehicle"
+
+                NotificationCenter.notify(
+                    event_name="travel.booking.cancelled",
+                    reference={"type": "Booking", "id": booking.id},
+                    payload={
+                        "request_id": application.get_travel_request_id(),
+                        "employee_id": application.employee.id,
+                        "employee_name": application.employee.get_full_name(),
+                        "booking_type": display_type,
+                        "cancel_reason": reason or "N/A",
+                    },
                 )
             
             logger.error(f"DEBUG_CANCEL: Cancellation successful")

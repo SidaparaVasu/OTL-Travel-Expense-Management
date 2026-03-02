@@ -1,289 +1,138 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!doctype html>
+<html>
+  <body style="margin:0; padding:0; background-color:#f3f6fb; font-family:Arial, sans-serif;">
 
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #f3f6fb;
-        font-family: Arial, sans-serif;
-        color: #1a1a1a;
-        -webkit-font-smoothing: antialiased;
-    }
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fb">
+      <tr>
+        <td align="center" style="padding:30px 15px;">
 
-    .wrapper {
-        max-width: 760px;
-        margin: 0 auto;
-        padding: 28px 16px;
-    }
+          <!-- MAIN CONTAINER -->
+          <table width="700" cellpadding="0" cellspacing="0" border="0"
+                 style="background:#ffffff; border:1px solid #e3e8f1;">
 
-    .header-bar {
-        background: #ffffff;
-        border-radius: 10px;
-        padding: 22px 28px;
-        border: 1px solid #e3e8f1;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 26px;
-    }
+            <!-- LOCKED HEADER -->
+            <tr>
+              <td style="padding:20px 25px; border-bottom:1px solid #e3e8f1;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
 
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+                    <!-- LEFT -->
+                    <td valign="middle">
+                      <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td valign="middle" style="font-size:25px;">🚫</td>
+                          <td width="8"></td>
+                          <td valign="middle">
+                            <div style="font-size:16px; font-weight:bold; color:#b91c1c;">
+                              Travel Application Cancelled
+                            </div>
+                            <div style="font-size:13px; color:#6d7480;">
+                              Orange Travel Management System
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
 
-    .icon-box {
-        background: #ffebe6;
-        color: #e74c3c;
-        font-size: 22px;
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-    }
+                    <!-- RIGHT -->
+                    <td align="right" valign="middle"
+                        style="font-size:13px; color:#6b7080;">
+                      Request ID: <strong>{{ request_id }}</strong><br>
+                      {{ cancellation_date|default:"" }}
+                    </td>
 
-    .header-title {
-        font-size: 17px;
-        font-weight: bold;
-        margin: 0;
-    }
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-    .header-sub {
-        font-size: 13px;
-        color: #6d7480;
-        margin: 2px 0 0 0;
-    }
+            <!-- BODY -->
+            <tr>
+              <td style="padding:30px; font-size:14px; color:#1a1a1a; line-height:1.6;">
 
-    .header-meta {
-        text-align: right;
-        font-size: 13px;
-        color: #6b7080;
-    }
+                <p>
+                  Dear {{ booking_agent_name }},
+                </p>
 
-    .card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 30px;
-        border: 1px solid #e3e8f1;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    }
+                <p>
+                  The travel application <strong>{{ request_id }}</strong>
+                  assigned to you has been cancelled.
+                  Please discontinue all booking activities immediately.
+                </p>
 
-    .title-main {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #e74c3c;
-    }
+                <!-- DETAILS TABLE (Red Tint) -->
+                <table width="100%" cellpadding="8" cellspacing="0" border="0"
+                       style="background:#fef2f2; border:1px solid #fecaca; margin-top:20px;">
 
-    .subtitle-main {
-        font-size: 14px;
-        color: #5e6470;
-        margin-bottom: 28px;
-    }
+                  <tr>
+                    <td colspan="2" style="font-weight:bold; padding-bottom:8px;">
+                      Travel Details
+                    </td>
+                  </tr>
 
-    .section {
-        background: #f7faff;
-        border: 1px solid #e2e8f5;
-        border-radius: 10px;
-        padding: 20px 24px;
-        margin-bottom: 22px;
-    }
+                  <tr>
+                    <td width="35%" style="color:#6c7380;">Employee:</td>
+                    <td>{{ employee_name }}</td>
+                  </tr>
 
-    .section-title {
-        font-size: 15px;
-        font-weight: bold;
-        color: #3c4b63;
-        margin-bottom: 14px;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Request ID:</td>
+                    <td>{{ request_id }}</td>
+                  </tr>
 
-    .row {
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Purpose:</td>
+                    <td>{{ purpose }}</td>
+                  </tr>
 
-    .label {
-        color: #6c7380;
-        font-weight: bold;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Travel Dates:</td>
+                    <td>{{ travel_dates|default:"N/A" }}</td>
+                  </tr>
 
-    .value {
-        color: #1f2430;
-        font-weight: 600;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Previous Status:</td>
+                    <td>{{ previous_status }}</td>
+                  </tr>
 
-    .alert-box {
-        background: #ffebe6;
-        border: 1px solid #f5c6cb;
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin-bottom: 22px;
-    }
+                </table>
 
-    .alert-title {
-        font-weight: bold;
-        color: #e74c3c;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
+                {% if cancellation_reason %}
+                <p style="margin-top:20px;">
+                  <strong>Cancellation Reason:</strong><br>
+                  {{ cancellation_reason }}
+                </p>
+                {% endif %}
 
-    .alert-text {
-        color: #721c24;
-        font-size: 14px;
-        line-height: 1.5;
-    }
+                <p style="margin-top:20px;">
+                  If any booking process has already been initiated,
+                  please halt it immediately and inform the Travel Desk.
+                </p>
 
-    .reason-box {
-        background: #fffbf0;
-        border: 1px solid #f3d9b1;
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin-bottom: 22px;
-    }
+                <p style="margin-top:25px;">
+                  Thank you,<br>
+                  <strong>Orange Travel Management System</strong><br>
+                  Tata Steel Foundation
+                </p>
 
-    .reason-title {
-        font-weight: bold;
-        color: #c46d12;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
+              </td>
+            </tr>
 
-    .reason-text {
-        color: #5e6470;
-        font-size: 14px;
-        font-style: italic;
-        line-height: 1.5;
-    }
+            <!-- LOCKED FOOTER -->
+            <tr>
+              <td align="center"
+                  style="padding:20px; font-size:12px; color:#7d8290;
+                         border-top:1px solid #e3e8f1;">
+                This is an automated email. Please do not reply.<br>
+                © 2025 Travel Expenses Pro. All rights reserved.
+              </td>
+            </tr>
 
-    .warning-box {
-        background: #fff4e6;
-        border: 1px solid #f3d9b1;
-        padding: 16px 20px;
-        border-radius: 10px;
-        font-size: 14px;
-        margin-top: 24px;
-    }
+          </table>
 
-    .warning-title {
-        font-weight: bold;
-        color: #c46d12;
-        margin-bottom: 6px;
-    }
+        </td>
+      </tr>
+    </table>
 
-    .footer {
-        text-align: center;
-        font-size: 12px;
-        color: #7d8290;
-        margin-top: 22px;
-        line-height: 1.4;
-    }
-
-</style>
-</head>
-
-<body>
-<div class="wrapper">
-
-    <div class="header-bar">
-        <div class="header-left">
-            <div class="icon-box">🚫</div>
-            <div>
-                <div class="header-title">Booking Cancelled</div>
-                <div class="header-sub">Travel & Expense Management</div>
-            </div>
-        </div>
-
-        <div class="header-meta">
-            <div>Request ID: <strong>{{ request_id }}</strong></div>
-            <div>{{ cancellation_date|default:"" }}</div>
-        </div>
-    </div>
-
-    <div class="card">
-
-        <div class="title-main">Travel Booking Cancelled - Action Required</div>
-        <div class="subtitle-main">
-            A travel application assigned to you has been cancelled.
-        </div>
-
-        <p style="font-size:14px;line-height:1.6;">
-            Dear <strong>{{ booking_agent_name }}</strong>,<br><br>
-            The travel application <strong>{{ request_id }}</strong> that was assigned to you for booking 
-            has been <strong style="color:#e74c3c;">cancelled</strong>.
-        </p>
-
-        <div class="alert-box">
-            <div class="alert-title">🚫 Booking Actions Disabled</div>
-            <div class="alert-text">
-                All booking actions for this travel application have been disabled. Please do not proceed with 
-                any bookings or confirmations for this request.
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-title">Cancelled Travel Details</div>
-
-            <div class="row">
-                <span class="label">Request ID:</span>
-                <span class="value"> {{ request_id }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Employee:</span>
-                <span class="value"> {{ employee_name }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Purpose:</span>
-                <span class="value"> {{ purpose }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Travel Dates:</span>
-                <span class="value"> {{ travel_dates|default:"N/A" }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Booking Type:</span>
-                <span class="value"> {{ booking_type|default:"All Bookings" }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Previous Status:</span>
-                <span class="value"> {{ previous_status }} </span>
-            </div>
-        </div>
-
-        <div class="reason-box">
-            <div class="reason-title">Cancellation Reason</div>
-            <div class="reason-text">{{ cancellation_reason }}</div>
-        </div>
-
-        <div class="warning-box">
-            <div class="warning-title">⚠️ Important Notice</div>
-            If you have already initiated any booking processes, please halt them immediately and notify 
-            the Travel Desk. Any bookings made after this cancellation will not be reimbursed.
-        </div>
-
-        <p style="font-size:14px;margin-top:26px;line-height:1.5;">
-            Thank you,<br>
-            <strong>Travel Management System</strong>
-        </p>
-
-    </div>
-
-    <div class="footer">
-        This is an automated email. Please do not reply.<br>
-        © 2025 Travel Expenses Pro. All rights reserved.
-    </div>
-
-</div>
-</body>
+  </body>
 </html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+
+<body style="margin:0; padding:0; background-color:#f3f6fb; font-family:Arial, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fb">
+        <tr>
+            <td align="center" style="padding:30px 15px;">
+
+                <table width="700" cellpadding="0" cellspacing="0" border="0"
+                    style="background:#ffffff; border:1px solid #e3e8f1;">
+
+                    <!-- HEADER (LOCKED STRUCTURE) -->
+                    <tr>
+                        <td style="padding:20px 25px; border-bottom:1px solid #e3e8f1;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td valign="middle">
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td valign="middle" style="font-size:25px;">✅</td>
+                                                <td width="8"></td>
+                                                <td valign="middle">
+                                                    <div style="font-size:16px; font-weight:bold; color:#15803d;">
+                                                        Travel Booking Confirmed
+                                                    </div>
+                                                    <div style="font-size:13px; color:#6d7480;">
+                                                        Orange Travel Management System
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+
+                                    <td align="right" valign="middle" style="font-size:13px; color:#6b7080;">
+                                        Request ID: <strong>{{ request_id }}</strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- BODY -->
+                    <tr>
+                        <td style="padding:30px; font-size:14px; color:#1a1a1a; line-height:1.6;">
+
+                            <p>Dear {{ employee_name }},</p>
+
+                            <p>
+                                We are pleased to inform you that your
+                                <strong style="color:#15803d;">{{ booking_type }}</strong>
+                                arrangements, requested through the Travel Portal,
+                                have been successfully confirmed.
+                            </p>
+
+                            <p>
+                                Please log in to the system to review the details.
+                                If you require any corrections or additional assistance,
+                                kindly let us know.
+                            </p>
+
+                            <p>Wishing you a smooth and comfortable journey.</p>
+
+                            <p style="margin-top:25px;">
+                                Thank you,<br>
+                                <strong>Orange Travel Management System</strong><br>
+                                Tata Steel Foundation
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER (LOCKED) -->
+                    <tr>
+                        <td align="center" style="padding:20px; font-size:12px; color:#7d8290;
+                         border-top:1px solid #e3e8f1;">
+                            This is an automated email. Please do not reply.<br>
+                            © 2025 Travel Management System. All rights reserved.
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

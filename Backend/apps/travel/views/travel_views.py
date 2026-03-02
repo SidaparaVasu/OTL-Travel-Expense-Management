@@ -654,6 +654,23 @@ class TravelApplicationSubmitView(APIView):
         # 9) Send email notification
         try:
             from apps.notifications.center import NotificationCenter
+            
+            # Get first trip segment for email summary
+            first_trip = travel_app.trip_details.first()
+            from_city = first_trip.from_location.city_name if first_trip and first_trip.from_location else "N/A"
+            to_city = first_trip.to_location.city_name if first_trip and first_trip.to_location else "N/A"
+            
+            # Format dates (DD-Mon-YY HH:MM)
+            def format_dt(d, t):
+                if not d: return "N/A"
+                dt_str = d.strftime("%d-%b-%y")
+                if t:
+                    dt_str += f" {t.strftime('%H:%M')}"
+                return dt_str
+
+            start_date_str = format_dt(first_trip.departure_date, first_trip.start_time) if first_trip else "N/A"
+            end_date_str = format_dt(first_trip.return_date, first_trip.end_time) if first_trip else "N/A"
+
             NotificationCenter.notify(
                 event_name="travel.submitted",
                 reference={"type": "TravelRequest", "id": travel_app.id},
@@ -664,7 +681,17 @@ class TravelApplicationSubmitView(APIView):
                     "employee_name": request.user.get_full_name(),
                     "approver_name": travel_app.current_approver.get_full_name(),
                     "purpose": travel_app.purpose,
-                    "urgency": "high"
+                    "from_city": from_city,
+                    "to_city": to_city,
+                    "from_date": start_date_str,
+                    "to_date": end_date_str,
+                    "io_number": travel_app.internal_order or "N/A",
+                    "gl_code": travel_app.general_ledger.gl_code if travel_app.general_ledger else "N/A",
+                    "gl_description": travel_app.general_ledger.vertical_name if travel_app.general_ledger else "N/A",
+                    "sanc_number": travel_app.sanction_number or "N/A",
+                    "portal_url": "https://hrms.orangetechnolab.com/tscsr/",
+                    # For default_resolver logic
+                    "recipients": [travel_app.current_approver.id, request.user.id]
                 }
             )
 

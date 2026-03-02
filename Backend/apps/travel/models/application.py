@@ -277,6 +277,19 @@ class TravelApplication(models.Model):
 
             # Helper to trigger auto-forwarding (only if going to travel desk/bookings)
             if self.status == 'pending_travel_desk':
+                # Trigger Notification for Travel Desk
+                try:
+                    from apps.notifications.center import NotificationCenter
+                    NotificationCenter.notify(
+                        event_name="travel.assigned.travel_desk",
+                        reference={"type": "TravelRequest", "id": self.id},
+                        payload=self.get_notification_payload()
+                    )
+                except Exception as ne:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to send travel.assigned.travel_desk notification: {str(ne)}")
+
                 try:
                     from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
                     # Use the last approver as the system user for audit
@@ -693,6 +706,35 @@ class TravelApplication(models.Model):
         end_time = last_trip.end_time or datetime.time(hour=23, minute=59)
         dt = datetime.datetime.combine(last_trip.return_date, end_time)
         return timezone.make_aware(dt)
+
+    def get_notification_payload(self):
+        """
+        Standard payload for travel-related notifications
+        """
+        first_trip = self.trip_details.all().order_by('id').first()
+        last_trip = self.trip_details.all().order_by('-id').first()
+        
+        def format_dt(d, t=None):
+            if not d: return "N/A"
+            date_str = d.strftime("%d-%b-%y")
+            if t:
+                return f"{date_str} {t.strftime('%H:%M')}"
+            return date_str
+
+        return {
+            "request_id": self.get_travel_request_id(),
+            "employee_name": self.employee.get_full_name(),
+            "purpose": self.purpose,
+            "employee_id": self.employee.id,
+            "io_number": self.internal_order or "N/A",
+            "gl_code": self.general_ledger.gl_code if self.general_ledger else "N/A",
+            "gl_description": self.general_ledger.vertical_name if self.general_ledger else "N/A",
+            "sanction_no": self.sanction_number or "N/A",
+            "from_city": first_trip.from_location.city_name if first_trip and first_trip.from_location else "N/A",
+            "to_city": last_trip.to_location.city_name if last_trip and last_trip.to_location else "N/A",
+            "from_date": format_dt(first_trip.departure_date, first_trip.start_time) if first_trip else "N/A",
+            "to_date": format_dt(last_trip.return_date, last_trip.end_time) if last_trip else "N/A",
+        }
 
 
 class TripDetails(models.Model):

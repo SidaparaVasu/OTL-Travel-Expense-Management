@@ -1,263 +1,138 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!doctype html>
+<html>
+  <body style="margin:0; padding:0; background-color:#f3f6fb; font-family:Arial, sans-serif;">
 
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        background: #f3f6fb;
-        font-family: Arial, sans-serif;
-        color: #1a1a1a;
-        -webkit-font-smoothing: antialiased;
-    }
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fb">
+      <tr>
+        <td align="center" style="padding:30px 15px;">
 
-    .wrapper {
-        max-width: 760px;
-        margin: 0 auto;
-        padding: 28px 16px;
-    }
+          <!-- MAIN CONTAINER -->
+          <table width="700" cellpadding="0" cellspacing="0" border="0"
+                 style="background:#ffffff; border:1px solid #e3e8f1;">
 
-    .header-bar {
-        background: #ffffff;
-        border-radius: 10px;
-        padding: 22px 28px;
-        border: 1px solid #e3e8f1;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 26px;
-    }
+            <!-- LOCKED HEADER -->
+            <tr>
+              <td style="padding:20px 25px; border-bottom:1px solid #e3e8f1;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
 
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+                    <!-- LEFT -->
+                    <td valign="middle">
+                      <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td valign="middle" style="font-size:20px;">🚫</td>
+                          <td width="8"></td>
+                          <td valign="middle">
+                            <div style="font-size:16px; font-weight:bold; color:#b91c1c;">
+                              Travel Cancellation Approved
+                            </div>
+                            <div style="font-size:13px; color:#6d7480;">
+                              Orange Travel Management System
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
 
-    .icon-box {
-        background: #e8f5e9;
-        color: #27ae60;
-        font-size: 22px;
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-    }
+                    <!-- RIGHT -->
+                    <td align="right" valign="middle"
+                        style="font-size:13px; color:#6b7080;">
+                      Request ID: <strong>{{ request_id }}</strong><br>
+                      {{ approval_date|default:"" }}
+                    </td>
 
-    .header-title {
-        font-size: 17px;
-        font-weight: bold;
-        margin: 0;
-    }
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-    .header-sub {
-        font-size: 13px;
-        color: #6d7480;
-        margin: 2px 0 0 0;
-    }
+            <!-- BODY -->
+            <tr>
+              <td style="padding:30px; font-size:14px; color:#1a1a1a; line-height:1.6;">
 
-    .header-meta {
-        text-align: right;
-        font-size: 13px;
-        color: #6b7080;
-    }
+                <p>
+                  Dear {{ employee_name }},
+                </p>
 
-    .card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 30px;
-        border: 1px solid #e3e8f1;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    }
+                <p>
+                  Your cancellation request for travel application
+                  <strong>{{ request_id }}</strong> has been approved by
+                  {{ approver_name }}.
+                </p>
 
-    .title-main {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #27ae60;
-    }
+                <!-- DETAILS TABLE (Red Tint for Cancellation) -->
+                <table width="100%" cellpadding="8" cellspacing="0" border="0"
+                       style="background:#fef2f2; border:1px solid #fecaca; margin-top:20px;">
 
-    .subtitle-main {
-        font-size: 14px;
-        color: #5e6470;
-        margin-bottom: 28px;
-    }
+                  <tr>
+                    <td colspan="2" style="font-weight:bold; padding-bottom:8px;">
+                      Travel Details
+                    </td>
+                  </tr>
 
-    .section {
-        background: #f7faff;
-        border: 1px solid #e2e8f5;
-        border-radius: 10px;
-        padding: 20px 24px;
-        margin-bottom: 22px;
-    }
+                  <tr>
+                    <td width="35%" style="color:#6c7380;">Request ID:</td>
+                    <td>{{ request_id }}</td>
+                  </tr>
 
-    .section-title {
-        font-size: 15px;
-        font-weight: bold;
-        color: #3c4b63;
-        margin-bottom: 14px;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Purpose:</td>
+                    <td>{{ purpose }}</td>
+                  </tr>
 
-    .row {
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Travel Dates:</td>
+                    <td>{{ travel_dates|default:"N/A" }}</td>
+                  </tr>
 
-    .label {
-        color: #6c7380;
-        font-weight: bold;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Approved By:</td>
+                    <td>{{ approver_name }}</td>
+                  </tr>
 
-    .value {
-        color: #1f2430;
-        font-weight: 600;
-    }
+                  <tr>
+                    <td style="color:#6c7380;">Approval Date:</td>
+                    <td>{{ approval_date|default:"N/A" }}</td>
+                  </tr>
 
-    .success-box {
-        background: #e8f5e9;
-        border: 1px solid #a5d6a7;
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin-bottom: 22px;
-    }
+                </table>
 
-    .success-title {
-        font-weight: bold;
-        color: #27ae60;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
+                {% if notes %}
+                <p style="margin-top:20px;">
+                  <strong>Approver Notes:</strong><br>
+                  {{ notes }}
+                </p>
+                {% endif %}
 
-    .success-text {
-        color: #1b5e20;
-        font-size: 14px;
-        line-height: 1.5;
-    }
+                <p style="margin-top:20px;">
+                  All associated bookings have been cancelled. If any advance payment
+                  was made, the finance team will process the refund as applicable.
+                </p>
 
-    .info-box {
-        background: #fff4e6;
-        border: 1px solid #f3d9b1;
-        padding: 16px 20px;
-        border-radius: 10px;
-        font-size: 14px;
-        margin-top: 24px;
-    }
+                <p style="margin-top:25px;">
+                  Thank you,<br>
+                  <strong>Orange Travel Management System</strong><br>
+                  Tata Steel Foundation
+                </p>
 
-    .info-title {
-        font-weight: bold;
-        color: #c46d12;
-        margin-bottom: 6px;
-    }
+              </td>
+            </tr>
 
-    .footer {
-        text-align: center;
-        font-size: 12px;
-        color: #7d8290;
-        margin-top: 22px;
-        line-height: 1.4;
-    }
+            <!-- LOCKED FOOTER -->
+            <tr>
+              <td align="center"
+                  style="padding:20px; font-size:12px; color:#7d8290;
+                         border-top:1px solid #e3e8f1;">
+                This is an automated email. Please do not reply.<br>
+                © 2025 Travel Expenses Pro. All rights reserved.
+              </td>
+            </tr>
 
-</style>
-</head>
+          </table>
 
-<body>
-<div class="wrapper">
+        </td>
+      </tr>
+    </table>
 
-    <div class="header-bar">
-        <div class="header-left">
-            <div class="icon-box">✅</div>
-            <div>
-                <div class="header-title">Cancellation Approved</div>
-                <div class="header-sub">Travel & Expense Management</div>
-            </div>
-        </div>
-
-        <div class="header-meta">
-            <div>Request ID: <strong>{{ request_id }}</strong></div>
-            <div>{{ approval_date|default:"" }}</div>
-        </div>
-    </div>
-
-    <div class="card">
-
-        <div class="title-main">Your Travel Cancellation Has Been Approved</div>
-        <div class="subtitle-main">
-            Your request to cancel the travel application has been approved.
-        </div>
-
-        <p style="font-size:14px;line-height:1.6;">
-            Dear <strong>{{ employee_name }}</strong>,<br><br>
-            Your cancellation request for travel application <strong>{{ request_id }}</strong> has been 
-            <strong style="color:#27ae60;">approved</strong> by <strong>{{ approver_name }}</strong>.
-        </p>
-
-        <div class="success-box">
-            <div class="success-title">✓ Cancellation Confirmed</div>
-            <div class="success-text">
-                Your travel application has been successfully cancelled. All associated bookings have been marked as cancelled.
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-title">Cancelled Travel Details</div>
-
-            <div class="row">
-                <span class="label">Request ID:</span>
-                <span class="value"> {{ request_id }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Purpose:</span>
-                <span class="value"> {{ purpose }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Travel Dates:</span>
-                <span class="value"> {{ travel_dates|default:"N/A" }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Approved By:</span>
-                <span class="value"> {{ approver_name }} </span>
-            </div>
-
-            <div class="row">
-                <span class="label">Approval Date:</span>
-                <span class="value"> {{ approval_date|default:"N/A" }} </span>
-            </div>
-        </div>
-
-        <div class="section" style="background: #fffbf0;">
-            <div class="section-title">Approver Notes</div>
-            <p style="font-size:14px;color:#5e6470;margin:0;font-style:italic;">
-                {{ notes|default:"No additional notes provided." }}
-            </p>
-        </div>
-
-        <div class="info-box">
-            <div class="info-title">ℹ️ Next Steps</div>
-            If you had any advance payment for this travel, the finance team will process the refund accordingly. 
-            For any queries, please contact the Travel Desk.
-        </div>
-
-        <p style="font-size:14px;margin-top:26px;line-height:1.5;">
-            Thank you,<br>
-            <strong>Travel Management System</strong>
-        </p>
-
-    </div>
-
-    <div class="footer">
-        This is an automated email. Please do not reply.<br>
-        © 2025 Travel Expenses Pro. All rights reserved.
-    </div>
-
-</div>
-</body>
+  </body>
 </html>
