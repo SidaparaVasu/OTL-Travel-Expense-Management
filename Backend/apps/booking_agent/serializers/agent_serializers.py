@@ -37,10 +37,15 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file',
             'assigned_agent_name',
-            'meal_preference', 'employee_name'
+            'meal_preference', 'employee_name', 'notes'
         ]
     
     meal_preference = serializers.SerializerMethodField()
+    notes = serializers.SerializerMethodField()
+
+    def get_notes(self, obj):
+        notes = BookingNote.objects.filter(booking=obj).select_related("author").order_by("-created_at")
+        return BookingNoteSerializer(notes, many=True).data
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -118,9 +123,15 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "travel_application_status",
             "trip_start_date",
             "trip_end_date",
+            "notes",
         ]
 
     meal_preference = serializers.SerializerMethodField()
+    notes = serializers.SerializerMethodField()
+
+    def get_notes(self, obj):
+        notes = BookingNote.objects.filter(booking=obj).select_related("author").order_by("-created_at")
+        return BookingNoteSerializer(notes, many=True).data
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
