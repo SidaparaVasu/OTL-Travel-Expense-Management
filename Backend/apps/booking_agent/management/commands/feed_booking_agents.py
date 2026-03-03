@@ -69,7 +69,8 @@ def split_csv_field(value: str) -> List[str]:
     s = str(value).strip()
     if not s:
         return []
-    parts = [p.strip() for p in re.split(r"\s*,\s*", s) if p.strip()]
+    # Split by comma or pipe
+    parts = [p.strip() for p in re.split(r"\s*[|,]\s*", s) if p.strip()]
 
     seen = set()
     out = []
@@ -82,7 +83,17 @@ def split_csv_field(value: str) -> List[str]:
 
 
 def normalize_phone(phone: str) -> str:
-    p = re.sub(r"[^\d+]", "", str(phone or ""))
+    p = str(phone or "").strip()
+    if not p:
+        return ""
+    
+    # If longer than 15 and has dashes, remove dashes only
+    if len(p) > 15 and '-' in p:
+        p = p.replace('-', '')
+        
+    # Standard normalization: keep only digits and +
+    p = re.sub(r"[^\d+]", "", p)
+    
     if p.startswith("+91"):
         p = p[3:]
     if p.startswith("91") and len(p) > 10:
@@ -153,7 +164,7 @@ def get_or_create_user(vendor_name: str, emails: List[str], phones: List[str], d
     username = generate_username(vendor_name)
     user = User(
         username=username,
-        email=email or None,
+        email=email or "",
         mobile_no=phone or None,
         user_type=USER_TYPE,
         is_active=True,

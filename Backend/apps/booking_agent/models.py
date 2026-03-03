@@ -240,8 +240,8 @@ class BookingAgentContact(models.Model):
     )
 
     name = models.CharField(max_length=120)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="OTHER")
 
