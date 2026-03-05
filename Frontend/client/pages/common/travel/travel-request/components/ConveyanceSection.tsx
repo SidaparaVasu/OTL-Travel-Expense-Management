@@ -575,7 +575,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   onChange={(e) =>
                     setForm({ ...form, from_location: e.target.value })
                   }
-                  placeholder="Enter from location"
+                  placeholder="Enter from location (city name)"
                   error={errors.from_location}
                 />
               </div>
@@ -588,7 +588,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   onChange={(e) =>
                     setForm({ ...form, to_location: e.target.value })
                   }
-                  placeholder="Enter to location"
+                  placeholder="Enter to location (city name)"
                   error={errors.to_location}
                 />
               </div>
