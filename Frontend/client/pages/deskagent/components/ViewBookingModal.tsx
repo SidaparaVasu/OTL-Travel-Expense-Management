@@ -333,6 +333,8 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 </h4>
                 <div className="bg-card border rounded-lg p-3">
                   {renderRow("Ticket Number", details.ticket_number)}
+                  {renderRow("From Location", details.from_location)}
+                  {renderRow("To Location", details.to_location)}
                   {renderRow("Report At", details.report_at)}
                   {renderRow("Drop Location", details.drop_location)}
                   {renderRow(

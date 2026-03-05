@@ -329,6 +329,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 <>
                   {renderRow("Start Date/Time", formatDateToDDMMYYYY(details.start_date) + " " + formatTime(details.start_time))}
                   {renderRow("End Date/Time", formatDateToDDMMYYYY(details.end_date) + " " + formatTime(details.end_time))}
+                  {renderRow("From ↔ To Location", details.from_location + " ↔ " + details.to_location)}
                   {renderRow("Report At ↔ Drop Location", details.report_at + " ↔ " + details.drop_location)}
                   {renderRow("No. of Person", details.passenger_count?.toString())}
                   {renderRow("Approx. K.M.", details.distance_km?.toString())}
