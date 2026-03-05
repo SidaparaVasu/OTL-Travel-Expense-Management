@@ -158,3 +158,11 @@ class RolePermissionAdmin(admin.ModelAdmin):
     list_display = ('role', 'permission', 'granted_at')
     list_filter = ('role',)
     search_fields = ('role__name', 'permission__name')
+
+@admin.register(LocationSPOCAssignment)
+class LocationSPOCAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'role', 'is_global', 'is_active', 'created_at')
+    list_filter = ('is_global', 'is_active', 'role')
+    search_fields = ('user__username', 'role__name')
+    raw_id_fields = ('user', 'assigned_by')
+    filter_horizontal = ('locations',)
