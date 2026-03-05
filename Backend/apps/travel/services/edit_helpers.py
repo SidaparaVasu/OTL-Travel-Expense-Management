@@ -58,9 +58,10 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
         booking__trip_details__travel_application=application
     ).exists()
     
-    if has_assignments:
-        return False, "Cannot edit - bookings have been assigned to booking agents"
-    
+    # As per discussion with client, we are not checking for booking agent assignment
+    # if has_assignments:
+    #     return False, "Cannot edit - bookings have been assigned to booking agents"
+
     return True, "Can edit"
 
 
