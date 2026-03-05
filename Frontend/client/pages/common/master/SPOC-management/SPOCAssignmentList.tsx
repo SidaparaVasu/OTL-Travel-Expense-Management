@@ -277,6 +277,9 @@ const SPOCAssignmentList = () => {
                           {item.user?.username}
                         </div>
                         <div className="text-xs text-slate-500">
+                          {item.user?.full_name}
+                        </div>
+                        <div className="text-xs text-slate-500">
                           {item.user?.email}
                         </div>
                       </td>
