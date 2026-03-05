@@ -311,8 +311,15 @@ class AccommodationBookingSerializer(serializers.Serializer):
         return []
 
     def get_location(self, obj):
-        if obj.trip_details and obj.trip_details.to_location:
-            return obj.trip_details.to_location.city_name
+        # place
+        place_id = obj.booking_details.get('place', '')
+        if place_id:
+            try:
+                from apps.master_data.models import CityMaster
+                city = CityMaster.objects.get(id=place_id)
+                return city.city_name
+            except Exception:
+                pass
         return ""
 
     def get_allocated_hotel(self, obj):
@@ -331,13 +338,15 @@ class AccommodationBookingSerializer(serializers.Serializer):
 
     def get_check_in_datetime(self, obj):
         # booking_details stores dates as strings, not date objects
-        check_in = obj.booking_details.get('check_in_date', '')
-        return check_in if check_in else ""
+        check_in_date = obj.booking_details.get('check_in_date', '')
+        check_in_time = obj.booking_details.get('check_in_time', '')
+        return check_in_date + " " + check_in_time if check_in_date else ""
 
     def get_check_out_datetime(self, obj):
         # booking_details stores dates as strings, not date objects
-        check_out = obj.booking_details.get('check_out_date', '')
-        return check_out if check_out else ""
+        check_out_date = obj.booking_details.get('check_out_date', '')
+        check_out_time = obj.booking_details.get('check_out_time', '')
+        return check_out_date + " " + check_out_time if check_out_date else ""
 
     def get_advance_taken(self, obj):
         # obj IS the booking, get advance directly from model field

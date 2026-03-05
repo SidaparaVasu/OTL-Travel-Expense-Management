@@ -312,11 +312,10 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 {/* CONVEYANCE */}
                 {(details.start_date || details.start_time) && (
                   <>
-                    {renderRow(
-                      "Start Date",
-                      formatDateToDDMMYYYY(details.start_date),
-                    )}
+                    {renderRow("Start Date", formatDateToDDMMYYYY(details.start_date))}
                     {renderRow("Start Time", formatTime(details.start_time))}
+                    {renderRow("End Date", formatDateToDDMMYYYY(details.end_date))}
+                    {renderRow("End Time", formatTime(details.end_time))}
                   </>
                 )}
               </div>
