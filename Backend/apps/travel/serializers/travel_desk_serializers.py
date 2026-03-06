@@ -4,6 +4,7 @@ from apps.travel.models.audit import AuditLog
 from apps.travel.serializers.travel_serializers import TripDetailsSerializer, BookingSerializer
 from apps.travel.serializers.travel_application_details_serializer import ApplicationTravelerSerializer
 from utils.date_utils import calculate_age
+from django.db.models import Q
 
 
 class ApplicationDetailSerializer(serializers.ModelSerializer):
@@ -79,6 +80,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "requested_vehicle_type",
             "handling_travel_desk_user",
             "is_forwardable",
+            "permissions",
         ]
     
     meal_preference = serializers.SerializerMethodField()
@@ -86,6 +88,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
     notes = serializers.SerializerMethodField()
     requested_vehicle_type = serializers.SerializerMethodField()
     handling_travel_desk_user = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -174,6 +177,92 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         # Logic: Can only reassign if pending or requested.
         # Not allowed if in_progress, confirmed, completed, cancelled.
         return obj.status in ['pending', 'requested']
+
+    def get_permissions(self, obj):
+        """
+        Returns a permissions dict that tells the frontend exactly what the
+        current user can do with this booking. Backend is the single source of truth.
+        """
+        request = self.context.get('request')
+        is_primary_spoc = self.context.get('is_primary_spoc', False)
+
+        # --- Leaf-node states: no actions possible at all ---
+        is_self_arranged = bool(obj.booking_details.get('is_self_arranged', False))
+        is_terminal = obj.status in ['cancelled', 'completed', 'confirmed']
+
+        if is_self_arranged or is_terminal:
+            return {
+                'can_forward': False,
+                'can_cancel': False,
+                'can_add_note': False,
+                'can_reclaim': False,
+                'is_delegated': False,
+            }
+
+        # --- Active booking: determine ownership ---
+        if not request:
+            return {
+                'can_forward': False,
+                'can_cancel': False,
+                'can_add_note': False,
+                'can_reclaim': False,
+                'is_delegated': False,
+            }
+
+        handler = obj.handling_travel_desk_user
+        current_user = request.user
+
+        # Case 1: Owned by current user (explicitly assigned or no handler + is primary SPOC)
+        owned_by_me = (handler is not None and handler.id == current_user.id)
+        unassigned = (handler is None)
+        owned_by_other = (handler is not None and handler.id != current_user.id)
+
+        if owned_by_me:
+            return {
+                'can_forward': obj.status in ['pending', 'requested'],
+                'can_cancel': obj.status in ['pending', 'requested'],
+                'can_add_note': True,
+                'can_reclaim': False,
+                'is_delegated': False,
+            }
+
+        if unassigned:
+            if is_primary_spoc:
+                # SPOC1 can act on unassigned bookings in their application
+                return {
+                    'can_forward': obj.status in ['pending', 'requested'],
+                    'can_cancel': obj.status in ['pending', 'requested'],
+                    'can_add_note': True,
+                    'can_reclaim': False,
+                    'is_delegated': False,
+                }
+            else:
+                # SPOC2 cannot act on bookings not explicitly assigned to them
+                return {
+                    'can_forward': False,
+                    'can_cancel': False,
+                    'can_add_note': False,
+                    'can_reclaim': False,
+                    'is_delegated': False,
+                }
+
+        if owned_by_other:
+            return {
+                'can_forward': False,
+                'can_cancel': False,
+                'can_add_note': False,
+                # Primary SPOC can always reclaim a booking they delegated out
+                'can_reclaim': is_primary_spoc,
+                'is_delegated': True,
+            }
+
+        return {
+            'can_forward': False,
+            'can_cancel': False,
+            'can_add_note': False,
+            'can_reclaim': False,
+            'is_delegated': False,
+        }
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -273,7 +362,8 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     total_bookings = serializers.SerializerMethodField()
     pending_bookings = serializers.SerializerMethodField()
     booked_bookings = serializers.SerializerMethodField()
-    forwarded_booking_ids = serializers.SerializerMethodField()
+    actionable_booking_ids = serializers.SerializerMethodField()
+    delegated_booking_ids = serializers.SerializerMethodField()
     employee_location = serializers.SerializerMethodField()
     travelers = serializers.SerializerMethodField()
 
@@ -284,7 +374,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             "from_location", "to_location", "departure_date", "return_date", 
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
-            "forwarded_booking_ids", "travelers",
+            "actionable_booking_ids", "delegated_booking_ids", "travelers",
         ]
 
     def get_employee_name(self, obj):
@@ -311,14 +401,29 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             status__in=["confirmed", "completed"]
         ).count()
     
-    def get_forwarded_booking_ids(self, obj):
+    def get_actionable_booking_ids(self, obj):
         request = self.context.get('request')
         if not request:
             return []
         
+        # Actionable bookings are those not delegated to someone else
+        # i.e., handling_travel_desk_user is null (my branch) OR handling_travel_desk_user == request.user
         return Booking.objects.filter(
+            Q(handling_travel_desk_user=request.user) | Q(handling_travel_desk_user__isnull=True),
             trip_details__travel_application=obj,
-            handling_travel_desk_user=request.user
+            status__in=["pending", "requested", "in_progress", "booking_in_progress"]
+        ).values_list('id', flat=True)
+
+    def get_delegated_booking_ids(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return []
+        
+        # Delegated bookings are those handled by OTHER travel desk users
+        return Booking.objects.filter(
+            ~Q(handling_travel_desk_user=request.user) & Q(handling_travel_desk_user__isnull=False),
+            trip_details__travel_application=obj,
+            status__in=["pending", "requested", "in_progress", "booking_in_progress", "booked", "completed"]
         ).values_list('id', flat=True)
     
     def get_first_trip(self, obj):
@@ -372,6 +477,7 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     gl_code_text = serializers.SerializerMethodField()
     trips = TravelDeskTripSerializer(source="trip_details", many=True, read_only=True)
     travelers = serializers.SerializerMethodField()
+    is_primary_spoc = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -380,8 +486,8 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
             "employee", "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_age", "employee_grade", 
             "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
-            "submitted_at", "created_at", "updated_at", "trips",
-            "bulk_upload_file", "travelers",
+            "submitted_at", "created_at", "updated_at",
+            "bulk_upload_file", "travelers", "is_primary_spoc", "trips",
         ]
 
     def get_employee_name(self, obj):
@@ -415,6 +521,48 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
             ).data
         return []
 
+    def get_is_primary_spoc(self, obj):
+        """
+        Determines if the current user is the 'primary' SPOC (SPOC1) for this application.
+
+        Logic:
+        - A user is a SECONDARY SPOC (SPOC2) if they have at least one booking
+          explicitly forwarded to them via `handling_travel_desk_user`.
+        - Everyone else is the PRIMARY SPOC who owns unassigned bookings.
+
+        This avoids relying on `application.travel_desk_user` which is rarely
+        set in the current workflow.
+        """
+        request = self.context.get('request')
+        if not request:
+            return False
+
+        user = request.user
+
+        # If this user has ANY booking explicitly forwarded to them (not just migration-seeded),
+        # they are SPOC2 (a secondary / receiving SPOC), NOT the primary owner.
+        # We use travel_desk_forwarded_at__isnull=False to distinguish explicit forwards
+        # from bookings populated by migration (which have travel_desk_forwarded_at=null).
+        has_forwarded_bookings = Booking.objects.filter(
+            trip_details__travel_application=obj,
+            handling_travel_desk_user=user,
+            travel_desk_forwarded_at__isnull=False  # Only count explicitly forwarded ones
+        ).exists()
+
+        # If they have forwarded bookings, they are secondary → NOT primary SPOC
+        if has_forwarded_bookings:
+            return False
+
+        # Otherwise, this user is the primary handler of this application
+        return True
+
+    def to_representation(self, instance):
+        """Override to inject is_primary_spoc into context before serializing trips."""
+        # First compute is_primary_spoc
+        is_primary_spoc = self.get_is_primary_spoc(instance)
+        # Inject into context so TravelDeskTripSerializer → TravelDeskBookingSerializer can access it
+        self.context['is_primary_spoc'] = is_primary_spoc
+        return super().to_representation(instance)
 
 class BookingAssignmentSerializer(serializers.ModelSerializer):
     """

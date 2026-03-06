@@ -60,7 +60,7 @@ interface ApplicationDrawerProps {
   onClose: () => void;
   applicationId: number | null;
   onRefresh?: () => void;
-  forwardedBookingIds?: number[];
+  delegatedBookingIds?: number[];
 }
 
 // Helper to get full file URL
@@ -100,7 +100,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   onClose,
   applicationId,
   onRefresh,
-  forwardedBookingIds,
+  delegatedBookingIds,
 }) => {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(false);
@@ -155,7 +155,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
     try {
       const isForwardedView = !!(
-        forwardedBookingIds && forwardedBookingIds.length > 0
+        delegatedBookingIds && delegatedBookingIds.length > 0
       );
       const res = await travelDeskAPI.applications.detail(applicationId, {
         forwarded_only: isForwardedView,
@@ -774,6 +774,16 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                               const type =
                                 booking.booking_type_name?.toLowerCase() || "";
 
+                              // Use backend-provided permissions as the single source of truth.
+                              // The backend evaluates ownership, lifecycle state, and SPOC role.
+                              const perms = booking.permissions ?? {
+                                can_forward: false,
+                                can_cancel: false,
+                                can_add_note: false,
+                                can_reclaim: false,
+                                is_delegated: false,
+                              };
+
                               return (
                                 <TableRow
                                   key={booking.id}
@@ -786,7 +796,9 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                       )}
                                       disabled={
                                         isAllCompleted ||
-                                        isSelfArranged(booking)
+                                        (!perms.can_forward &&
+                                          !perms.can_cancel &&
+                                          !perms.can_reclaim)
                                       }
                                       onCheckedChange={(checked) =>
                                         handleSelectBooking(
@@ -1075,139 +1087,154 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                             </Badge>
                                           ) : (
                                             <>
-                                              {!isBookingHandler(booking) ? (
+                                              {perms.is_delegated ? (
                                                 <div className="flex items-center gap-2">
-                                                  {/* <Badge
-                                                    variant="outline"
-                                                    className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
-                                                  >
-                                                    <UserCheck className="w-3 h-3 mr-1" />
-                                                    {booking
-                                                      .handling_travel_desk_user
-                                                      ?.name || "Forwarded"}
-                                                  </Badge> */}
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                          handleReclaim(booking)
-                                                        }
-                                                        disabled={actionLoading}
-                                                        className="text-indigo-600 bg-indigo-50 hover:text-indigo-800 hover:bg-indigo-50"
-                                                      >
+                                                  <p className="flex flex-col">
+                                                    Delegated to:
+                                                    <span className="text-blue-600">
+                                                      {booking
+                                                        .handling_travel_desk_user
+                                                        ?.name || "Delegated"}
+                                                    </span>
+                                                  </p>
+                                                  {perms.can_reclaim && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          onClick={() =>
+                                                            handleReclaim(
+                                                              booking,
+                                                            )
+                                                          }
+                                                          disabled={
+                                                            actionLoading
+                                                          }
+                                                          className="text-indigo-600 bg-indigo-50 hover:text-indigo-800 hover:bg-indigo-50"
+                                                        >
+                                                          Assign back to me
+                                                        </Button>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
                                                         Assign back to me
-                                                      </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      Assign back to me
-                                                    </TooltipContent>
-                                                  </Tooltip>
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  )}
                                                 </div>
                                               ) : (
                                                 <>
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span>
+                                                  {perms.can_forward && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span>
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            onClick={() =>
+                                                              handleForwardBooking(
+                                                                booking,
+                                                              )
+                                                            }
+                                                            disabled={
+                                                              !booking.can_reassign
+                                                            }
+                                                          >
+                                                            {booking.status ===
+                                                            "pending" ? (
+                                                              <Send className="w-4 h-4" />
+                                                            ) : (
+                                                              <FileUp className="w-4 h-4" />
+                                                            )}
+                                                          </Button>
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        {!booking.can_reassign
+                                                          ? "Cannot reassign active/completed booking"
+                                                          : booking.status ===
+                                                              "pending"
+                                                            ? "Forward"
+                                                            : "Reassign"}
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  )}
+
+                                                  {perms.can_forward && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <span className="inline-block">
+                                                          <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="bg-indigo-100 text-indigo-600 hover:bg-indigo-200 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            onClick={() =>
+                                                              handleForwardToDesk(
+                                                                booking,
+                                                              )
+                                                            }
+                                                            disabled={
+                                                              booking.is_forwardable ===
+                                                              false
+                                                            }
+                                                          >
+                                                            <UserCheck className="w-4 h-4" />
+                                                          </Button>
+                                                        </span>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        {booking.is_forwardable ===
+                                                        false
+                                                          ? "Cannot forward: Assigned to agent or invalid status"
+                                                          : "Forward to Other Travel Desk"}
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  )}
+
+                                                  {perms.can_add_note && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
                                                         <Button
                                                           variant="ghost"
                                                           size="sm"
-                                                          className="bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                          className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
                                                           onClick={() =>
-                                                            handleForwardBooking(
+                                                            handleAddNote(
                                                               booking,
                                                             )
                                                           }
-                                                          disabled={
-                                                            !booking.can_reassign
-                                                          }
                                                         >
-                                                          {booking.status ===
-                                                          "pending" ? (
-                                                            <Send className="w-4 h-4" />
-                                                          ) : (
-                                                            <FileUp className="w-4 h-4" />
-                                                          )}
+                                                          <MessageSquarePlus className="w-4 h-4" />
                                                         </Button>
-                                                      </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      {!booking.can_reassign
-                                                        ? "Cannot reassign active/completed booking"
-                                                        : booking.status ===
-                                                            "pending"
-                                                          ? "Forward"
-                                                          : "Reassign"}
-                                                    </TooltipContent>
-                                                  </Tooltip>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        Add Note
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  )}
 
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <span className="inline-block">
+                                                  {perms.can_cancel && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
                                                         <Button
                                                           variant="ghost"
                                                           size="sm"
-                                                          className="bg-indigo-100 text-indigo-600 hover:bg-indigo-200 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                          className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
                                                           onClick={() =>
-                                                            handleForwardToDesk(
+                                                            handleCancelBooking(
                                                               booking,
                                                             )
                                                           }
-                                                          disabled={
-                                                            booking.is_forwardable ===
-                                                            false
-                                                          }
                                                         >
-                                                          <UserCheck className="w-4 h-4" />
+                                                          <XCircle className="w-4 h-4" />
                                                         </Button>
-                                                      </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      {booking.is_forwardable ===
-                                                      false
-                                                        ? "Cannot forward: Assigned to agent or invalid status"
-                                                        : "Forward to Other Travel Desk"}
-                                                    </TooltipContent>
-                                                  </Tooltip>
-
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-800"
-                                                        onClick={() =>
-                                                          handleAddNote(booking)
-                                                        }
-                                                      >
-                                                        <MessageSquarePlus className="w-4 h-4" />
-                                                      </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      Add Note
-                                                    </TooltipContent>
-                                                  </Tooltip>
-
-                                                  <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="bg-orange-100 text-orange-600 hover:bg-orange-200 hover:text-orange-800"
-                                                        onClick={() =>
-                                                          handleCancelBooking(
-                                                            booking,
-                                                          )
-                                                        }
-                                                      >
-                                                        <XCircle className="w-4 h-4" />
-                                                      </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                      Cancel Booking
-                                                    </TooltipContent>
-                                                  </Tooltip>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        Cancel Booking
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  )}
                                                 </>
                                               )}
                                             </>

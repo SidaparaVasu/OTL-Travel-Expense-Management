@@ -129,17 +129,25 @@ const TravelDeskDashboard: React.FC = () => {
   const getFilteredApplications = useCallback(() => {
     let filtered = [...applications];
 
-    // Tab Filter
-    if (activeTab === "my_requests") {
-      filtered = filtered.filter(
-        (app) =>
-          !app.forwarded_booking_ids || app.forwarded_booking_ids.length === 0,
-      );
-    } else if (activeTab === "forwarded") {
-      filtered = filtered.filter(
-        (app) =>
-          app.forwarded_booking_ids && app.forwarded_booking_ids.length > 0,
-      );
+    // Tab Filter — skip for terminal statuses (booked/completed have no actionable bookings by design)
+    const isTerminalStatus =
+      statusFilter === "booked" || statusFilter === "completed";
+
+    if (!isTerminalStatus) {
+      if (activeTab === "my_requests") {
+        filtered = filtered.filter(
+          (app) =>
+            app.actionable_booking_ids && app.actionable_booking_ids.length > 0,
+        );
+      } else if (activeTab === "forwarded") {
+        filtered = filtered.filter(
+          (app) =>
+            (!app.actionable_booking_ids ||
+              app.actionable_booking_ids.length === 0) &&
+            app.delegated_booking_ids &&
+            app.delegated_booking_ids.length > 0,
+        );
+      }
     }
 
     // Location Filter
@@ -161,10 +169,8 @@ const TravelDeskDashboard: React.FC = () => {
       );
     }
 
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((app) => app.status === statusFilter);
-    }
+    // Note: status filtering is already done by the API via the statusFilter param.
+    // No client-side re-filter needed here.
 
     // Sorting
     filtered.sort((a, b) => {
@@ -213,7 +219,7 @@ const TravelDeskDashboard: React.FC = () => {
   // Handlers
   const handleView = (app: DashboardApplication) => {
     setSelectedApplicationId(app.id);
-    setActiveForwardedIds(app.forwarded_booking_ids);
+    setActiveForwardedIds(app.delegated_booking_ids);
     setDrawerOpen(true);
   };
 
@@ -314,22 +320,24 @@ const TravelDeskDashboard: React.FC = () => {
             tabs={[
               {
                 id: "my_requests",
-                label: "My Assignments",
+                label: "Action Required",
                 icon: Briefcase,
                 count: applications.filter(
                   (app) =>
-                    !app.forwarded_booking_ids ||
-                    app.forwarded_booking_ids.length === 0,
+                    app.actionable_booking_ids &&
+                    app.actionable_booking_ids.length > 0,
                 ).length,
               },
               {
                 id: "forwarded",
-                label: "Forwarded Requests to other SPOC",
+                label: "Forwarded Out / Delegated",
                 icon: Share2,
                 count: applications.filter(
                   (app) =>
-                    app.forwarded_booking_ids &&
-                    app.forwarded_booking_ids.length > 0,
+                    (!app.actionable_booking_ids ||
+                      app.actionable_booking_ids.length === 0) &&
+                    app.delegated_booking_ids &&
+                    app.delegated_booking_ids.length > 0,
                 ).length,
               },
             ]}

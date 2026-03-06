@@ -38,6 +38,14 @@ export interface BookingDetails {
   arc_hotel_preferences?: any[];
 }
 
+export interface BookingPermissions {
+  can_forward: boolean;
+  can_cancel: boolean;
+  can_add_note: boolean;
+  can_reclaim: boolean;
+  is_delegated: boolean;
+}
+
 export interface Booking {
   id: number;
   booking_type: number;
@@ -80,6 +88,7 @@ export interface Booking {
     name: string;
   } | null;
   is_forwardable?: boolean;
+  permissions?: BookingPermissions;
 }
 
 export interface TripDetail {
@@ -125,9 +134,10 @@ export interface Application {
   created_at: string;
   updated_at: string;
   submitted_at: string;
-  trip_details: TripDetail[];
   trips?: TripDetail[]; // Added for TravelDeskApplicationDetailSerializer consistency
   bulk_upload_file?: string | null;
+  actionable_booking_ids?: number[];
+  delegated_booking_ids?: number[];
 }
 
 export interface DashboardApplication {
@@ -146,7 +156,8 @@ export interface DashboardApplication {
   total_bookings: number;
   pending_bookings: number;
   booked_bookings: number;
-  forwarded_booking_ids?: number[];
+  actionable_booking_ids?: number[];
+  delegated_booking_ids?: number[];
 }
 
 export interface DashboardStats {

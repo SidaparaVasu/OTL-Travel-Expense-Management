@@ -218,8 +218,10 @@ class TravelDeskApplicationDetailView(APIView):
     def get(self, request, pk):
         app = (
             TravelApplication.objects
-            .select_related("employee")
-            .prefetch_related("trip_details__bookings")
+            .select_related("employee", "travel_desk_user")
+            .prefetch_related(
+                "trip_details__bookings__handling_travel_desk_user"
+            )
             .filter(pk=pk)
             .first()
         )
