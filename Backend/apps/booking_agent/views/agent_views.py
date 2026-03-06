@@ -31,12 +31,44 @@ class BookingAgentsListView(APIView):
 
     def get(self, request):
         try:
+            group = request.query_params.get("group")
+            
             # Get all users who are booking agents
             agents = (
                 User.objects
                 .filter(user_type="external", is_active=True)
                 .select_related("booking_agent_profile")
             )
+
+            if group:
+                from apps.booking_agent.models import BookingAgentServiceCategory
+                from django.db.models import Q
+                
+                group_lower = group.lower()
+                
+                # Define profile type mapping for broader filtering
+                profile_type_map = {
+                    "accommodation": ["hotel_agent"],
+                    "conveyance": ["vehicle_agent"],
+                    "ticket": ["flight_agent", "train_agent", "flight_train_agent"],
+                }
+                
+                target_profiles = profile_type_map.get(group_lower, [])
+                
+                # Broaden filter: Match by Profile Type OR by explicit Service Category
+                query = Q(
+                    booking_agent_profile__services__service_categories__service_category__booking_group=group_lower,
+                    booking_agent_profile__services__service_categories__is_active=True,
+                    booking_agent_profile__services__is_active=True
+                )
+                
+                if target_profiles:
+                    query |= Q(
+                        booking_agent_profile__services__profile_type__code__in=target_profiles,
+                        booking_agent_profile__services__is_active=True
+                    )
+                
+                agents = agents.filter(query).distinct()
 
             serializer = BookingAgentSerializer(agents, many=True)
 

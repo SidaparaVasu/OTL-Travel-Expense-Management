@@ -192,6 +192,7 @@ export interface BookingAgent {
   name: string;
   email?: string;
   contact?: string;
+  organization_name?: string;
 }
 
 export interface Pagination {

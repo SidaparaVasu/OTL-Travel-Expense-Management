@@ -78,7 +78,28 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
             const res = await travelDeskAPI.users.getTravelDeskUsers();
             setDeskUsers(res.data || []);
           } else {
-            const res = await travelDeskAPI.agents.list();
+            // Determine booking group for segregation
+            let group: string | undefined = undefined;
+            if (booking) {
+              const typeName = booking.booking_type_name?.toLowerCase() || "";
+              if (
+                typeName.includes("accommodation") ||
+                typeName.includes("hotel") ||
+                typeName.includes("guest house")
+              ) {
+                group = "accommodation";
+              } else if (
+                typeName.includes("flight") ||
+                typeName.includes("train")
+              ) {
+                group = "ticket";
+              } else {
+                // Default everything else to conveyance (Cab, Local, Rent-a-car)
+                group = "conveyance";
+              }
+            }
+
+            const res = await travelDeskAPI.agents.list({ group });
             setAgents(res.data || []);
           }
         } catch (err) {
@@ -94,7 +115,7 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
       };
       loadData();
     }
-  }, [isOpen, isDeskForward]);
+  }, [isOpen, isDeskForward, booking]);
 
   // Determine if vehicle selection is applicable
   const isVehicleSelectionApplicable = () => {
@@ -247,7 +268,9 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
                   />
                   <CommandList>
                     <CommandEmpty>
-                      {isDeskForward ? "No desk user found." : "No agent found."}
+                      {isDeskForward
+                        ? "No desk user found."
+                        : "No agent found."}
                     </CommandEmpty>
                     <CommandGroup>
                       {isDeskForward

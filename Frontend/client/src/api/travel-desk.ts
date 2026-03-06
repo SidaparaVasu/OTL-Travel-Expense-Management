@@ -144,8 +144,15 @@ export const travelDeskAPI = {
   },
 
   agents: {
-    list: async (): Promise<{ data: BookingAgent[] }> => {
-      const { data } = await apiClient.get(`/booking_agent/booking-agents/`);
+    list: async (params?: {
+      group?: string;
+    }): Promise<{ data: BookingAgent[] }> => {
+      const queryParams = new URLSearchParams();
+      if (params?.group) queryParams.append("group", params.group);
+
+      const { data } = await apiClient.get(
+        `/booking_agent/booking-agents/${queryParams.toString() ? `?${queryParams}` : ""}`,
+      );
       return data;
     },
     getRecommendedAgents: async (applicationId: number) => {
