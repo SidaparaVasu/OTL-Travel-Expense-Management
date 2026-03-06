@@ -43,7 +43,7 @@ class StateMasterAdmin(admin.ModelAdmin):
 
 @admin.register(geography.CityMaster)
 class CityMasterAdmin(admin.ModelAdmin):
-    list_display = ('city_name', 'state', 'get_country', 'category')
+    list_display = ('id', 'city_name', 'state', 'get_country', 'category')
     search_fields = ('city_name', 'state__state_name', 'state__country__country_name')
     list_filter = ('category', 'state__country', 'state')
 
