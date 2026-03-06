@@ -127,9 +127,16 @@ def auto_confirm_self_arranged_bookings(application: TravelApplication, system_u
     confirmed_count = 0
     for booking in bookings:
         sub_option = booking.sub_option
-        if (sub_option and ('self' in sub_option.name.lower() 
-        or 'friends' in sub_option.name.lower()
-        or 'family' in sub_option.name.lower())) or booking.booking_details.get('is_self_arranged') is True:
+        mode_name = booking.booking_type.name.lower() if booking.booking_type else ""
+        
+        is_self_arranged = (
+            (sub_option and any(keyword in sub_option.name.lower() for keyword in ['self', 'friends', 'family'])) or
+            booking.booking_details.get('is_self_arranged') is True or
+            "own car" in mode_name or
+            "personal car" in mode_name
+        )
+
+        if is_self_arranged:
             booking.status = "confirmed"
             booking.save(update_fields=["status"])
             confirmed_count += 1
@@ -141,7 +148,7 @@ def auto_confirm_self_arranged_bookings(application: TravelApplication, system_u
                 changes={
                     "booking_id": booking.id,
                     "application_id": application.id,
-                    "reason": "Self-arranged accommodation - no vendor required",
+                    "reason": f"Auto-confirmed personal/self-arranged booking ({booking.booking_type.name if booking.booking_type else 'N/A'})",
                 },
             )
 
