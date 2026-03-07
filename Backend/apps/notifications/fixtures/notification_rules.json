@@ -315,5 +315,133 @@
       "created_at": "2026-03-02T05:50:00Z",
       "updated_at": "2026-03-02T05:50:00Z"
     }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 20,
+    "fields": {
+      "event_name": "travel.hotel.requested",
+      "description": "Triggered when travel desk assigns hotel booking to agent",
+      "template": 20,
+      "channels": ["email"],
+      "recipient_resolver": "booking_agent",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 21,
+    "fields": {
+      "event_name": "travel.vehicle.requested",
+      "description": "Triggered when travel desk assigns vehicle booking to agent",
+      "template": 21,
+      "channels": ["email"],
+      "recipient_resolver": "booking_agent",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 22,
+    "fields": {
+      "event_name": "travel.ticket.requested",
+      "description": "Triggered when travel desk assigns flight/train booking to agent",
+      "template": 22,
+      "channels": ["email"],
+      "recipient_resolver": "booking_agent",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 23,
+    "fields": {
+      "event_name": "travel.booking.accepted",
+      "description": "Triggered when booking agent accepts the assignment",
+      "template": 23,
+      "channels": ["email"],
+      "recipient_resolver": "employee_and_desk",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 24,
+    "fields": {
+      "event_name": "travel.booking.rejected",
+      "description": "Triggered when booking agent rejects the assignment",
+      "template": 24,
+      "channels": ["email"],
+      "recipient_resolver": "travel_desk",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 25,
+    "fields": {
+      "event_name": "travel.booking.forwarded_to_desk",
+      "description": "Triggered when a booking is forwarded from one desk user to another",
+      "template": 25,
+      "channels": ["email"],
+      "recipient_resolver": "desk_agent",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 26,
+    "fields": {
+      "event_name": "travel.edited_reapproval",
+      "description": "Triggered when application is edited and requires re-approval",
+      "template": 26,
+      "channels": ["email"],
+      "recipient_resolver": "employee",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 27,
+    "fields": {
+      "event_name": "travel.application.cancelled",
+      "description": "Triggered when application is immediately cancelled",
+      "template": 27,
+      "channels": ["email"],
+      "recipient_resolver": "approver_and_stakeholders",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
   }
 ]

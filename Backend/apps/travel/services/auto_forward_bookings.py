@@ -65,19 +65,25 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
 
         forwarded_any = True
 
-        from apps.notifications.center import NotificationCenter
-        NotificationCenter.notify(
-            event_name="travel.booking.auto_assigned",
-            reference={"type": "Booking", "id": booking.id},
-            payload={
-                "request_id": application.get_travel_request_id(),
+        if agent.email:
+            from apps.notifications.center import NotificationCenter
+            # Enrich payload with full booking details
+            payload = booking.get_booking_payload()
+            payload.update({
                 "booking_agent_id": agent.id,
-                "employee_name": application.employee.get_full_name(),
                 "booking_agent_name": agent.get_full_name(),
                 "booking_id": booking.id,
-                "action_required": "Start booking immediately",
-            },
-        )
+            })
+            
+            NotificationCenter.notify(
+                event_name="travel.booking.auto_assigned",
+                reference={"type": "Booking", "id": booking.id},
+                payload=payload,
+            )
+        else:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Skipping auto-assignment notification for agent {agent.id}: No email found.")
 
         AuditLog.objects.create(
             user=system_user,

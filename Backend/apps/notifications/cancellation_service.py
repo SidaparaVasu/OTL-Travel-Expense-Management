@@ -286,9 +286,11 @@ class CancellationNotificationService:
             if travel_app.current_approver:
                 approver_id = travel_app.current_approver.id
                 approver_name = travel_app.current_approver.get_full_name()
-            elif hasattr(travel_app.employee, 'profile') and travel_app.employee.profile.reporting_manager:
-                approver_id = travel_app.employee.profile.reporting_manager.id
-                approver_name = travel_app.employee.profile.reporting_manager.get_full_name()
+            else:
+                profile = travel_app.employee.get_profile()
+                if profile and profile.reporting_manager:
+                    approver_id = profile.reporting_manager.id
+                    approver_name = profile.reporting_manager.get_full_name()
 
             # Get travel desk user if assigned
             travel_desk_id = travel_app.travel_desk_user.id if travel_app.travel_desk_user else None

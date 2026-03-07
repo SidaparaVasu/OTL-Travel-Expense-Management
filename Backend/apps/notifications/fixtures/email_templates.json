@@ -274,5 +274,131 @@
       "created_at": "2025-12-29T05:50:00Z",
       "updated_at": "2025-12-29T05:50:00Z"
     }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 19,
+    "fields": {
+      "template_key": "travel.assigned.travel_desk",
+      "template_name": "Travel Request Assigned to Travel Desk",
+      "subject": "New Travel Request Assigned — {{ request_id }}",
+      "body_html": "notifications/email_templates/travel_assigned_desk.html",
+      "body_text": "A new travel request ({{ request_id }}) has been assigned to the Travel Desk for processing.",
+      "is_active": true,
+      "created_at": "2026-03-02T05:50:00Z",
+      "updated_at": "2026-03-02T05:50:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 20,
+    "fields": {
+      "template_key": "travel.hotel.requested",
+      "template_name": "Hotel Booking Requested",
+      "subject": "Hotel Booking Request — {{ request_id }}",
+      "body_html": "notifications/email_templates/hotel_booking_requested.html",
+      "body_text": "A new hotel booking request is assigned to you for {{ request_id }}.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 21,
+    "fields": {
+      "template_key": "travel.vehicle.requested",
+      "template_name": "Vehicle Booking Requested",
+      "subject": "Vehicle Booking Request — {{ request_id }}",
+      "body_html": "notifications/email_templates/vehicle_booking_requested.html",
+      "body_text": "A new vehicle booking request is assigned to you for {{ request_id }}.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 22,
+    "fields": {
+      "template_key": "travel.ticket.requested",
+      "template_name": "Ticket Booking Requested",
+      "subject": "Ticket Booking Request — {{ request_id }}",
+      "body_html": "notifications/email_templates/ticket_booking_requested.html",
+      "body_text": "A new ticket booking request is assigned to you for {{ request_id }}.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 23,
+    "fields": {
+      "template_key": "travel.booking.accepted",
+      "template_name": "Booking Accepted by Agent",
+      "subject": "Booking Accepted — {{ request_id }}",
+      "body_html": "notifications/email_templates/booking_accepted.html",
+      "body_text": "Your booking request for {{ request_id }} has been accepted by a booking agent.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 24,
+    "fields": {
+      "template_key": "travel.booking.rejected",
+      "template_name": "Booking Rejected by Agent",
+      "subject": "Booking Rejected — {{ request_id }}",
+      "body_html": "notifications/email_templates/booking_rejected.html",
+      "body_text": "A booking request for {{ request_id }} has been rejected by the agent.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 25,
+    "fields": {
+      "template_key": "travel.booking.forwarded_to_desk",
+      "template_name": "Booking Forwarded to Travel Desk",
+      "subject": "Booking Forwarded to Desk — {{ travel_request_id }}",
+      "body_html": "notifications/email_templates/forwarded_to_desk.html",
+      "body_text": "A booking for {{ travel_request_id }} has been forwarded to the Travel Desk.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 26,
+    "fields": {
+      "template_key": "travel.edited_reapproval",
+      "template_name": "Travel Request Re-approval Required",
+      "subject": "Action Required: Re-approval for {{ request_id }}",
+      "body_html": "notifications/email_templates/edited_reapproval.html",
+      "body_text": "Your travel request {{ request_id }} has been updated and requires re-approval.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 27,
+    "fields": {
+      "template_key": "travel.application.cancelled",
+      "template_name": "Travel Application Cancelled",
+      "subject": "Notification: Travel Request Cancelled — {{ request_id }}",
+      "body_html": "notifications/email_templates/application_cancelled.html",
+      "body_text": "The travel application {{ request_id }} for {{ employee_name }} has been cancelled.",
+      "is_active": true,
+      "created_at": "2026-03-06T12:00:00Z",
+      "updated_at": "2026-03-06T12:00:00Z"
+    }
   }
 ]

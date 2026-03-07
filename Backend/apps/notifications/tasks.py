@@ -144,6 +144,66 @@ def mark_travel_as_completed(travel_id):
         logger.error(f"Error in mark_travel_as_completed for {travel_id}: {str(e)}", exc_info=True)
 
 
+@shared_task
+def check_for_expired_settlements():
+    """
+    Daily task to notify users whose settlement period has expired.
+    """
+    today = timezone.now().date()
+    expired_apps = TravelApplication.objects.filter(
+        status='completed',
+        is_settled=False,
+        settlement_due_date__lt=today
+    ).exclude(travel_for='guest')
+
+    count = 0
+    for app in expired_apps:
+        try:
+            NotificationCenter.notify(
+                event_name='travel.settlement.expired',
+                reference={'type': 'TravelApplication', 'id': app.id},
+                payload={
+                    'employee_id': app.employee.id,
+                    'employee_name': app.employee.get_full_name(),
+                    'request_id': app.get_travel_request_id(),
+                    'settlement_due_date': str(app.settlement_due_date),
+                    'purpose': app.purpose
+                }
+            )
+            count += 1
+        except Exception as e:
+            logger.error(f"Error notifying expiry for TR {app.id}: {str(e)}")
+            
+    return f"Notified {count} expired settlements."
+
+
+@shared_task
+def notification_reminder_worker():
+    """
+    Periodic task to process pending notification reminders.
+    """
+    now = timezone.now()
+    pending_events = NotificationEvent.objects.filter(
+        is_resolved=False,
+        next_reminder_at__lte=now
+    ).select_related('rule')
+
+    count = 0
+    for event in pending_events:
+        try:
+            NotificationCenter.notify(
+                event_name=event.event_name,
+                reference={'type': event.reference_type, 'id': event.reference_id},
+                payload=event.data
+            )
+            event.advance_reminder()
+            count += 1
+        except Exception as e:
+            logger.error(f"Error processing reminder for event {event.id}: {str(e)}")
+
+    return f"Processed {count} reminders."
+
+
 def schedule_travel_completion(travel_app):
     run_datetime = travel_app.get_travel_end_datetime()
 

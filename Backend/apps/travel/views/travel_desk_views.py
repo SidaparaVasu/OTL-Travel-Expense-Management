@@ -912,7 +912,7 @@ class TravelDeskForwardToDeskView(APIView):
                     payload={
                         "booking_id": booking.id,
                         "forwarded_by_name": request.user.get_full_name(),
-                        "forwarded_to_id": target_user.id,
+                        "desk_agent_id": target_user.id,
                         "booking_type": booking.booking_type.name,
                         "travel_request_id": booking.trip_details.travel_application.get_travel_request_id()
                     }

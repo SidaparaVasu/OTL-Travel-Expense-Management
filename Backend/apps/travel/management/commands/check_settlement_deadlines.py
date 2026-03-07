@@ -17,8 +17,18 @@ class Command(BaseCommand):
         for app in overdue_apps:
             self.stdout.write(f'OVERDUE: {app.get_travel_request_id()} - {app.employee.username}')
             
-            # Send reminder email
-            from apps.notifications.services import EmailNotificationService
-            # TODO: Create settlement reminder template
+            # Send expiration notification
+            from apps.notifications.center import NotificationCenter
+            NotificationCenter.notify(
+                event_name='travel.settlement.expired',
+                reference={'type': 'TravelApplication', 'id': app.id},
+                payload={
+                    'employee_id': app.employee.id,
+                    'employee_name': app.employee.get_full_name(),
+                    'request_id': app.get_travel_request_id(),
+                    'settlement_due_date': str(app.settlement_due_date),
+                    'purpose': app.purpose
+                }
+            )
             
         self.stdout.write(self.style.SUCCESS(f'Found {overdue_apps.count()} overdue settlements'))

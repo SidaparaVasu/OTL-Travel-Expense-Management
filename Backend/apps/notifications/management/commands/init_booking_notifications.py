@@ -68,3 +68,29 @@ class Command(BaseCommand):
             }
         )
         self.stdout.write(self.style.SUCCESS('Notification rule travel.booking.rejected created/updated.'))
+
+        # 5. Designed Auto-Assigned Template
+        auto_path = os.path.join(templates_dir, 'booking_auto_assigned.html')
+        with open(auto_path, 'r', encoding='utf-8') as f:
+            auto_html = f.read()
+        
+        auto_tmpl, _ = EmailTemplateMaster.objects.update_or_create(
+            template_key='travel.booking.auto_assigned',
+            defaults={
+                'template_name': 'Booking Auto Assigned Designed Email',
+                'subject': 'New Booking Assigned — {{ request_id }}',
+                'body_html': auto_html,
+                'is_active': True,
+            }
+        )
+        self.stdout.write(self.style.SUCCESS(f'Template {auto_tmpl.template_key} created/updated with designed HTML.'))
+
+        # 6. Ensure Auto-Assigned Rule uses the correct template
+        NotificationRule.objects.update_or_create(
+            event_name='travel.booking.auto_assigned',
+            defaults={
+                'template': auto_tmpl,
+                'is_active': True,
+            }
+        )
+        self.stdout.write(self.style.SUCCESS('Notification rule travel.booking.auto_assigned updated with new template.'))

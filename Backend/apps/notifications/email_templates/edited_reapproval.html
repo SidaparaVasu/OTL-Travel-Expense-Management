@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+
+<body style="margin:0; padding:0; background-color:#f3f6fb; font-family:Arial, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f6fb">
+        <tr>
+            <td align="center" style="padding:30px 15px;">
+
+                <!-- MAIN CONTAINER -->
+                <table width="700" cellpadding="0" cellspacing="0" border="0"
+                    style="background:#ffffff; border:1px solid #e3e8f1;">
+
+                    <!-- HEADER -->
+                    <tr>
+                        <td style="padding:20px 25px; border-bottom:1px solid #e3e8f1;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+
+                                    <!-- LEFT -->
+                                    <td valign="middle">
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td valign="middle" style="font-size:20px;">📝</td>
+                                                <td width="10"></td>
+                                                <td valign="middle">
+                                                    <div style="font-size:16px; font-weight:bold; color:#1a1a1a;">
+                                                        Re-approval Required
+                                                    </div>
+                                                    <div style="font-size:13px; color:#6d7480;">
+                                                        Orange Travel Management System
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+
+                                    <!-- RIGHT -->
+                                    <td align="right" valign="middle" style="font-size:13px; color:#6b7080;">
+                                        Request ID: <strong>{{ request_id }}</strong>
+                                    </td>
+
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- BODY -->
+                    <tr>
+                        <td style="padding:30px;">
+
+                            <div style="font-size:18px; font-weight:bold; color:#1d4ed8; margin-bottom:8px;">
+                                Changes in Your Travel Request
+                            </div>
+
+                            <div style="font-size:14px; color:#5e6470; margin-bottom:25px;">
+                                Dear {{ employee_name }},
+                                <br><br>
+                                {{ message }}.
+                            </div>
+
+                            <!-- CHANGE DETAILS BOX -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                style="background:#fffcf0; border:1px solid #fde68a; padding:20px;">
+
+                                <tr>
+                                    <td colspan="2"
+                                        style="font-size:15px; font-weight:bold; color:#92400e; padding-bottom:15px;">
+                                        Modification Summary
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="font-size:14px; color:#6c7380; padding-bottom:10px;">
+                                        <strong>Request ID:</strong>
+                                    </td>
+                                    <td style="font-size:14px; font-weight:600; padding-bottom:10px;">
+                                        {{ request_id }}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="font-size:14px; color:#6c7380; vertical-align:top;">
+                                        <strong>Changes Made:</strong>
+                                    </td>
+                                    <td style="font-size:14px; line-height:1.5;">
+                                        {{ changes }}
+                                    </td>
+                                </tr>
+
+                            </table>
+
+                            <div style="font-size:14px; margin-top:25px; line-height:1.6;">
+                                The request has been reset to the approval phase. You will be notified once the updated
+                                request is reviewed.
+                            </div>
+
+                            <div style="font-size:14px; line-height:1.6; margin-top:30px;">
+                                Thank you,<br>
+                                <strong>Travel Management System</strong><br>
+                                Tata Steel Foundation
+                            </div>
+
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td align="center"
+                            style="padding:20px; font-size:12px; color:#7d8290; border-top:1px solid #e3e8f1;">
+                            This is an automated email. Please do not reply.<br>
+                            © 2025 Travel Management System. All rights reserved.
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

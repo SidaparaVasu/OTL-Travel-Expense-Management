@@ -164,6 +164,10 @@ class NotificationCenter:
                 if payload.get('approver_id'):
                     users.extend(User.objects.filter(id=payload.get('approver_id')))
                 
+                # Applicant (Employee)
+                if payload.get('employee_id'):
+                    users.extend(User.objects.filter(id=payload.get('employee_id')))
+                
                 # Travel desk user if assigned
                 if payload.get('travel_desk_id'):
                     users.extend(User.objects.filter(id=payload.get('travel_desk_id')))
