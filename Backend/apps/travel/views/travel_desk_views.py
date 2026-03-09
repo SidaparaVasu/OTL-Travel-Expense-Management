@@ -332,39 +332,9 @@ class TravelDeskAssignBookingsView(APIView):
                     },
                 )
 
-                # Determine if duty slip should be attached
-                # Logic: Not self-arranged AND Not Flight/Train/Accommodation
-                attach_duty_slip = False
-                if not b.booking_details.get("is_self_arranged"):
-                    excluded_types = ["Flight", "Train", "Accommodation", "Bulk Booking"]
-                    b_type = (b.booking_type.name or "").strip()
-                    if b_type not in excluded_types:
-                        attach_duty_slip = True
-
-                # Dynamic Event Selection for Vendors
-                b_type_name = (b.booking_type.name or "").strip().lower()
-                
-                if "accommodation" in b_type_name:
-                    event_name = "travel.hotel.requested"
-                elif any(word in b_type_name for word in ["flight", "train"]):
-                    event_name = "travel.ticket.requested"
-                else:
-                    event_name = "travel.vehicle.requested"
-
-                # Get enriched payload from booking
-                notification_payload = b.get_booking_payload()
-                notification_payload.update({
-                    "booking_agent_id": booking_agent.id,
-                    "booking_agent_name": booking_agent.get_full_name(),
-                    "booking_id": b.id,
-                    "attach_duty_slip": attach_duty_slip,
-                })
-
-                NotificationCenter.notify(
-                    event_name=event_name,
-                    reference={"type": "Booking", "id": b.id},
-                    payload=notification_payload
-                )
+                # notify agent
+                from apps.travel.services.notification_service import notify_booking_agent_of_assignment
+                notify_booking_agent_of_assignment(b, booking_agent)
 
             # Refresh application level booking status using the unified service
             from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
@@ -478,6 +448,10 @@ class TravelDeskReassignBookingView(APIView):
             from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
             refresh_application_booking_status(booking.trip_details.travel_application)
 
+            # 4. Notify new agent
+            from apps.travel.services.notification_service import notify_booking_agent_of_assignment
+            notify_booking_agent_of_assignment(booking, new_agent)
+            
             # Audit logging
             AuditLog.objects.create(
                 user=request.user,
@@ -596,7 +570,7 @@ class ForwardApplicationView(APIView):
                     booking.status = "requested"
                     booking.save(update_fields=["status"])
 
-                # Audit log
+                # Audit log for individual booking
                 AuditLog.objects.create(
                     user=request.user,
                     action="assign_booking",
@@ -608,6 +582,10 @@ class ForwardApplicationView(APIView):
                         "scope": "full_application",
                     },
                 )
+                
+                # Notify assigned agent
+                from apps.travel.services.notification_service import notify_booking_agent_of_assignment
+                notify_booking_agent_of_assignment(booking, agent_user)
 
             # Refresh application level booking status using the unified service
             from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
@@ -622,16 +600,9 @@ class ForwardApplicationView(APIView):
                 changes={
                     "application_id": app.id,
                     "forwarded_to": agent_user.id,
-                    "total_bookings": bookings.count(),
+                    "total_bookings": len(bookings),
                 },
             )
-
-        # Notify assigned agent
-        # notify_booking_agent(
-        #     user=agent_user,
-        #     booking=None,
-        #     message=f"You have been assigned a travel application (ID: {app.id})."
-        # )
 
         return success_response(
             message="Application forwarded successfully",

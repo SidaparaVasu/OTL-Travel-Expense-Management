@@ -101,11 +101,15 @@ class NotificationCenter:
                     status='queued',
                 )
 
-                # enqueue Celery task routing to 'notifications' queue
+                # Enqueue Celery task only after the database transaction commits
+                # to avoid race conditions where the worker starts before the log is visible.
                 from . import tasks
-                tasks.send_notification_task.apply_async(
-                    args=[log.id, channel, subject, body_text or '', body_html or '', payload],
-                    queue='notifications'
+                transaction.on_commit(
+                    lambda l_id=log.id, c=channel, s=subject, bt=body_text, bh=body_html, p=payload: 
+                    tasks.send_notification_task.apply_async(
+                        args=[l_id, c, s, bt or '', bh or '', p],
+                        queue='notifications'
+                    )
                 )
 
     @staticmethod

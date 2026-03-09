@@ -66,20 +66,8 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
         forwarded_any = True
 
         if agent.email:
-            from apps.notifications.center import NotificationCenter
-            # Enrich payload with full booking details
-            payload = booking.get_booking_payload()
-            payload.update({
-                "booking_agent_id": agent.id,
-                "booking_agent_name": agent.get_full_name(),
-                "booking_id": booking.id,
-            })
-            
-            NotificationCenter.notify(
-                event_name="travel.booking.auto_assigned",
-                reference={"type": "Booking", "id": booking.id},
-                payload=payload,
-            )
+            from apps.travel.services.notification_service import notify_booking_agent_of_assignment
+            notify_booking_agent_of_assignment(booking, agent, event_name="travel.booking.auto_assigned")
         else:
             import logging
             logger = logging.getLogger(__name__)
