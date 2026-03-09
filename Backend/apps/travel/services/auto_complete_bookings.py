@@ -43,6 +43,13 @@ def auto_complete_past_trip_bookings():
     for app in booked_apps:
         end_dt = app.get_travel_end_datetime()
         if end_dt and timezone.now() >= end_dt:
+            # 2.1 Update child bookings first
+            Booking.objects.filter(
+                trip_details__travel_application=app,
+                status='confirmed'
+            ).update(status='completed')
+            
+            # 2.2 Update application status
             app.status = 'completed'
             app.save(update_fields=['status'])
             app_count += 1

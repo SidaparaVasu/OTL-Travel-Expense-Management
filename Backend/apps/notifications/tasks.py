@@ -121,9 +121,17 @@ def mark_travel_as_completed(travel_id):
         logger.info(f"Checking completion: Now({now}) >= End({end_datetime})")
         
         if now >= end_datetime:
+            from apps.travel.models import Booking
+            
+            # Sync child bookings to completed
+            Booking.objects.filter(
+                trip_details__travel_application=travel,
+                status='confirmed'
+            ).update(status='completed')
+            
             travel.status = "completed"
             travel.save(update_fields=["status"])
-            logger.info(f"Successfully marked TravelApplication {travel_id} as completed.")
+            logger.info(f"Successfully marked TravelApplication {travel_id} and its bookings as completed.")
 
             NotificationCenter.notify(
                 "travel.settlement.reminder",
