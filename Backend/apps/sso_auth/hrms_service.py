@@ -140,8 +140,8 @@ class HRMSSyncService:
         try:
             # --- [FUTURE LINKER] ---
             # To enable auto-token-regeneration, replace the next 2 lines with:
-            # resp = cls._make_hrms_request("GET", url, params=params, timeout=10)
-            resp = requests.get(url, params=params, headers=cls._get_headers(), timeout=10)
+            resp = cls._make_hrms_request("GET", url, params=params, timeout=10)
+            # resp = requests.get(url, params=params, headers=cls._get_headers(), timeout=10)
             resp.raise_for_status()
             
             records = resp.json().get("data", {}).get("data", [])
