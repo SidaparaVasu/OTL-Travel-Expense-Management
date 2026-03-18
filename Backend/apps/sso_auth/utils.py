@@ -1,6 +1,7 @@
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 import base64
+import urllib.parse
 from django.conf import settings
 import logging
 
@@ -22,10 +23,19 @@ class SSOTokenHandler:
             Decrypted string: "P1:1$P2:admin@sandip$P3:1$P4:0$P5:True"
         """
         try:
-            # 1. Handle URL encoding FIRST (replace URL-safe chars)
-            # Standard URL parsers convert '+' to ' ', so we must convert it back
-            # We do this BEFORE strip() because a trailing '+' might have become a ' ' 
-            # and strip() would remove it, corrupting the token.
+            # 0. Percent-decode any URL-encoded characters first.
+            # Browsers and proxies sometimes encode reserved Base64 chars:
+            #   %3D -> =   (padding character)
+            #   %2B -> +   (Base64 char, also form-encoded space)
+            #   %2F -> /   (Base64 char)
+            # This must happen before any other step to ensure we always
+            # work with the actual Base64 characters.
+            encrypted_base64 = urllib.parse.unquote(encrypted_base64)
+
+            # 1. Handle URL form-encoding FIRST (replace URL-safe chars)
+            # URLSearchParams (frontend) decodes '+' as ' ' (space) per the
+            # application/x-www-form-urlencoded spec. We restore it before
+            # strip() so a trailing '+' is not lost.
             encrypted_base64 = encrypted_base64.replace(' ', '+').replace('-', '+').replace('_', '/')
 
             # 2. Strip any whitespace/newlines that might affect length

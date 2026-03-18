@@ -18,14 +18,21 @@ export const SSOHandler = () => {
 
   useEffect(() => {
     const handleSSOLogin = async () => {
-      // Check for auth parameter in URL
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      // trim() method removes ' ' empty trailing space because while we getting 'auth' param it converts '+' to ' ' empty string, 
-      // which later in backend recieves only 63 character which led invalid padding size error.
-      // to prevent this edge case scenario, we do not gonna use trim for cleaning URL.
-      // const authToken = urlParams.get("auth")?.trim();
-      const authToken = urlParams.get("auth");
+      // Robust auth token extraction — bypasses URLSearchParams form-encoding issues.
+      //
+      // WHY NOT URLSearchParams.get():
+      //   URLSearchParams follows application/x-www-form-urlencoded spec, which decodes
+      //   '+' as a space (' '). Since Base64 tokens can contain '+', the last character
+      //   gets corrupted (e.g. '...PQUQRl+' becomes '...PQUQRl '), causing AES decryption
+      //   to fail on the backend with "invalid padding size".
+      //
+      // WHY decodeURIComponent:
+      //   Correctly decodes percent-encoded reserved chars (%3D -> =, %2B -> +, %2F -> /)
+      //   WITHOUT converting '+' to space (that is form-encoding, not URL encoding).
+      const rawSearch = window.location.search;
+      const authMatch = rawSearch.match(/[?&]auth=([^&]*)/);
+      const rawToken = authMatch ? authMatch[1] : null;
+      const authToken = rawToken ? decodeURIComponent(rawToken) : null;
 
       if (!authToken) {
         return; // No SSO token, skip
