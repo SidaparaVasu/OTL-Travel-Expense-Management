@@ -292,44 +292,50 @@ class ApprovalEngineV2:
             try:
                 name = getattr(b.booking_type, "name", str(getattr(b, "booking_type", "") or "")).lower()
                 
-                # Specific check for Car at Disposal: Only trigger if "Self-Arranged"
-                if "disposal" in name:
-                    # Try to get sub-option name from FK
+                # BUG FIX: Strictly only 'Own Car' and 'Self-Arranged Car at Disposal' trigger the 150km rule.
+                # Pick-up & Drop, Goods Carriage, and other hired/commercial modes are excluded.
+                is_evaluable = False
+                
+                if "own car" in name:
+                    is_evaluable = True
+                elif "disposal" in name:
+                    # Specific check for Car at Disposal: Only trigger if "Self-Arranged"
                     sub_opt_obj = getattr(b, "sub_option", None)
                     sub_opt = getattr(sub_opt_obj, "name", "") or ""
                     
-                    # Fallback to details (though frontend likely doesn't send it)
+                    # Fallback to details
                     if not sub_opt:
                         details = getattr(b, "booking_details", {}) or {}
                         sub_opt = details.get("vehicle_sub_option_label", "")
                     
                     sub_opt = str(sub_opt).lower()
-                    
-                    if "self-arranged" not in sub_opt:
-                        continue
+                    if "self-arranged" in sub_opt:
+                        is_evaluable = True
+                
+                if not is_evaluable:
+                    continue
 
-                if any(k in name for k in ("car", "own car", "pickup", "drop")):
-                    details = getattr(b, "booking_details", {}) or {}
-                    distance = (
-                        details.get("distance_km")
-                        or details.get("distance")
-                        or details.get("trip_distance")
-                        or details.get("trip_distance_km")
-                        or details.get("trip_distance_miles")
-                        or 0
-                    )
-                    if isinstance(distance, dict):
-                        distance = distance.get("value") or distance.get("distance") or 0
-                    try:
-                        dist_val = float(distance)
-                    except Exception:
-                        logger.debug("ApprovalEngineV2: malformed distance value '%s' for booking id=%s", distance, getattr(b, "id", None))
-                        continue
-                    
-                    logger.debug("ApprovalEngineV2: booking id=%s mode=%s distance=%s threshold=%s", getattr(b, "id", None), name, dist_val, max_distance_val)
-                    if dist_val > max_distance_val:
-                        logger.info("ApprovalEngineV2: distance threshold exceeded for booking id=%s (%s > %s)", getattr(b, "id", None), dist_val, max_distance_val)
-                        return True
+                details = getattr(b, "booking_details", {}) or {}
+                distance = (
+                    details.get("distance_km")
+                    or details.get("distance")
+                    or details.get("trip_distance")
+                    or details.get("trip_distance_km")
+                    or details.get("trip_distance_miles")
+                    or 0
+                )
+                if isinstance(distance, dict):
+                    distance = distance.get("value") or distance.get("distance") or 0
+                try:
+                    dist_val = float(distance)
+                except Exception:
+                    logger.debug("ApprovalEngineV2: malformed distance value '%s' for booking id=%s", distance, getattr(b, "id", None))
+                    continue
+                
+                logger.debug("ApprovalEngineV2: booking id=%s mode=%s distance=%s threshold=%s", getattr(b, "id", None), name, dist_val, max_distance_val)
+                if dist_val > max_distance_val:
+                    logger.info("ApprovalEngineV2: distance threshold exceeded for booking id=%s (%s > %s)", getattr(b, "id", None), dist_val, max_distance_val)
+                    return True
             except Exception as e:
                 logger.debug("Error in _any_own_car_over_distance for booking id=%s: %s", getattr(b, "id", None), e)
                 continue
@@ -740,10 +746,10 @@ class ApprovalEngineV2:
                 #         logger.info("TSF fallback own_car_distance_km triggered")
                 #         require_chro = True
                 if not require_chro:
-                    # ONLY apply fallback when booking_type contains own car
+                    # ONLY apply fallback when booking_type contains own car or disposal
                     for b in bookings:
                         name = getattr(b.booking_type, "name", "").lower()
-                        if "own" in name or "car" in name:
+                        if "own car" in name or "disposal" in name:
                             if self._any_own_car_over_distance(bookings, self.config.get("own_car_distance_km")):
                                 require_chro = True
                             break
