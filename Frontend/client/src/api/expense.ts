@@ -105,6 +105,13 @@ export const expenseAPI = {
       const { data } = await apiClient.post(`/expense/claims/${id}/resubmit/`);
       return data;
     },
+    downloadReport: async (id: number) => {
+      const { data } = await apiClient.get(`/expense/claims/${id}/`, {
+        params: { download_report: "true" },
+        responseType: "blob",
+      });
+      return data;
+    },
   },
   expenseTypes: {
     getAll: async () => {

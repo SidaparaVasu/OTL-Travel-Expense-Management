@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -13,7 +14,10 @@ import {
   Send,
   RefreshCw,
   Calendar,
+  Printer,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +35,7 @@ import { expenseAPI } from "@/src/api/expense";
 export default function ClaimDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { data: claim, isLoading } = useQuery({
     queryKey: ["claim", id],
@@ -132,7 +137,7 @@ export default function ClaimDetailPage() {
           iconColor: "text-blue-600",
           Icon: Banknote,
           label: "Payment Processed",
-          message: "Processing...",
+          message: "In Process",
         };
       case "closed":
         return {
@@ -187,22 +192,70 @@ export default function ClaimDetailPage() {
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header with Back Button */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
-            onClick={() => navigate(ROUTES.indexClaimPage)}
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-800">
-              Expense Claim #{claim.id}
-            </h1>
-            <p className="text-sm text-slate-500">
-              Travel Request ID:{" "}
-              {claim.travel_request_id || claim.travel_application}
-            </p>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+              onClick={() => navigate(ROUTES.indexClaimPage)}
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-800">
+                Expense Claim #{claim.id}
+              </h1>
+              <p className="text-sm text-slate-500">
+                Travel Request ID:{" "}
+                {claim.travel_request_id || claim.travel_application}
+              </p>
+            </div>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+            disabled={isDownloading}
+            onClick={async () => {
+              try {
+                setIsDownloading(true);
+                toast.loading("Generating report... This may take a moment.", {
+                  id: "report-download",
+                });
+
+                const blob = await expenseAPI.claims.downloadReport(
+                  parseInt(id!),
+                );
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `Claim_Report_${claim.id}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                toast.success("Report downloaded successfully", {
+                  id: "report-download",
+                });
+              } catch (error: any) {
+                console.error("Failed to download report", error);
+                toast.error("Failed to download report", {
+                  id: "report-download",
+                });
+              } finally {
+                setIsDownloading(false);
+              }
+            }}
+          >
+            {isDownloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Printer className="w-4 h-4" />
+            )}
+            {isDownloading ? "Generating..." : "Download Report"}
+          </Button>
         </div>
 
         {/* Bento Grid Layout */}
@@ -547,16 +600,16 @@ export default function ClaimDetailPage() {
                     className={`w-10 h-10 mx-auto ${statusConfig.iconColor}`}
                   />
                   <div>
-                    <p className="text-xs text-slate-600 mb-1">Claim Status</p>
+                    <p className="text-xs text-slate-600">Claim Status</p>
                     <p
                       className={`text-lg font-bold ${statusConfig.iconColor}`}
                     >
                       {statusConfig.label}
                     </p>
+                    <p className="text-xs text-slate-600">
+                      {statusConfig.message}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-600">
-                    {statusConfig.message}
-                  </p>
                 </div>
               </CardContent>
             </Card>

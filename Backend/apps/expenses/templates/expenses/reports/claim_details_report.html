@@ -1,0 +1,313 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Claim Application Report - {{ header.travel_request_id }}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 0.8cm;
+    }
+
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      line-height: 1.4;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 16pt;
+      margin: 0;
+      color: #1e293b;
+    }
+
+    .header-box {
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title {
+      font-size: 11pt;
+      font-weight: bold;
+      margin: 15px 0 8px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #cbd5e1;
+      color: #1e293b;
+      background-color: #f8fafc;
+      padding-left: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin-bottom: 10px;
+    }
+
+    th {
+      font-weight: bold;
+      text-align: left;
+      background-color: #f1f5f9;
+      padding: 6px;
+      border: 1px solid #e2e8f0;
+      font-size: 8.5pt;
+    }
+
+    td {
+      padding: 6px;
+      vertical-align: top;
+      border: 1px solid #e2e8f0;
+      word-wrap: break-word;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .label-cell {
+      font-weight: bold;
+      background-color: #f8fafc;
+      width: 18%;
+    }
+
+    .value-cell {
+      width: 32%;
+    }
+
+    .financial-summary-box {
+      margin-top: 20px;
+      border: 1px solid #1e293b;
+      width: 300px;
+      float: right;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 10px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .summary-row:last-child {
+      border-bottom: none;
+      background-color: #1e293b;
+      color: white;
+      font-weight: bold;
+    }
+
+    .clear {
+      clear: both;
+    }
+
+    .receipt-yes {
+      color: green;
+      font-weight: bold;
+    }
+
+    .receipt-no {
+      color: #dc2626;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div class="header-box">
+    <h1>Claim Application Report</h1>
+  </div>
+
+  <!-- Meta Info -->
+  <table>
+    <tr>
+      <td><strong>Travel Request ID:</strong><br/>{{ header.travel_request_id }}</td>
+      <td><strong>Status:</strong><br/>{{ header.status }}</td>
+      <td><strong>Submitted on:</strong><br/>{{ header.submitted_on }}</td>
+      <td class="text-right"><strong>Generated on:</strong><br/>{{ header.generated_on }}</td>
+    </tr>
+  </table>
+
+  <!-- Employee Details -->
+  <div class="section-title">Employee Details</div>
+  <table>
+    <tr>
+      <td class="label-cell">Employee Name</td>
+      <td class="value-cell">{{ employee.name }}</td>
+      <td class="label-cell">Employee ID</td>
+      <td class="value-cell">{{ employee.employee_id }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Department</td>
+      <td class="value-cell">{{ employee.department }}</td>
+      <td class="label-cell">Designation</td>
+      <td class="value-cell">{{ employee.designation }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Grade</td>
+      <td class="value-cell">{{ employee.grade }}</td>
+      <td class="label-cell">Branch Location</td>
+      <td class="value-cell">{{ employee.branch_location }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Email</td>
+      <td class="value-cell">{{ employee.email }}</td>
+      <td class="label-cell">Mobile</td>
+      <td class="value-cell">{{ employee.mobile }}</td>
+    </tr>
+  </table>
+
+  <!-- Trip Overview -->
+  <div class="section-title">Trip Overview</div>
+  <table>
+    <tr>
+      <td class="label-cell">Purpose</td>
+      <td class="value-cell">{{ trip.purpose }}</td>
+      <td class="label-cell">Travel Type</td>
+      <td class="value-cell">{{ trip.travel_type }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Internal Order</td>
+      <td class="value-cell">{{ trip.internal_order }}</td>
+      <td class="label-cell">Cost Center / GL</td>
+      <td class="value-cell">{{ trip.cost_center_gl }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Sanction No.</td>
+      <td class="value-cell">{{ trip.sanction_number }}</td>
+      <td class="label-cell">Dates</td>
+      <td class="value-cell">{{ trip.dates }}</td>
+    </tr>
+  </table>
+
+  <!-- Expense Items -->
+  <div class="section-title">Expense Items</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 10%;">Date</th>
+        <th style="width: 18%;">Type</th>
+        <th style="width: 12%;">Receipt/Bill</th>
+        <th style="width: 10%;">Line Item?</th>
+        <th style="width: 10%;">Receipt?</th>
+        <th style="width: 13%;">Amount</th>
+        <th style="width: 27%;">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ item.date }}</td>
+        <td>{{ item.type }}</td>
+        <td>
+          {% if item.receipt_url %}
+            <a href="{{ item.receipt_url }}" target="_blank" style="color: #03205f; text-decoration: none;">view</a> 
+          {% endif %}
+        </td>
+        <td>{{ item.is_booking }}</td>
+        <td class="{% if item.receipt == 'Yes' %}receipt-yes{% else %}receipt-no{% endif %}">{{ item.receipt }}</td>
+        <td class="text-right">{{ item.amount }}</td>
+        <td style="font-size: 8pt; color: #64748b;">{{ item.remarks }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Daily Allowance Breakdown -->
+  <div class="section-title">Daily Allowance Breakdown</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 20%;">Date</th>
+        <th style="width: 20%; text-align: center;">Hours</th>
+        <th style="width: 30%; text-align: right;">DA</th>
+        <th style="width: 30%; text-align: right;">Incidental</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in da_breakdown %}
+      <tr>
+        <td>{{ day.date }}</td>
+        <td>{{ day.hours }}</td>
+        <td class="text-right">{{ day.da }}</td>
+        <td class="text-right">{{ day.incidental }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Approval History -->
+  <div class="section-title">Approval Details</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">Step</th>
+        <th style="width: 25%;">Approver</th>
+        <th style="width: 15%;">Status</th>
+        <th style="width: 20%;">Action Date</th>
+        <th style="width: 25%;">Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for app in approvals %}
+      <tr>
+        <td>{{ app.level }}</td>
+        <td>{{ app.approver }}</td>
+        <td>{{ app.status }}</td>
+        <td>{{ app.acted_on }}</td>
+        <td>{{ app.remarks }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align: center;">No approval history available.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Financial Summary -->
+  <div class="financial-summary-box">
+    <div style="padding: 8px; font-weight: bold; background-color: #f1f5f9; border-bottom: 2px solid #1e293b;">Financial Summary</div>
+    <div class="summary-row">
+      <span>Booking Expenses</span>
+      <span>{{ financial_summary.booking_expenses }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Other Expenses</span>
+      <span>{{ financial_summary.other_expenses }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Daily Allowance</span>
+      <span>{{ financial_summary.total_da }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Incidental</span>
+      <span>{{ financial_summary.total_incidental }}</span>
+    </div>
+    <div class="summary-row" style="border-top: 1px solid #1e293b; font-weight: bold;">
+      <span>Gross Total</span>
+      <span>{{ financial_summary.gross_total }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Advance Received</span>
+      <span>{{ financial_summary.advance_received }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Final Amount</span>
+      <span>{{ financial_summary.final_amount }}</span>
+    </div>
+  </div>
+
+  <div class="clear"></div>
+
+  <div style="margin-top: 40px; font-size: 8pt; color: #64748b; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+    This is a computer generated report for Travel Expense Management.
+  </div>
+
+</body>
+</html>

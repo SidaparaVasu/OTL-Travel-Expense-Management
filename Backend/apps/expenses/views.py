@@ -9,8 +9,14 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 from datetime import datetime
 from decimal import Decimal
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.db.models import Q, Sum
+from concurrent.futures import ThreadPoolExecutor
+
+from apps.expenses.reports.claim_details_report import generate_claim_details_report
+
+# Setup executor for PDF generation
+executor = ThreadPoolExecutor(max_workers=5)
 
 from apps.expenses.serializers import *
 from apps.travel.serializers.travel_serializers import TravelApplicationSerializer
@@ -178,6 +184,27 @@ class ClaimDetailView(APIView):
                     message="Forbidden"
                 )
             
+            # ----------------------------------------------------
+            # Report Generation (PDF)
+            # ----------------------------------------------------
+            if request.query_params.get("download_report") == "true":
+                try:
+                    def generate():
+                        return generate_claim_details_report(claim_id)
+
+                    pdf_bytes = executor.submit(generate).result()
+
+                    if not pdf_bytes:
+                        return error_response(message="Report generation failed")
+
+                    filename = f"Claim_Report_{claim_id}.pdf"
+                    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+                    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+                    return response
+                except Exception as e:
+                    logger.error(f"Error generating claim report: {str(e)}", exc_info=True)
+                    return error_response(message="Failed to generate report")
+
             serializer = ClaimDetailSerializer(claim, context={"request": request})
             return success_response(message="Claim detail retrieved", data=serializer.data)
         except Exception as ex:
