@@ -34,11 +34,13 @@ export default function GradeMasterPage() {
     const fetchGLCodes = async () => {
         try {
             const glcodes = await masterAPI.getGLCodes();
-            const formatted = glcodes.data.results ? glcodes.data.results.map(gl => ({
+            // The API returns { success: true, data: [...], meta: ... }
+            const glListData = glcodes.data || [];
+            const formatted = Array.isArray(glListData) ? glListData.map(gl => ({
                 value: gl.id,
                 label: `${gl.gl_code} - ${gl.vertical_name}`,
             })) : [];
-            console.log(glcodes.data.results);
+            console.log("Fetched GL Codes:", glListData);
             setGLCodes(formatted);
         } catch (err) {
             console.log("Failed to fetch GL Codes", err);
