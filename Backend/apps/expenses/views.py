@@ -683,6 +683,16 @@ class ClaimFinanceActionView(BranchFilterMixin, APIView):
                 
                 claim.save()
 
+                # Update any pending Hierarchical Approvals in the flow
+                # This ensures the timeline reflects completion when Finance acts
+                if action in ["mark_paid", "mark_closed"]:
+                    claim.approval_flow.filter(status="pending").update(
+                        status="approved",
+                        acted_on=timezone.now(),
+                        approver=request.user,
+                        remarks=remarks or f"Approved via Finance Action: {action.replace('_', ' ').title()}"
+                    )
+
                 # Create finance action log
                 ClaimFinanceActionLog.objects.create(
                     claim=claim,
@@ -1023,27 +1033,57 @@ class ClaimResubmitView(APIView):
                     )
                 
                 claim.status = finance_pending
-                claim.submitted_on = timezone.now()  # Update submission time
+                claim.submitted_on = timezone.now()
                 claim.save()
                 
-                # Update existing finance approval flow entry to pending
+                # Option A: Align Approval Flow at Re-submission
+                
+                # 1. Ensure any lingering Level 1 (Manager) records are marked approved 
+                # (since we are bypassing manager approval for resubmission)
+                claim.approval_flow.filter(level=1, status="pending").update(
+                    status="approved",
+                    remarks="Auto-approved (Previously approved/Revised submission)",
+                    acted_on=timezone.now()
+                )
+
+                # 2. Identify the Finance User who returned this claim
+                # This ensures the 'Pending' entry in timeline is assigned to the correct person
+                last_return_log = claim.finance_action_logs.filter(
+                    action="return_to_applicant"
+                ).order_by("-action_date").first()
+                
+                # If no log found, we'll try to find any person who acted as Finance before
+                finance_user = None
+                if last_return_log:
+                    finance_user = last_return_log.action_by
+                else:
+                    # Fallback: get any finance user from logs or defaults 
+                    # (Production fix: should logically have a return log if status was revision_required)
+                    last_finance_log = claim.finance_action_logs.all().first()
+                    finance_user = last_finance_log.action_by if last_finance_log else None
+                
+                if not finance_user:
+                    # Final fallback to any finance staff if really no logs exist
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    finance_user = User.objects.filter(is_staff=True).first()
+
+                # 3. Create/Update Level 2 (Finance) record to 'pending' 
+                # This record will be marked 'approved' when finance finally takes action
                 finance_flow = claim.approval_flow.filter(level=2).first()
                 if finance_flow:
+                    finance_flow.approver = finance_user
                     finance_flow.status = "pending"
-                    finance_flow.remarks = "Resubmitted after revision"
-                    finance_flow.acted_on = timezone.now()
+                    finance_flow.remarks = "Resubmitted - Awaiting Finance Processing"
+                    finance_flow.acted_on = None # Reset action date for the new cycle
                     finance_flow.save()
                 else:
-                    # Create new finance approval flow if doesn't exist
-                    # Use the finance user who returned it, or default to any finance user
-                    finance_user = request.user  # Placeholder - should be actual finance user
                     ClaimApprovalFlow.objects.create(
                         claim=claim,
                         approver=finance_user,
                         level=2,
                         status="pending",
-                        remarks="Resubmitted after revision",
-                        acted_on=timezone.now()
+                        remarks="Resubmitted - Awaiting Finance Processing"
                     )
             
             return success_response(
