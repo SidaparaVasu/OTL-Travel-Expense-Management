@@ -187,16 +187,19 @@ export default function CreateClaimApplicationPage() {
           console.log("Fetched full travel app:", fullTravelApp);
 
           // Normalize the app object to match structure expected by component
+          // Use .data if present (standard API wrapper), otherwise fallback to the object itself
+          const appData = fullTravelApp.data || fullTravelApp;
+
           const allBookings = [
-            ...(fullTravelApp.ticketing_bookings || []),
-            ...(fullTravelApp.accommodation_bookings || []),
-            ...(fullTravelApp.conveyance_bookings || []),
+            ...(appData.ticketing_bookings || []),
+            ...(appData.accommodation_bookings || []),
+            ...(appData.conveyance_bookings || []),
           ];
 
           const normalizedApp = {
-            ...fullTravelApp,
+            ...appData,
             id: claim.travel_application, // Ensure ID is present
-            travel_request_id: fullTravelApp.application?.travel_request_id,
+            travel_request_id: appData.travel_request_id || claim.travel_request_id,
             bookings: allBookings,
           };
 
@@ -530,7 +533,7 @@ export default function CreateClaimApplicationPage() {
         setDeclarationConfirmed(false); // Reset declaration
         setValidationModalOpen(true);
       } else {
-        const friendly = normalizeErrors(result?.data || result?.errors);
+        const friendly = normalizeErrors(response?.data || response?.errors);
 
         setErrors({
           general: "Please fix the highlighted issues before proceeding.",
