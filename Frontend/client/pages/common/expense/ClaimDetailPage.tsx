@@ -624,166 +624,107 @@ export default function ClaimDetailPage() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="space-y-0">
-                  {/* Created Event */}
-                  {claim.created_on && (
-                    <div className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-100">
-                          <FileText className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
-                      </div>
-                      <div className="pb-6 w-full">
-                        <p className="font-semibold text-sm text-slate-800">
-                          Claim Created
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDateTime(claim.created_on)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  {(() => {
+                    const events: any[] = [];
+                    
+                    // 1. Created
+                    if (claim.created_on) {
+                      events.push({
+                        type: "created",
+                        date: claim.created_on,
+                        label: "Claim Created",
+                        Icon: FileText,
+                        iconBg: "bg-blue-100",
+                        iconColor: "text-blue-600"
+                      });
+                    }
+                    
+                    // 4. Hierarchical Approvals (Manager)
+                    claim.approval_flow?.filter((f: any) => f.status === "approved" && f.level === 1)
+                      .forEach((f: any) => {
+                        events.push({
+                          type: "approved",
+                          date: f.acted_on,
+                          label: "Claim Approved",
+                          subLabel: `By Manager: ${f.approver_name}`,
+                          Icon: CheckCircle,
+                          iconBg: "bg-emerald-100",
+                          iconColor: "text-emerald-600"
+                        });
+                      });
+                      
+                    // 5. Finance Actions (Revision, Processed, Closed)
+                    claim.finance_action_logs?.forEach((log: any) => {
+                      let label = "";
+                      let Icon = FileText;
+                      let iconBg = "bg-slate-100";
+                      let iconColor = "text-slate-600";
 
-                  {/* Submitted Event */}
-                  {claim.submitted_on && (
-                    <div className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-100">
-                          <Send className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
-                      </div>
-                      <div className="pb-6 w-full">
-                        <p className="font-semibold text-sm text-slate-800">
-                          Claim Submitted
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDateTime(claim.submitted_on)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                      if (log.action === "mark_paid") {
+                        label = "Mark as Processed";
+                        Icon = Banknote;
+                        iconBg = "bg-green-100";
+                        iconColor = "text-green-600";
+                      } else if (log.action === "mark_closed") {
+                        label = "Claim Closed";
+                        Icon = Lock;
+                        iconBg = "bg-slate-200";
+                        iconColor = "text-slate-800";
+                      } else if (log.action === "return_to_applicant") {
+                        label = "Revision Required";
+                        Icon = AlertCircle;
+                        iconBg = "bg-orange-100";
+                        iconColor = "text-orange-600";
+                      } else {
+                        label = log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+                      }
+                      
+                      events.push({
+                        type: "finance_action",
+                        date: log.action_date,
+                        label,
+                        subLabel: `By: ${log.action_by_name}`,
+                        remarks: log.remarks,
+                        Icon,
+                        iconBg,
+                        iconColor
+                      });
+                    });
 
-                  {/* Last Updated Event */}
-                  {claim.updated_on &&
-                    claim.updated_on !== claim.created_on && (
-                      <div className="flex gap-4">
+                    // Sort chronologically (ASC)
+                    const sortedEvents = events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                    return sortedEvents.map((event, index) => (
+                      <div key={`${event.type}-${index}`} className="flex gap-4">
                         <div className="flex flex-col items-center">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-slate-100">
-                            <RefreshCw className="h-4 w-4 text-slate-600" />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${event.iconBg}`}>
+                            <event.Icon className={`h-4 w-4 ${event.iconColor}`} />
                           </div>
-                          <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
-                        </div>
-                        <div className="pb-6 w-full">
-                          <p className="font-semibold text-sm text-slate-800">
-                            Last Updated
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {formatDateTime(claim.updated_on)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Finance Action Logs */}
-                  {claim.finance_action_logs?.map((log: any, index: number) => (
-                    <div key={log.id} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            log.action === "mark_paid"
-                              ? "bg-green-100"
-                              : "bg-slate-100"
-                          }`}
-                        >
-                          {log.action === "mark_paid" ? (
-                            <Banknote
-                              className={`h-4 w-4 ${
-                                log.action === "mark_paid"
-                                  ? "text-green-600"
-                                  : "text-slate-600"
-                              }`}
-                            />
-                          ) : (
-                            <Lock
-                              className={`h-4 w-4 ${
-                                log.action === "mark_paid"
-                                  ? "text-green-600"
-                                  : "text-slate-600"
-                              }`}
-                            />
-                          )}
-                        </div>
-                        {index <
-                          (claim.finance_action_logs?.length || 0) - 1 && (
-                          <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
-                        )}
-                      </div>
-                      <div className="pb-6 w-full">
-                        <p className="font-semibold text-sm text-slate-800">
-                          {log.action === "mark_paid"
-                            ? "Payment Processed"
-                            : "Claim Closed"}
-                        </p>
-                        <p className="text-xs text-slate-500 mb-1">
-                          {formatDateTime(log.action_date)}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          By: {log.action_by_name}
-                        </p>
-                        {log.remarks && (
-                          <p className="text-xs text-slate-500 mt-1 italic">
-                            "{log.remarks}"
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Paid On (if no finance logs but paid_on exists) */}
-                  {claim.paid_on &&
-                    (!claim.finance_action_logs ||
-                      claim.finance_action_logs.length === 0) && (
-                      <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-100">
-                            <Banknote className="h-4 w-4 text-green-600" />
-                          </div>
-                          {claim.closed_on && (
+                          {index < sortedEvents.length - 1 && (
                             <div className="w-0.5 h-12 bg-slate-200 mt-2 mb-2"></div>
                           )}
                         </div>
                         <div className="pb-6 w-full">
                           <p className="font-semibold text-sm text-slate-800">
-                            Payment Processed
+                            {event.label}
                           </p>
-                          <p className="text-xs text-slate-500">
-                            {formatDateTime(claim.paid_on)}
+                          <p className="text-xs text-slate-500 mb-1">
+                            {formatDateTime(event.date)}
                           </p>
+                          {event.subLabel && (
+                            <p className="text-xs text-slate-600">
+                              {event.subLabel}
+                            </p>
+                          )}
+                          {event.remarks && (
+                            <p className="text-xs text-slate-500 mt-1 italic">
+                              "{event.remarks}"
+                            </p>
+                          )}
                         </div>
                       </div>
-                    )}
-
-                  {/* Closed On (if no finance logs but closed_on exists) */}
-                  {claim.closed_on &&
-                    (!claim.finance_action_logs ||
-                      claim.finance_action_logs.length === 0) && (
-                      <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-slate-100">
-                            <Lock className="h-4 w-4 text-slate-600" />
-                          </div>
-                        </div>
-                        <div className="pb-6 w-full">
-                          <p className="font-semibold text-sm text-slate-800">
-                            Claim Closed
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {formatDateTime(claim.closed_on)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                    ));
+                  })()}
                 </div>
               </CardContent>
             </Card>
