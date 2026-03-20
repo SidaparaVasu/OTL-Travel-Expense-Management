@@ -45,7 +45,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { ForwardModal, AddNoteModal, ViewBookingModal, CancelModal } from "./";
-import { formatDateToDDMMYYYY, formatCurrency } from "../utils/format";
+import { formatDateToDDMMYYYY, formatCurrency, formatTimeAMPM } from "../utils/format";
 import { travelDeskAPI } from "@/src/api/travel-desk";
 import { toast } from "sonner";
 import type {
@@ -924,8 +924,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                           : "—";
                                         return (
                                           <span>
-                                            {dep} ({d.departure_time || "—"}) to{" "}
-                                            {arr} ({d.arrival_time || "—"})
+                                            {dep} ({formatTimeAMPM(d.departure_time)}) to{" "}
+                                            {arr} ({formatTimeAMPM(d.arrival_time)})
                                           </span>
                                         );
                                       }
@@ -939,8 +939,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                           : "—";
                                         return (
                                           <span>
-                                            {inDate} ({d.check_in_time || "—"}) to{" "}
-                                            {outDate} ({d.check_out_time || "—"})
+                                            {inDate} ({formatTimeAMPM(d.check_in_time)}) to{" "}
+                                            {outDate} ({formatTimeAMPM(d.check_out_time)})
                                           </span>
                                         );
                                       }
@@ -954,8 +954,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         : "—";
                                       return (
                                         <span>
-                                          {start} ({d.start_time || "—"}) to {end} (
-                                          {d.end_time || "—"})
+                                          {start} ({formatTimeAMPM(d.start_time)}) to {end} (
+                                          {formatTimeAMPM(d.end_time)})
                                         </span>
                                       );
                                     })()}
