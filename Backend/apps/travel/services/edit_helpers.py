@@ -27,6 +27,8 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
         # 'rejected_chro',
         # 'rejected_manager'
     ]
+
+    TRAVEL_EDIT_BEFORE_START_ONLY = False # Disabled by default
     
     if application.status in non_editable_statuses:
         return False, f"Cannot edit application in '{application.get_status_display()}' status"
@@ -48,9 +50,11 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
         return False, "You don't have permission to edit this application"
     
     # Travel started check
-    start_date = application.get_travel_start_date()
-    if start_date and start_date <= timezone.now().date():
-        return False, "Cannot edit - travel has already started"
+    # If False, it will skip this entire block (meaning edits ARE allowed)
+    if TRAVEL_EDIT_BEFORE_START_ONLY:
+        start_date = application.get_travel_start_date()
+        if start_date and start_date <= timezone.now().date():
+            return False, "Cannot edit - travel has already started"
     
     # Booking agent assignment check
     from apps.travel.models import BookingAssignment
