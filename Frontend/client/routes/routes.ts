@@ -94,6 +94,9 @@ export const ROUTES = {
   locationSPOCMaster: "/masters/location-spoc",
   spocAssignmentMaster: "/masters/spoc-assignment",
 
+  // User Role Assign
+  userRoleAssigner: "/masters/user-role-assigner",
+
   // Conveyance Rate
   conveyanceRateMaster: "/masters/conveyance-rate",
 

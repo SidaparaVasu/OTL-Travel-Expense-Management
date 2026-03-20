@@ -77,6 +77,7 @@ import ClaimStatusMasterPage from "./pages/common/master/ClaimStatusMaster";
 import BookingAgentList from "./pages/common/master/booking-agent/BookingAgentList";
 import VehicleCategoryMasterPage from "./pages/common/master/VehicleCategoryMaster";
 import VehicleTypeMasterPage from "./pages/common/master/VehicleTypeMaster";
+import UserRoleAssignPage from "./pages/common/master/UserRoleAssigner";
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -674,6 +675,17 @@ const App = () => (
                 <ProtectedRoute requiredDashboard="admin">
                   <UnifiedLayout>
                     <VehicleTypeMasterPage />
+                  </UnifiedLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path={ROUTES.userRoleAssigner}
+              element={
+                <ProtectedRoute requiredDashboard="admin">
+                  <UnifiedLayout>
+                    <UserRoleAssignPage />
                   </UnifiedLayout>
                 </ProtectedRoute>
               }

@@ -87,7 +87,8 @@ const MASTER_CATEGORIES = [
     title: "Users",
     icon: Users,
     items: [
-      { id: "users", title: "Users", route: ROUTES.users },
+      // { id: "users", title: "Users", route: ROUTES.users },
+      { id: "user-role", title: "User Role Assigner", route: ROUTES.userRoleAssigner },
       { id: "booking-agents", title: "Booking Agents", route: ROUTES.bookingAgents },
       { id: "spoc-assignment", title: "SPOC Users", route: ROUTES.spocAssignmentMaster },
     ],

@@ -57,6 +57,16 @@ export const roleManagementAPI = {
 
   // ---- User Role Assignment ----
   userRole: {
+    searchEmployees: async (query: string) => {
+      const { data } = await apiClient.get("/employees/search/", {
+        params: { q: query },
+      });
+      return data;
+    },
+    getUserRoles: async (userId: number) => {
+      const { data } = await apiClient.get(`/users/${userId}/`);
+      return data;
+    },
     assign: async (payload: any) => {
       const { data } = await apiClient.post("/user-roles/assign/", payload);
       return data;

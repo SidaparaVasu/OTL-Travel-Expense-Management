@@ -666,11 +666,17 @@ class EmployeeSearchView(BranchFilterMixin, APIView):
                 if emp.organizational_profile.department:
                     dept_name = emp.organizational_profile.department.dept_name
             
+            # Roles for display
+            assigned_roles = [ur.role.name for ur in emp.userrole_set.all() if ur.is_active and ur.role.is_active]
+            roles_display = ", ".join(assigned_roles)
+
             data.append({
-                'id': emp.id,
-                'employee_id': emp.username,
-                'full_name': emp.get_full_name() or emp.username,
-                'department': dept_name,
+                "id": emp.id,
+                "employee_id": emp.username,
+                "full_name": emp.get_full_name() or emp.username,
+                "email": emp.email,
+                "department": dept_name,
+                "roles": roles_display,
             })
         
         return success_response(data=data)

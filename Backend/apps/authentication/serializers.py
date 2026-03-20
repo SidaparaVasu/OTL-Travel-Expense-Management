@@ -355,10 +355,15 @@ class UserListSerializer(serializers.ModelSerializer):
         }
 
     def get_roles(self, obj):
-        roles = obj.get_all_roles()
         return [
-            {"id": r.id, "name": r.name, "role_type": r.role_type}
-            for r in roles
+            {
+                "id": ur.role.id,
+                "name": ur.role.name,
+                "role_type": ur.role.role_type,
+                "is_primary": ur.is_primary,
+                "is_active": ur.is_active,
+            }
+            for ur in obj.userrole_set.select_related('role').all()
         ]
 
     def get_permissions(self, obj):
@@ -464,9 +469,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
                 'name': ur.role.name,
                 'role_type': ur.role.role_type,
                 'is_primary': ur.is_primary,
+                'is_active': ur.is_active,
                 'description': ur.role.description,
             }
-            for ur in obj.userrole_set.filter(is_active=True).select_related('role')
+            for ur in obj.userrole_set.select_related('role').all()
         ]
 
     def get_permissions(self, obj):
