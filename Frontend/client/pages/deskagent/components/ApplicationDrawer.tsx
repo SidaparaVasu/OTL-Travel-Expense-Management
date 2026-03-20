@@ -741,8 +741,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                             </TableHead>
                             <TableHead className="w-[50px]">#</TableHead>
                             <TableHead>Booking Type &amp; Sub Option</TableHead>
-                            <TableHead>Origin → Destination</TableHead>
-                            <TableHead>Departure → Arrival</TableHead>
+                            <TableHead>Travel Route / Location</TableHead>
+                            <TableHead>Schedule (Date & Time)</TableHead>
                             <TableHead className="text-right">
                               Estimated Cost
                             </TableHead>
@@ -869,18 +869,19 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                   <TableCell className="text-sm">
                                     {(() => {
-                                      if (
+                                      const isFlightOrTrain =
                                         type.includes("flight") ||
-                                        type.includes("train")
-                                      ) {
+                                        type.includes("train");
+                                      const isAccommodation =
+                                        type.includes("accommodation");
+
+                                      if (isFlightOrTrain) {
                                         const from =
                                           d.from_location_name ||
-                                          d.from_location ||
                                           trip.from_location_name ||
                                           "—";
                                         const to =
                                           d.to_location_name ||
-                                          d.to_location ||
                                           trip.to_location_name ||
                                           "—";
                                         return (
@@ -890,46 +891,17 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         );
                                       }
 
-                                      if (type.includes("accommodation")) {
-                                        const place =
-                                          d.place_name ||
-                                          d.place ||
-                                          trip.to_location_name ||
-                                          "—";
-                                        const segment =
-                                          booking.trip_segment ||
-                                          `${trip.from_location_name} → ${trip.to_location_name}`;
-                                        return (
-                                          <div className="flex flex-col">
-                                            <span className="text-xs text-slate-500 mb-0.5">
-                                              {segment}
-                                            </span>
-                                            <span>{place}</span>
-                                          </div>
-                                        );
+                                      if (isAccommodation) {
+                                        return <span>{d.place_name || "—"}</span>;
                                       }
 
-                                      if (
-                                        type.includes("car") ||
-                                        type.includes("cab") ||
-                                        type.includes("conveyance")
-                                      ) {
-                                        const from =
-                                          d.from_location || "Pickup";
-                                        const to =
-                                          d.drop_location ||
-                                          d.to_location ||
-                                          "Drop";
-                                        return (
-                                          <span>
-                                            {from} → {to}
-                                          </span>
-                                        );
-                                      }
-
+                                      // Conveyance (Other modes)
                                       return (
                                         <span>
-                                          {booking.trip_segment || "—"}
+                                          {d.from_location || "—"} (
+                                          {d.report_at || "—"}) →{" "}
+                                          {d.to_location || d.drop_location || "—"} (
+                                          {d.drop_location || "—"})
                                         </span>
                                       );
                                     })()}
@@ -937,79 +909,53 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                   <TableCell className="text-sm">
                                     {(() => {
-                                      if (
+                                      const isFlightOrTrain =
                                         type.includes("flight") ||
-                                        type.includes("train")
-                                      ) {
-                                        const dep =
-                                          d.departure_date ||
-                                          trip.departure_date ||
-                                          null;
-                                        const arr =
-                                          d.arrival_date ||
-                                          trip.return_date ||
-                                          null;
+                                        type.includes("train");
+                                      const isAccommodation =
+                                        type.includes("accommodation");
+
+                                      if (isFlightOrTrain) {
+                                        const dep = d.departure_date
+                                          ? formatDateToDDMMYYYY(d.departure_date)
+                                          : "—";
+                                        const arr = d.arrival_date
+                                          ? formatDateToDDMMYYYY(d.arrival_date)
+                                          : "—";
                                         return (
                                           <span>
-                                            {dep
-                                              ? formatDateToDDMMYYYY(dep)
-                                              : "—"}{" "}
-                                            →{" "}
-                                            {arr
-                                              ? formatDateToDDMMYYYY(arr)
-                                              : "—"}
+                                            {dep} ({d.departure_time || "—"}) to{" "}
+                                            {arr} ({d.arrival_time || "—"})
                                           </span>
                                         );
                                       }
 
-                                      if (type.includes("accommodation")) {
-                                        const inDate = d.check_in_date || null;
-                                        const outDate =
-                                          d.check_out_date || null;
+                                      if (isAccommodation) {
+                                        const inDate = d.check_in_date
+                                          ? formatDateToDDMMYYYY(d.check_in_date)
+                                          : "—";
+                                        const outDate = d.check_out_date
+                                          ? formatDateToDDMMYYYY(d.check_out_date)
+                                          : "—";
                                         return (
                                           <span>
-                                            {inDate
-                                              ? formatDateToDDMMYYYY(inDate)
-                                              : "—"}{" "}
-                                            →{" "}
-                                            {outDate
-                                              ? formatDateToDDMMYYYY(outDate)
-                                              : "—"}
+                                            {inDate} ({d.check_in_time || "—"}) to{" "}
+                                            {outDate} ({d.check_out_time || "—"})
                                           </span>
                                         );
                                       }
 
-                                      if (
-                                        type.includes("car") ||
-                                        type.includes("cab") ||
-                                        type.includes("conveyance")
-                                      ) {
-                                        const start =
-                                          d.start_date ||
-                                          trip.departure_date ||
-                                          null;
-                                        return (
-                                          <span>
-                                            {start
-                                              ? formatDateToDDMMYYYY(start)
-                                              : "—"}
-                                          </span>
-                                        );
-                                      }
-
+                                      // Conveyance
+                                      const start = d.start_date
+                                        ? formatDateToDDMMYYYY(d.start_date)
+                                        : "—";
+                                      const end = d.end_date
+                                        ? formatDateToDDMMYYYY(d.end_date)
+                                        : "—";
                                       return (
                                         <span>
-                                          {trip.departure_date
-                                            ? formatDateToDDMMYYYY(
-                                                trip.departure_date,
-                                              )
-                                            : "—"}{" "}
-                                          →{" "}
-                                          {trip.return_date
-                                            ? formatDateToDDMMYYYY(
-                                                trip.return_date,
-                                              )
-                                            : "—"}
+                                          {start} ({d.start_time || "—"}) to {end} (
+                                          {d.end_time || "—"})
                                         </span>
                                       );
                                     })()}
