@@ -98,6 +98,7 @@ export const LOCATION_TYPES = [
 
 // Empty form templates
 export const getEmptyPurposeForm = () => ({
+  trip_id: null as number | null,
   purpose: "",
   internal_order: "",
   general_ledger: "",

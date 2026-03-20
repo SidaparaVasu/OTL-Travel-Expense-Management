@@ -423,22 +423,26 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         instance.save()
         
         # Update travelers
-        if travelers_data or instance.travel_for != 'self': # Only if relevant changes
+        if travelers_data or instance.travel_for != 'self': 
              self._handle_travelers(instance, travelers_data, instance.travel_for, instance.employee)
         
         # Update trip details if provided
         if trip_details_data is not None:
-            # Get existing trip IDs
-            existing_trip_ids = set(instance.trip_details.values_list('id', flat=True))
-            incoming_trip_ids = set()
+            # Load existing trips to allow fuzzy matching
+            existing_trips = {t.id: t for t in instance.trip_details.all()}
+            matched_trip_ids = []
 
             for trip_data in trip_details_data:
                 trip_id = trip_data.pop('id', None)
                 bookings_data = trip_data.pop('bookings', [])
+                advance_data = trip_data.pop('travel_advance', None)
                 
-                if trip_id and trip_id in existing_trip_ids:
-                    incoming_trip_ids.add(trip_id)
-                    trip_detail = TripDetails.objects.get(id=trip_id, travel_application=instance)
+                trip_detail = None
+                if trip_id and trip_id in existing_trips:
+                    trip_detail = existing_trips[trip_id]
+                
+                if trip_detail:
+                    matched_trip_ids.append(trip_detail.id)
                     for attr, value in trip_data.items():
                         setattr(trip_detail, attr, value)
                     trip_detail.save()
@@ -447,13 +451,16 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                         travel_application=instance,
                         **trip_data
                     )
+                    # FIX: Add newly created ID to matched list to prevent immediate deletion
+                    matched_trip_ids.append(trip_detail.id)
                 
                 # Handle Bookings for this trip
-                existing_booking_ids = set(trip_detail.bookings.values_list('id', flat=True))
-                incoming_booking_ids = set()
+                existing_bookings = {b.id: b for b in trip_detail.bookings.all()}
+                matched_booking_ids = []
 
                 for booking_data in bookings_data:
                     booking_id = booking_data.pop('id', None)
+                    booking_type_id = booking_data.get('booking_type')
                     
                     # Handle meal_preference (nested extraction)
                     meal_preference = booking_data.pop('meal_preference', None)
@@ -462,41 +469,54 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                             booking_data['booking_details'] = {}
                         booking_data['booking_details']['meal_preference'] = meal_preference
 
-                    if booking_id and booking_id in existing_booking_ids:
-                        incoming_booking_ids.add(booking_id)
-                        booking = Booking.objects.get(id=booking_id, trip_details=trip_detail)
+                    booking = None
+                    if booking_id and booking_id in existing_bookings:
+                        booking = existing_bookings[booking_id]
+                    elif booking_type_id:
+                        # Fuzzy match by type
+                        booking = next(
+                            (b for b in existing_bookings.values() 
+                             if b.booking_type_id == booking_type_id and b.id not in matched_booking_ids), 
+                            None
+                        )
+
+                    if booking:
+                        matched_booking_ids.append(booking.id)
                         
-                        # Update fields
+                        incoming_status = booking_data.pop('status', 'pending')
+                        if incoming_status == 'pending' and booking.status != 'pending':
+                             # Keep existing status
+                             pass
+                        else:
+                             booking.status = incoming_status
+
                         for attr, value in booking_data.items():
                             setattr(booking, attr, value)
+                        
+                        if booking.sub_option and 'self' in booking.sub_option.name.lower():
+                            booking.status = 'confirmed'
+                        
                         booking.save()
                     else:
                         booking = Booking.objects.create(trip_details=trip_detail, **booking_data)
-                        
-                        # Auto-confirm self-arranged accommodation (no vendor required)
-                        sub_option = booking.sub_option
-                        if sub_option and 'self' in sub_option.name.lower():
+                        # FIX: Add newly created ID to matched list to prevent immediate deletion
+                        matched_booking_ids.append(booking.id)
+
+                        if (booking.sub_option and 'self' in booking.sub_option.name.lower()):
                             booking.status = 'confirmed'
                             booking.save(update_fields=['status'])
 
                 # Delete removed bookings
-                bookings_to_delete = existing_booking_ids - incoming_booking_ids
-                if bookings_to_delete:
-                    # logger.info(f"Deleting bookings: {bookings_to_delete}")
-                    Booking.objects.filter(id__in=bookings_to_delete).delete()
+                trip_detail.bookings.exclude(id__in=matched_booking_ids).delete()
 
                 # Handle Advance Request
-                advance_data = validated_data.pop('travel_advance', None)
                 if advance_data:
                     TravelAdvanceRequest.objects.update_or_create(
                         trip_detail=trip_detail, defaults=advance_data
                     )
             
             # Delete removed trips
-            trips_to_delete = existing_trip_ids - incoming_trip_ids
-            if trips_to_delete:
-                # logger.info(f"Deleting trips: {trips_to_delete}")
-                TripDetails.objects.filter(id__in=trips_to_delete).delete()
+            instance.trip_details.exclude(id__in=matched_trip_ids).delete()
             
             # Recalculate estimated cost
             instance.calculate_estimated_cost()

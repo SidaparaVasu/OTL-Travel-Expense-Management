@@ -446,6 +446,7 @@ export const TravelApplicationForm: React.FC = () => {
             }
 
             setPurposeData({
+              trip_id: trip.id || null, // Preserve Trip ID
               purpose: app.purpose || "",
               internal_order: app.internal_order || "",
               general_ledger: app.general_ledger || null,
@@ -975,7 +976,7 @@ export const TravelApplicationForm: React.FC = () => {
 
       trip_details: [
         {
-          id: purposeData.trip_id, // Add Trip ID if exists
+          id: purposeData.trip_id || (purposeData as any).trip_id || null, // Pass ID if exists
           from_location: purposeData?.trip_from_location || null,
           to_location: purposeData?.trip_to_location || null,
           departure_date: purposeData?.departure_date || null,

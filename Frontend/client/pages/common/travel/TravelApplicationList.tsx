@@ -638,8 +638,8 @@ export default function TravelApplicationList() {
                             </TableCell>
                             <TableCell className="max-w-2xs">
                               {formatDateRange(
-                                app.trip_details[0].departure_date,
-                                app.trip_details[0].return_date,
+                                app.trip_details?.[0]?.departure_date,
+                                app.trip_details?.[0]?.return_date,
                               )}
                             </TableCell>
                             <TableCell>
@@ -800,16 +800,16 @@ export default function TravelApplicationList() {
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
                             <span>
-                              {app.trip_details[0].from_location_name} →{" "}
-                              {app.trip_details[0].to_location_name}
+                              {app.trip_details?.[0]?.from_location_name} →{" "}
+                              {app.trip_details?.[0]?.to_location_name}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
                             <span>
                               {formatDateRange(
-                                app.trip_details[0].departure_date,
-                                app.trip_details[0].return_date,
+                                app.trip_details?.[0]?.departure_date,
+                                app.trip_details?.[0]?.return_date,
                               )}
                             </span>
                           </div>
