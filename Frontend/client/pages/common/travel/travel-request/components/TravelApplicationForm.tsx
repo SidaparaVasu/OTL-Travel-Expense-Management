@@ -976,7 +976,7 @@ export const TravelApplicationForm: React.FC = () => {
 
       trip_details: [
         {
-          id: purposeData.trip_id || (purposeData as any).trip_id || null, // Pass ID if exists
+          id: purposeData.trip_id || (purposeData as any).trip_id || undefined, // Pass ID if exists
           from_location: purposeData?.trip_from_location || null,
           to_location: purposeData?.trip_to_location || null,
           departure_date: purposeData?.departure_date || null,
@@ -990,7 +990,7 @@ export const TravelApplicationForm: React.FC = () => {
 
           bookings: [
             ...ticketing.map((t) => ({
-              id: (t as any).id, // Pass ID if exists
+              id: (t as any).id || undefined, // Pass ID if exists
               booking_type: parseInt(t.booking_type), // // Ticketing mode ID
               sub_option: parseInt(t.sub_option),
               estimated_cost: parseFloat(t.estimated_cost) || null,
@@ -1010,7 +1010,7 @@ export const TravelApplicationForm: React.FC = () => {
               },
             })),
             ...accommodation.map((a) => ({
-              id: (a as any).id, // Pass ID if exists
+              id: (a as any).id || undefined, // Pass ID if exists
               booking_type: a.accommodation_type, // Accommodation mode ID
               sub_option: parseInt(a.accommodation_sub_option),
               estimated_cost: parseFloat(a.estimated_cost),
@@ -1027,7 +1027,7 @@ export const TravelApplicationForm: React.FC = () => {
               },
             })),
             ...conveyance.map((c) => ({
-              id: (c as any).id, // Pass ID if exists
+              id: (c as any).id || undefined, // Pass ID if exists
               booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
               sub_option: parseInt(c.vehicle_sub_option),
               estimated_cost: parseFloat(c.estimated_cost),
