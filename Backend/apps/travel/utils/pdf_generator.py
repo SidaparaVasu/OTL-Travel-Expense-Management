@@ -742,11 +742,8 @@ def generate_duty_slip_pdf(booking):
     location = ""
     try:
         details = booking.booking_details
-        from_loc = details.get("from_location_name", "") or details.get("from_location", "")
-        to_loc = details.get("to_location_name", "") or details.get("to_location", "")
-        
-        parts = [p for p in [from_loc, to_loc] if p]
-        location = " to ".join(parts)
+        # User requested to show only from_location for this field
+        location = details.get("from_location_name", "") or details.get("from_location", "")
     except Exception as e:
         logger.error(f"Error fetching location: {e}")
     
@@ -781,8 +778,13 @@ def generate_duty_slip_pdf(booking):
     to_time = str(bd.get("end_time") or "")
     
     # Places
-    reporting_place = str(bd.get("from_location_name") or bd.get("report_at") or "")
-    visiting_place = str(bd.get("to_location_name") or bd.get("drop_location") or "")
+    report_at = bd.get("report_at", "")
+    from_loc = bd.get("from_location_name") or bd.get("from_location") or ""
+    # Joining report_at and from_location as requested
+    reporting_place = f"{report_at}, {from_loc}".strip(", ")
+    
+    # User requested to show to_location here
+    visiting_place = str(bd.get("to_location_name") or bd.get("to_location") or "")
     
     # Vehicle Number (usually blank for new bookings)
     vehicle_no = ""
