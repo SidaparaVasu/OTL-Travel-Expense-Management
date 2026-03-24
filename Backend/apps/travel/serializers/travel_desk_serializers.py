@@ -188,7 +188,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
 
         # --- Leaf-node states: no actions possible at all ---
         is_self_arranged = bool(obj.booking_details.get('is_self_arranged', False))
-        is_terminal = obj.status in ['cancelled', 'completed', 'confirmed']
+        is_terminal = obj.status in ['cancelled', 'completed']
 
         if is_self_arranged or is_terminal:
             return {
@@ -220,7 +220,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         if owned_by_me:
             return {
                 'can_forward': obj.status in ['pending', 'requested'],
-                'can_cancel': obj.status in ['pending', 'requested'],
+                'can_cancel': obj.status in ['pending', 'requested', 'in_progress', 'confirmed'],
                 'can_add_note': True,
                 'can_reclaim': False,
                 'is_delegated': False,
@@ -231,7 +231,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
                 # SPOC1 can act on unassigned bookings in their application
                 return {
                     'can_forward': obj.status in ['pending', 'requested'],
-                    'can_cancel': obj.status in ['pending', 'requested'],
+                    'can_cancel': obj.status in ['pending', 'requested', 'in_progress', 'confirmed'],
                     'can_add_note': True,
                     'can_reclaim': False,
                     'is_delegated': False,
