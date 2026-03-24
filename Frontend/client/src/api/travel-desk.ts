@@ -22,19 +22,25 @@ export const travelDeskAPI = {
   },
 
   applications: {
-    list: async (params?: {
-      page?: number;
-      search?: string;
-      status?: string;
-    }): Promise<ApplicationsListResponse> => {
+    list: async (
+      params?: {
+        page?: number;
+        search?: string;
+        status?: string;
+        is_global?: boolean;
+      },
+      options?: { signal?: AbortSignal },
+    ): Promise<ApplicationsListResponse> => {
       const queryParams = new URLSearchParams();
 
       if (params?.page) queryParams.append("page", params.page.toString());
       if (params?.search) queryParams.append("search", params.search);
       if (params?.status) queryParams.append("status", params.status);
+      if (params?.is_global) queryParams.append("is_global", "true");
 
       const { data } = await apiClient.get(
         `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ""}`,
+        { signal: options?.signal },
       );
 
       return data;

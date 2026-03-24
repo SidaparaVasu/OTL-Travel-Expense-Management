@@ -15,6 +15,8 @@ import {
 export const SearchFilterBar = ({
   searchQuery,
   onSearchChange,
+  isGlobalSearch,
+  onGlobalSearchChange,
   sortBy,
   onSortChange,
   statusFilter,
@@ -29,16 +31,19 @@ export const SearchFilterBar = ({
     statusFilter && statusFilter !== "all" ? 1 : 0,
     locationFilter && locationFilter !== "all" ? 1 : 0,
     sortBy !== "urgency" ? 1 : 0,
+    isGlobalSearch ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
   const handleClearFilters = useCallback(() => {
     onSearchChange("");
     onSortChange("urgency");
+    if (onGlobalSearchChange) onGlobalSearchChange(false);
     if (onStatusFilterChange) onStatusFilterChange("pending_travel_desk");
     if (onLocationFilterChange) onLocationFilterChange("all");
   }, [
     onSearchChange,
     onSortChange,
+    onGlobalSearchChange,
     onStatusFilterChange,
     onLocationFilterChange,
   ]);
@@ -65,6 +70,24 @@ export const SearchFilterBar = ({
             </button>
           )}
         </div>
+
+        {/* Global Search Toggle */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border rounded-md h-10 border-slate-200">
+          <input
+            type="checkbox"
+            id="global-search-toggle"
+            checked={isGlobalSearch}
+            onChange={(e) => onGlobalSearchChange(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+          />
+          <label
+            htmlFor="global-search-toggle"
+            className="text-sm font-medium text-slate-700 cursor-pointer select-none whitespace-nowrap"
+          >
+            Search All Statuses
+          </label>
+        </div>
+
         <Button
           variant={isFiltersVisible ? "default" : "outline"}
           size="sm"

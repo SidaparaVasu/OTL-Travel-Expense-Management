@@ -143,13 +143,18 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         # Apply branch filtering - Travel Desk sees only their branch
         qs = self.apply_branch_filter(qs, request.user, employee_field='employee')
 
-        # Status filter
+        # Status and Global Search filters
         status_filter = request.query_params.get("status")
-        if status_filter:
+        is_global = request.query_params.get("is_global") == "true"
+        search = request.query_params.get("search")
+
+        # If it's a global search and search term is provided, we skip status and date filters
+        skip_narrow_filters = is_global and search
+
+        if status_filter and not skip_narrow_filters:
             qs = qs.filter(status=status_filter)
 
         # Search filter
-        search = request.query_params.get("search")
         if search:
             # Check if search term might be a Travel Request ID (e.g., TR/TSF/2025/0000123 or just 123)
             # Try to extract the numeric ID
@@ -173,12 +178,12 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
             
             qs = qs.filter(q_objects)
 
-        # Date range filters
+        # Date range filters - skip if global search is active
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
-        if date_from:
+        if date_from and not skip_narrow_filters:
             qs = qs.filter(submitted_at__date__gte=date_from)
-        if date_to:
+        if date_to and not skip_narrow_filters:
             qs = qs.filter(submitted_at__date__lte=date_to)
 
         # Union with applications where bookings are forwarded to the current user

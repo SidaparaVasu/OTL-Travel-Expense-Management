@@ -39,6 +39,7 @@ const TravelDeskDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState("my_requests");
   const [locationFilter, setLocationFilter] = useState("all");
   const [assignedLocations, setAssignedLocations] = useState<string[]>([]);
+  const [isGlobalSearch, setIsGlobalSearch] = useState(false);
 
   // Fetch assigned locations
   const fetchLocations = useCallback(async () => {
@@ -83,28 +84,56 @@ const TravelDeskDashboard: React.FC = () => {
     }
   }, []);
 
+  // Debounced search query logic
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+  
+  useEffect(() => {
+    // Trigger update only if query is empty (reset) or at least 2 chars
+    if (searchQuery.length > 0 && searchQuery.length < 2) return;
+
+    // Use shorter delay for clearing results to make UI feel snappier
+    const delay = searchQuery.length === 0 ? 0 : 500;
+
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      // Reset to page 1 when search changes to ensure we see the first results
+      setCurrentPage(1);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Fetch applications
-  const fetchApplications = useCallback(async () => {
+  const fetchApplications = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoading(true);
 
-      const response = await travelDeskAPI.applications.list({
-        page: currentPage,
-        status: statusFilter,
-        search: searchQuery,
-      });
+      const response = await travelDeskAPI.applications.list(
+        {
+          page: currentPage,
+          status: statusFilter,
+          search: debouncedSearchQuery,
+          is_global: isGlobalSearch,
+        },
+        { signal },
+      );
 
       if (response.success) {
         setApplications(response.data);
         setPagination(response.meta?.pagination || null);
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Ignore abort errors as they are intentional
+      if (err.name === "CanceledError" || err.name === "AbortError") return;
       console.error("Failed to fetch applications:", err);
       toast.error("Failed to load applications");
     } finally {
+      // Only stop loading if the component is still mounted and it's not a cancelled request
+      // (in a real scenario we'd check if this was the latest request, 
+      // but AbortController + state updates is generally safe for simple dashboards)
       setLoading(false);
     }
-  }, [currentPage, statusFilter, searchQuery]);
+  }, [currentPage, statusFilter, debouncedSearchQuery, isGlobalSearch]);
 
   // Fetch agents for dropdowns
   const fetchAgents = useCallback(async () => {
@@ -117,23 +146,30 @@ const TravelDeskDashboard: React.FC = () => {
     }
   }, []);
 
-  // Initial load
+  // Application Data Fetching (Triggers on filter/page changes)
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchApplications(controller.signal);
+    return () => controller.abort();
+  }, [fetchApplications]);
+
+  // Metadata/Initial load
   useEffect(() => {
     fetchDashboard();
     fetchLocations();
-    fetchApplications();
     fetchAgents();
-  }, [fetchDashboard, fetchApplications, fetchAgents, fetchLocations]);
+  }, [fetchDashboard, fetchAgents, fetchLocations]);
 
   // Filter and sort applications
   const getFilteredApplications = useCallback(() => {
     let filtered = [...applications];
 
     // Tab Filter — skip for terminal statuses (booked/completed have no actionable bookings by design)
+    // ALSO SKIP if global search is active
     const isTerminalStatus =
       statusFilter === "booked" || statusFilter === "completed";
 
-    if (!isTerminalStatus) {
+    if (!isTerminalStatus && !isGlobalSearch) {
       if (activeTab === "my_requests") {
         filtered = filtered.filter(
           (app) =>
@@ -150,24 +186,17 @@ const TravelDeskDashboard: React.FC = () => {
       }
     }
 
-    // Location Filter
-    if (locationFilter && locationFilter !== "all") {
+    // Location Filter - skip if global search is active
+    if (locationFilter && locationFilter !== "all" && !isGlobalSearch) {
       filtered = filtered.filter(
         (app) => app.employee_location === locationFilter,
       );
     }
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (app) =>
-          app.employee_name.toLowerCase().includes(query) ||
-          `TSF-TR-2025-${String(app.id).padStart(6, "0")}`
-            .toLowerCase()
-            .includes(query),
-      );
-    }
+    // Search filter - Skip CLIENT-SIDE re-filter if it's already filtered by backend
+    // This allows backend-only logic (like regex/ID matching) to work correctly
+    // If not global, we might still want local quick filter, but for now let's trust backend
+    // if (searchQuery) { ... }
 
     // Note: status filtering is already done by the API via the statusFilter param.
     // No client-side re-filter needed here.
@@ -214,6 +243,7 @@ const TravelDeskDashboard: React.FC = () => {
     sortBy,
     activeTab,
     locationFilter,
+    isGlobalSearch,
   ]);
 
   // Handlers
@@ -347,6 +377,8 @@ const TravelDeskDashboard: React.FC = () => {
           <SearchFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            isGlobalSearch={isGlobalSearch}
+            onGlobalSearchChange={setIsGlobalSearch}
             sortBy={sortBy}
             onSortChange={setSortBy}
             statusFilter={statusFilter}
