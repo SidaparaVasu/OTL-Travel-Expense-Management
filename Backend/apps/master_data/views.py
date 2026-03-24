@@ -632,6 +632,7 @@ class DAIncidentalListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['grade', 'city_category']
+    pagination_class = None
 
 class DAIncidentalDetailView(RetrieveUpdateDestroyAPIView):
     queryset = DAIncidentalMaster.objects.select_related('grade', 'city_category').all()
