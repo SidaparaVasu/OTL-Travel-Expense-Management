@@ -180,10 +180,8 @@ const TravelDeskDashboard: React.FC = () => {
       } else if (activeTab === "forwarded") {
         filtered = filtered.filter(
           (app) =>
-            (!app.actionable_booking_ids ||
-              app.actionable_booking_ids.length === 0) &&
             app.delegated_booking_ids &&
-            app.delegated_booking_ids.length > 0,
+            app.delegated_booking_ids.length > 0
         );
       }
     }
@@ -367,8 +365,6 @@ const TravelDeskDashboard: React.FC = () => {
                 icon: Share2,
                 count: applications.filter(
                   (app) =>
-                    (!app.actionable_booking_ids ||
-                      app.actionable_booking_ids.length === 0) &&
                     app.delegated_booking_ids &&
                     app.delegated_booking_ids.length > 0,
                 ).length,
