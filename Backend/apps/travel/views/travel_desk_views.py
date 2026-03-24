@@ -799,6 +799,7 @@ class TravelDeskCancelBookingView(APIView):
                         "request_id": application.get_travel_request_id(),
                         "employee_id": application.employee.id,
                         "employee_name": application.employee.get_full_name(),
+                        "booking_agent_id": booking.assignment.assigned_to.id if hasattr(booking, 'assignment') and booking.assignment and booking.assignment.assigned_to else None,
                         "booking_type": display_type,
                         "cancel_reason": reason or "N/A",
                     },

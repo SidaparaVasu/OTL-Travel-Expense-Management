@@ -162,6 +162,12 @@ class NotificationCenter:
                 if payload.get('travel_desk_id'):
                     users.extend(User.objects.filter(id=payload.get('travel_desk_id')))
             
+            elif resolver_key == 'employee_and_booking_agent':
+                if payload.get('employee_id'):
+                    users.extend(User.objects.filter(id=payload.get('employee_id')))
+                if payload.get('booking_agent_id'):
+                    users.extend(User.objects.filter(id=payload.get('booking_agent_id')))
+            
             # Cancellation-specific resolvers
             elif resolver_key == 'approver_and_stakeholders':
                 # Primary approver
