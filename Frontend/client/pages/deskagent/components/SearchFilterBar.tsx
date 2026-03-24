@@ -140,8 +140,8 @@ export const SearchFilterBar = ({
                 value={statusFilter || "pending_travel_desk"}
                 onValueChange={onStatusFilterChange}
               >
-                <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm bg-background">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="w-full sm:w-[180px] h-9 text-sm bg-background">
+                  <SelectValue placeholder="TR Lifecycle Stage" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending_travel_desk">Pending</SelectItem>

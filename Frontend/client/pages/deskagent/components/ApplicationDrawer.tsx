@@ -508,7 +508,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Status</p>
+                      <p className="text-xs text-slate-500">TR Status</p>
                       <p className="text-sm font-medium">
                         {application.status_label || application.status}
                       </p>
@@ -747,7 +747,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                               Estimated Cost
                             </TableHead>
                             <TableHead className="text-center">
-                              Status
+                              Booking Status
                             </TableHead>
                             <TableHead className="text-center">
                               Actions

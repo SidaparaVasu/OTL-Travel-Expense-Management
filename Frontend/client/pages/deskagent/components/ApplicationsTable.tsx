@@ -51,7 +51,7 @@ export const ApplicationsTable = ({
               <TableHead className="text-blue-500">Travel Request ID & Purpose</TableHead>
               <TableHead className="text-blue-500">Employee & Route</TableHead>
               <TableHead className="text-blue-500">Departure</TableHead>
-              <TableHead className="text-center text-blue-500">Status</TableHead>
+              <TableHead className="text-center text-blue-500">TR Lifecycle</TableHead>
               <TableHead className="text-center text-blue-500">Bookings</TableHead>
               <TableHead className="text-center text-blue-500 ">Actions</TableHead>
             </TableRow>
