@@ -30,7 +30,8 @@ const TravelDeskDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("urgency");
-  const [statusFilter, setStatusFilter] = useState("pending_travel_desk");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [bookingActionStatus, setBookingActionStatus] = useState("pending");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [activeForwardedIds, setActiveForwardedIds] = useState<
@@ -112,6 +113,7 @@ const TravelDeskDashboard: React.FC = () => {
         {
           page: currentPage,
           status: statusFilter,
+          booking_action_status: bookingActionStatus === "all" ? undefined : bookingActionStatus,
           search: debouncedSearchQuery,
           is_global: isGlobalSearch,
         },
@@ -133,7 +135,7 @@ const TravelDeskDashboard: React.FC = () => {
       // but AbortController + state updates is generally safe for simple dashboards)
       setLoading(false);
     }
-  }, [currentPage, statusFilter, debouncedSearchQuery, isGlobalSearch]);
+  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch]);
 
   // Fetch agents for dropdowns
   const fetchAgents = useCallback(async () => {
@@ -167,7 +169,7 @@ const TravelDeskDashboard: React.FC = () => {
     // Tab Filter — skip for terminal statuses (booked/completed have no actionable bookings by design)
     // ALSO SKIP if global search is active
     const isTerminalStatus =
-      statusFilter === "booked" || statusFilter === "completed";
+      bookingActionStatus === "confirmed" || bookingActionStatus === "completed" || bookingActionStatus === "cancelled";
 
     if (!isTerminalStatus && !isGlobalSearch) {
       if (activeTab === "my_requests") {
@@ -240,6 +242,7 @@ const TravelDeskDashboard: React.FC = () => {
     applications,
     searchQuery,
     statusFilter,
+    bookingActionStatus,
     sortBy,
     activeTab,
     locationFilter,
@@ -381,8 +384,10 @@ const TravelDeskDashboard: React.FC = () => {
             onGlobalSearchChange={setIsGlobalSearch}
             sortBy={sortBy}
             onSortChange={setSortBy}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
+            // statusFilter={statusFilter}
+            // onStatusFilterChange={setStatusFilter}
+            bookingActionStatus={bookingActionStatus}
+            onBookingActionStatusChange={setBookingActionStatus}
             locationFilter={locationFilter} // Ensure these are defined in state if not already
             onLocationFilterChange={setLocationFilter}
             locations={assignedLocations}

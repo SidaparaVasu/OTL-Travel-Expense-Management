@@ -158,6 +158,7 @@ export interface DashboardApplication {
   booked_bookings: number;
   actionable_booking_ids?: number[];
   delegated_booking_ids?: number[];
+  booking_action_status?: string;
 }
 
 export interface DashboardStats {

@@ -27,6 +27,7 @@ export const travelDeskAPI = {
         page?: number;
         search?: string;
         status?: string;
+        booking_action_status?: string;
         is_global?: boolean;
       },
       options?: { signal?: AbortSignal },
@@ -36,6 +37,7 @@ export const travelDeskAPI = {
       if (params?.page) queryParams.append("page", params.page.toString());
       if (params?.search) queryParams.append("search", params.search);
       if (params?.status) queryParams.append("status", params.status);
+      if (params?.booking_action_status) queryParams.append("booking_action_status", params.booking_action_status);
       if (params?.is_global) queryParams.append("is_global", "true");
 
       const { data } = await apiClient.get(

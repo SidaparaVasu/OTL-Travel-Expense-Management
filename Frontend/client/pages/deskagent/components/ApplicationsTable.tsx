@@ -51,7 +51,7 @@ export const ApplicationsTable = ({
               <TableHead className="text-blue-500">Travel Request ID & Purpose</TableHead>
               <TableHead className="text-blue-500">Employee & Route</TableHead>
               <TableHead className="text-blue-500">Departure</TableHead>
-              <TableHead className="text-center text-blue-500">TR Lifecycle</TableHead>
+              <TableHead className="text-center text-blue-500">Action Status</TableHead>
               <TableHead className="text-center text-blue-500">Bookings</TableHead>
               <TableHead className="text-center text-blue-500 ">Actions</TableHead>
             </TableRow>
@@ -103,7 +103,14 @@ export const ApplicationsTable = ({
                     </TableCell>
 
                     <TableCell className="text-center">
-                      <StatusBadge statusType="travel" status={app.status} />
+                      <div className="flex flex-col items-center gap-1">
+                        {/* <StatusBadge statusType="travel" status={app.status} /> */}
+                        {app.booking_action_status && app.booking_action_status !== "none" ? (
+                          <StatusBadge statusType="booking" status={app.booking_action_status} />
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </div>
                     </TableCell>
 
                     <TableCell className="text-center">

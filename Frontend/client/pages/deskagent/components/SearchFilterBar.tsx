@@ -21,6 +21,8 @@ export const SearchFilterBar = ({
   onSortChange,
   statusFilter,
   onStatusFilterChange,
+  bookingActionStatus,
+  onBookingActionStatusChange,
   locationFilter,
   onLocationFilterChange,
   locations,
@@ -28,23 +30,26 @@ export const SearchFilterBar = ({
   const [isFiltersVisible, setIsFiltersVisible] = useState(true);
 
   const activeFilterCount = [
-    statusFilter && statusFilter !== "all" ? 1 : 0,
+    // statusFilter && statusFilter !== "all" ? 1 : 0,
     locationFilter && locationFilter !== "all" ? 1 : 0,
     sortBy !== "urgency" ? 1 : 0,
     isGlobalSearch ? 1 : 0,
+    bookingActionStatus && bookingActionStatus !== "all" ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
   const handleClearFilters = useCallback(() => {
     onSearchChange("");
     onSortChange("urgency");
     if (onGlobalSearchChange) onGlobalSearchChange(false);
-    if (onStatusFilterChange) onStatusFilterChange("pending_travel_desk");
+    // if (onStatusFilterChange) onStatusFilterChange("pending_travel_desk");
+    if (onBookingActionStatusChange) onBookingActionStatusChange("pending");
     if (onLocationFilterChange) onLocationFilterChange("all");
   }, [
     onSearchChange,
     onSortChange,
     onGlobalSearchChange,
     onStatusFilterChange,
+    onBookingActionStatusChange,
     onLocationFilterChange,
   ]);
 
@@ -135,7 +140,7 @@ export const SearchFilterBar = ({
               </SelectContent>
             </Select>
 
-            {onStatusFilterChange && (
+            {/* {onStatusFilterChange && (
               <Select
                 value={statusFilter || "pending_travel_desk"}
                 onValueChange={onStatusFilterChange}
@@ -144,11 +149,31 @@ export const SearchFilterBar = ({
                   <SelectValue placeholder="TR Lifecycle Stage" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">Any Lifecycle Stage</SelectItem>
                   <SelectItem value="pending_travel_desk">Pending</SelectItem>
                   <SelectItem value="booking_in_progress">
                     In Progress
                   </SelectItem>
                   <SelectItem value="booked">Booked</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            )} */}
+
+            {onBookingActionStatusChange && (
+              <Select
+                value={bookingActionStatus || "all"}
+                onValueChange={onBookingActionStatusChange}
+              >
+                <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm bg-background">
+                  <SelectValue placeholder="Booking Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="requested">Requested</SelectItem>
+                  <SelectItem value="in_progress">In-Progress</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>

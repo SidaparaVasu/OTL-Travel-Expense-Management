@@ -127,6 +127,61 @@ class TravelDeskDashboardView(BranchFilterMixin, APIView):
         )
       
 
+def annotate_booking_action_status(queryset, user):
+    from django.db.models import Count, Q, F, Case, When, Value, CharField
+    return queryset.annotate(
+        total_bookings=Count('trip_details__bookings', distinct=True),
+        pending_action_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(
+                trip_details__bookings__status='pending',
+                trip_details__bookings__handling_travel_desk_user=user
+            ),
+            distinct=True
+        ),
+        general_pending_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='pending'),
+            distinct=True
+        ),
+        requested_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='requested'),
+            distinct=True
+        ),
+        in_progress_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='in_progress'),
+            distinct=True
+        ),
+        confirmed_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='confirmed'),
+            distinct=True
+        ),
+        cancelled_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='cancelled'),
+            distinct=True
+        ),
+        completed_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='completed'),
+            distinct=True
+        )
+    ).annotate(
+        booking_action_status=Case(
+            When(general_pending_bookings__gt=0, then=Value('pending')),
+            When(general_pending_bookings=0, requested_bookings__gt=0, then=Value('requested')),
+            When(general_pending_bookings=0, requested_bookings=0, in_progress_bookings__gt=0, then=Value('in_progress')),
+            When(total_bookings__gt=0, confirmed_bookings=F('total_bookings'), then=Value('confirmed')),
+            When(total_bookings__gt=0, completed_bookings=F('total_bookings'), then=Value('completed')),
+            When(cancelled_bookings__gt=0, then=Value('cancelled')),
+            default=Value('none'),
+            output_field=CharField()
+        )
+    )
+
 class TravelDeskApplicationListView(BranchFilterMixin, APIView):
     """
     Travel Desk Application List with branch-based access control.
@@ -143,48 +198,70 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         # Apply branch filtering - Travel Desk sees only their branch
         qs = self.apply_branch_filter(qs, request.user, employee_field='employee')
 
+        # Annotate with derived booking action status
+        qs = annotate_booking_action_status(qs, request.user)
+
         # Status and Global Search filters
         status_filter = request.query_params.get("status")
+        booking_action_status = request.query_params.get("booking_action_status")
         is_global = request.query_params.get("is_global") == "true"
         search = request.query_params.get("search")
 
         # If it's a global search and search term is provided, we skip status and date filters
         skip_narrow_filters = is_global and search
+        
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
 
-        if status_filter and not skip_narrow_filters:
-            qs = qs.filter(status=status_filter)
-
-        # Search filter
+        # Build search Q objects
+        q_objects = Q()
         if search:
-            # Check if search term might be a Travel Request ID (e.g., TR/TSF/2025/0000123 or just 123)
-            # Try to extract the numeric ID
             import re
-            # Match strictly the numeric part at the end or just a number
             match = re.search(r'(\d+)$', search)
-            
             q_objects = Q(purpose__icontains=search) | \
                         Q(employee__first_name__icontains=search) | \
                         Q(employee__last_name__icontains=search) | \
                         Q(employee__username__icontains=search)
-
             if match:
                 try:
-                    # If we found a number, try to filter by ID as well
-                    # This handles "123" and "TR/TSF/2025/0000123" (extracting 123)
                     travel_id = int(match.group(1))
                     q_objects |= Q(id=travel_id)
                 except ValueError:
                     pass
-            
-            qs = qs.filter(q_objects)
 
-        # Date range filters - skip if global search is active
-        date_from = request.query_params.get("date_from")
-        date_to = request.query_params.get("date_to")
-        if date_from and not skip_narrow_filters:
-            qs = qs.filter(submitted_at__date__gte=date_from)
-        if date_to and not skip_narrow_filters:
-            qs = qs.filter(submitted_at__date__lte=date_to)
+        def apply_frontend_filters(queryset):
+            _qs = queryset
+            if status_filter and status_filter != 'all' and not skip_narrow_filters:
+                _qs = _qs.filter(status=status_filter)
+            if booking_action_status and booking_action_status != 'all' and not skip_narrow_filters:
+                if booking_action_status == 'pending':
+                    _qs = _qs.filter(general_pending_bookings__gt=0)
+                elif booking_action_status == 'requested':
+                    _qs = _qs.filter(general_pending_bookings=0, requested_bookings__gt=0)
+                elif booking_action_status == 'in_progress':
+                    _qs = _qs.filter(general_pending_bookings=0, requested_bookings=0, in_progress_bookings__gt=0)
+                elif booking_action_status == 'confirmed':
+                    _qs = _qs.filter(total_bookings__gt=0, confirmed_bookings=F('total_bookings'))
+                elif booking_action_status == 'completed':
+                    _qs = _qs.filter(total_bookings__gt=0, completed_bookings=F('total_bookings'))
+                elif booking_action_status == 'cancelled':
+                    # Only cancelled when no primary actionable bookings exist as per our precedence
+                    _qs = _qs.filter(
+                        general_pending_bookings=0,
+                        requested_bookings=0,
+                        in_progress_bookings=0,
+                        cancelled_bookings__gt=0
+                    )
+            if search:
+                _qs = _qs.filter(q_objects)
+            if date_from and not skip_narrow_filters:
+                _qs = _qs.filter(submitted_at__date__gte=date_from)
+            if date_to and not skip_narrow_filters:
+                _qs = _qs.filter(submitted_at__date__lte=date_to)
+            return _qs
+
+        # Apply to main qs
+        qs = apply_frontend_filters(qs)
 
         # Union with applications where bookings are forwarded to the current user
         # These might be outside the user's branch
@@ -197,6 +274,8 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 id__in=forwarded_app_ids,
                 status__in=TRAVEL_DESK_VISIBLE_STATUSES
             )
+            forwarded_qs = annotate_booking_action_status(forwarded_qs, request.user)
+            forwarded_qs = apply_frontend_filters(forwarded_qs)
             qs = qs | forwarded_qs
             qs = qs.distinct()
 

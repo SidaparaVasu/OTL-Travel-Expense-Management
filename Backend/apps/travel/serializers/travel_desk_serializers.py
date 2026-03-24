@@ -352,6 +352,7 @@ class TravelDeskTripSerializer(serializers.ModelSerializer):
 
 class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.CharField(read_only=True)
+    booking_action_status = serializers.CharField(read_only=True)
     employee_name = serializers.SerializerMethodField()
     employee_grade = serializers.CharField(read_only=True)
     from_location = serializers.SerializerMethodField()
@@ -370,7 +371,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelApplication
         fields = [
-            "id", "travel_request_id", "employee", "employee_name", "employee_grade", "employee_location",
+            "id", "travel_request_id", "booking_action_status", "employee", "employee_name", "employee_grade", "employee_location",
             "from_location", "to_location", "departure_date", "return_date", 
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
