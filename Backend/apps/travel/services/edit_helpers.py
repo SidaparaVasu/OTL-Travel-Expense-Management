@@ -22,7 +22,7 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
         'cancelled',
         'cancellation_requested',
         'completed',
-        'booked',
+        # 'booked',
         # 'rejected_ceo',
         # 'rejected_chro',
         # 'rejected_manager'
