@@ -237,8 +237,10 @@ def schedule_travel_completion(travel_app):
 
     PeriodicTask.objects.update_or_create(
         name=f"travel_complete_{travel_app.id}",
-        task="apps.notifications.tasks.mark_travel_as_completed",
-        one_off=True,
-        clocked=clocked,
-        args=json.dumps([travel_app.id])
+        defaults={
+            "task": "apps.notifications.tasks.mark_travel_as_completed",
+            "one_off": True,
+            "clocked": clocked,
+            "args": json.dumps([travel_app.id]),
+        }
     )
