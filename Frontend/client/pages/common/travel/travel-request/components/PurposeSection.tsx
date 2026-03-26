@@ -8,6 +8,8 @@ import { CityCombobox } from "./CityCombobox";
 import { GLCodeCombobox } from "./GLCodeCombobox";
 import { TimePickerField } from "./TimePickerField";
 import { DatePickerField } from "./DatePickerField";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   MAX_ADVANCE_AMOUNT,
   IO_NUMBER_MINMAX_LENGTH,
@@ -37,6 +39,7 @@ interface PurposeFormData {
   start_time: string;
   return_date: string;
   end_time: string;
+  is_back_dated: boolean;
 }
 
 interface PurposeSectionProps {
@@ -103,13 +106,13 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
         field === "departure_date" ? value : formData.departure_date;
       const endDate = field === "return_date" ? value : formData.return_date;
 
-      if (startDate && isPastDate(startDate)) {
+      if (startDate && !formData.is_back_dated && isPastDate(startDate)) {
         setErrors((prev) => ({
           ...prev,
           departure_date: "Start date cannot be in the past",
         }));
       }
-      if (endDate && isPastDate(endDate)) {
+      if (endDate && !formData.is_back_dated && isPastDate(endDate)) {
         setErrors((prev) => ({
           ...prev,
           return_date: "End date cannot be in the past",
@@ -236,6 +239,47 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           </h2>
           <p className="text-sm text-muted-foreground">
             Provide basic information about your travel
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg border border-border/50 animate-in fade-in slide-in-from-top-1">
+        <Checkbox
+          id="is_back_dated"
+          checked={formData.is_back_dated}
+          onCheckedChange={(checked) => {
+            const isChecked = !!checked;
+            handleFieldChange("is_back_dated", isChecked as any);
+            
+            // If turning off back-dated, and current dates are in the past, clear errors or reset?
+            // Actually handleFieldChange will run validation again if we triggered it.
+            if (!isChecked) {
+              if (formData.departure_date && isPastDate(formData.departure_date)) {
+                setErrors(prev => ({...prev, departure_date: "Start date cannot be in the past"}));
+              }
+              if (formData.return_date && isPastDate(formData.return_date)) {
+                setErrors(prev => ({...prev, return_date: "End date cannot be in the past"}));
+              }
+            } else {
+              // Clearing past date errors when checking back-dated
+              setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors.departure_date;
+                delete newErrors.return_date;
+                return newErrors;
+              });
+            }
+          }}
+        />
+        <div className="grid gap-1.5 leading-none">
+          <Label
+            htmlFor="is_back_dated"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Back-dated Travel Request?
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Check this if you are creating a travel request for a trip that has already started or completed
           </p>
         </div>
       </div>
@@ -385,7 +429,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           required
           value={formData.departure_date}
           onChange={(value) => handleFieldChange("departure_date", value)}
-          min={today}
+          min={formData.is_back_dated ? undefined : today}
           error={errors.departure_date}
         />
 
@@ -402,7 +446,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           required
           value={formData.return_date}
           onChange={(value) => handleFieldChange("return_date", value)}
-          min={formData.departure_date || today}
+          min={formData.departure_date || (formData.is_back_dated ? undefined : today)}
           max={
             formData.departure_date
               ? getMaxDate(formData.departure_date)

@@ -112,6 +112,7 @@ export const getEmptyPurposeForm = () => ({
   start_time: "",
   return_date: "",
   end_time: "",
+  is_back_dated: false,
 });
 
 export const getEmptyTicketing = () => ({

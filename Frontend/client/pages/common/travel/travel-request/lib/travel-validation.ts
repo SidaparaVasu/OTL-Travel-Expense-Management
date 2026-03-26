@@ -38,11 +38,14 @@ export const isDateInRange = (date: string, startDate: string, endDate: string):
 };
 
 export const isPastDate = (dateStr: string): boolean => {
-  const date = parseDate(dateStr);
-  if (!date) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date < today;
+  // const date = parseDate(dateStr);
+  // if (!date) return false;
+  // const today = new Date();
+  // today.setHours(0, 0, 0, 0);
+  // return date < today;
+  if (!dateStr) return false;
+  const today = getToday(); // Returns YYYY-MM-DD
+  return dateStr < today;
 };
 
 export const validateTripDuration = (startDate: string, endDate: string): string | null => {

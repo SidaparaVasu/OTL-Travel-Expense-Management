@@ -44,6 +44,7 @@ import {
   validateTicketingDates,
   validateAccommodationDates,
   validateConveyanceDates,
+  isPastDate,
 } from "../lib/travel-validation";
 import {
   AlertDialog,
@@ -460,6 +461,7 @@ export const TravelApplicationForm: React.FC = () => {
               start_time: trip.start_time || "",
               return_date: trip.return_date || "",
               end_time: trip.end_time || "",
+              is_back_dated: !!(trip.departure_date && isPastDate(trip.departure_date)),
             });
 
             // Pre-fill bookings
