@@ -767,6 +767,8 @@ def generate_duty_slip_pdf(booking):
         emp = booking.trip_details.travel_application.employee
         requester_name = ((emp.first_name or "") + " " + (emp.last_name or "")).strip()
         requester_mobile = emp.mobile_no or ""
+        reporting_person = ((emp.first_name or "") + " " + (emp.last_name or "")).strip()
+        reporting_mobile = emp.mobile_no or ""
     except:
         pass
     
