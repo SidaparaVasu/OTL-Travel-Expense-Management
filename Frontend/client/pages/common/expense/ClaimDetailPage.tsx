@@ -646,7 +646,7 @@ export default function ClaimDetailPage() {
                           type: "approved",
                           date: f.acted_on,
                           label: "Claim Approved",
-                          subLabel: `By Manager: ${f.approver_name}`,
+                          subLabel: `By: ${f.approver_name}`,
                           Icon: CheckCircle,
                           iconBg: "bg-emerald-100",
                           iconColor: "text-emerald-600"

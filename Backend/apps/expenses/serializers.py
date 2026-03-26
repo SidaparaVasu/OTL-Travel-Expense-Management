@@ -3,6 +3,8 @@ from django.utils import timezone
 from rest_framework import serializers
 from django.db import transaction
 
+from .constants import CLAIM_MANAGER_APPROVAL_REQUIRED
+
 from apps.expenses.models import (
     ExpenseTypeMaster,
     ClaimStatusMaster,
@@ -358,27 +360,55 @@ class ClaimSubmitSerializer(serializers.Serializer):
                 actual_travel_end_time=validated_data.get("actual_travel_end_time"),
             )
 
-            manager_approver = get_initial_claim_approver(tr)
-            
-            if not manager_approver:
-                raise serializers.ValidationError({
-                    "approver": ["Reporting manager not found for this employee"]
-                })
-            
-            # Set claim to manager_pending
-            manager_pending_status = ClaimStatusMaster.objects.filter(code="manager_pending").first()
-            claim.status = manager_pending_status
-            claim.save()
+            if CLAIM_MANAGER_APPROVAL_REQUIRED:
+                manager_approver = get_initial_claim_approver(tr)
+                
+                if not manager_approver:
+                    raise serializers.ValidationError({
+                        "approver": ["Reporting manager not found for this employee"]
+                    })
+                
+                # Set claim to manager_pending
+                manager_pending_status = ClaimStatusMaster.objects.filter(code="manager_pending").first()
+                claim.status = manager_pending_status
+                claim.save()
 
-             # Create first approval flow row
-            ClaimApprovalFlow.objects.create(
-                claim=claim,
-                approver=manager_approver,
-                level=1,
-                status="pending",
-                remarks="Awaiting manager approval",
-                acted_on=timezone.now()
-            )
+                 # Create first approval flow row (Level 1)
+                ClaimApprovalFlow.objects.create(
+                    claim=claim,
+                    approver=manager_approver,
+                    level=1,
+                    status="pending",
+                    remarks="Awaiting manager approval",
+                    acted_on=timezone.now()
+                )
+            else:
+                # Direct to Finance - Bypass Manager
+                finance_pending_status = ClaimStatusMaster.objects.filter(code="finance_pending").first()
+                if not finance_pending_status:
+                    raise serializers.ValidationError(
+                        {"status": "ClaimStatusMaster(code='finance_pending') is missing. Please seed master data."}
+                    )
+                
+                claim.status = finance_pending_status
+                claim.save()
+
+                # Create first approval flow row (Level 1 for Finance)
+                # Since we don't have a specific finance user yet, we use a placeholder staff
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                finance_placeholder = User.objects.filter(groups__name='Finance').first() or User.objects.filter(is_staff=True).first()
+                
+                if finance_placeholder:
+                    ClaimApprovalFlow.objects.create(
+                        claim=claim,
+                        approver=finance_placeholder,
+                        level=1,
+                        status="pending",
+                        remarks="Awaiting Finance review",
+                        # acted_on=None # Action has not happened yet
+                    )
+
 
             # Late submission detection (mark flag)
             try:

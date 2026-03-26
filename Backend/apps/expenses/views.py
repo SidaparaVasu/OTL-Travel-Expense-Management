@@ -1037,14 +1037,19 @@ class ClaimResubmitView(APIView):
                 claim.save()
                 
                 # Option A: Align Approval Flow at Re-submission
+                from .constants import CLAIM_MANAGER_APPROVAL_REQUIRED
                 
-                # 1. Ensure any lingering Level 1 (Manager) records are marked approved 
-                # (since we are bypassing manager approval for resubmission)
-                claim.approval_flow.filter(level=1, status="pending").update(
-                    status="approved",
-                    remarks="Auto-approved (Previously approved/Revised submission)",
-                    acted_on=timezone.now()
-                )
+                # Dynamic level determination
+                finance_level = 2 if CLAIM_MANAGER_APPROVAL_REQUIRED else 1
+
+                # 1. If manager approval is required, ensure Level 1 (Manager) records are approved
+                if CLAIM_MANAGER_APPROVAL_REQUIRED:
+
+                    claim.approval_flow.filter(level=1, status="pending").update(
+                        status="approved",
+                        remarks="Auto-approved (Previously approved/Revised submission)",
+                        acted_on=timezone.now()
+                    )
 
                 # 2. Identify the Finance User who returned this claim
                 # This ensures the 'Pending' entry in timeline is assigned to the correct person
@@ -1066,25 +1071,25 @@ class ClaimResubmitView(APIView):
                     # Final fallback to any finance staff if really no logs exist
                     from django.contrib.auth import get_user_model
                     User = get_user_model()
-                    finance_user = User.objects.filter(is_staff=True).first()
+                    finance_user = User.objects.filter(groups__name='Finance').first() or User.objects.filter(is_staff=True).first()
 
-                # 3. Create/Update Level 2 (Finance) record to 'pending' 
-                # This record will be marked 'approved' when finance finally takes action
-                finance_flow = claim.approval_flow.filter(level=2).first()
+                # 3. Create/Update Finance record at the correct level
+                finance_flow = claim.approval_flow.filter(level=finance_level).first()
                 if finance_flow:
                     finance_flow.approver = finance_user
                     finance_flow.status = "pending"
                     finance_flow.remarks = "Resubmitted - Awaiting Finance Processing"
-                    finance_flow.acted_on = None # Reset action date for the new cycle
+                    finance_flow.acted_on = None
                     finance_flow.save()
                 else:
                     ClaimApprovalFlow.objects.create(
                         claim=claim,
                         approver=finance_user,
-                        level=2,
+                        level=finance_level,
                         status="pending",
                         remarks="Resubmitted - Awaiting Finance Processing"
                     )
+
             
             return success_response(
                 message="Claim resubmitted successfully",
