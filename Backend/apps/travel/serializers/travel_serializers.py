@@ -248,6 +248,14 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Enhanced validation with better error messages"""
+        # Security check: Ensure the application can be edited
+        if self.instance:
+            request = self.context.get('request')
+            if request and request.user:
+                can_edit, message = can_edit_application(self.instance, request.user)
+                if not can_edit:
+                    raise serializers.ValidationError({"detail": message})
+        
         trip_details_data = data.get('trip_details', [])
         travel_for = data.get('travel_for', 'self')
         travelers_data = data.get('travelers_data', [])

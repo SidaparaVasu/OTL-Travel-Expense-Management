@@ -31,6 +31,21 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
     TRAVEL_EDIT_BEFORE_START_ONLY = False # Disabled by default
     
     if application.status in non_editable_statuses:
+        # --- Back-dated TR Exemption (Financial Lock) ---
+        # Allow editing of 'completed' TRs ONLY if they were back-dated at creation
+        # AND no expense claim has been initiated yet (financial lock).
+        if application.status == 'completed':
+            start_date = application.get_travel_start_date()
+            # If trip started on or before the application was created, it's considered back-dated
+            if start_date and start_date <= application.created_at.date():
+                try:
+                    from apps.expenses.models import ExpenseClaim
+                    if ExpenseClaim.objects.filter(travel_application=application).exists():
+                        return False, "Cannot edit travel application because an expense claim has already been initiated"
+                    return True, "Can edit (Back-dated TR correction allowed)"
+                except (ImportError, Exception):
+                    pass
+        
         return False, f"Cannot edit application in '{application.get_status_display()}' status"
     
     # Permission check
@@ -53,8 +68,10 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
     # If False, it will skip this entire block (meaning edits ARE allowed)
     if TRAVEL_EDIT_BEFORE_START_ONLY:
         start_date = application.get_travel_start_date()
+        # Exception: Only block if it wasn't a back-dated request
         if start_date and start_date <= timezone.now().date():
-            return False, "Cannot edit - travel has already started"
+            if not (start_date <= application.created_at.date()):
+                return False, "Cannot edit - travel has already started"
     
     # Booking agent assignment check
     from apps.travel.models import BookingAssignment
