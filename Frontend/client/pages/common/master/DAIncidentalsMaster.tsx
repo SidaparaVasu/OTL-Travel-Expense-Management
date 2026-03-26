@@ -72,8 +72,8 @@ const DAIncidentalMaster = () => {
     try {
       // Replace with actual API call
       const data = await daIncidentalAPI.daIncidental.getAll();
-      console.log(data.data.results);
-      setRates(data.results || data.data.results);
+      console.log("Fetched Rates:", data.data);
+      setRates(data.data || data.results || data.data.results || []);
     } catch (error) {
       showNotification("Failed to fetch DA incidental rates", "error");
     } finally {
