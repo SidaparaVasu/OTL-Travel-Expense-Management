@@ -294,7 +294,7 @@ export default function BackdatedAllowanceManager() {
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Audit Reason</th>
                     <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Granted By</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -311,11 +311,11 @@ export default function BackdatedAllowanceManager() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5 text-xs">
-                             <span className="text-slate-300 font-bold w-10">FROM:</span>
+                             <span className="text-slate-500 font-bold w-10">FROM:</span>
                              {format(new Date(item.allowed_from), "MMM dd, HH:mm")}
                           </div>
                           <div className="flex items-center gap-1.5 text-xs">
-                             <span className="text-slate-300 font-bold w-10">UNTIL:</span>
+                             <span className="text-slate-500 font-bold w-10">UNTIL:</span>
                              <span className={item.is_valid ? "text-slate-600" : "text-slate-400 line-through"}>
                                {format(new Date(item.allowed_until), "MMM dd, HH:mm")}
                              </span>
@@ -344,10 +344,10 @@ export default function BackdatedAllowanceManager() {
                         {item.is_active && item.is_valid && (
                           <button 
                             onClick={() => { setRevokeTarget(item); setShowRevokeConfirm(true); }}
-                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            className="flex items-center gap-1 p-2 text-red-500 bg-red-50 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all uppercase"
                             title="Revoke Permission"
                           >
-                            <XCircle size={18} />
+                            <XCircle size={18} /> Revoke
                           </button>
                         )}
                       </td>
