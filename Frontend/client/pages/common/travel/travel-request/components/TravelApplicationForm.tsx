@@ -1120,6 +1120,20 @@ export const TravelApplicationForm: React.FC = () => {
 
     setIsSaving(true);
     try {
+      // Hard Enforcement: Re-validate back-dated permission before saving draft
+      if (purposeData.is_back_dated) {
+        const profile = await authAPI.getProfile();
+        if (!profile?.can_submit_backdated) {
+          setCanSubmitBackdated(false);
+          setBackdatedExpiry(null);
+          setPurposeData(prev => ({ ...prev, is_back_dated: false }));
+          toast.error("Your back-dated submission window has expired. Please request a new allowance from your Admin.");
+          setActiveTab("purpose");
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const payload = buildPayload(true);
 
       if (draftApplicationId) {
@@ -1172,6 +1186,29 @@ export const TravelApplicationForm: React.FC = () => {
       toast.error("Please ensure travel guest details are correct.");
       setActiveTab("travel_for");
       return;
+    }
+
+    // Hard Enforcement: Re-validate back-dated permission before submission
+    if (purposeData.is_back_dated) {
+      setIsSubmitting(true);
+      try {
+        const profile = await authAPI.getProfile();
+        if (!profile?.can_submit_backdated) {
+          setCanSubmitBackdated(false);
+          setBackdatedExpiry(null);
+          setPurposeData(prev => ({ ...prev, is_back_dated: false }));
+          toast.error("Your back-dated submission window has expired. Please request a new allowance from your Admin.");
+          setActiveTab("purpose");
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (err) {
+        toast.error("Failed to verify submission eligibility. Please try again.");
+        setIsSubmitting(false);
+        return;
+      } finally {
+        setIsSubmitting(false);
+      }
     }
 
     const purposeErrors = validatePurpose();
