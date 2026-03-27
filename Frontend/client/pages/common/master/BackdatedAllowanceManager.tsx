@@ -366,9 +366,6 @@ export default function BackdatedAllowanceManager() {
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all scale-100">
             <div className="sticky top-0 bg-white border-b border-slate-100 px-8 py-5 flex justify-between items-center z-10">
                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
-                    <UserPlus size={20} />
-                  </div>
                   <div>
                     <h2 className="text-xl font-bold text-slate-800 leading-none mb-1">Grant Protocol Exception</h2>
                     <p className="text-xs text-slate-400">Policy override for retrospective submission</p>
