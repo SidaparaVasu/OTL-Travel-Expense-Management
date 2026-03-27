@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views.travel_views import *
 from .views.travel_application_details_view import TravelApplicationDetailsView
 from .views.guest_views import GuestProfileViewSet
+from .views.permission_views import BackdatedTRAllowanceViewSet
 from .views.approval_views import *
 from .views.booking import *
 from .views.booking_calendar import GuestHouseAvailabilityView
@@ -20,6 +21,7 @@ from .views.advance_views import AdvanceWorkspaceViewSet
 router = DefaultRouter()
 router.register(r'guest-profiles', GuestProfileViewSet, basename='guest-profiles')
 router.register(r'finance/advances', AdvanceWorkspaceViewSet, basename='finance-advances')
+router.register(r'admin/backdated-allowance', BackdatedTRAllowanceViewSet, basename='backdated-allowance')
 
 urlpatterns = [
     # Travel Applications
