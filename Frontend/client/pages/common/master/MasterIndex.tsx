@@ -51,6 +51,7 @@ const MASTER_CATEGORIES = [
       { id: "gl-code", title: "GL Code", route: ROUTES.glCodeMaster },
       { id: "travel-mode", title: "Travel Mode", route: ROUTES.travelModeMaster },
       { id: "grade-entitlement", title: "Grade Entitlement", route: ROUTES.gradeEntitlementMaster },
+      { id: "backdated-allowance", title: "Backdated TR Allowance", route: ROUTES.backdatedTRAllowance },
     ],
   },
   {
@@ -89,7 +90,6 @@ const MASTER_CATEGORIES = [
     items: [
       // { id: "users", title: "Users", route: ROUTES.users },
       { id: "user-role", title: "User Role Assigner", route: ROUTES.userRoleAssigner },
-      { id: "backdated-allowance", title: "Backdated TR Allowance", route: ROUTES.backdatedTRAllowance },
       { id: "booking-agents", title: "Booking Agents", route: ROUTES.bookingAgents },
       { id: "spoc-assignment", title: "SPOC Users", route: ROUTES.spocAssignmentMaster },
     ],

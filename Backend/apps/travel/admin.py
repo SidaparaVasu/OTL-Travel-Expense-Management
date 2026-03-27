@@ -6,6 +6,7 @@ from .models.booking_extended import *
 from .models.audit import *
 from .models.traveler import GuestProfile, ApplicationTraveler
 from .models.advance import AdvanceProcessing
+from .models.permission import BackdatedTRAllowance
 
 # Register your models here.
 @admin.register(AdvanceProcessing)
@@ -247,3 +248,30 @@ class TravelDocumentAdmin(admin.ModelAdmin):
             return f"{obj.file_size / 1024:.1f} KB"
         return "N/A"
     file_size_kb.short_description = "File Size"
+
+
+@admin.register(BackdatedTRAllowance)
+class BackdatedTRAllowanceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'allowed_from', 'allowed_until', 'status_display', 'granted_by', 'created_at')
+    list_filter = ('is_active', 'allowed_from', 'allowed_until', 'created_at')
+    search_fields = ('user__username', 'user__first_name', 'user__last_name', 'reason')
+    readonly_fields = ('created_at', 'granted_by')
+    
+    def status_display(self, obj):
+        from django.utils.html import format_html
+        if not obj.is_active:
+            return format_html('<span style="color: #ef4444; font-weight: bold;">Revoked</span>')
+        if obj.is_currently_valid:
+            return format_html('<span style="color: #22c55e; font-weight: bold;">Active</span>')
+        return format_html('<span style="color: #64748b; font-weight: bold;">Expired</span>')
+    status_display.short_description = "Status"
+
+    def is_currently_valid(self, obj):
+        return obj.is_currently_valid
+    is_currently_valid.boolean = True
+    is_currently_valid.short_description = "Currently Valid"
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.granted_by = request.user
+        super().save_model(request, obj, form, change)
