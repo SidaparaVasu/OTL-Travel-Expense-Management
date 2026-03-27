@@ -151,6 +151,7 @@ export const TravelApplicationForm: React.FC = () => {
 
   // Policy & Permission State
   const [canSubmitBackdated, setCanSubmitBackdated] = useState(false);
+  const [backdatedExpiry, setBackdatedExpiry] = useState<string | null>(null);
 
   // Self Preferences
   const [selfPreferences, setSelfPreferences] = useState<{
@@ -296,6 +297,7 @@ export const TravelApplicationForm: React.FC = () => {
         authAPI.getProfile().then(res => {
           if (res) {
             setCanSubmitBackdated(res.can_submit_backdated || false);
+            setBackdatedExpiry(res.backdated_expiry || null);
           }
         }).catch(err => console.error("Profile fetch failed:", err));
 
@@ -1529,6 +1531,7 @@ export const TravelApplicationForm: React.FC = () => {
                 cities={cities}
                 glCodes={glCodes}
                 canSubmitBackdated={canSubmitBackdated}
+                backdatedExpiry={backdatedExpiry}
               />
             )}
 

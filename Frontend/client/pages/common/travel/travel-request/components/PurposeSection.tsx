@@ -50,6 +50,7 @@ interface PurposeSectionProps {
   cities?: City[];
   glCodes?: GLCode[];
   canSubmitBackdated?: boolean;
+  backdatedExpiry?: string | null;
 }
 
 export const PurposeSection: React.FC<PurposeSectionProps> = ({
@@ -60,6 +61,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
   cities: propCities,
   glCodes: propGLCodes,
   canSubmitBackdated = false,
+  backdatedExpiry = null,
 }) => {
   const today = getToday();
 
@@ -246,7 +248,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
       </div>
 
       {canSubmitBackdated && (
-        <div className="flex items-center space-x-2 p-4 bg-orange-50/50 rounded-lg border border-orange-100 animate-in slide-in-from-top-2 duration-300">
+        <div className="flex items-center space-x-4 p-4 bg-orange-50/50 rounded-lg border border-orange-100 animate-in slide-in-from-top-2 duration-300">
           <Checkbox
             id="is_back_dated"
             checked={formData.is_back_dated}
@@ -278,8 +280,13 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
             >
               Back-dated Travel Request?
             </Label>
-            <p className="text-xs text-orange-700/80">
+            <p className="text-xs text-orange-700/80 italic font-medium">
               You have administrative permission to submit a retrospective travel request. Use this responsibly.
+              {backdatedExpiry && (
+                 <span className="block mt-0.5 text-orange-900 font-bold">
+                    [Valid until: {new Date(backdatedExpiry).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}]
+                 </span>
+              )}
             </p>
           </div>
         </div>

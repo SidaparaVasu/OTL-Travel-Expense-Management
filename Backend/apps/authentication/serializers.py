@@ -128,6 +128,7 @@ class UserProfileResponseSerializer(serializers.Serializer):
     roles = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
     can_submit_backdated = serializers.SerializerMethodField()
+    backdated_expiry = serializers.SerializerMethodField()
 
     def get_can_submit_backdated(self, obj):
         try:
@@ -135,6 +136,14 @@ class UserProfileResponseSerializer(serializers.Serializer):
             return check_backdated_tr_permission(obj)
         except (ImportError, Exception):
             return False
+
+    def get_backdated_expiry(self, obj):
+        try:
+            from apps.travel.services.permission_helpers import get_active_backdated_allowance
+            allowance = get_active_backdated_allowance(obj)
+            return allowance.allowed_until if allowance else None
+        except (ImportError, Exception):
+            return None
 
     def get_user(self, obj):
         return {

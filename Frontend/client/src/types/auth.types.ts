@@ -63,4 +63,5 @@ export interface UserProfile {
   }>;
   permissions: string[];
   can_submit_backdated: boolean;
+  backdated_expiry: string | null;
 }
