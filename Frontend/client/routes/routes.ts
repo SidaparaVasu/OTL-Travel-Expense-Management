@@ -103,6 +103,9 @@ export const ROUTES = {
   // DA Incidentals
   daIncidentalMaster: "/masters/da-incidentals",
 
+  // Backdated Allowance
+  backdatedTRAllowance: "/masters/backdated-allowance",
+
   // Travel Master
   glCodeMaster: "/masters/gl-code",
   travelModeMaster: "/masters/travel-mode",

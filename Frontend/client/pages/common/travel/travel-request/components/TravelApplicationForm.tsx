@@ -149,6 +149,9 @@ export const TravelApplicationForm: React.FC = () => {
   const [existingBulkFile, setExistingBulkFile] = useState<string | null>(null);
   const [isBulkFileRemoved, setIsBulkFileRemoved] = useState(false);
 
+  // Policy & Permission State
+  const [canSubmitBackdated, setCanSubmitBackdated] = useState(false);
+
   // Self Preferences
   const [selfPreferences, setSelfPreferences] = useState<{
     flight_meal_preference?: number;
@@ -289,6 +292,13 @@ export const TravelApplicationForm: React.FC = () => {
     const fetchData = async () => {
       setIsLoadingData(true);
       try {
+        // Fetch profile to check back-dated permission
+        authAPI.getProfile().then(res => {
+          if (res) {
+            setCanSubmitBackdated(res.can_submit_backdated || false);
+          }
+        }).catch(err => console.error("Profile fetch failed:", err));
+
         const [
           citiesData,
           glCodesData,
@@ -1518,6 +1528,7 @@ export const TravelApplicationForm: React.FC = () => {
                 setErrors={setPurposeErrors}
                 cities={cities}
                 glCodes={glCodes}
+                canSubmitBackdated={canSubmitBackdated}
               />
             )}
 

@@ -49,6 +49,7 @@ interface PurposeSectionProps {
   setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   cities?: City[];
   glCodes?: GLCode[];
+  canSubmitBackdated?: boolean;
 }
 
 export const PurposeSection: React.FC<PurposeSectionProps> = ({
@@ -58,6 +59,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
   setErrors,
   cities: propCities,
   glCodes: propGLCodes,
+  canSubmitBackdated = false,
 }) => {
   const today = getToday();
 
@@ -243,46 +245,45 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-lg border border-border/50 animate-in fade-in slide-in-from-top-1">
-        <Checkbox
-          id="is_back_dated"
-          checked={formData.is_back_dated}
-          onCheckedChange={(checked) => {
-            const isChecked = !!checked;
-            handleFieldChange("is_back_dated", isChecked as any);
-            
-            // If turning off back-dated, and current dates are in the past, clear errors or reset?
-            // Actually handleFieldChange will run validation again if we triggered it.
-            if (!isChecked) {
-              if (formData.departure_date && isPastDate(formData.departure_date)) {
-                setErrors(prev => ({...prev, departure_date: "Start date cannot be in the past"}));
+      {canSubmitBackdated && (
+        <div className="flex items-center space-x-2 p-4 bg-orange-50/50 rounded-lg border border-orange-100 animate-in slide-in-from-top-2 duration-300">
+          <Checkbox
+            id="is_back_dated"
+            checked={formData.is_back_dated}
+            onCheckedChange={(checked) => {
+              const isChecked = !!checked;
+              handleFieldChange("is_back_dated", isChecked as any);
+              
+              if (!isChecked) {
+                if (formData.departure_date && isPastDate(formData.departure_date)) {
+                  setErrors(prev => ({...prev, departure_date: "Start date cannot be in the past"}));
+                }
+                if (formData.return_date && isPastDate(formData.return_date)) {
+                  setErrors(prev => ({...prev, return_date: "End date cannot be in the past"}));
+                }
+              } else {
+                setErrors(prev => {
+                  const newErrors = { ...prev };
+                  delete newErrors.departure_date;
+                  delete newErrors.return_date;
+                  return newErrors;
+                });
               }
-              if (formData.return_date && isPastDate(formData.return_date)) {
-                setErrors(prev => ({...prev, return_date: "End date cannot be in the past"}));
-              }
-            } else {
-              // Clearing past date errors when checking back-dated
-              setErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors.departure_date;
-                delete newErrors.return_date;
-                return newErrors;
-              });
-            }
-          }}
-        />
-        <div className="grid gap-1.5 leading-none">
-          <Label
-            htmlFor="is_back_dated"
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-          >
-            Back-dated Travel Request?
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Check this if you are creating a travel request for a trip that has already started or completed
-          </p>
+            }}
+          />
+          <div className="grid gap-1.5 leading-none">
+            <Label
+              htmlFor="is_back_dated"
+              className="text-sm font-bold leading-none text-orange-900"
+            >
+              Back-dated Travel Request?
+            </Label>
+            <p className="text-xs text-orange-700/80">
+              You have administrative permission to submit a retrospective travel request. Use this responsibly.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="lg:col-span-2">

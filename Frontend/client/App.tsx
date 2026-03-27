@@ -78,6 +78,7 @@ import BookingAgentList from "./pages/common/master/booking-agent/BookingAgentLi
 import VehicleCategoryMasterPage from "./pages/common/master/VehicleCategoryMaster";
 import VehicleTypeMasterPage from "./pages/common/master/VehicleTypeMaster";
 import UserRoleAssignPage from "./pages/common/master/UserRoleAssigner";
+import BackdatedAllowanceManager from "./pages/common/master/BackdatedAllowanceManager";
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -686,6 +687,17 @@ const App = () => (
                 <ProtectedRoute requiredDashboard="admin">
                   <UnifiedLayout>
                     <UserRoleAssignPage />
+                  </UnifiedLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path={ROUTES.backdatedTRAllowance}
+              element={
+                <ProtectedRoute requiredDashboard="admin">
+                  <UnifiedLayout>
+                    <BackdatedAllowanceManager />
                   </UnifiedLayout>
                 </ProtectedRoute>
               }

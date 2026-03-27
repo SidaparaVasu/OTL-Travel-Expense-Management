@@ -89,6 +89,7 @@ const MASTER_CATEGORIES = [
     items: [
       // { id: "users", title: "Users", route: ROUTES.users },
       { id: "user-role", title: "User Role Assigner", route: ROUTES.userRoleAssigner },
+      { id: "backdated-allowance", title: "Backdated TR Allowance", route: ROUTES.backdatedTRAllowance },
       { id: "booking-agents", title: "Booking Agents", route: ROUTES.bookingAgents },
       { id: "spoc-assignment", title: "SPOC Users", route: ROUTES.spocAssignmentMaster },
     ],
