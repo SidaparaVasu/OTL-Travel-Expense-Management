@@ -270,7 +270,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             dep_date = trip.get('departure_date')
             # Handle both string and date objects
             dep_date_val = str(dep_date) if dep_date else None
-            if dep_date_val and dep_date_val <= str(now_date):
+            if dep_date_val and dep_date_val < str(now_date):
                 is_any_trip_backdated = True
                 break
         
@@ -281,8 +281,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                 # (unless the edit itself converts an on-time TR into a back-dated one)
                 is_already_backdated = False
                 if self.instance:
-                    orig_start = self.instance.get_travel_start_date()
-                    if orig_start and orig_start <= self.instance.created_at.date():
+                    orig_start = self.instance.trip_details.order_by('departure_date').first().departure_date
+                    if orig_start and orig_start < self.instance.created_at.date():
                         is_already_backdated = True
                 
                 if not is_already_backdated:
