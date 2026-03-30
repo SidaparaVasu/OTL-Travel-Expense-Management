@@ -251,6 +251,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request else None
 
+        from apps.travel.services.edit_helpers import can_edit_application
+
         # 1. Security check: Ensure the application can be edited
         if self.instance and user:
             can_edit, message = can_edit_application(self.instance, user)
