@@ -32,13 +32,16 @@ function TravelRequestItemBase({
   return (
     <div className="flex items-center justify-between py-4">
       <div className="flex items-center gap-4">
-        <img
+        {/* <img
           src={avatar}
           alt={name}
           loading="lazy"
           decoding="async"
           className="h-12 w-12 rounded-md object-cover"
-        />
+        /> */}
+        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+          {avatar}
+        </div>
         <div>
           <h4 className="text-lg font-medium text-foreground">{name}</h4>
           <div className="flex items-center gap-2 text-base text-secondary-foreground">

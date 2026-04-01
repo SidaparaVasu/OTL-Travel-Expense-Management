@@ -161,7 +161,7 @@ export function DashboardOverview() {
                 <div>
                   <TravelRequestItem
                     name={request.employee_name}
-                    avatar="https://api.builder.io/api/v1/image/assets/TEMP/4fa4c38ef3892012b166bc2fbb474ffbd49bda2e?width=100"
+                    avatar={request.employee_name.split(' ').map(word => word.charAt(0).toUpperCase()).join('') || 'U'}
                     from={request.location?.from_location__city_name || "N/A"}
                     to={request.location?.to_location__city_name || "N/A"}
                     status={request.action as any}
