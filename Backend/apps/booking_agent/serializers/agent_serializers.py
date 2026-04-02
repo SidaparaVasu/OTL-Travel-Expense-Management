@@ -2,6 +2,7 @@ from rest_framework import serializers
 from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
 from apps.authentication.models import User
 from utils.date_utils import calculate_age
+from apps.travel.serializers.travel_serializers import ApplicationTravelerSerializer
 
 # IMPORTANT: 
 # "BookingAgentSerializer" defines the Booking Agent ENTITY (User).
@@ -29,6 +30,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)   
     employee_name = serializers.SerializerMethodField()
+    travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
 
     class Meta:
         model = Booking
@@ -37,7 +39,8 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file',
             'assigned_agent_name',
-            'meal_preference', 'employee_name', 'notes'
+            'meal_preference', 'employee_name', 'notes',
+            'travelers'
         ]
     
     meal_preference = serializers.SerializerMethodField()
@@ -108,6 +111,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     assigned_agent = serializers.SerializerMethodField()
     max_allowed_cost = serializers.SerializerMethodField()
     travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
+    travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
 
     class Meta:
         model = Booking
@@ -124,6 +128,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "trip_start_date",
             "trip_end_date",
             "notes",
+            "travelers"
         ]
 
     meal_preference = serializers.SerializerMethodField()
@@ -262,6 +267,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     max_allowed_cost = serializers.SerializerMethodField()
     ceo_approval_status = serializers.SerializerMethodField()
     travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
+    travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
 
     class Meta:
         model = Booking
@@ -280,6 +286,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "travel_application_status",
             "requested_vehicle_type",
             "notes",
+            "travelers",
         ]
 
     meal_preference = serializers.SerializerMethodField()

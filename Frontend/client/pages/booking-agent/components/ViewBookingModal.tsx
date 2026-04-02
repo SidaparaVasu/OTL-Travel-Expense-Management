@@ -19,6 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   formatDateToDDMMYYYY,
   formatTime,
   formatCurrency,
@@ -415,6 +422,78 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                   ))}
                 </div>
               </div>
+            )}
+
+            {booking.travelers && booking.travelers.length > 0 && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="cursor-pointer space-y-2 group">
+                    <h4 className="text-sm font-medium flex items-center gap-2 group-hover:text-primary transition-colors">
+                      <User className="w-4 h-4 text-primary" />
+                      Guest(s) Details
+                    </h4>
+                    <div className="bg-card border rounded-lg p-3 group-hover:border-primary/50 transition-colors">
+                      <p className="text-sm font-medium text-primary hover:underline">
+                        View Details for {booking.travelers.length} Guest(s)
+                      </p>
+                    </div>
+                  </div>
+                </DialogTrigger>
+
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle>
+                      Guest Details ({booking.travelers.length})
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                    <table className="w-full text-sm border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="border-b text-left text-primary">
+                          <th className="py-2 pr-4 font-medium">Name</th>
+                          <th className="py-2 pr-4 font-medium">Email</th>
+                          <th className="py-2 pr-4 font-medium">Contact</th>
+                          <th className="py-2 pr-4 font-medium">Gender</th>
+                          <th className="py-2 pr-4 font-medium">Age</th>
+                          <th className="py-2 pr-4 font-medium">Nationality</th>
+                          <th className="py-2 pr-4 font-medium">
+                            Flight / Stay Meal
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {booking.travelers.map((traveler) => (
+                          <tr
+                            key={traveler.id}
+                            className="border-b last:border-0"
+                          >
+                            <td className="py-2 pr-4 font-medium whitespace-nowrap">
+                              {traveler.full_name}
+                            </td>
+                            <td className="py-2 pr-4">
+                              {traveler.email || "—"}
+                            </td>
+                            <td className="py-2 pr-4">
+                              {traveler.contact_number || "—"}
+                            </td>
+                            <td className="py-2 pr-4">{traveler.gender}</td>
+                            <td className="py-2 pr-4">{traveler.age}</td>
+                            <td className="py-2 pr-4">
+                              {traveler.nationality_type}
+                            </td>
+                            <td className="py-2 pr-4 text-xs">
+                              {traveler.flight_meal_preference_name || "—"} /{" "}
+                              {traveler.accommodation_meal_preference_name ||
+                                "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </DialogContent>
+              </Dialog>
             )}
 
             {/* File - Generic Link (Hidden for Bulk Booking) */}

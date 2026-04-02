@@ -17,6 +17,28 @@ export interface BookingAgentDashboardData {
   recent: Booking[];
 }
 
+export interface Traveler {
+  id: number;
+  user?: number | null;
+  user_name?: string | null;
+  guest?: number | null;
+  guest_name?: string | null;
+  is_primary: boolean;
+  employee_id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name: string;
+  email?: string | null;
+  contact_number?: string | null;
+  gender: string;
+  age: number | null;
+  nationality_type: string;
+  flight_meal_preference?: number | null;
+  accommodation_meal_preference?: number | null;
+  flight_meal_preference_name?: string | null;
+  accommodation_meal_preference_name?: string | null;
+}
+
 export interface Booking {
   id: number;
   booking_type: number;
@@ -60,6 +82,7 @@ export interface Booking {
   ceo_approval_status?: "pending" | "approved" | "rejected" | "not_required";
   travel_application_status?: string; // Added for hold status check
   trip_segment?: string;
+  travelers?: Traveler[];
 }
 
 export interface BookingDetails {

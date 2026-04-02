@@ -158,6 +158,7 @@ class TripDetailsSerializer(serializers.ModelSerializer):
 class ApplicationTravelerSerializer(serializers.ModelSerializer):
     guest_name = serializers.SerializerMethodField(read_only=True)
     user_name = serializers.SerializerMethodField(read_only=True)
+    full_name = serializers.SerializerMethodField(read_only=True)
     employee_id = serializers.CharField(source='guest.company_worker_id', read_only=True, required=False)
     
     # Expose Guest Details for Edit Mode
@@ -169,6 +170,9 @@ class ApplicationTravelerSerializer(serializers.ModelSerializer):
     age = serializers.IntegerField(source='guest.age', read_only=True, allow_null=True)
     nationality_type = serializers.CharField(source='guest.nationality_type', read_only=True, allow_null=True)
 
+    flight_meal_preference_name = serializers.CharField(source='flight_meal_preference.name', read_only=True, allow_null=True)
+    accommodation_meal_preference_name = serializers.CharField(source='accommodation_meal_preference.name', read_only=True, allow_null=True)
+
     class Meta:
         from apps.travel.models.traveler import ApplicationTraveler
         model = ApplicationTraveler
@@ -177,8 +181,16 @@ class ApplicationTravelerSerializer(serializers.ModelSerializer):
             'guest', 'guest_name', 'is_primary', 'employee_id',
             'first_name', 'last_name', 'email', 'contact_number',
             'gender', 'age', 'nationality_type',
-            'flight_meal_preference', 'accommodation_meal_preference'
+            'flight_meal_preference', 'accommodation_meal_preference', 'full_name',
+            'flight_meal_preference_name', 'accommodation_meal_preference_name'
         ]
+    
+    def get_full_name(self, obj):
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.username
+        if obj.guest:
+            return f"{obj.guest.first_name} {obj.guest.last_name}"
+        return "Unknown Traveler"
     
     def get_guest_name(self, obj):
         if obj.guest:
