@@ -260,38 +260,32 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"detail": message})
         
         # 2. Back-dated Allowance check: Ensure user has permission for past dates
-        # We only check this for NEW applications or when CHANGING dates to past values.
+        # We only check this for NEW applications or when CHANGING dates to values earlier than the creation date.
         trip_details_data = data.get('trip_details', [])
-        is_any_trip_backdated = False
         
-        # Determine if any trip in the incoming data is back-dated
-        now_date = timezone.now().date()
+        # DEFINITION: A TR is back-dated if its departure is BEFORE it was first registered.
+        # Use created_at as anchor for edits, or today's date for new applications.
+        threshold_date = self.instance.created_at.date() if (self.instance and self.instance.id) else timezone.now().date()
+        
+        is_newly_backdated = False
         for trip in trip_details_data:
             dep_date = trip.get('departure_date')
-            # Handle both string and date objects
             dep_date_val = str(dep_date) if dep_date else None
-            if dep_date_val and dep_date_val < str(now_date):
-                is_any_trip_backdated = True
+            # Compare against the relevant creation threshold
+            if dep_date_val and dep_date_val < str(threshold_date):
+                is_newly_backdated = True
                 break
         
-        if is_any_trip_backdated and user:
+        if is_newly_backdated and user:
             from apps.travel.services.permission_helpers import check_backdated_tr_permission
             if not check_backdated_tr_permission(user):
-                # We skip this for existing back-dated TRs being edited for corrections
-                # (unless the edit itself converts an on-time TR into a back-dated one)
-                is_already_backdated = False
-                if self.instance:
-                    orig_start = self.instance.trip_details.order_by('departure_date').first().departure_date
-                    if orig_start and orig_start < self.instance.created_at.date():
-                        is_already_backdated = True
-                
-                if not is_already_backdated:
-                   raise serializers.ValidationError({
-                       "non_field_errors": [
-                           "Back-dated travel requests are against policy and require administrative allowance. "
-                           "Please contact your administrator to grant you a temporary permission window."
-                       ]
-                   })
+                raise serializers.ValidationError({
+                    "non_field_errors": [
+                        "This travel request contains dates earlier than its registration date. "
+                        "Back-dated submissions require administrative allowance. "
+                        "Please contact your administrator to grant you a temporary permission window."
+                    ]
+                })
         
         travel_for = data.get('travel_for', 'self')
         travelers_data = data.get('travelers_data', [])

@@ -51,6 +51,8 @@ interface PurposeSectionProps {
   glCodes?: GLCode[];
   canSubmitBackdated?: boolean;
   backdatedExpiry?: string | null;
+  applicationCreatedAt?: string | null;
+  isEditMode?: boolean;
 }
 
 export const PurposeSection: React.FC<PurposeSectionProps> = ({
@@ -62,8 +64,13 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
   glCodes: propGLCodes,
   canSubmitBackdated = false,
   backdatedExpiry = null,
+  applicationCreatedAt = null,
+  isEditMode = false,
 }) => {
   const today = getToday();
+  const effectiveMinDate = (isEditMode && applicationCreatedAt) 
+    ? applicationCreatedAt.split('T')[0] 
+    : today;
 
   const internalOrderRef = React.useRef<HTMLInputElement>(null);
   const sanctionNumberRef = React.useRef<HTMLInputElement>(null);
@@ -110,16 +117,20 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
         field === "departure_date" ? value : formData.departure_date;
       const endDate = field === "return_date" ? value : formData.return_date;
 
-      if (startDate && !formData.is_back_dated && isPastDate(startDate)) {
+      if (startDate && !formData.is_back_dated && startDate < effectiveMinDate) {
         setErrors((prev) => ({
           ...prev,
-          departure_date: "Start date cannot be in the past",
+          departure_date: isEditMode 
+            ? "Date cannot be earlier than application creation date" 
+            : "Start date cannot be in the past",
         }));
       }
-      if (endDate && !formData.is_back_dated && isPastDate(endDate)) {
+      if (endDate && !formData.is_back_dated && endDate < effectiveMinDate) {
         setErrors((prev) => ({
           ...prev,
-          return_date: "End date cannot be in the past",
+          return_date: isEditMode 
+            ? "Date cannot be earlier than application creation date" 
+            : "End date cannot be in the past",
         }));
       }
 
@@ -257,11 +268,11 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
               handleFieldChange("is_back_dated", isChecked as any);
               
               if (!isChecked) {
-                if (formData.departure_date && isPastDate(formData.departure_date)) {
-                  setErrors(prev => ({...prev, departure_date: "Start date cannot be in the past"}));
+                if (formData.departure_date && formData.departure_date < effectiveMinDate) {
+                  setErrors(prev => ({...prev, departure_date: isEditMode ? "Date cannot be earlier than application creation date" : "Start date cannot be in the past"}));
                 }
-                if (formData.return_date && isPastDate(formData.return_date)) {
-                  setErrors(prev => ({...prev, return_date: "End date cannot be in the past"}));
+                if (formData.return_date && formData.return_date < effectiveMinDate) {
+                  setErrors(prev => ({...prev, return_date: isEditMode ? "Date cannot be earlier than application creation date" : "End date cannot be in the past"}));
                 }
               } else {
                 setErrors(prev => {
@@ -437,7 +448,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           required
           value={formData.departure_date}
           onChange={(value) => handleFieldChange("departure_date", value)}
-          min={formData.is_back_dated ? undefined : today}
+          min={formData.is_back_dated ? undefined : effectiveMinDate}
           error={errors.departure_date}
         />
 
@@ -454,7 +465,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
           required
           value={formData.return_date}
           onChange={(value) => handleFieldChange("return_date", value)}
-          min={formData.departure_date || (formData.is_back_dated ? undefined : today)}
+          min={formData.departure_date || (formData.is_back_dated ? undefined : effectiveMinDate)}
           max={
             formData.departure_date
               ? getMaxDate(formData.departure_date)

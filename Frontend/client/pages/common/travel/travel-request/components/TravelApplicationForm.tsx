@@ -120,6 +120,7 @@ export const TravelApplicationForm: React.FC = () => {
   );
   const [isLoadingEditData, setIsLoadingEditData] = useState(false);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
+  const [applicationCreatedAt, setApplicationCreatedAt] = useState<string | null>(null);
 
   // Guest Logic
   const [travelFor, setTravelFor] = useState<"self" | "guest" | "self_guest">(
@@ -417,6 +418,7 @@ export const TravelApplicationForm: React.FC = () => {
 
           // Store original status to determine if we need to call submit later
           setOriginalStatus(app.status);
+          setApplicationCreatedAt(app.created_at || null);
 
           // Populate Travel For & Guests
           if (app.travel_for) setTravelFor(app.travel_for);
@@ -473,7 +475,7 @@ export const TravelApplicationForm: React.FC = () => {
               start_time: trip.start_time || "",
               return_date: trip.return_date || "",
               end_time: trip.end_time || "",
-              is_back_dated: !!(trip.departure_date && isPastDate(trip.departure_date)),
+              is_back_dated: !!(trip.departure_date && app.created_at && trip.departure_date < app.created_at.split('T')[0]),
             });
 
             // Pre-fill bookings
@@ -1569,6 +1571,8 @@ export const TravelApplicationForm: React.FC = () => {
                 glCodes={glCodes}
                 canSubmitBackdated={canSubmitBackdated}
                 backdatedExpiry={backdatedExpiry}
+                applicationCreatedAt={applicationCreatedAt}
+                isEditMode={isEditMode}
               />
             )}
 

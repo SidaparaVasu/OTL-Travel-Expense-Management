@@ -37,7 +37,7 @@ def can_edit_application(application, user) -> Tuple[bool, str]:
         if application.status == 'completed':
             start_date = application.get_travel_start_date()
             # If trip started on or before the application was created, it's considered back-dated
-            if start_date and start_date <= application.created_at.date():
+            if start_date and start_date < application.created_at.date():
                 try:
                     from apps.expenses.models import ExpenseClaim
                     if ExpenseClaim.objects.filter(travel_application=application).exists():
