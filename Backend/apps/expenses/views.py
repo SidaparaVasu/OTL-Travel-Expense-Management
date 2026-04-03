@@ -118,13 +118,30 @@ class ClaimListCreateView(BranchFilterMixin, APIView):
             if tto:
                 qs = qs.filter(created_on__date__lte=tto)
             
-            # Search filter
+            # Search filter: Enhanced to handle TR IDs, Claim IDs, and text search
             search = request.query_params.get("search")
             if search:
-                qs = qs.filter(
-                    Q(travel_application__travel_request_id__icontains=search) |
-                    Q(id__icontains=search)
-                )
+                search_filter = Q()
+                search_str = str(search).strip()
+
+                # 1. Numeric ID matching
+                if search_str.isdigit():
+                    search_filter |= Q(id=int(search_str)) | Q(travel_application_id=int(search_str))
+                
+                # 2. Travel Request ID pattern (TR/TSF/YYYY/ID)
+                elif "/" in search_str:
+                    parts = search_str.split("/")
+                    # extract final sequence if numeric
+                    if parts and parts[-1].isdigit():
+                        search_filter |= Q(travel_application_id=int(parts[-1]))
+
+                # 3. Purpose and Employee search
+                search_filter |= Q(travel_application__purpose__icontains=search_str)
+                search_filter |= Q(employee__username__icontains=search_str)
+                search_filter |= Q(employee__first_name__icontains=search_str)
+                search_filter |= Q(employee__last_name__icontains=search_str)
+                
+                qs = qs.filter(search_filter)
 
             qs = qs.order_by("-created_on")
 
@@ -153,6 +170,70 @@ class ClaimListCreateView(BranchFilterMixin, APIView):
         except Exception as ex:
             tb = traceback.format_exc()
             return error_response(data={"detail": str(ex), "trace": tb}, message="Unexpected error")
+
+# -------------------------------------------------------
+# My Personal Claims: Strictly for the logged-in user
+# -------------------------------------------------------
+class MyExpenseClaimsListView(APIView):
+    """
+    Dashboard view for employee's own expense claims.
+    Strictly filters data to ensure personal isolation regardless of roles.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            user = request.user
+            # Base queryset: strictly current user only
+            qs = ExpenseClaim.objects.filter(employee=user).select_related(
+                "employee", "status", "travel_application"
+            )
+
+            # Status filter
+            status_q = request.query_params.get("status")
+            if status_q:
+                qs = qs.filter(status__code=status_q)
+            
+            # Date range filters
+            ffrom = request.query_params.get("from_date")
+            tto = request.query_params.get("to_date")
+            if ffrom:
+                qs = qs.filter(created_on__date__gte=ffrom)
+            if tto:
+                qs = qs.filter(created_on__date__lte=tto)
+            
+            # Search filter: Enhanced to handle TR IDs, Claim IDs, and text search
+            search = request.query_params.get("search")
+            if search:
+                search_filter = Q()
+                search_str = str(search).strip()
+
+                # 1. Numeric ID matching
+                if search_str.isdigit():
+                    search_filter |= Q(id=int(search_str)) | Q(travel_application_id=int(search_str))
+                
+                # 2. Travel Request ID pattern (TR/TSF/YYYY/ID)
+                elif "/" in search_str:
+                    parts = search_str.split("/")
+                    if parts and parts[-1].isdigit():
+                        search_filter |= Q(travel_application_id=int(parts[-1]))
+
+                # 3. Purpose search (employee search not strictly needed for personal view but kept for consistency)
+                search_filter |= Q(travel_application__purpose__icontains=search_str)
+                
+                qs = qs.filter(search_filter)
+
+            qs = qs.order_by("-created_on")
+
+            paginator = StandardResultsSetPagination()
+            page = paginator.paginate_queryset(qs, request)
+            serializer = ClaimListSerializer(page, many=True, context={"request": request})
+            
+            return paginated_response(serializer_data=serializer.data, paginator=paginator, message="Claims retrieved")
+        except Exception as ex:
+            tb = traceback.format_exc()
+            return error_response(data={"detail": str(ex), "trace": tb}, message="Unexpected error")
+
 
 # -------------------------
 # Claim detail

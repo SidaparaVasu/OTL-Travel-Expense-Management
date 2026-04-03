@@ -7,9 +7,11 @@ urlpatterns = [
     # Claims validate
     path("claims/validate/", ClaimValidateView.as_view(), name="claim-validate"),
     
-    # My Claims (list) + Create (submit)
+    # Claims (list) + Create (submit)
     path("claims/", ClaimListCreateView.as_view(), name="expense-claim-list-create"),
-
+    
+    # My Personal Claims (strict filtering)
+    path("my-claims/", MyExpenseClaimsListView.as_view(), name="expense-my-claims"),
 
     # Claim detail
     path("claims/<int:claim_id>/", ClaimDetailView.as_view(), name="claim-detail"),

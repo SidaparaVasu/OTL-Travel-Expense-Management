@@ -146,7 +146,7 @@ export default function MyClaimsPage() {
 
   const { data: claimsResponse, isLoading } = useQuery({
     queryKey: ["claims", filters, page],
-    queryFn: () => expenseAPI.claims.getAll({ ...filters, page }),
+    queryFn: () => expenseAPI.claims.getMyClaims({ ...filters, page }),
   });
 
   const claims = claimsResponse?.data || [];
@@ -192,8 +192,15 @@ export default function MyClaimsPage() {
     });
   };
 
-  if (isLoading) {
-    return <div className="p-4">Loading...</div>;
+  if (isLoading && !claimsResponse) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p className="text-muted-foreground">Loading your claims...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

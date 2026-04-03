@@ -27,6 +27,10 @@ export const expenseAPI = {
       const { data } = await apiClient.get("/expense/claims/", { params });
       return data;
     },
+    getMyClaims: async (params?: ClaimListParams) => {
+      const { data } = await apiClient.get("/expense/my-claims/", { params });
+      return data;
+    },
     get: async (id: number) => {
       const { data } = await apiClient.get(`/expense/claims/${id}/`);
       return data.data;
