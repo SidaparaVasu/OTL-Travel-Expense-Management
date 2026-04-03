@@ -175,7 +175,11 @@ export const TravelApplicationDetails: React.FC = () => {
     (data.accommodation_bookings || []).length +
     (data.conveyance_bookings || []).length;
 
-  const canApprove = data?.current_approval?.can_approve;
+  const canApprove =
+    data?.current_approval?.can_approve &&
+    ["pending_manager", "pending_chro", "pending_ceo"].includes(
+      data?.application?.status,
+    );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-4 md:p-6 lg:p-8 pb-24">
