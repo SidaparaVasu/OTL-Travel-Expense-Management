@@ -6,6 +6,7 @@ from typing import Any, Dict
 from django.conf import settings
 from django.template.loader import render_to_string
 from apps.travel.utils.pdf_service import PDFService
+from utils.age_convert import calculate_age
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -92,7 +93,8 @@ class TravelReportMixin:
             "department": serialized_data['application']['department'],
             "designation": serialized_data['application']['designation'],
             "grade": serialized_data['application']['grade'],
-            "branch_location": getattr(employee, 'location', 'N/A')
+            "branch_location": getattr(employee, 'location', 'N/A'),
+            "age": calculate_age(getattr(employee, 'date_of_birth', 'N/A')),
         }
 
     def _get_approval_context(self, serialized_data):
