@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.db import transaction
 from ..models import TravelApplication, TripDetails, Booking, TravelAdvanceRequest
 from ..business_logic.validators import *
+from utils.date_utils import calculate_age
 
 
 class BookingSerializer(serializers.ModelSerializer):
@@ -215,6 +216,10 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     )
     
     employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
+    employee_email = serializers.SerializerMethodField()
+    employee_mobile = serializers.SerializerMethodField()
+    employee_gender = serializers.SerializerMethodField()
+    employee_age = serializers.SerializerMethodField()
     employee_grade = serializers.CharField(source='employee.grade.name', read_only=True)
     gl_code_name = serializers.CharField(source='general_ledger.vertical_name', read_only=True)
     gl_code = serializers.CharField(source='general_ledger.gl_code', read_only=True)
@@ -226,7 +231,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelApplication
         fields = [
-            'id', 'employee', 'employee_name', 'employee_grade', 'purpose',
+            'id', 'employee', 'employee_name', 'employee_email', 'employee_mobile', 'employee_gender', 'employee_age', 'employee_grade', 'purpose',
             'travel_for', 'travelers', 'travelers_data',
             'internal_order', 'general_ledger', 'gl_code_name', 'gl_code', 'gl_code_description', 'sanction_number',
             'advance_amount', 'estimated_total_cost', 'status', 'is_settled',
@@ -257,6 +262,18 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         can_edit, _ = can_edit_application(obj, request.user)
         return can_edit
+    
+    def get_employee_email(self, obj):
+        return getattr(obj.employee, "get_email", lambda: obj.employee.email)()
+
+    def get_employee_mobile(self, obj):
+        return getattr(obj.employee, "mobile_no", "") or ""
+
+    def get_employee_gender(self, obj):
+        return obj.employee.get_gender_display()
+
+    def get_employee_age(self, obj):
+        return calculate_age(obj.employee.date_of_birth)
     
     def validate(self, data):
         """Enhanced validation with better error messages"""

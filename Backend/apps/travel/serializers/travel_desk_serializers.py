@@ -8,6 +8,12 @@ from django.db.models import Q
 
 
 class ApplicationDetailSerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
+    employee_email = serializers.SerializerMethodField()
+    employee_mobile = serializers.SerializerMethodField()
+    employee_gender = serializers.SerializerMethodField()
+    employee_age = serializers.SerializerMethodField()
+    employee_grade = serializers.CharField(source='employee.grade.name', read_only=True)
     trips = TripDetailsSerializer(source='trip_details', many=True)
     bookings = serializers.SerializerMethodField()
     approval_flow = serializers.SerializerMethodField()
@@ -16,7 +22,7 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelApplication
         fields = [
-            'id', 'travel_request_id', 'employee_name', 'employee_grade',
+            'id', 'travel_request_id', 'employee', 'employee_name', 'employee_email', 'employee_mobile', 'employee_gender', 'employee_age', 'employee_grade',
             'purpose', 'internal_order', 'general_ledger',
             'sanction_number', 'advance_amount', 'status', 'created_at',
             'submitted_at', 'trips', 'bookings', 'approval_flow', 'audit_logs',
@@ -56,6 +62,18 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
             }
             for log in AuditLog.objects.filter(application=app).order_by('-created_at')[:20]
         ]
+    
+    def get_employee_email(self, app):
+        return getattr(app.employee, "get_email", lambda: app.employee.email)()
+
+    def get_employee_mobile(self, app):
+        return getattr(app.employee, "mobile_no", "") or ""
+
+    def get_employee_gender(self, app):
+        return app.employee.get_gender_display()
+
+    def get_employee_age(self, app):
+        return calculate_age(app.employee.date_of_birth)
     
 class TravelDeskBookingSerializer(serializers.ModelSerializer):
     trip_id = serializers.IntegerField(source="trip_details.id", read_only=True)
@@ -498,7 +516,7 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
         return getattr(obj.employee, "get_email", lambda: obj.employee.email)()
 
     def get_employee_mobile(self, obj):
-        return getattr(obj.employee, "mobile_no", "")
+        return getattr(obj.employee, "mobile_no", "") or ""
 
     def get_employee_gender(self, obj):
         return obj.employee.get_gender_display()
