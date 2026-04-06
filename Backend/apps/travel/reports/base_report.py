@@ -4,6 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from django.conf import settings
+from django.utils import timezone
 from django.template.loader import render_to_string
 from apps.travel.utils.pdf_service import PDFService
 from utils.age_convert import calculate_age
@@ -80,7 +81,7 @@ class TravelReportMixin:
             "travel_request_id": serialized_data['application']['travel_request_id'],
             "status": serialized_data['application']['status_label'],
             "submitted_date": serialized_data['timestamps']['submitted_at'],
-            "generated_on": datetime.now().strftime("%d/%m/%Y %I:%M %p")
+            "generated_on": timezone.localtime(timezone.now()).strftime("%d/%m/%Y %I:%M %p")
         }
 
     def _get_employee_context(self, application, serialized_data):

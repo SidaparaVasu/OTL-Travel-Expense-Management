@@ -10,6 +10,7 @@ from apps.travel.models import (
 from apps.travel.models.traveler import ApplicationTraveler, GuestProfile
 from apps.travel.models.booking_extended import AccommodationBooking, VehicleBooking
 from django.utils.dateformat import DateFormat
+from django.utils.timezone import localtime
 from utils.date_utils import calculate_age
 
 import logging
@@ -18,6 +19,9 @@ logger = logging.getLogger(__name__)
 def format_datetime(dt):
     """Format datetime as DD/MM/YYYY HH:MM AM/PM"""
     if dt:
+        # Convert to local time if it's an aware datetime
+        if hasattr(dt, 'tzinfo') and dt.tzinfo:
+            dt = localtime(dt)
         df = DateFormat(dt)
         return df.format('d/m/Y h:i A')
     return ""
@@ -26,6 +30,9 @@ def format_datetime(dt):
 def format_date(d):
     """Format date as DD/MM/YYYY"""
     if d:
+        # Localize date if it's actually a datetime object being passed
+        if hasattr(d, 'tzinfo') and d.tzinfo:
+            d = localtime(d).date()
         df = DateFormat(d)
         return df.format('d/m/Y')
     return ""
