@@ -245,7 +245,7 @@ class HRMSSyncService:
                     "last_name": last_name,
                     "mobile_no": data.get("Mobile_No"),
                     "gender": cls._map_gender(data.get("Gender")),
-                    "date_of_birth": cls._parse_date(data.get("Date_of_Birth")),
+                    "date_of_birth": cls._parse_date(data.get("Date_Of_Birth")),
                     "is_active": is_active,
                 },
             )
@@ -256,7 +256,7 @@ class HRMSSyncService:
                 user.first_name = first_name
                 user.last_name = last_name
                 user.mobile_no = data.get("Mobile_No")
-                user.date_of_birth = cls._parse_date(data.get("Date_of_Birth"))
+                user.date_of_birth = cls._parse_date(data.get("Date_Of_Birth"))
                 user.is_active = is_active
                 user.save(update_fields=[
                     "username", "email", "first_name",
