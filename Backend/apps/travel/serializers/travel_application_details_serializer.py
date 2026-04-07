@@ -643,7 +643,10 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'mobile': employee.mobile_no or "",
             'gender': employee.get_gender_display(),
             'age': calculate_age(employee.date_of_birth),
-            'branch_location': employee.base_location.location_name if employee.base_location else "",
+            'branch_location': (
+                getattr(employee.base_location, 'location_name', None) or 
+                (profile.base_location.location_name if profile and profile.base_location else "")
+            ),
             'grade': grade,
             'department': department,
             'designation': designation,

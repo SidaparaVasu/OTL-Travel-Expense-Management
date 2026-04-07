@@ -96,7 +96,7 @@ class TravelReportMixin:
             "department": app_data.get('department', 'N/A'),
             "designation": app_data.get('designation', 'N/A'),
             "grade": app_data.get('grade', 'N/A'),
-            "branch_location": employee.base_location.location_name if employee.base_location else 'N/A',
+            "branch_location": app_data.get('branch_location', 'N/A'),
             "age": calculate_age(employee.date_of_birth),
         }
 
