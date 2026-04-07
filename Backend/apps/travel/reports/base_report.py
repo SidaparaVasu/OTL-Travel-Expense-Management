@@ -86,16 +86,18 @@ class TravelReportMixin:
 
     def _get_employee_context(self, application, serialized_data):
         employee = application.employee
+        app_data = serialized_data.get('application', {})
+        
         return {
             "name": employee.get_full_name(),
             "email": employee.email,
-            "mobile": getattr(employee, 'mobile_number', 'N/A'),
-            "gender": getattr(employee, 'gender', 'N/A'),
-            "department": serialized_data['application']['department'],
-            "designation": serialized_data['application']['designation'],
-            "grade": serialized_data['application']['grade'],
-            "branch_location": getattr(employee, 'location', 'N/A'),
-            "age": calculate_age(getattr(employee, 'date_of_birth', 'N/A')),
+            "mobile": employee.mobile_no or 'N/A',
+            "gender": employee.get_gender_display(),
+            "department": app_data.get('department', 'N/A'),
+            "designation": app_data.get('designation', 'N/A'),
+            "grade": app_data.get('grade', 'N/A'),
+            "branch_location": employee.base_location.location_name if employee.base_location else 'N/A',
+            "age": calculate_age(employee.date_of_birth),
         }
 
     def _get_approval_context(self, serialized_data):
