@@ -50,13 +50,13 @@
                         <td style="padding:30px;">
 
                             <div style="font-size:18px; font-weight:bold; color:#1d4ed8; margin-bottom:8px;">
-                                Changes in Your Travel Request
+                                Changes in Travel Request
                             </div>
 
                             <div style="font-size:14px; color:#5e6470; margin-bottom:25px;">
-                                Dear {{ employee_name }},
+                                Dear {{ employee_name }} &amp; {{ approver_name }},
                                 <br><br>
-                                {{ message }}.
+                                The travel request associated with <strong>{{ employee_name }}</strong> has been updated and currently requires re-approval from the designated approver.
                             </div>
 
                             <!-- CHANGE DETAILS BOX -->
@@ -71,11 +71,29 @@
                                 </tr>
 
                                 <tr>
-                                    <td style="font-size:14px; color:#6c7380; padding-bottom:10px;">
+                                    <td style="font-size:14px; color:#6c7380; padding-bottom:10px; width:130px;">
                                         <strong>Request ID:</strong>
                                     </td>
                                     <td style="font-size:14px; font-weight:600; padding-bottom:10px;">
                                         {{ request_id }}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="font-size:14px; color:#6c7380; padding-bottom:10px;">
+                                        <strong>Applicant:</strong>
+                                    </td>
+                                    <td style="font-size:14px; font-weight:600; padding-bottom:10px;">
+                                        {{ employee_name }}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="font-size:14px; color:#6c7380; padding-bottom:10px;">
+                                        <strong>Approver:</strong>
+                                    </td>
+                                    <td style="font-size:14px; font-weight:600; padding-bottom:10px;">
+                                        {{ approver_name }}
                                     </td>
                                 </tr>
 
@@ -91,8 +109,7 @@
                             </table>
 
                             <div style="font-size:14px; margin-top:25px; line-height:1.6;">
-                                The request has been reset to the approval phase. You will be notified once the updated
-                                request is reviewed.
+                                The request has been reset to the approval phase. The applicant will be notified again once the updated request is reviewed.
                             </div>
 
                             <div style="font-size:14px; line-height:1.6; margin-top:30px;">
