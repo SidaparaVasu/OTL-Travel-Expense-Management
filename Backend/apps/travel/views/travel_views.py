@@ -225,6 +225,7 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         
         # Store original data for comparison
         original_status = instance.status
+        original_approver = instance.current_approver
         
         # Perform the update
         serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
@@ -260,6 +261,11 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
             # Send notification about re-approval
             try:
                 from apps.notifications.center import NotificationCenter
+                
+                recipients_list = [instance.employee.id]
+                if original_approver:
+                    recipients_list.append(original_approver.id)
+                    
                 NotificationCenter.notify(
                     event_name="travel.edited_reapproval",
                     reference={"type": "TravelRequest", "id": instance.id},
@@ -267,8 +273,10 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
                         "employee_id": instance.employee.id,
                         "request_id": instance.get_travel_request_id(),
                         "employee_name": instance.employee.get_full_name(),
+                        "approver_name": original_approver.get_full_name() if original_approver else "Approver",
                         "changes": reason,
-                        "message": "Your travel request has been updated and requires re-approval"
+                        "message": "Your travel request has been updated and requires re-approval",
+                        "recipients": recipients_list
                     }
                 )
             except Exception as e:
