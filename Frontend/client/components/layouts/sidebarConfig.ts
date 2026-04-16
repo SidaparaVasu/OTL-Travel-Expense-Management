@@ -36,10 +36,16 @@ export type SidebarSection = {
   items?: SidebarItem[];
 };
 
-const roles = JSON.parse(localStorage.getItem("roles") || "[]");
-const roleTypes = roles.map((r: any) => r.role_type?.toLowerCase());
-
-const hasFinanceRole = roleTypes.includes("finance");
+// Helper to check for finance role dynamically
+const checkFinanceRole = (): boolean => {
+  try {
+    const roles = JSON.parse(localStorage.getItem("roles") || "[]");
+    return roles.some((r: any) => r.role_type?.toLowerCase() === "finance");
+  } catch (err) {
+    console.error("Error parsing roles for sidebar:", err);
+    return false;
+  }
+};
 
 // ------------------------------------------------------
 // Admin Sidebar
@@ -111,7 +117,7 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
       },
     ],
   },
-  ...(hasFinanceRole
+  ...(checkFinanceRole()
     ? [
         {
           title: "Finance",
@@ -215,7 +221,7 @@ export const getEmployeeSidebar = (
       },
     ],
   },
-  ...(hasFinanceRole
+  ...(checkFinanceRole()
     ? [
         {
           title: "Finance",

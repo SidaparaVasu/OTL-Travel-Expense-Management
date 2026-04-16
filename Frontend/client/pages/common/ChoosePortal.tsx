@@ -52,7 +52,7 @@ const ROLE_CONFIG: Record<string, RoleConfig> = {
   },
   finance: {
     group: "Employee Portal",
-    route: ROUTES.adminDashboard,
+    route: ROUTES.employeeDashboard,
     desc: "Financial oversight and reimbursement processing.",
     icon: ShieldCheck,
     priority: 10,
