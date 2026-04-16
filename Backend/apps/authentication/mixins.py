@@ -135,9 +135,7 @@ class BranchFilterMixin:
     
     def check_branch_access(self, user, target_user):
         """
-        Check if user can access target_user's data based on branch.
-        
-        Useful for permission checks in detail views or update operations.
+        Check if user can access target_user's data based on branch and SPOC assignments.
         
         Args:
             user: Current user requesting access
@@ -146,10 +144,10 @@ class BranchFilterMixin:
         Returns:
             Boolean indicating if access is allowed
         """
-        # CEO/CHRO can access all
+        # CEO and CHRO have company-wide access
         if user.has_role('CEO') or user.has_role('CHRO'):
             return True
-        
+            
         # Get both users' locations
         user_location = self.get_user_branch_location(user)
         target_location = self.get_user_branch_location(target_user)
@@ -157,6 +155,24 @@ class BranchFilterMixin:
         # If either has no location, deny access
         if not user_location or not target_location:
             return False
-        
-        # Check if same branch
-        return user_location == target_location
+            
+        # Simple Case: Same branch
+        if user_location == target_location:
+            return True
+            
+        # Advanced Case: Check SPOC assignments for cross-branch access
+        if ENABLE_SPOC_BASED_FILTERING:
+            from apps.authentication.models.spoc import LocationSPOCAssignment
+            
+            # Check if user has ANY active assignment for the target location
+            has_assignment = LocationSPOCAssignment.objects.filter(
+                user=user,
+                is_active=True
+            ).filter(
+                Q(is_global=True) | Q(locations__location_id=target_location.location_id)
+            ).exists()
+            
+            if has_assignment:
+                return True
+                
+        return False

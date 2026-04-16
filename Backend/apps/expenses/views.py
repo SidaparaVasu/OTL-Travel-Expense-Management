@@ -238,7 +238,7 @@ class MyExpenseClaimsListView(APIView):
 # -------------------------
 # Claim detail
 # -------------------------
-class ClaimDetailView(APIView):
+class ClaimDetailView(BranchFilterMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, claim_id):
@@ -259,7 +259,18 @@ class ClaimDetailView(APIView):
                 profile and profile.reporting_manager == user
             )
 
-            if not (is_employee or is_staff or is_approver or is_reporting_manager):
+            # 2. Staff role check (Finance, Travel Desk, Admin)
+            is_staff_role = (
+                user.has_role('Admin') or 
+                user.has_role('admin') or
+                user.has_role('Travel Desk') or
+                user.has_role('Finance')
+            )
+            
+            # Check branch access for staff roles
+            has_branch_access = is_staff_role and self.check_branch_access(user, claim.employee)
+
+            if not (is_employee or is_staff or is_approver or is_reporting_manager or has_branch_access):
                 return error_response(
                     data={"permission": ["You cannot view this claim"]},
                     message="Forbidden"

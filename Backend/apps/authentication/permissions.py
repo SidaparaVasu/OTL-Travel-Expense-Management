@@ -64,22 +64,28 @@ class IsOwnerOrApprover(BasePermission):
         # Check if both users are in the same branch
         same_branch = (user_profile.base_location == obj_profile.base_location)
         
-        # Admin visibility - ONLY within their branch
-        if user.has_role('Admin') or user.has_role('admin'):
-            return same_branch
-        
-        # Branch Admin visibility - within their branch
-        if user.has_role('Branch Admin'):
-            return same_branch
-        
-        # Travel Desk visibility - ONLY within their branch
-        if user.has_role('Travel Desk'):
-            return same_branch
-        
-        # Finance visibility - ONLY within their branch
-        if user.has_role('Finance'):
-            return same_branch
-        
+        # Staff roles with branch-level access control
+        staff_roles = ['Admin', 'admin', 'Travel Desk', 'Finance', 'Branch Admin']
+        if any(user.has_role(role) for role in staff_roles):
+            # Same branch check
+            if same_branch:
+                return True
+                
+            # Cross-branch SPOC assignment check
+            from apps.authentication.mixins import ENABLE_SPOC_BASED_FILTERING
+            if ENABLE_SPOC_BASED_FILTERING:
+                from apps.authentication.models.spoc import LocationSPOCAssignment
+                from django.db.models import Q
+                
+                return LocationSPOCAssignment.objects.filter(
+                    user=user,
+                    is_active=True
+                ).filter(
+                    Q(is_global=True) | Q(locations__location_id=obj_profile.base_location.location_id)
+                ).exists()
+            
+            return False
+            
         # Manager visibility - subordinates within their branch only
         if user.has_role('Manager'):
             is_subordinate = (obj_profile.reporting_manager == user)

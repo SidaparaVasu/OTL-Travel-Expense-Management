@@ -4,16 +4,17 @@ from rest_framework.exceptions import PermissionDenied, NotFound
 from django.db.models import Prefetch
 from apps.travel.models import TravelApplication, Booking, BookingAssignment, BookingNote
 from apps.travel.serializers.travel_application_details_serializer import TravelApplicationDetailsSerializer
+from apps.authentication.mixins import BranchFilterMixin
 
 
-class TravelApplicationDetailsView(generics.RetrieveAPIView):
+class TravelApplicationDetailsView(BranchFilterMixin, generics.RetrieveAPIView):
     """
     API endpoint to retrieve comprehensive travel application details.
     
     Permissions:
     - Employee who created the application
     - Approvers in the approval workflow
-    - Travel Desk users
+    - Travel Desk or Finance users (based on branch/SPOC assignment)
     - Admin users
     """
     serializer_class = TravelApplicationDetailsSerializer
@@ -75,6 +76,14 @@ class TravelApplicationDetailsView(generics.RetrieveAPIView):
         user = self.request.user
         
         # Check if user has permission to view
+        # 1. Staff roles that might have branch-based access
+        has_staff_role = (
+            user.has_role('Admin') or 
+            user.has_role('admin') or
+            user.has_role('Travel Desk') or
+            user.has_role('Finance')
+        )
+
         has_permission = (
             # Employee who created the application
             obj.employee == user or
@@ -82,12 +91,11 @@ class TravelApplicationDetailsView(generics.RetrieveAPIView):
             # Approvers in the workflow
             obj.approval_flows.filter(approver=user).exists() or
             
-            # Travel Desk or Admin
-            user.has_role('Travel Desk') or
-            user.has_role('Admin') or
-            
             # Travel desk user assigned to this application
-            obj.travel_desk_user == user
+            obj.travel_desk_user == user or
+
+            # Branch-based access for staff roles
+            (has_staff_role and self.check_branch_access(user, obj.employee))
         )
         
         if not has_permission:
