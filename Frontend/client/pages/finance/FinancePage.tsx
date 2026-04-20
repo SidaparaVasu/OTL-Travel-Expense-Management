@@ -435,8 +435,11 @@ const FinanceDashboard = () => {
                       key={claim.claim_application_id}
                       className="hover:bg-muted/50 transition whitespace-nowrap"
                     >
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium flex flex-col">
                         {claim.employee_name}
+                        <span className="text-xs text-slate-500">
+                          {claim.branch_location}
+                        </span>
                       </TableCell>
 
                       <TableCell>

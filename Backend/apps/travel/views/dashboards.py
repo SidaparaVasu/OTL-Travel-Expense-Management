@@ -221,6 +221,7 @@ class FinanceDashboardView(APIView):
                 'travel_request_id': travel_request_id,
                 'claim_application_id': claim.id,
                 'employee_name': employee_name,
+                'branch_location': claim.employee.organizational_profile.base_location.location_name if hasattr(claim.employee, 'organizational_profile') and claim.employee.organizational_profile.base_location else "—",
                 'status_code': claim.status.code if claim.status else None,
                 'status_label': claim.status.label if claim.status else None,
                 'total_da': float(claim.total_da or 0),
@@ -292,7 +293,11 @@ class FinanceDashboardView(APIView):
         
         # Base queryset with optimized joins
         queryset = ExpenseClaim.objects.select_related(
-            'employee', 'status', 'travel_application'
+            'employee', 
+            'employee__organizational_profile',
+            'employee__organizational_profile__base_location',
+            'status', 
+            'travel_application'
         ).all()
         
         # Status filter
