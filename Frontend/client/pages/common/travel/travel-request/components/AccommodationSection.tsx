@@ -64,7 +64,6 @@ interface AccommodationSectionProps {
   hasBulkFile?: boolean;
   defaultCityId?: number | null;
   defaultCityLabel?: string;
-  readonlyExisting?: boolean;
 }
 
 export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
@@ -85,7 +84,6 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   hasBulkFile = false,
   defaultCityId = null,
   defaultCityLabel = "",
-  readonlyExisting = false,
 }) => {
   const [form, setForm] = useState<AccommodationFormData>(
     getEmptyAccommodation(),
@@ -919,7 +917,6 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
             onDelete={handleDelete}
             emptyMessage="No accommodation added yet"
             rowErrors={bookingErrors}
-            readonlyRows={readonlyExisting}
           />
         </>
       )}

@@ -1600,7 +1600,6 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
                 hasBulkFile={!!bulkFile}
-                readonlyExisting={isEditMode}
               />
             )}
 
@@ -1627,7 +1626,6 @@ export const TravelApplicationForm: React.FC = () => {
                     : null
                 }
                 defaultCityLabel={purposeData.trip_to_location_label}
-                readonlyExisting={isEditMode}
               />
             )}
 
@@ -1645,7 +1643,6 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}
                 hasBulkFile={!!bulkFile}
-                readonlyExisting={isEditMode}
               />
             )}
 

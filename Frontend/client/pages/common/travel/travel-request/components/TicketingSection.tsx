@@ -66,7 +66,6 @@ interface TicketingSectionProps {
   travelSubOptions?: Record<string, TravelSubOption[]>;
   bookingErrors?: Record<number, string>;
   hasBulkFile?: boolean;
-  readonlyExisting?: boolean;
 }
 
 export const TicketingSection: React.FC<TicketingSectionProps> = ({
@@ -83,7 +82,6 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   travelSubOptions: propSubOptions,
   bookingErrors = {},
   hasBulkFile = false,
-  readonlyExisting = false,
 }) => {
   const [form, setForm] = useState<TicketingFormData>({
     ...getEmptyTicketing(),
@@ -673,7 +671,6 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
             onDelete={handleDelete}
             emptyMessage="No tickets added yet"
             rowErrors={bookingErrors}
-            readonlyRows={readonlyExisting}
           />
         </>
       )}
