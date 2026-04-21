@@ -524,7 +524,7 @@ export const TravelApplicationForm: React.FC = () => {
                   // Accommodation
                   accommodationData.push({
                     id: booking.id, // Store ID
-                    accommodation_type: booking.booking_type,
+                    accommodation_type: String(booking.booking_type),
                     accommodation_type_label: booking.booking_type_name || "",
                     accommodation_sub_option: String(booking.sub_option),
                     accommodation_sub_option_label:

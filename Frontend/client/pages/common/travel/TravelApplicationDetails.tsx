@@ -516,7 +516,7 @@ export const TravelApplicationDetails: React.FC = () => {
           </div>
 
           {/* Bulk File */}
-          {data?.application?.bulk_upload_file ? (
+          {data?.application?.bulk_upload_file && (
             <div className="border-b border-slate-200">
               <div className="p-4">
                 <span className="font-semibold text-slate-700">
@@ -533,7 +533,12 @@ export const TravelApplicationDetails: React.FC = () => {
                 </a>
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* Booking Tables — always shown if any bookings exist */}
+          {(data.ticketing_bookings?.length > 0 ||
+            data.accommodation_bookings?.length > 0 ||
+            data.conveyance_bookings?.length > 0) ? (
             <>
               {/* Flight/Train Bookings */}
               <div className="border-b border-slate-200">
@@ -1357,6 +1362,10 @@ export const TravelApplicationDetails: React.FC = () => {
                 ))}
               </div>
             </>
+          ) : (
+            <div className="p-6 text-center text-slate-500">
+              No booking details available.
+            </div>
           )}
         </div>
         {/* Approval History */}
