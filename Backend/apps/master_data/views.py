@@ -233,11 +233,13 @@ class GradeListCreateView(ListCreateAPIView):
     queryset = GradeMaster.objects.filter(is_active=True)
     serializer_class = GradeSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = LargePagination
 
 class GradeDetailView(RetrieveUpdateDestroyAPIView):
     queryset = GradeMaster.objects.all()
     serializer_class = GradeSerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
+    pagination_class = LargePagination
 
 class TravelModeListCreateView(ListCreateAPIView):
     # queryset = TravelModeMaster.objects.filter(is_active=True)
