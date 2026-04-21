@@ -24,8 +24,8 @@ export default function GradeMasterPage() {
     const fetchGrades = async () => {
         try {
             const data = await masterAPI.getGrades();
-            setGrades(data.data.results);
-            console.log(data.data.results);
+            setGrades(data.results ?? data.data?.results ?? []);
+            console.log(data.results ?? data.data?.results);
         } catch (err) {
             console.error("Failed to fetch grades", err);
         }
