@@ -22,6 +22,7 @@ interface DataTableProps<T> {
   onDelete: (index: number) => void;
   emptyMessage?: string;
   rowErrors?: Record<number, string>;
+  readonlyRows?: boolean; // When true, hides edit/delete for rows with an existing id
 }
 
 export function DataTable<T>({
@@ -31,6 +32,7 @@ export function DataTable<T>({
   onDelete,
   emptyMessage = "No items added yet",
   rowErrors = {},
+  readonlyRows = false,
 }: DataTableProps<T>) {
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card">
@@ -111,20 +113,28 @@ export function DataTable<T>({
                             </Tooltip>
                           </TooltipProvider>
                         )}
-                        <button
-                          onClick={() => onEdit(idx)}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => onDelete(idx)}
-                          className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {/* Hide edit/delete for existing rows when readonlyRows is true */}
+                        {!(readonlyRows && (row as Record<string, unknown>).id) && (
+                          <>
+                            <button
+                              onClick={() => onEdit(idx)}
+                              className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => onDelete(idx)}
+                              className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                        {readonlyRows && (row as Record<string, unknown>).id && (
+                          <span className="text-xs text-muted-foreground italic px-2">Locked</span>
+                        )}
                       </div>
                     </td>
                   </tr>

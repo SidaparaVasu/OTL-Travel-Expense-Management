@@ -70,6 +70,7 @@ interface ConveyanceSectionProps {
   travelSubOptions: Record<string, any[]>;
   bookingErrors?: Record<number, string>;
   hasBulkFile?: boolean;
+  readonlyExisting?: boolean;
 }
 
 export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
@@ -85,6 +86,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   travelSubOptions,
   bookingErrors = {},
   hasBulkFile = false,
+  readonlyExisting = false,
 }) => {
   const [form, setForm] = useState<ConveyanceFormData>({
     ...getEmptyConveyance(),
@@ -894,6 +896,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
             onDelete={handleDelete}
             emptyMessage="No conveyance added yet"
             rowErrors={bookingErrors}
+            readonlyRows={readonlyExisting}
           />
         </>
       )}
