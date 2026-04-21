@@ -485,9 +485,14 @@ export const TravelApplicationForm: React.FC = () => {
               const conveyanceData: any[] = [];
 
               trip.bookings.forEach((booking: any) => {
-                const modeName =
-                  travelModes.find((m) => m.id === booking.booking_type)
-                    ?.name || "";
+                // Use booking_type_name directly from API response for reliable categorization
+                const modeName = booking.booking_type_name || 
+                  travelModes.find((m) => m.id === booking.booking_type)?.name || "";
+
+                // Skip system-generated bulk bookings — not editable
+                if (modeName === "Bulk Booking" || booking.booking_details?.is_system_generated) {
+                  return;
+                }
 
                 if (modeName === "Flight" || modeName === "Train") {
                   // Ticketing
@@ -539,7 +544,9 @@ export const TravelApplicationForm: React.FC = () => {
                       booking.booking_details?.arc_hotel_preferences || [],
                   });
                 } else {
-                  // Conveyance
+                  // Conveyance — only push if modeName is known (not empty/unmatched)
+                  if (!modeName) return;
+
                   const reportAt = booking.booking_details?.report_at || "";
                   const dropLocation =
                     booking.booking_details?.drop_location || "";
