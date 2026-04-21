@@ -371,7 +371,9 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
         const subOption = travelSubOptions[row.vehicle_type]?.find(
           (s) => String(s.id) === row.vehicle_sub_option,
         );
-        return `${type?.name || ""} - ${subOption?.name || ""}`;
+        const typeName = type?.name || row.vehicle_type_label || "";
+        const subOptionName = subOption?.name || row.vehicle_sub_option_label || "";
+        return `${typeName} - ${subOptionName}`;
       },
     },
     {

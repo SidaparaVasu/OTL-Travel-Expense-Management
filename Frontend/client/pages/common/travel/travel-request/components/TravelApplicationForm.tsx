@@ -563,7 +563,9 @@ export const TravelApplicationForm: React.FC = () => {
                   conveyanceData.push({
                     id: booking.id, // Store ID
                     vehicle_type: String(booking.booking_type),
+                    vehicle_type_label: booking.booking_type_name || "",
                     vehicle_sub_option: String(booking.sub_option),
+                    vehicle_sub_option_label: booking.sub_option_name || "",
                     estimated_cost: booking.estimated_cost || "",
                     special_instruction: booking.special_instruction || "",
                     from_location:

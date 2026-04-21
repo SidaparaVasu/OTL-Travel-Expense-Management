@@ -562,7 +562,9 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         const subOption = travelSubOptions[row.accommodation_type]?.find(
           (s) => String(s.id) === row.accommodation_sub_option,
         );
-        return `${type?.name || ""} - ${subOption?.name || ""}`;
+        const typeName = type?.name || row.accommodation_type_label || "";
+        const subOptionName = subOption?.name || row.accommodation_sub_option_label || "";
+        return `${typeName} - ${subOptionName}`;
       },
     },
     {
