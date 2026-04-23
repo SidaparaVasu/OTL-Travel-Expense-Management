@@ -1220,20 +1220,22 @@ class TravelApplicationValidationView(APIView):
             }
             
             # Trip-level validations
-            try:
-                from apps.travel.business_logic.validators import validate_duplicate_travel_request
-                validate_duplicate_travel_request(
-                    travel_app.employee, 
-                    trip.departure_date, 
-                    trip.return_date
-                )
-            except Exception as e:
-                trip_validations['issues'].append({
-                    'type': 'duplicate_travel',
-                    'message': str(e),
-                    'severity': 'error'
-                })
-                has_errors = True
+            # Only check duplicate travel for self/self_guest applications, not guest-only
+            if travel_app.travel_for != 'guest':
+                try:
+                    from apps.travel.business_logic.validators import validate_duplicate_travel_request
+                    validate_duplicate_travel_request(
+                        travel_app.employee, 
+                        trip.departure_date, 
+                        trip.return_date
+                    )
+                except Exception as e:
+                    trip_validations['issues'].append({
+                        'type': 'duplicate_travel',
+                        'message': str(e),
+                        'severity': 'error'
+                    })
+                    has_errors = True
             
             # Booking-level validations
             for booking in trip.bookings.all():
