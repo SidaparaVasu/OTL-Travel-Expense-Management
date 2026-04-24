@@ -358,12 +358,14 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             
             # Check for duplicate travel (only if not draft and dates present)
             # RELAXATION: Only check for user himself (Self). Don't check for Guest-only applications.
-            if not self.instance and self.context.get('status') != 'draft' and travel_for != 'guest':
-                if departure and return_date:
-                    try:
-                        validate_duplicate_travel_request(user, departure, return_date)
-                    except Exception as e:
-                        trip_errors['duplicate'] = str(e)
+            # NOTE: Draft saves are always allowed. The validator itself only checks non-draft
+            # active statuses, so this call is only meaningful at submission time.
+            if travel_for not in ['guest'] and departure and return_date:
+                try:
+                    exclude_id = self.instance.id if self.instance else None
+                    validate_duplicate_travel_request(user, departure, return_date, exclude_id=exclude_id)
+                except Exception as e:
+                    trip_errors['duplicate'] = str(e)
             
             if trip_errors:
                 errors[f'trip_{idx}'] = trip_errors
