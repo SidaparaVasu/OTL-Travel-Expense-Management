@@ -472,6 +472,27 @@ class TravelApplicationSubmitView(APIView):
                 status_code=400
             )
 
+        # 3.2) Overlap check at submission time for self/self_guest applications.
+        # Draft saves are always allowed, but submission is blocked if an active
+        # (non-draft) self application already covers the same period.
+        if travel_app.travel_for in ['self', 'self_guest']:
+            from apps.travel.business_logic.validators import validate_duplicate_travel_request
+            for trip in travel_app.trip_details.all():
+                if trip.departure_date and trip.return_date:
+                    try:
+                        validate_duplicate_travel_request(
+                            travel_app.employee,
+                            trip.departure_date,
+                            trip.return_date,
+                            exclude_id=travel_app.id
+                        )
+                    except Exception as e:
+                        return error_response(
+                            message="Cannot submit travel request due to overlapping period.",
+                            errors={"validation": str(e)},
+                            status_code=400
+                        )
+
         # 3.5) Auto-create "Bulk Upload" booking if file is present
         # This ensures the application is routed to Travel Desk even if no other bookings exist.
         travel_app.create_bulk_booking_if_needed()
@@ -1225,9 +1246,10 @@ class TravelApplicationValidationView(APIView):
                 try:
                     from apps.travel.business_logic.validators import validate_duplicate_travel_request
                     validate_duplicate_travel_request(
-                        travel_app.employee, 
-                        trip.departure_date, 
-                        trip.return_date
+                        travel_app.employee,
+                        trip.departure_date,
+                        trip.return_date,
+                        exclude_id=travel_app.id
                     )
                 except Exception as e:
                     trip_validations['issues'].append({

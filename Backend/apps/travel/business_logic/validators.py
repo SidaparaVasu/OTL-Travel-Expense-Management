@@ -370,17 +370,19 @@ def fetch_da_rate_for(employee, city_category):
 
 # --- duplicate travel -------------------------------------------------------
 
-def validate_duplicate_travel_request(user, start_date, end_date):
+def validate_duplicate_travel_request(user, start_date, end_date, exclude_id=None):
     """
-    Prevent overlapping travel only if existing application is still active.
+    Prevent overlapping travel only for SELF/SELF_GUEST applications that are
+    beyond draft status. Guest-only applications never block self travel.
     Rejected/Cancelled applications must not block new requests.
     """
 
     from apps.travel.models import TravelApplication
     from django.db.models import Q
 
+    # Draft is intentionally excluded — users are allowed to save overlapping
+    # drafts freely. The block only kicks in at submission time.
     ACTIVE_STATUSES = [
-        "draft",
         "submitted",
         "pending_manager",
         "approved_manager",
@@ -396,11 +398,18 @@ def validate_duplicate_travel_request(user, start_date, end_date):
 
     qs = TravelApplication.objects.filter(
         employee=user,
+        travel_for__in=["self", "self_guest"],  # guest applications never block self
         status__in=ACTIVE_STATUSES
     ).filter(
         Q(trip_details__departure_date__lte=end_date) &
         Q(trip_details__return_date__gte=start_date)
-    ).distinct()
+    )
+
+    # Exclude the current application itself (relevant when re-validating on edit/submit)
+    if exclude_id:
+        qs = qs.exclude(id=exclude_id)
+
+    qs = qs.distinct()
 
     if qs.exists():
         raise Exception(
