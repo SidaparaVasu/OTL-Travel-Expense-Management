@@ -80,6 +80,7 @@ export const ROUTES = {
 
   // Travel Master
   gradeEntitlementMaster: "/masters/grade-entitlement",
+  travelApplicationExport: "/masters/export-travel-applications",
 
   // Approval Matrix
   approvalMatrixMaster: "/masters/approval-matrix",

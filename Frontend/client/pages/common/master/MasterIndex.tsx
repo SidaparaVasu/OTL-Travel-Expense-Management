@@ -52,6 +52,7 @@ const MASTER_CATEGORIES = [
       { id: "travel-mode", title: "Travel Mode", route: ROUTES.travelModeMaster },
       { id: "grade-entitlement", title: "Grade Entitlement", route: ROUTES.gradeEntitlementMaster },
       { id: "backdated-allowance", title: "Backdated TR Allowance", route: ROUTES.backdatedTRAllowance },
+      { id: "travel-export", title: "Travel Application Export", route: ROUTES.travelApplicationExport },
     ],
   },
   {
