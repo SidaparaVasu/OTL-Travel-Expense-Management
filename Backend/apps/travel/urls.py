@@ -17,6 +17,7 @@ from .views.travel_desk_views import *
 from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
 from .views.advance_views import AdvanceWorkspaceViewSet
+from .views.export_views import TravelApplicationExportView, TravelApplicationExportPreviewView
 
 router = DefaultRouter()
 router.register(r'guest-profiles', GuestProfileViewSet, basename='guest-profiles')
@@ -121,4 +122,8 @@ urlpatterns = [
     
     # Travel Desk
     path('travel-desk/dashboard/', TravelDeskDashboardView.as_view(), name='travel-desk-dashboard'),
+
+    # Admin Export
+    path('admin/export/', TravelApplicationExportView.as_view(), name='travel-application-export'),
+    path('admin/export/preview/', TravelApplicationExportPreviewView.as_view(), name='travel-application-export-preview'),
 ] + router.urls

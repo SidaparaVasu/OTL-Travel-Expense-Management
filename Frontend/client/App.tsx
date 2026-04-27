@@ -42,6 +42,7 @@ import TravelApplicationDetails from "./pages/common/travel/TravelApplicationDet
 import TravelRequestApprovals from "./pages/common/travel/TravelRequestApprovals";
 import TravelCancellationRequest from "./pages/common/travel/TravelCancellationRequest";
 import TravelCancellationApproval from "./pages/common/travel/TravelCancellationApproval";
+import TravelApplicationExportPage from "./pages/common/master/TravelApplicationExport";
 
 // Expense
 import ExpenseIndex from "./pages/common/expense/Index";
@@ -333,6 +334,17 @@ const App = () => (
                     <TravelApplicationDetails />
                   </UnifiedLayout>
                 </AuthOnly>
+              }
+            />
+
+            <Route
+              path={ROUTES.travelApplicationExport}
+              element={
+                <ProtectedRoute requiredDashboard="admin">
+                  <UnifiedLayout>
+                    <TravelApplicationExportPage />
+                  </UnifiedLayout>
+                </ProtectedRoute>
               }
             />
 
