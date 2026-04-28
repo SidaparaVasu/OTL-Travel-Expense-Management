@@ -2,6 +2,8 @@ import { apiClient } from "./client";
 
 export interface TravelExportPreviewRecord {
   travel_request_id: string;
+  travel_for: string;
+  username: string;
   employee_name: string;
   purpose: string;
   status: string;
@@ -17,6 +19,7 @@ export interface TravelExportPreviewResponse {
   total: number;
   start_date: string;
   end_date: string;
+  travel_for: string | null;
   status_summary: Record<string, number>;
   records: TravelExportPreviewRecord[];
 }
@@ -28,10 +31,12 @@ export interface TravelExportPreviewResponse {
 export const fetchTravelExportPreview = async (
   startDate: string,
   endDate: string,
+  travelFor?: "self" | "guest",
 ): Promise<TravelExportPreviewResponse> => {
-  const { data } = await apiClient.get("/travel/admin/export/preview/", {
-    params: { start_date: startDate, end_date: endDate },
-  });
+  const params: Record<string, string> = { start_date: startDate, end_date: endDate };
+  if (travelFor) params.travel_for = travelFor;
+
+  const { data } = await apiClient.get("/travel/admin/export/preview/", { params });
   return data.data as TravelExportPreviewResponse;
 };
 
@@ -42,9 +47,13 @@ export const fetchTravelExportPreview = async (
 export const downloadTravelExport = async (
   startDate: string,
   endDate: string,
+  travelFor?: "self" | "guest",
 ): Promise<void> => {
+  const params: Record<string, string> = { start_date: startDate, end_date: endDate };
+  if (travelFor) params.travel_for = travelFor;
+
   const response = await apiClient.get("/travel/admin/export/", {
-    params: { start_date: startDate, end_date: endDate },
+    params,
     responseType: "blob",
   });
 

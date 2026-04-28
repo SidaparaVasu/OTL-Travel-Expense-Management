@@ -128,6 +128,7 @@ const SummaryCard: React.FC<{
 export default function TravelApplicationExportPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [travelFor, setTravelFor] = useState<"" | "self" | "guest">("");
   const [dateErrors, setDateErrors] = useState<{ start?: string; end?: string }>({});
 
   const [preview, setPreview] = useState<TravelExportPreviewResponse | null>(null);
@@ -175,7 +176,11 @@ export default function TravelApplicationExportPage() {
     setNotification(null);
 
     try {
-      const data = await fetchTravelExportPreview(startDate, endDate);
+      const data = await fetchTravelExportPreview(
+        startDate,
+        endDate,
+        travelFor || undefined,
+      );
       setPreview(data);
       if (data.total === 0) {
         showNotification(
@@ -207,7 +212,7 @@ export default function TravelApplicationExportPage() {
     setNotification(null);
 
     try {
-      await downloadTravelExport(startDate, endDate);
+      await downloadTravelExport(startDate, endDate, travelFor || undefined);
       showNotification("Excel file downloaded successfully.", "success");
     } catch (err: any) {
       const msg =
@@ -328,6 +333,35 @@ export default function TravelApplicationExportPage() {
             )}
           </div>
 
+          {/* Travel For filter */}
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1">
+              Travel For
+            </label>
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
+              {(
+                [
+                  { value: "", label: "All" },
+                  { value: "self", label: "Self" },
+                  { value: "guest", label: "Guest" },
+                ] as { value: "" | "self" | "guest"; label: string }[]
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setTravelFor(value)}
+                  className={`flex-1 py-2 font-medium transition-colors ${
+                    travelFor === value
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Fetch Button */}
           <div>
             <button
@@ -435,6 +469,12 @@ export default function TravelApplicationExportPage() {
                         Travel Request ID
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                        Travel For
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                        Username
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                         Employee Name
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -475,6 +515,22 @@ export default function TravelApplicationExportPage() {
                           </td>
                           <td className="px-4 py-3 font-mono text-xs text-blue-700 whitespace-nowrap">
                             {rec.travel_request_id}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                                rec.travel_for === "Self"
+                                  ? "bg-indigo-100 text-indigo-700"
+                                  : rec.travel_for === "Guest"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {rec.travel_for}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
+                            {rec.username}
                           </td>
                           <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">
                             {rec.employee_name}
