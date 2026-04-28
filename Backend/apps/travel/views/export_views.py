@@ -73,7 +73,9 @@ def _build_row(app: TravelApplication, first_trip, last_trip) -> list:
 
     return [
         _get_travel_request_id(app),
-        full_name,
+        app.get_travel_for_display(),          # Travel For (Self / Guest / Self + Guest)
+        employee.username,                      # Username
+        full_name,                              # Employee Full Name
         app.purpose or "",
         app.get_status_display(),
         origin,
@@ -92,6 +94,8 @@ def _build_preview_item(app: TravelApplication, first_trip, last_trip) -> dict:
 
     return {
         "travel_request_id": _get_travel_request_id(app),
+        "travel_for": app.get_travel_for_display(),     # Self / Guest / Self + Guest
+        "username": employee.username,
         "employee_name": full_name,
         "purpose": app.purpose or "",
         "status": app.get_status_display(),
@@ -112,19 +116,19 @@ def _build_preview_item(app: TravelApplication, first_trip, last_trip) -> dict:
     }
 
 
-def _fetch_applications(start_date, end_date):
+def _fetch_applications(start_date, end_date, travel_for: str = None):
     """
     Return a list of tuples:
         (TravelApplication, first_trip_or_None, last_trip_or_None)
 
     Only includes applications whose EARLIEST trip departure_date (trip start date)
-    falls within [start_date, end_date].  Later legs of a multi-leg trip that happen
-    to fall in the range do NOT qualify the application on their own.
+    falls within [start_date, end_date].
+
+    Optional travel_for filter: 'self' or 'guest' (case-insensitive).
+    'self_guest' is intentionally excluded from filtering options.
     """
     from django.db.models import Min
 
-    # Annotate each application with its earliest departure_date across all legs,
-    # then keep only those whose minimum departure_date is within the range.
     app_ids = (
         TripDetails.objects
         .values("travel_application_id")
@@ -133,7 +137,7 @@ def _fetch_applications(start_date, end_date):
         .values_list("travel_application_id", flat=True)
     )
 
-    applications = (
+    qs = (
         TravelApplication.objects
         .filter(id__in=app_ids)
         .select_related("employee")
@@ -141,13 +145,13 @@ def _fetch_applications(start_date, end_date):
         .order_by("id")
     )
 
+    if travel_for in ("self", "guest"):
+        qs = qs.filter(travel_for=travel_for)
+
     result = []
-    for app in applications:
-        # first trip  = leg with the earliest departure_date (trip start)
+    for app in qs:
         trips = list(app.trip_details.order_by("departure_date", "id"))
         first_trip = trips[0] if trips else None
-
-        # last trip = leg with the latest return_date (trip end)
         last_trip = (
             sorted(trips, key=lambda t: (t.return_date or t.departure_date, t.id))[-1]
             if trips else None
@@ -181,14 +185,14 @@ def _generate_excel(rows: list, start_date, end_date) -> bytes:
     alt_fill = PatternFill(start_color="EBF3FB", end_color="EBF3FB", fill_type="solid")
 
     # ---- Title / Meta rows ----
-    ws.merge_cells("A1:J1")
+    ws.merge_cells("A1:L1")
     title_cell = ws["A1"]
     title_cell.value = "Travel Applications Report"
     title_cell.font = Font(bold=True, size=14, color="1F4E79")
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 28
 
-    ws.merge_cells("A2:J2")
+    ws.merge_cells("A2:L2")
     range_cell = ws["A2"]
     range_cell.value = (
         f"Date Range: {_format_date(start_date)}  →  {_format_date(end_date)}"
@@ -202,6 +206,8 @@ def _generate_excel(rows: list, start_date, end_date) -> bytes:
     # ---- Column headers ----
     HEADERS = [
         "Travel Request ID",
+        "Travel For",
+        "Username",
         "Employee Name",
         "Purpose",
         "Application Status",
@@ -213,7 +219,7 @@ def _generate_excel(rows: list, start_date, end_date) -> bytes:
         "Trip End Time",
     ]
 
-    COLUMN_WIDTHS = [22, 24, 40, 24, 22, 22, 18, 16, 18, 16]
+    COLUMN_WIDTHS = [22, 16, 20, 24, 40, 24, 22, 22, 18, 16, 18, 16]
 
     header_row = 3
     for col_idx, (header, width) in enumerate(zip(HEADERS, COLUMN_WIDTHS), start=1):
@@ -264,11 +270,18 @@ class TravelApplicationExportPreviewView(APIView):
     def get(self, request):
         start_date_str = request.query_params.get("start_date", "").strip()
         end_date_str = request.query_params.get("end_date", "").strip()
+        travel_for = request.query_params.get("travel_for", "").strip().lower() or None
 
         # --- Validate inputs ---
         if not start_date_str or not end_date_str:
             return error_response(
                 message="Both 'start_date' and 'end_date' query parameters are required.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if travel_for and travel_for not in ("self", "guest"):
+            return error_response(
+                message="'travel_for' must be 'self' or 'guest'.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -285,7 +298,7 @@ class TravelApplicationExportPreviewView(APIView):
             )
 
         try:
-            data = _fetch_applications(start_date, end_date)
+            data = _fetch_applications(start_date, end_date, travel_for=travel_for)
         except Exception as exc:
             logger.error("Error fetching travel applications for preview: %s", exc, exc_info=True)
             return error_response(
@@ -309,6 +322,7 @@ class TravelApplicationExportPreviewView(APIView):
                     "total": len(preview_items),
                     "start_date": str(start_date),
                     "end_date": str(end_date),
+                    "travel_for": travel_for,
                     "status_summary": status_counts,
                     "records": preview_items,
                 },
@@ -330,11 +344,18 @@ class TravelApplicationExportView(APIView):
     def get(self, request):
         start_date_str = request.query_params.get("start_date", "").strip()
         end_date_str = request.query_params.get("end_date", "").strip()
+        travel_for = request.query_params.get("travel_for", "").strip().lower() or None
 
         # --- Validate inputs ---
         if not start_date_str or not end_date_str:
             return error_response(
                 message="Both 'start_date' and 'end_date' query parameters are required.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if travel_for and travel_for not in ("self", "guest"):
+            return error_response(
+                message="'travel_for' must be 'self' or 'guest'.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -351,7 +372,7 @@ class TravelApplicationExportView(APIView):
             )
 
         try:
-            data = _fetch_applications(start_date, end_date)
+            data = _fetch_applications(start_date, end_date, travel_for=travel_for)
         except Exception as exc:
             logger.error("Error fetching travel applications for export: %s", exc, exc_info=True)
             return error_response(
@@ -370,8 +391,10 @@ class TravelApplicationExportView(APIView):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        travel_for_label = f"_{travel_for.capitalize()}" if travel_for else ""
         filename = (
-            f"Travel_Applications_{start_date.strftime('%d%b%Y')}"
+            f"Travel_Applications{travel_for_label}"
+            f"_{start_date.strftime('%d%b%Y')}"
             f"_to_{end_date.strftime('%d%b%Y')}.xlsx"
         )
 
