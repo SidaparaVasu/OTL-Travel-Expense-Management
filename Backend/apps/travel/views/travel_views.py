@@ -226,7 +226,8 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         # Store original data for comparison
         original_status = instance.status
         original_approver = instance.current_approver
-        
+        original_settlement_due_date = instance.settlement_due_date
+
         # Perform the update
         serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
         
@@ -238,6 +239,35 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         
         # Save the updated application
         self.perform_update(serializer)
+
+        # If trip dates changed, recalculate settlement_due_date, update any pending
+        # settlement reminder event payload, and reschedule the completion task so
+        # everything stays in sync with the new return date.
+        instance.set_settlement_due_date()
+        if instance.settlement_due_date != original_settlement_due_date:
+            try:
+                from apps.notifications.models import NotificationEvent
+                pending_events = NotificationEvent.objects.filter(
+                    event_name='travel.settlement.reminder',
+                    reference_id=instance.id,
+                    is_resolved=False
+                )
+                for event in pending_events:
+                    event.data['settlement_due_date'] = (
+                        str(instance.settlement_due_date) if instance.settlement_due_date else None
+                    )
+                    event.save(update_fields=['data'])
+            except Exception as e:
+                logger.warning(
+                    f"Failed to update settlement reminder event payload for TR {instance.id}: {e}"
+                )
+            # Reschedule the completion task to fire at the new end datetime
+            try:
+                instance.schedule_completion_task()
+            except Exception as e:
+                logger.warning(
+                    f"Failed to reschedule completion task for TR {instance.id} after date edit: {e}"
+                )
         
         # Handle re-approval if needed
         if needs_reapproval:

@@ -25,7 +25,16 @@ class Command(BaseCommand):
                 # - Already Sent At Least Once (reminder_index > 0)
                 # - Already Settled
                 # - Missed Deadline (Expired)
-                if event.reminder_index > 0 or app.is_settled or (app.settlement_due_date and today_date >= app.settlement_due_date):
+                # - Employee has already created a claim application (settlement initiated)
+                from apps.expenses.models import ExpenseClaim
+                claim_exists = ExpenseClaim.objects.filter(travel_application=app).exists()
+
+                if (
+                    event.reminder_index > 0
+                    or app.is_settled
+                    or claim_exists
+                    or (app.settlement_due_date and today_date >= app.settlement_due_date)
+                ):
                     event.is_resolved = True
                     event.save(update_fields=['is_resolved'])
                     resolved_count += 1
