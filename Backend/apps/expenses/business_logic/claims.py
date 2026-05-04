@@ -458,7 +458,7 @@ def validate_claim_payload(
 
         # receipt rules
         has_receipt = item.get("has_receipt", True)
-        if code in ("hotel", "flight", "train", "taxi"):
+        if code in ("stay", "flight", "train", "taxi", "pick_up_drop", "car_at_disposal"):
             # If item is linked to a booking (has booking_id) OR has receipt, it's valid.
             # If neither, and it's a required type, warn.
             is_booking = item.get("booking_id") or item.get("is_booking") or item.get("is_booking_expense")
@@ -473,10 +473,10 @@ def validate_claim_payload(
         # --------------------------------------------------------------------------------
         
         # A) Hotel Limit Check
-        if code == 'hotel':
+        if code == 'stay':
              # Find duration of stay from dates? or just check Total Amount vs (Limit * 1 day)?
              # Ideally validation should check "Check-In" / "Check-Out" but ExpenseItem only has `expense_date`.
-             # We will assume each "Hotel" line item represents 1 night unless specified.
+             # We will assume each "stay" line item represents 1 night unless specified.
              # BETTER: Check simple daily limit. If amount > limit, warn.
              
              # Need city category for this expense
@@ -491,8 +491,11 @@ def validate_claim_payload(
                  approval_requirements.add("CHRO")
 
         # B) Own Stay Allowance Check
-        # Expense type code for this needs to be known. Assuming 'own_accommodation' or similar.
-        if code in ('own_accommodation', 'own_arrangement', 'stay_allowance'):
+        # Applies when expense type is 'stay' and the sub-option is a self-arranged accommodation
+        # (Stay with Friends & Family or Stay at Revenue Village) — not a hotel/guest house booking.
+        if code == 'stay' and item.get("sub_option_name") in (
+            "Stay with Friends & Family", "Stay at Revenue Village"
+        ):
              # Determine rate based on city category
              city_cat = item.get("city_category") or "B"
              
@@ -521,10 +524,12 @@ def validate_claim_payload(
             # Note: amount is usually user-input, but we can validate it against rate
             # Determine rate type
             rate = default_rate
-            if code == 'own_car':
+            if code == 'personal_car':
                 rate = conveyance_rates.get('own_vehicle', default_rate)
             elif code == 'taxi':
                 rate = conveyance_rates.get('taxi_without_receipt', default_rate)
+            elif code == 'auto':
+                rate = conveyance_rates.get('auto_rickshaw', default_rate)
 
             # Check Max Distance & Approval Rules
             # Filter matrices that might apply to this distance
