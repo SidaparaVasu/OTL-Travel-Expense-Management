@@ -133,16 +133,29 @@ def mark_travel_as_completed(travel_id):
             travel.save(update_fields=["status"])
             logger.info(f"Successfully marked TravelApplication {travel_id} and its bookings as completed.")
 
-            NotificationCenter.notify(
-                "travel.settlement.reminder",
-                {"type": "TravelRequest", "id": travel.id},
-                {
-                    "employee_id": travel.employee.id,
-                    "employee_name": travel.employee.get_full_name(),
-                    "request_id": travel.get_travel_request_id(),
-                    "settlement_due_date": str(travel.settlement_due_date) if travel.settlement_due_date else None,
-                }
-            )
+            # Guard: skip creating a duplicate reminder event if one already exists
+            # for this travel application (e.g. task was re-queued or re-triggered).
+            already_has_event = NotificationEvent.objects.filter(
+                event_name='travel.settlement.reminder',
+                reference_id=travel.id,
+                is_resolved=False
+            ).exists()
+
+            if not already_has_event:
+                NotificationCenter.notify(
+                    "travel.settlement.reminder",
+                    {"type": "TravelRequest", "id": travel.id},
+                    {
+                        "employee_id": travel.employee.id,
+                        "employee_name": travel.employee.get_full_name(),
+                        "request_id": travel.get_travel_request_id(),
+                        "settlement_due_date": str(travel.settlement_due_date) if travel.settlement_due_date else None,
+                    }
+                )
+            else:
+                logger.info(
+                    f"Settlement reminder event already exists for TravelApplication {travel.id}. Skipping duplicate creation."
+                )
         else:
             logger.warning(f"Task for {travel_id} triggered too early. Now: {now}, End: {end_datetime}")
 

@@ -435,6 +435,21 @@ class ClaimSubmitSerializer(serializers.Serializer):
                     hours=day["duration_hours"],
                 )
 
+            # Resolve any pending settlement reminder events for this travel application.
+            # Once a claim is created the employee has initiated settlement, so reminders
+            # are no longer needed regardless of is_settled or due date.
+            try:
+                from apps.notifications.models import NotificationEvent
+                NotificationEvent.objects.filter(
+                    event_name='travel.settlement.reminder',
+                    reference_id=tr.id,
+                    is_resolved=False
+                ).update(is_resolved=True)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to resolve settlement reminder events for TR {tr.id}: {e}"
+                )
+
         return claim
 
 
