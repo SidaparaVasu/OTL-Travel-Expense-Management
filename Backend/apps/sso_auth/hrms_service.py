@@ -421,7 +421,7 @@ class HRMSSyncService:
         city, _ = cls._safe_get_or_create(
             CityMaster,
             lookup_fields={'city_name': cleaned_city, 'state': state},
-            defaults={'category_id': 1}
+            defaults={'category_id': 2}
         )
         
         # Ensure correct hierarchy if fetched
