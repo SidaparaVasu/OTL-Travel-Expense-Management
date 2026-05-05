@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Home, Plus, Save, FileText } from "lucide-react";
+import { Home, Plus, Save, FileText, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
@@ -310,9 +310,12 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     //   newErrors.guest_house_preferences = "At least one guest house preference is required";
     // }
 
-    // Companies-tied Hotels (ARC Hotels) preferences required for Companies-tied Hotels (ARC Hotels)
+    // Companies-tied Hotels (ARC Hotels) preferences required ONLY when hotels exist for the selected city.
+    // If no hotels are available for the location, the field is optional.
     if (
       isARCHotelSelected &&
+      arcSearchCity.id &&                          // city has been selected
+      filteredHotels.length > 0 &&                 // hotels exist for this city
       (!form.arc_hotel_preferences || form.arc_hotel_preferences.length === 0)
     ) {
       newErrors.arc_hotel_preferences =
@@ -726,21 +729,37 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                       cities={cities}
                       value={arcSearchCity.id}
                       displayValue={arcSearchCity.label}
-                      onChange={(id, label) => setArcSearchCity({ id, label })}
+                      onChange={(id, label) => {
+                        setArcSearchCity({ id, label });
+                        // Clear previous preferences when city changes
+                        setForm((prev) => ({ ...prev, arc_hotel_preferences: [] }));
+                      }}
                       placeholder="Enter city to find ARC hotels"
                     />
-                    <ARCHotelSelector
-                      selectedPreferences={form.arc_hotel_preferences}
-                      setSelectedPreferences={(prefs) =>
-                        setForm({ ...form, arc_hotel_preferences: prefs })
-                      }
-                      arcHotels={filteredHotels}
-                      error={errors.arc_hotel_preferences}
-                    />
-                    {isFetchingHotels && (
+                    {isFetchingHotels ? (
                       <p className="text-xs text-muted-foreground animate-pulse">
                         Fetching hotels for selected city...
                       </p>
+                    ) : !arcSearchCity.id ? (
+                      <p className="text-xs text-muted-foreground">
+                        Select a location above to see available ARC hotels.
+                      </p>
+                    ) : filteredHotels.length === 0 ? (
+                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                        <Info className="h-5 w-5" />
+                        <p className="text-sm text-amber-800">
+                          No ARC hotels found for this location. You can proceed without selecting a preference.
+                        </p>
+                      </div>
+                    ) : (
+                      <ARCHotelSelector
+                        selectedPreferences={form.arc_hotel_preferences}
+                        setSelectedPreferences={(prefs) =>
+                          setForm({ ...form, arc_hotel_preferences: prefs })
+                        }
+                        arcHotels={filteredHotels}
+                        error={errors.arc_hotel_preferences}
+                      />
                     )}
                   </div>
                 ) : (
