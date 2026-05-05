@@ -110,6 +110,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     status_label = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
     max_allowed_cost = serializers.SerializerMethodField()
+    grade_entitled_amount = serializers.SerializerMethodField()
     travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
     travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
 
@@ -120,6 +121,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_age",
             "booking_details", "booking_type", "booking_type_name", "sub_option", "sub_option_name",
             "status", "status_label", "estimated_cost", "actual_cost", "max_allowed_cost",
+            "grade_entitled_amount",
             "booking_reference", "vendor_reference", "booking_file",
             "created_at", "updated_at",
             "assigned_agent",
@@ -220,6 +222,61 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             return policy.rule_parameters.get("max_amount")
         return None
 
+    def get_grade_entitled_amount(self, obj):
+        """
+        Returns the grade-based entitlement amount for this booking from
+        GradeEntitlementMaster. Works for all booking types (Flight, Train,
+        Accommodation, Conveyance). Returns None if no entitlement is configured.
+
+        Lookup priority:
+          1. grade + sub_option + destination city_category  (most specific)
+          2. grade + sub_option + city_category=None         (grade/mode default)
+        """
+        try:
+            from apps.master_data.models import GradeEntitlementMaster
+
+            employee = obj.trip_details.travel_application.employee
+            grade = getattr(employee, "grade", None)
+            sub_option = obj.sub_option  # FK, may be None
+
+            if not grade or not sub_option:
+                return None
+
+            # Try to resolve destination city category from trip destination
+            city_category = None
+            try:
+                to_location = obj.trip_details.to_location
+                if to_location and hasattr(to_location, "category"):
+                    city_category = to_location.category
+            except Exception:
+                pass
+
+            # 1) Specific match: grade + sub_option + city_category
+            if city_category:
+                entitlement = GradeEntitlementMaster.objects.filter(
+                    grade=grade,
+                    sub_option=sub_option,
+                    city_category=city_category,
+                    is_allowed=True,
+                ).first()
+                if entitlement and entitlement.max_amount is not None:
+                    return float(entitlement.max_amount)
+
+            # 2) Fallback: grade + sub_option, no city_category restriction
+            entitlement = GradeEntitlementMaster.objects.filter(
+                grade=grade,
+                sub_option=sub_option,
+                city_category__isnull=True,
+                is_allowed=True,
+            ).first()
+            if entitlement and entitlement.max_amount is not None:
+                return float(entitlement.max_amount)
+
+        except Exception:
+            pass
+
+        return None
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         booking_details = data.get('booking_details')
@@ -265,6 +322,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     status_label = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
     max_allowed_cost = serializers.SerializerMethodField()
+    grade_entitled_amount = serializers.SerializerMethodField()
     ceo_approval_status = serializers.SerializerMethodField()
     travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
     travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
@@ -281,6 +339,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "booking_details",
             "meal_preference",
             "max_allowed_cost",
+            "grade_entitled_amount",
             "ceo_approval_status",
             "ceo_approval_status",
             "travel_application_status",
@@ -377,6 +436,61 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
         
         if matrix and matrix.max_amount:
             return matrix.max_amount
+        return None
+
+    def get_grade_entitled_amount(self, obj):
+        """
+        Returns the grade-based entitlement amount for this booking from
+        GradeEntitlementMaster. Works for all booking types (Flight, Train,
+        Accommodation, Conveyance). Returns None if no entitlement is configured.
+
+        Lookup priority:
+          1. grade + sub_option + destination city_category  (most specific)
+          2. grade + sub_option + city_category=None         (grade/mode default)
+        """
+        try:
+            from apps.master_data.models import GradeEntitlementMaster
+
+            employee = obj.trip_details.travel_application.employee
+            grade = getattr(employee, "grade", None)
+            sub_option = obj.sub_option  # FK, may be None
+
+            if not grade or not sub_option:
+                return None
+
+            # Try to resolve destination city category from trip destination
+            city_category = None
+            try:
+                to_location = obj.trip_details.to_location
+                if to_location and hasattr(to_location, "category"):
+                    city_category = to_location.category
+            except Exception:
+                pass
+
+            # 1) Specific match: grade + sub_option + city_category
+            if city_category:
+                entitlement = GradeEntitlementMaster.objects.filter(
+                    grade=grade,
+                    sub_option=sub_option,
+                    city_category=city_category,
+                    is_allowed=True,
+                ).first()
+                if entitlement and entitlement.max_amount is not None:
+                    return float(entitlement.max_amount)
+
+            # 2) Fallback: grade + sub_option, no city_category restriction
+            entitlement = GradeEntitlementMaster.objects.filter(
+                grade=grade,
+                sub_option=sub_option,
+                city_category__isnull=True,
+                is_allowed=True,
+            ).first()
+            if entitlement and entitlement.max_amount is not None:
+                return float(entitlement.max_amount)
+
+        except Exception:
+            pass
+
         return None
 
     def get_assigned_agent(self, obj):

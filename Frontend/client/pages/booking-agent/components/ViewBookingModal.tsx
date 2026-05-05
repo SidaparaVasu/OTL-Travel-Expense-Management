@@ -179,6 +179,21 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </div>
             </div>
 
+            {/* Grade Entitlement Warning */}
+            {booking.grade_entitled_amount != null && (
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
+                <IndianRupee className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-amber-800">
+                  <span className="font-semibold">Entitlement Limit: </span>
+                  This employee is entitled to a maximum of{" "}
+                  <span className="font-bold">
+                    ₹{Number(booking.grade_entitled_amount).toLocaleString("en-IN")}
+                  </span>{" "}
+                  for this booking type. Please book within this limit.
+                </p>
+              </div>
+            )}
+
             {/* Applicant Details */}
             {renderSection(
               "Applicant Details",

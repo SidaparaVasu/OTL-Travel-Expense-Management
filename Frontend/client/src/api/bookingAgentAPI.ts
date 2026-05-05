@@ -79,6 +79,7 @@ export interface Booking {
   };
   created_at?: string;
   max_allowed_cost?: number;
+  grade_entitled_amount?: number | null;
   ceo_approval_status?: "pending" | "approved" | "rejected" | "not_required";
   travel_application_status?: string; // Added for hold status check
   trip_segment?: string;
