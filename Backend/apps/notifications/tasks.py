@@ -169,13 +169,32 @@ def mark_travel_as_completed(travel_id):
 def check_for_expired_settlements():
     """
     Daily task to notify users whose settlement period has expired.
+    Fires once per travel application — skips any application that already
+    has a settlement.expired event (resolved or not) or has an expense claim.
     """
+    from apps.expenses.models import ExpenseClaim
+
     today = timezone.now().date()
+
+    # Applications that already received the expired notification (any state)
+    already_notified_ids = NotificationEvent.objects.filter(
+        event_name='travel.settlement.expired'
+    ).values_list('reference_id', flat=True)
+
+    # Applications where the employee has already submitted a claim
+    claimed_app_ids = ExpenseClaim.objects.values_list('travel_application_id', flat=True)
+
     expired_apps = TravelApplication.objects.filter(
         status='completed',
         is_settled=False,
         settlement_due_date__lt=today
-    ).exclude(travel_for='guest')
+    ).exclude(
+        travel_for='guest'
+    ).exclude(
+        id__in=already_notified_ids
+    ).exclude(
+        id__in=claimed_app_ids
+    )
 
     count = 0
     for app in expired_apps:
@@ -194,7 +213,7 @@ def check_for_expired_settlements():
             count += 1
         except Exception as e:
             logger.error(f"Error notifying expiry for TR {app.id}: {str(e)}")
-            
+
     return f"Notified {count} expired settlements."
 
 
