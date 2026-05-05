@@ -1698,7 +1698,9 @@ class EligibleApproversView(APIView):
     Eligible users are those with grade B-2A, B-2B, or B-3, plus any users
     with an active TemporaryApproverAuthorization for today.
 
-    The requesting user is excluded from the list (cannot self-approve via selection).
+    The requesting user is excluded from the list UNLESS they have the CEO or
+    CHRO role — in that case they are included so they can select themselves
+    (self-approval via selection for highest-authority users).
     """
     permission_classes = [IsAuthenticated]
 
@@ -1709,6 +1711,12 @@ class EligibleApproversView(APIView):
 
         today = timezone.now().date()
 
+        # CEO and CHRO are allowed to select themselves as approver
+        user_is_ceo_or_chro = (
+            request.user.has_role('CEO') or
+            request.user.has_role('CHRO')
+        )
+
         # Get temp-authorized user IDs for badge display
         temp_auth_ids = set(
             TemporaryApproverAuthorization.objects.filter(
@@ -1718,7 +1726,11 @@ class EligibleApproversView(APIView):
             ).values_list('user_id', flat=True)
         )
 
-        eligible = get_eligible_approvers().exclude(id=request.user.id)
+        eligible = get_eligible_approvers()
+
+        # Exclude self unless user is CEO or CHRO
+        if not user_is_ceo_or_chro:
+            eligible = eligible.exclude(id=request.user.id)
 
         data = []
         for user in eligible:
