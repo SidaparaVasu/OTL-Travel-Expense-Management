@@ -177,6 +177,18 @@ class TravelApplication(models.Model):
         related_name='pending_approvals'
     )
 
+    # User-selected approver (overrides reporting_manager when set).
+    # Must be a user with grade B-2A/B-2B/B-3 or active TemporaryApproverAuthorization.
+    # NULL = use reporting_manager (backward compatible with all existing TRs).
+    selected_approver = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='travel_applications_as_selected_approver',
+        help_text="Optional: User-selected approver. Overrides reporting_manager when set."
+    )
+
     self_approved = models.BooleanField(default=False)
     
     class Meta:

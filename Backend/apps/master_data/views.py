@@ -167,6 +167,7 @@ class LocationListCreateView(ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['company', 'city', 'state']
     search_fields = ['location_name', 'location_code']
+    pagination_class = LargePagination
 
 class LocationDetailView(RetrieveUpdateDestroyAPIView):
     queryset = LocationMaster.objects.select_related(

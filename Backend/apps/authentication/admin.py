@@ -166,3 +166,44 @@ class LocationSPOCAssignmentAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'role__name')
     raw_id_fields = ('user', 'assigned_by')
     filter_horizontal = ('locations',)
+
+
+@admin.register(TemporaryApproverAuthorization)
+class TemporaryApproverAuthorizationAdmin(admin.ModelAdmin):
+    list_display = (
+        'user', 'get_user_grade', 'valid_from', 'valid_until',
+        'is_active', 'is_currently_valid', 'authorized_by', 'created_at'
+    )
+    list_filter = ('is_active', 'valid_from', 'valid_until')
+    search_fields = (
+        'user__username', 'user__first_name', 'user__last_name',
+        'reason', 'authorized_by__username'
+    )
+    raw_id_fields = ('user', 'authorized_by')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
+
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'authorized_by', 'reason')
+        }),
+        ('Validity', {
+            'fields': ('valid_from', 'valid_until', 'is_active')
+        }),
+        ('Audit', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def get_user_grade(self, obj):
+        profile = getattr(obj.user, 'organizational_profile', None)
+        if profile and profile.grade:
+            return profile.grade.name
+        return '—'
+    get_user_grade.short_description = 'Current Grade'
+
+    def is_currently_valid(self, obj):
+        return obj.is_currently_valid()
+    is_currently_valid.boolean = True
+    is_currently_valid.short_description = 'Valid Now?'

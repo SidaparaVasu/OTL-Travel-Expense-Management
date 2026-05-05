@@ -214,6 +214,15 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+
+    # Optional: user-selected approver (must be B-2A/B-2B/B-3 or temp authorized)
+    selected_approver = serializers.PrimaryKeyRelatedField(
+        queryset=__import__('django.contrib.auth', fromlist=['get_user_model']).get_user_model().objects.filter(is_active=True),
+        required=False,
+        allow_null=True,
+        help_text="Optional: Select a custom approver (B-2A/B-2B/B-3 or temp authorized)"
+    )
+    selected_approver_name = serializers.SerializerMethodField(read_only=True)
     
     employee_name = serializers.CharField(source='employee.get_full_name', read_only=True)
     employee_email = serializers.SerializerMethodField()
@@ -238,11 +247,13 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             'settlement_due_date', 'travel_request_id', 'total_duration_days',
             'created_at', 'updated_at', 'submitted_at', 'trip_details',
             'cancellation_reason', 'cancellation_requested_at', 'can_edit',
-            'bulk_upload_file'
+            'bulk_upload_file',
+            'selected_approver', 'selected_approver_name',
         ]
         read_only_fields = [
             'employee', 'status', 'is_settled', 'estimated_total_cost',
-            'created_at', 'updated_at', 'submitted_at', 'can_edit'
+            'created_at', 'updated_at', 'submitted_at', 'can_edit',
+            'selected_approver_name',
         ]
     
     def get_travel_request_id(self, obj):
@@ -262,6 +273,48 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         can_edit, _ = can_edit_application(obj, request.user)
         return can_edit
+
+    def get_selected_approver_name(self, obj):
+        """Return display name of the selected approver if set."""
+        approver = getattr(obj, 'selected_approver', None)
+        if approver:
+            return approver.get_full_name() or approver.username
+        return None
+
+    def validate_selected_approver(self, value):
+        """
+        Validate that the selected approver is eligible:
+          - Must be grade B-2A, B-2B, or B-3, OR have active TemporaryApproverAuthorization
+          - Must not be the same as the employee submitting the TR,
+            UNLESS the submitting user has the CEO or CHRO role (highest authority
+            users are allowed to select themselves for self-approval via selection).
+        """
+        if value is None:
+            return value
+
+        from apps.travel.services.approver_helpers import is_eligible_approver
+
+        # Check eligibility
+        if not is_eligible_approver(value):
+            raise serializers.ValidationError(
+                "Selected approver must have grade B-2A, B-2B, or B-3, "
+                "or hold an active Temporary Approver Authorization."
+            )
+
+        # Self-selection check
+        request = self.context.get('request')
+        if request and request.user and value.id == request.user.id:
+            # CEO and CHRO are allowed to select themselves (self-approval via selection)
+            user_is_ceo_or_chro = (
+                request.user.has_role('CEO') or
+                request.user.has_role('CHRO')
+            )
+            if not user_is_ceo_or_chro:
+                raise serializers.ValidationError(
+                    "You cannot select yourself as the approver."
+                )
+
+        return value
     
     def get_employee_email(self, obj):
         return getattr(obj.employee, "get_email", lambda: obj.employee.email)()

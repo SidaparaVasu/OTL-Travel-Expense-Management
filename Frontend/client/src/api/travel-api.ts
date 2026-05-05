@@ -70,6 +70,15 @@ export interface MealPreference {
   is_active?: boolean;
 }
 
+export interface EligibleApprover {
+  id: number;
+  name: string;
+  email: string;
+  grade: string | null;
+  employee_id: string | null;
+  is_temp_authorized: boolean;
+}
+
 export const travelAPI = {
   // GL Codes
   getGLCodes: async (): Promise<GLCode[]> => {
@@ -270,6 +279,17 @@ export const travelAPI = {
       responseType: "blob",
     });
     return response.data;
+  },
+
+  // Get eligible approvers for TR approver selection
+  getEligibleApprovers: async (): Promise<EligibleApprover[]> => {
+    try {
+      const { data } = await apiClient.get("/travel/eligible-approvers/");
+      return data.data || [];
+    } catch (error) {
+      console.error("Failed to fetch eligible approvers:", error);
+      return [];
+    }
   },
 };
 

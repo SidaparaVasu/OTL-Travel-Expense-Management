@@ -1,6 +1,6 @@
 from .user import User
 from .roles import Role, Permission, UserRole, RolePermission
-from .profiles import OrganizationalProfile, BookingAgentProfile
+from .profiles import OrganizationalProfile, BookingAgentProfile, TemporaryApproverAuthorization
 from .spoc import LocationSPOCAssignment
 
 __all__ = [
@@ -11,5 +11,6 @@ __all__ = [
     'RolePermission',
     'OrganizationalProfile',
     'BookingAgentProfile',
+    'TemporaryApproverAuthorization',
     'LocationSPOCAssignment',
 ]

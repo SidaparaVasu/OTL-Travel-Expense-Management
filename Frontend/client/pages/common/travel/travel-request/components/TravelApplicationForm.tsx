@@ -179,6 +179,16 @@ export const TravelApplicationForm: React.FC = () => {
     employee_code: string;
   } | null>(null);
 
+  // Selected approver state
+  const [selectedApproverId, setSelectedApproverId] = useState<number | null>(null);
+  const [selectedApproverDetails, setSelectedApproverDetails] = useState<{
+    full_name: string;
+    email: string;
+    grade: string | null;
+    employee_id: string | null;
+    is_temp_authorized?: boolean;
+  } | null>(null);
+
   // Purpose form state
   const [purposeData, setPurposeData] = useState(getEmptyPurposeForm);
   const [purposeErrors, setPurposeErrors] = useState<Record<string, string>>(
@@ -624,6 +634,20 @@ export const TravelApplicationForm: React.FC = () => {
           // Set the application ID for updating
           setDraftApplicationId(app.id);
 
+          // Pre-fill selected approver if set
+          if (app.selected_approver) {
+            setSelectedApproverId(app.selected_approver);
+            // selected_approver_name is available from serializer
+            if (app.selected_approver_name) {
+              setSelectedApproverDetails({
+                full_name: app.selected_approver_name,
+                email: "",
+                grade: null,
+                employee_id: null,
+              });
+            }
+          }
+
           toast.success("Application loaded for editing");
         } catch (error: any) {
           console.error("Failed to load application for editing:", error);
@@ -671,6 +695,7 @@ export const TravelApplicationForm: React.FC = () => {
         if (data.travelFor) setTravelFor(data.travelFor);
         if (data.selectedGuests) setSelectedGuests(data.selectedGuests);
         if (data.selfPreferences) setSelfPreferences(data.selfPreferences);
+        if (data.selectedApproverId) setSelectedApproverId(data.selectedApproverId);
       }
     } catch (error) {
       console.error("Error loading saved form data:", error);
@@ -692,6 +717,7 @@ export const TravelApplicationForm: React.FC = () => {
       travelFor,
       selectedGuests,
       selfPreferences,
+      selectedApproverId,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [
@@ -707,6 +733,7 @@ export const TravelApplicationForm: React.FC = () => {
     travelFor,
     selectedGuests,
     selfPreferences,
+    selectedApproverId,
   ]);
 
   // Warn on unsaved changes when leaving
@@ -772,6 +799,8 @@ export const TravelApplicationForm: React.FC = () => {
     setDraftApplicationId(null);
     setTravelFor("self");
     setSelectedGuests([]);
+    setSelectedApproverId(null);
+    setSelectedApproverDetails(null);
     localStorage.removeItem(STORAGE_KEY);
     setShowClearDialog(false);
   };
@@ -796,6 +825,9 @@ export const TravelApplicationForm: React.FC = () => {
 
   // Tab validation status
   const isTravelForValid = () => {
+    // Approver is always required
+    if (!selectedApproverId) return false;
+
     // If a bulk file is uploaded (new or existing), we don't need to enforce guest selection
     if (bulkFile || existingBulkFile) return true;
 
@@ -990,6 +1022,7 @@ export const TravelApplicationForm: React.FC = () => {
       purpose: purposeData.purpose,
       travel_for: travelFor,
       travelers_data: travelersPayload,
+      selected_approver: selectedApproverId,
       internal_order: purposeData.internal_order,
       general_ledger: purposeData.general_ledger,
       sanction_number: purposeData.sanction_number,
@@ -1352,9 +1385,11 @@ export const TravelApplicationForm: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               {/* Approver Info */}
-              {approverData && (
+              {(selectedApproverDetails || approverData) && (
                 <div className="flex items-center gap-2 text-sm text-black mr-2">
-                  <span>Approver Details</span>
+                  <span>
+                    {selectedApproverDetails ? "Selected Approver" : "Approver Details"}
+                  </span>
                   <Popover>
                     <PopoverTrigger asChild>
                       <button className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-muted hover:bg-muted/80 transition-colors">
@@ -1364,35 +1399,53 @@ export const TravelApplicationForm: React.FC = () => {
                     <PopoverContent className="w-80" align="end">
                       <div className="space-y-3">
                         <h4 className="font-semibold text-sm text-black border-b pb-2">
-                          Approver Details
+                          {selectedApproverDetails
+                            ? "Selected Approver"
+                            : "Approver Details (Reporting Manager)"}
                         </h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-black">Name:</span>
                             <span className="font-semibold text-primary">
-                              {approverData.full_name}
+                              {selectedApproverDetails
+                                ? selectedApproverDetails.full_name
+                                : approverData?.full_name}
                             </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-black">Email:</span>
                             <span className="font-semibold text-foreground">
-                              {approverData.email}
+                              {selectedApproverDetails
+                                ? selectedApproverDetails.email
+                                : approverData?.email}
                             </span>
                           </div>
-                          {approverData.grade && (
+                          {(selectedApproverDetails?.grade || approverData?.grade) && (
                             <div className="flex justify-between">
                               <span className="text-black">Grade:</span>
                               <span className="font-semibold text-foreground">
-                                {approverData.grade}
+                                {selectedApproverDetails
+                                  ? selectedApproverDetails.grade
+                                  : approverData?.grade}
                               </span>
                             </div>
                           )}
                           <div className="flex justify-between">
                             <span className="text-black">Employee Code:</span>
                             <span className="font-semibold text-foreground">
-                              {approverData.employee_code}
+                              {selectedApproverDetails
+                                ? (selectedApproverDetails.employee_id || "N/A")
+                                : approverData?.employee_code}
                             </span>
                           </div>
+                          {selectedApproverDetails?.is_temp_authorized && (
+                            <div className="flex justify-between">
+                              <span className="text-black">Authorization:</span>
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                                Temporary
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </PopoverContent>
@@ -1566,6 +1619,21 @@ export const TravelApplicationForm: React.FC = () => {
                 onRemoveExistingFile={() => {
                   setExistingBulkFile(null);
                   setIsBulkFileRemoved(true);
+                }}
+                selectedApproverId={selectedApproverId}
+                onApproverSelected={(approver) => {
+                  setSelectedApproverId(approver?.id ?? null);
+                  setSelectedApproverDetails(
+                    approver
+                      ? {
+                          full_name: approver.name,
+                          email: approver.email,
+                          grade: approver.grade,
+                          employee_id: approver.employee_id,
+                          is_temp_authorized: approver.is_temp_authorized,
+                        }
+                      : null,
+                  );
                 }}
               />
             )}

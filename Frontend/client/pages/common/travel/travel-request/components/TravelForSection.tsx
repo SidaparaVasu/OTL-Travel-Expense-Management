@@ -10,6 +10,7 @@ import {
   Loader2,
   FileSpreadsheet,
   Upload,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { GuestProfile } from "@/src/types/travel.types";
 import { guestProfileAPI } from "@/src/api/guest-profile";
-import { type MealPreference } from "@/src/api/travel-api";
+import { travelAPI, type MealPreference, type EligibleApprover } from "@/src/api/travel-api";
 import {
   Popover,
   PopoverContent,
@@ -58,6 +59,8 @@ interface TravelForSectionProps {
   setBulkFile: (file: File | null) => void;
   existingBulkFile: string | null;
   onRemoveExistingFile: () => void;
+  selectedApproverId: number | null;
+  onApproverSelected: (approver: EligibleApprover | null) => void;
 }
 
 export const TravelForSection: React.FC<TravelForSectionProps> = ({
@@ -72,15 +75,61 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
   setBulkFile,
   existingBulkFile,
   onRemoveExistingFile,
+  selectedApproverId,
+  onApproverSelected,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GuestProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
+  // Approver state
+  const [eligibleApprovers, setEligibleApprovers] = useState<EligibleApprover[]>([]);
+  const [approverQuery, setApproverQuery] = useState("");
+  const [isLoadingApprovers, setIsLoadingApprovers] = useState(false);
+  const [approverError, setApproverError] = useState(false);
+  const [selectedApproverObj, setSelectedApproverObj] = useState<EligibleApprover | null>(null);
+
   // Stats
   const guestCount = selectedGuests.length;
   const totalPerson = travelFor === "self_guest" ? guestCount + 1 : guestCount;
+
+  // Fetch eligible approvers on mount
+  useEffect(() => {
+    const fetchApprovers = async () => {
+      setIsLoadingApprovers(true);
+      try {
+        const list = await travelAPI.getEligibleApprovers();
+        setEligibleApprovers(list);
+      } catch {
+        setApproverError(true);
+      } finally {
+        setIsLoadingApprovers(false);
+      }
+    };
+    fetchApprovers();
+  }, []);
+
+  // Sync selectedApproverId with selectedApproverObj (for edit mode pre-fill)
+  useEffect(() => {
+    if (selectedApproverId && eligibleApprovers.length > 0) {
+      const found = eligibleApprovers.find(a => a.id === selectedApproverId);
+      if (found) setSelectedApproverObj(found);
+    }
+    if (!selectedApproverId) {
+      setSelectedApproverObj(null);
+    }
+  }, [selectedApproverId, eligibleApprovers]);
+
+  // Filtered approvers based on search query
+  const filteredApprovers = approverQuery.trim() === ""
+    ? eligibleApprovers
+    : eligibleApprovers.filter(a =>
+        a.name.toLowerCase().includes(approverQuery.toLowerCase()) ||
+        (a.email && a.email.toLowerCase().includes(approverQuery.toLowerCase())) ||
+        (a.grade && a.grade.toLowerCase().includes(approverQuery.toLowerCase())) ||
+        (a.employee_id && a.employee_id.toLowerCase().includes(approverQuery.toLowerCase()))
+      );
 
   // Search Guests
   useEffect(() => {
@@ -191,6 +240,146 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
           <p className="text-sm text-muted-foreground pt-2">
             This travel request is for you only.
           </p>
+        )}
+      </div>
+
+      {/* Approver Selection */}
+      <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <UserCheck className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">
+              Select Approver <span className="text-destructive">*</span>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              This person will approve your travel request.
+            </p>
+          </div>
+        </div>
+
+        {approverError ? (
+          <p className="text-sm text-destructive">
+            Failed to load approvers. Please refresh the page.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <Combobox
+              value={selectedApproverObj}
+              onChange={(approver: EligibleApprover | null) => {
+                setSelectedApproverObj(approver);
+                setApproverQuery("");
+                onApproverSelected(approver);
+              }}
+            >
+              <div className="relative">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <ComboboxInput
+                    className={cn(
+                      "w-full pl-10 pr-3 py-2.5 rounded-lg border bg-card text-card-foreground transition-all duration-200",
+                      "focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary",
+                      "placeholder:text-muted-foreground border-input hover:border-primary/50",
+                      !selectedApproverId && "border-destructive/50",
+                    )}
+                    displayValue={(approver: EligibleApprover | null) =>
+                      approver ? `${approver.name}${approver.grade ? ` (${approver.grade})` : ""}` : ""
+                    }
+                    onChange={(e) => setApproverQuery(e.target.value)}
+                    placeholder={
+                      isLoadingApprovers
+                        ? "Loading approvers..."
+                        : "Search by name, email or grade..."
+                    }
+                  />
+                </div>
+
+                <ComboboxOptions className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg bg-popover border border-border shadow-lg">
+                  {isLoadingApprovers ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                    </div>
+                  ) : filteredApprovers.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      No approvers found.
+                    </div>
+                  ) : (
+                    filteredApprovers.map((approver) => (
+                      <ComboboxOption
+                        key={approver.id}
+                        value={approver}
+                        className={({ active }) =>
+                          cn(
+                            "relative cursor-pointer select-none px-4 py-3 transition-colors",
+                            active ? "bg-primary/10" : "text-foreground",
+                          )
+                        }
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-800">
+                              {approver.name}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {approver.grade && <span className="mr-2">Grade: {approver.grade}</span>}
+                              {approver.employee_id && <span>ID: {approver.employee_id}</span>}
+                            </span>
+                          </div>
+                          {approver.is_temp_authorized && (
+                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                              This user is temporary approver.
+                            </span>
+                          )}
+                        </div>
+                      </ComboboxOption>
+                    ))
+                  )}
+                </ComboboxOptions>
+              </div>
+            </Combobox>
+
+            {/* Selected approver chip */}
+            {selectedApproverObj && (
+              <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+                <UserCheck className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {selectedApproverObj.name}
+                    {selectedApproverObj.grade && (
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ({selectedApproverObj.grade})
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {selectedApproverObj.email}
+                  </p>
+                </div>
+                {selectedApproverObj.is_temp_authorized && (
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium shrink-0">
+                    This user is temporary approver.
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedApproverObj(null);
+                    setApproverQuery("");
+                    onApproverSelected(null);
+                  }}
+                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {!selectedApproverId && (
+              <p className="text-xs text-destructive">
+                Please select an approver to proceed.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

@@ -143,48 +143,72 @@ class ApprovalEngineV2:
     def can_self_approve(self, user, mode_name):
         """
         Check if user can self-approve based on grade and travel mode.
-        
-        TSF Rules:
-        - B-2A/B-2B: Can self-approve Train
-        - B-3: Can self-approve Train, Pickup/Drop, Radio Taxi
-        - B-2A: Can self-approve Flight (except >10k)
+
+        TSF Policy:
+        ┌─────────────────────────────┬──────────────┬──────────────────────────────────────────┐
+        │ Mode                        │ B-4B / B-4A  │ B-3 / B-2B / B-2A                        │
+        ├─────────────────────────────┼──────────────┼──────────────────────────────────────────┤
+        │ Flight                      │ B-2B/B-2A    │ Self-Approve (B-3 needs B-2B/B-2A)       │
+        │ Train                       │ B-3/B-2B/B-2A│ Self-Approve                             │
+        │ Pick-up and Drop            │ B-3/B-2B/B-2A│ Self-Approve                             │
+        │ Radio Taxi                  │ Self-Approve │ Self-Approve  (ALL grades)               │
+        │ Car at Disposal             │ B-2B/B-2A    │ Self-Approve (B-3 needs B-2B/B-2A)       │
+        └─────────────────────────────┴──────────────┴──────────────────────────────────────────┘
+
+        Actual TravelModeMaster names used for matching:
+          - "Flight"
+          - "Train"
+          - "Pick-up and Drop"
+          - "Radio Taxi"
+          - "Car at Disposal"
         """
         try:
             grade = getattr(user, 'grade', None)
             if not grade:
                 return False
-            
+
             grade_name = grade.name.upper()
-            mode = mode_name.lower()
-            
-            # B-2A level
-            if grade_name in ['B-2A']:
-                if 'train' in mode:
+
+            # Normalise: lowercase + strip for safe comparison
+            mode = mode_name.strip().lower()
+
+            # ------------------------------------------------------------------
+            # Radio Taxi → ALL grades self-approve (no grade restriction)
+            # ------------------------------------------------------------------
+            if mode == "radio taxi":
+                return True
+
+            # ------------------------------------------------------------------
+            # B-2A and B-2B: self-approve Flight, Train, Pick-up and Drop,
+            #                 Car at Disposal
+            # ------------------------------------------------------------------
+            if grade_name in ('B-2A', 'B-2B'):
+                if mode == "flight":
+                    # >₹10k flights still escalate to CHRO/CEO via build() logic
                     return True
-                if 'flight' in mode:
-                    # Can self-approve flights, but >10k still needs CEO
+                if mode == "train":
                     return True
-                if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
+                if mode == "pick-up and drop":
                     return True
-            
-            # B-2B level
-            if grade_name in ['B-2B']:
-                if 'train' in mode:
+                if mode == "car at disposal":
+                    # >5 days disposal still escalates to CHRO via build() logic
                     return True
-                if 'flight' in mode:
+
+            # ------------------------------------------------------------------
+            # B-3: self-approve Train and Pick-up and Drop only.
+            #      Flight and Car at Disposal require B-2B/B-2A approval.
+            # ------------------------------------------------------------------
+            if grade_name == 'B-3':
+                if mode == "train":
                     return True
-                if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
+                if mode == "pick-up and drop":
                     return True
-            
-            # B-3 level
-            if grade_name in ['B-3']:
-                if 'train' in mode:
-                    return True
-                if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
-                    return True
-            
+                # Flight → NOT self-approve for B-3 (needs B-2B/B-2A)
+                # Car at Disposal → NOT self-approve for B-3 (needs B-2B/B-2A)
+
+            # B-4A / B-4B → no self-approval for any mode (handled above for Radio Taxi)
             return False
-            
+
         except Exception as e:
             logger.debug(f"Error checking self-approval: {e}")
             return False
@@ -791,16 +815,34 @@ class ApprovalEngineV2:
         # because user qualifies for self-approval but special rules require
         # only CEO/CHRO (not manager).
         # ============================================================
-        reporting_manager = getattr(getattr(self.request_user, "organizational_profile", None), "reporting_manager", None)
+        # Use resolve_manager_approver so that a user-selected approver takes
+        # precedence over the reporting_manager (backward compatible: returns
+        # reporting_manager when selected_approver is null).
+        from apps.travel.services.approver_helpers import resolve_manager_approver
+        reporting_manager = resolve_manager_approver(self.travel_application, self.request_user)
 
         if not can_skip_manager:
-            # If CHRO is required because of OWN CAR distance/disposal, tests expect manager to be skipped.
-            # So we will only add manager when either CHRO is not required OR CHRO is required for matrix reasons
-            # that should not implicitly drop manager. To be safe: skip manager when require_chro True and
-            # any booking appears to be a car/own-car/disposal trigger.
+            # If CHRO is required because of OWN CAR distance/disposal, the reporting_manager
+            # is skipped (CHRO supersedes manager for car-related approvals per policy).
+            # HOWEVER: if the user explicitly selected an approver, that person must ALWAYS
+            # be the first approver regardless of CHRO/CEO requirements — per client requirement
+            # "first approver should always be selected approver".
             add_manager = True
-            if require_chro:
-                # determine whether CHRO requirement came from a distance/disposal own-car trigger
+            has_selected_approver = (
+                self.travel_application is not None and
+                getattr(self.travel_application, 'selected_approver', None) is not None and
+                reporting_manager is not None and
+                reporting_manager == getattr(self.travel_application, 'selected_approver', None)
+            )
+            # Determine if this is a selected_approver (not just the default reporting_manager)
+            is_explicitly_selected = (
+                self.travel_application is not None and
+                getattr(self.travel_application, 'selected_approver', None) is not None
+            )
+
+            if require_chro and not is_explicitly_selected:
+                # Only skip manager when CHRO is required due to car/distance trigger
+                # AND no explicit approver was selected by the user.
                 car_related_trigger = False
                 for b in bookings:
                     try:
@@ -831,7 +873,7 @@ class ApprovalEngineV2:
             if add_manager:
                 manager_user = reporting_manager if reporting_manager else self.find_user_for_role("Manager")
                 if manager_user:
-                    # Insert manager at start
+                    # Insert manager (or selected_approver) at start — always first in chain
                     approvers.insert(0, ApproverEntry(
                         user=manager_user,
                         level="manager",

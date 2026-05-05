@@ -137,3 +137,54 @@ class BookingAgentProfile(models.Model):
 
     def __str__(self):
         return self.organization_name
+
+
+# ============================================================
+# 3) TEMPORARY APPROVER AUTHORIZATION
+# ============================================================
+
+class TemporaryApproverAuthorization(models.Model):
+    """
+    Grants temporary approval authority to users not in B-2A/B-2B/B-3 grades.
+    Use case: Employee getting promoted soon, needs approval authority before grade change.
+    Managed by Admin/CHRO via Django Admin.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='temp_approver_authorizations',
+        help_text="User being granted temporary approval authority"
+    )
+    authorized_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='granted_temp_authorizations',
+        help_text="Admin/CHRO who granted this authorization"
+    )
+    reason = models.TextField(
+        help_text="Reason for temporary authorization (e.g., 'Promotion to B-3 effective next month')"
+    )
+    valid_from = models.DateField()
+    valid_until = models.DateField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Temporary Approver Authorization"
+        verbose_name_plural = "Temporary Approver Authorizations"
+        indexes = [
+            models.Index(fields=['user', 'is_active']),
+            models.Index(fields=['valid_from', 'valid_until']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} — temp auth until {self.valid_until}"
+
+    def is_currently_valid(self):
+        """Check if this authorization is active and within the valid date range."""
+        from django.utils import timezone
+        today = timezone.now().date()
+        return self.is_active and self.valid_from <= today <= self.valid_until

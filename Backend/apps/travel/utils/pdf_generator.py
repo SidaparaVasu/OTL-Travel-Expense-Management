@@ -713,7 +713,7 @@ def generate_duty_slip_pdf(booking):
         pass
     
     # Date of Generation
-    date_gen = timezone.now().strftime("%d %B %Y")
+    date_gen = timezone.now().strftime("%d-%m-%Y")
     
     # Vertical (Department)
     vertical = ""
@@ -774,9 +774,21 @@ def generate_duty_slip_pdf(booking):
     
     # Booking Details
     bd = booking.booking_details or {}
-    from_date = str(bd.get("start_date") or "")
+
+    def _fmt_date(raw):
+        """Convert YYYY-MM-DD string to DD-MM-YYYY. Returns original string on failure."""
+        raw = str(raw or "").strip()
+        if not raw:
+            return ""
+        try:
+            from datetime import datetime
+            return datetime.strptime(raw, "%Y-%m-%d").strftime("%d-%m-%Y")
+        except ValueError:
+            return raw
+
+    from_date = _fmt_date(bd.get("start_date"))
     from_time = str(bd.get("start_time") or "")
-    to_date = str(bd.get("end_date") or "")
+    to_date = _fmt_date(bd.get("end_date"))
     to_time = str(bd.get("end_time") or "")
     
     # Places

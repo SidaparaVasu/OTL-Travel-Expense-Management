@@ -123,10 +123,12 @@ class TravelApplicationListCreateView(BranchFilterMixin, ListCreateAPIView):
         queryset = self.apply_branch_filter(queryset, user, employee_field='employee')
         
         # Additional filtering for Manager role: include subordinates within branch
+        # Also include TRs where this user is the selected_approver or in approval_flows
         if user.has_role('Manager'):
             queryset = queryset.filter(
                 Q(employee=user) | 
-                Q(employee__organizational_profile__reporting_manager=user)
+                Q(employee__organizational_profile__reporting_manager=user) |
+                Q(approval_flows__approver=user)
             )
         
         # Optimization: Select and prefetch related data
@@ -638,18 +640,14 @@ class TravelApplicationSubmitView(APIView):
         # If approvers list exists → continue with manager/CEO/CHRO reorder logic
         # -----
 
-        org_profile = getattr(request.user, "organizational_profile", None)
-        reporting_manager = getattr(org_profile, "reporting_manager", None)
+        # Use resolve_manager_approver so selected_approver takes precedence
+        # over reporting_manager (backward compatible when selected_approver is null).
+        from apps.travel.services.approver_helpers import resolve_manager_approver
+        reporting_manager = resolve_manager_approver(travel_app, request.user)
 
         from apps.authentication.models import UserRole
 
         is_ceo = UserRole.objects.filter(
-            user=request.user,
-            role__name__iexact="CEO",
-            is_active=True
-        ).exists()
-
-        is_chro = UserRole.objects.filter(
             user=request.user,
             role__name__iexact="CHRO",
             is_active=True
@@ -1688,3 +1686,71 @@ class ItineraryAPIView(APIView):
         if mode.lower() == "hotel":
             return f"Hotel Check-in: {details.get('hotel_name')}"
         return mode
+
+
+class EligibleApproversView(APIView):
+    """
+    GET /travel/eligible-approvers/
+
+    Returns a list of users eligible to be selected as the manager-level approver
+    when creating or editing a Travel Request.
+
+    Eligible users are those with grade B-2A, B-2B, or B-3, plus any users
+    with an active TemporaryApproverAuthorization for today.
+
+    The requesting user is excluded from the list UNLESS they have the CEO or
+    CHRO role — in that case they are included so they can select themselves
+    (self-approval via selection for highest-authority users).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.travel.services.approver_helpers import get_eligible_approvers, ELIGIBLE_APPROVER_GRADES
+        from apps.authentication.models import TemporaryApproverAuthorization
+        from django.utils import timezone
+
+        today = timezone.now().date()
+
+        # CEO and CHRO are allowed to select themselves as approver
+        user_is_ceo_or_chro = (
+            request.user.has_role('CEO') or
+            request.user.has_role('CHRO')
+        )
+
+        # Get temp-authorized user IDs for badge display
+        temp_auth_ids = set(
+            TemporaryApproverAuthorization.objects.filter(
+                is_active=True,
+                valid_from__lte=today,
+                valid_until__gte=today,
+            ).values_list('user_id', flat=True)
+        )
+
+        eligible = get_eligible_approvers()
+
+        # Exclude self unless user is CEO or CHRO
+        if not user_is_ceo_or_chro:
+            eligible = eligible.exclude(id=request.user.id)
+
+        data = []
+        for user in eligible:
+            profile = getattr(user, 'organizational_profile', None)
+            grade_name = None
+            if profile and profile.grade:
+                grade_name = profile.grade.name
+            elif getattr(user, 'grade', None):
+                grade_name = user.grade.name
+
+            data.append({
+                'id': user.id,
+                'name': user.get_full_name() or user.username,
+                'email': user.email,
+                'grade': grade_name,
+                'employee_id': profile.employee_id if profile else None,
+                'is_temp_authorized': user.id in temp_auth_ids,
+            })
+
+        return success_response(
+            data=data,
+            message="Eligible approvers retrieved successfully"
+        )
