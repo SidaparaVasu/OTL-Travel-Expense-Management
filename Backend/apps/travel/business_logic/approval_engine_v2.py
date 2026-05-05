@@ -822,13 +822,27 @@ class ApprovalEngineV2:
         reporting_manager = resolve_manager_approver(self.travel_application, self.request_user)
 
         if not can_skip_manager:
-            # If CHRO is required because of OWN CAR distance/disposal, tests expect manager to be skipped.
-            # So we will only add manager when either CHRO is not required OR CHRO is required for matrix reasons
-            # that should not implicitly drop manager. To be safe: skip manager when require_chro True and
-            # any booking appears to be a car/own-car/disposal trigger.
+            # If CHRO is required because of OWN CAR distance/disposal, the reporting_manager
+            # is skipped (CHRO supersedes manager for car-related approvals per policy).
+            # HOWEVER: if the user explicitly selected an approver, that person must ALWAYS
+            # be the first approver regardless of CHRO/CEO requirements — per client requirement
+            # "first approver should always be selected approver".
             add_manager = True
-            if require_chro:
-                # determine whether CHRO requirement came from a distance/disposal own-car trigger
+            has_selected_approver = (
+                self.travel_application is not None and
+                getattr(self.travel_application, 'selected_approver', None) is not None and
+                reporting_manager is not None and
+                reporting_manager == getattr(self.travel_application, 'selected_approver', None)
+            )
+            # Determine if this is a selected_approver (not just the default reporting_manager)
+            is_explicitly_selected = (
+                self.travel_application is not None and
+                getattr(self.travel_application, 'selected_approver', None) is not None
+            )
+
+            if require_chro and not is_explicitly_selected:
+                # Only skip manager when CHRO is required due to car/distance trigger
+                # AND no explicit approver was selected by the user.
                 car_related_trigger = False
                 for b in bookings:
                     try:
@@ -859,7 +873,7 @@ class ApprovalEngineV2:
             if add_manager:
                 manager_user = reporting_manager if reporting_manager else self.find_user_for_role("Manager")
                 if manager_user:
-                    # Insert manager at start
+                    # Insert manager (or selected_approver) at start — always first in chain
                     approvers.insert(0, ApproverEntry(
                         user=manager_user,
                         level="manager",
