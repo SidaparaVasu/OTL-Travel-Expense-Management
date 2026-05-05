@@ -143,48 +143,72 @@ class ApprovalEngineV2:
     def can_self_approve(self, user, mode_name):
         """
         Check if user can self-approve based on grade and travel mode.
-        
-        TSF Rules:
-        - B-2A/B-2B: Can self-approve Train
-        - B-3: Can self-approve Train, Pickup/Drop, Radio Taxi
-        - B-2A: Can self-approve Flight (except >10k)
+
+        TSF Policy:
+        ┌─────────────────────────────┬──────────────┬──────────────────────────────────────────┐
+        │ Mode                        │ B-4B / B-4A  │ B-3 / B-2B / B-2A                        │
+        ├─────────────────────────────┼──────────────┼──────────────────────────────────────────┤
+        │ Flight                      │ B-2B/B-2A    │ Self-Approve (B-3 needs B-2B/B-2A)       │
+        │ Train                       │ B-3/B-2B/B-2A│ Self-Approve                             │
+        │ Pick-up and Drop            │ B-3/B-2B/B-2A│ Self-Approve                             │
+        │ Radio Taxi                  │ Self-Approve │ Self-Approve  (ALL grades)               │
+        │ Car at Disposal             │ B-2B/B-2A    │ Self-Approve (B-3 needs B-2B/B-2A)       │
+        └─────────────────────────────┴──────────────┴──────────────────────────────────────────┘
+
+        Actual TravelModeMaster names used for matching:
+          - "Flight"
+          - "Train"
+          - "Pick-up and Drop"
+          - "Radio Taxi"
+          - "Car at Disposal"
         """
         try:
             grade = getattr(user, 'grade', None)
             if not grade:
                 return False
-            
+
             grade_name = grade.name.upper()
-            mode = mode_name.lower()
-            
-            # B-2A level
-            if grade_name in ['B-2A']:
-                if 'train' in mode:
+
+            # Normalise: lowercase + strip for safe comparison
+            mode = mode_name.strip().lower()
+
+            # ------------------------------------------------------------------
+            # Radio Taxi → ALL grades self-approve (no grade restriction)
+            # ------------------------------------------------------------------
+            if mode == "radio taxi":
+                return True
+
+            # ------------------------------------------------------------------
+            # B-2A and B-2B: self-approve Flight, Train, Pick-up and Drop,
+            #                 Car at Disposal
+            # ------------------------------------------------------------------
+            if grade_name in ('B-2A', 'B-2B'):
+                if mode == "flight":
+                    # >₹10k flights still escalate to CHRO/CEO via build() logic
                     return True
-                if 'flight' in mode:
-                    # Can self-approve flights, but >10k still needs CEO
+                if mode == "train":
                     return True
-                if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
+                if mode == "pick-up and drop":
                     return True
-            
-            # B-2B level
-            if grade_name in ['B-2B']:
-                if 'train' in mode:
+                if mode == "car at disposal":
+                    # >5 days disposal still escalates to CHRO via build() logic
                     return True
-                if 'flight' in mode:
+
+            # ------------------------------------------------------------------
+            # B-3: self-approve Train and Pick-up and Drop only.
+            #      Flight and Car at Disposal require B-2B/B-2A approval.
+            # ------------------------------------------------------------------
+            if grade_name == 'B-3':
+                if mode == "train":
                     return True
-                if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
+                if mode == "pick-up and drop":
                     return True
-            
-            # B-3 level
-            if grade_name in ['B-3']:
-                if 'train' in mode:
-                    return True
-                if 'pickup' in mode or 'drop' in mode or 'taxi' in mode:
-                    return True
-            
+                # Flight → NOT self-approve for B-3 (needs B-2B/B-2A)
+                # Car at Disposal → NOT self-approve for B-3 (needs B-2B/B-2A)
+
+            # B-4A / B-4B → no self-approval for any mode (handled above for Radio Taxi)
             return False
-            
+
         except Exception as e:
             logger.debug(f"Error checking self-approval: {e}")
             return False
