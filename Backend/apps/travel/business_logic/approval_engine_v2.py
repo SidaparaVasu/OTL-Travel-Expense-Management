@@ -815,7 +815,11 @@ class ApprovalEngineV2:
         # because user qualifies for self-approval but special rules require
         # only CEO/CHRO (not manager).
         # ============================================================
-        reporting_manager = getattr(getattr(self.request_user, "organizational_profile", None), "reporting_manager", None)
+        # Use resolve_manager_approver so that a user-selected approver takes
+        # precedence over the reporting_manager (backward compatible: returns
+        # reporting_manager when selected_approver is null).
+        from apps.travel.services.approver_helpers import resolve_manager_approver
+        reporting_manager = resolve_manager_approver(self.travel_application, self.request_user)
 
         if not can_skip_manager:
             # If CHRO is required because of OWN CAR distance/disposal, tests expect manager to be skipped.
