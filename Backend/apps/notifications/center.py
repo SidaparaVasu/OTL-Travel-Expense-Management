@@ -64,6 +64,26 @@ class NotificationCenter:
                 reminder_index=0,
             )
 
+        # For one-shot events that have no reminder configured, still write a
+        # resolved NotificationEvent as a proof-of-send receipt.  This allows
+        # idempotency guards elsewhere to check "was this event ever fired for
+        # this reference?" without having to query NotificationLog.
+        # Currently applied to: travel.settlement.expired
+        ONE_SHOT_RECEIPT_EVENTS = {'travel.settlement.expired'}
+        if event_name in ONE_SHOT_RECEIPT_EVENTS and not (rule.send_reminder and rule.reminder_intervals):
+            NotificationEvent.objects.get_or_create(
+                event_name=event_name,
+                reference_type=reference.get('type'),
+                reference_id=reference.get('id'),
+                defaults={
+                    'rule': rule,
+                    'data': payload,
+                    'next_reminder_at': None,
+                    'reminder_index': 0,
+                    'is_resolved': True,  # born resolved — one-shot, no follow-ups
+                },
+            )
+
         # For each channel and recipient create log and enqueue Celery task
         for channel in rule.channels:
             for r in recipients:
