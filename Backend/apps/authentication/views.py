@@ -636,9 +636,16 @@ class EmployeeSearchView(BranchFilterMixin, APIView):
         
         # CEO and CHRO can search all employees. 
         # Others can also search all if ignore_branch is true and they have a privileged role.
+        # Also respect LocationSPOCAssignment.is_global — consistent with apply_branch_filter().
+        from apps.authentication.models.spoc import LocationSPOCAssignment
+        has_global_spoc = LocationSPOCAssignment.objects.filter(
+            user=user, is_active=True, is_global=True
+        ).exists()
+
         can_ignore_branch = (
             user.has_role('CEO') or 
-            user.has_role('CHRO') or 
+            user.has_role('CHRO') or
+            has_global_spoc or
             (ignore_branch and (
                 user.has_role('Admin') or user.has_role('admin') or 
                 user.has_role('Travel Desk') or user.has_role('Finance') or 
