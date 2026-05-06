@@ -179,20 +179,13 @@ class ApprovalEngineV2:
                 return True
 
             # ------------------------------------------------------------------
-            # B-2A and B-2B: self-approve Flight, Train, Pick-up and Drop,
-            #                 Car at Disposal
+            # B-2A and B-2B: self-approve ALL travel modes per TSF policy.
+            # The policy document lists specific modes as examples only.
+            # Special escalation rules (flight >₹10k, car disposal >5 days,
+            # advance amount, long duration) still override via build() STEP 1.
             # ------------------------------------------------------------------
             if grade_name in ('B-2A', 'B-2B'):
-                if mode == "flight":
-                    # >₹10k flights still escalate to CHRO/CEO via build() logic
-                    return True
-                if mode == "train":
-                    return True
-                if mode == "pick-up and drop":
-                    return True
-                if mode == "car at disposal":
-                    # >5 days disposal still escalates to CHRO via build() logic
-                    return True
+                return True
 
             # ------------------------------------------------------------------
             # B-3: self-approve Train and Pick-up and Drop only.

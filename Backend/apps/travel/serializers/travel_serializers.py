@@ -286,8 +286,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         Validate that the selected approver is eligible:
           - Must be grade B-2A, B-2B, or B-3, OR have active TemporaryApproverAuthorization
           - Must not be the same as the employee submitting the TR,
-            UNLESS the submitting user has the CEO or CHRO role (highest authority
-            users are allowed to select themselves for self-approval via selection).
+            UNLESS the submitting user is CEO, CHRO, B-2A, or B-2B grade
+            (these users self-approve for all booking types, so self-selection is valid).
         """
         if value is None:
             return value
@@ -304,12 +304,23 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         # Self-selection check
         request = self.context.get('request')
         if request and request.user and value.id == request.user.id:
-            # CEO and CHRO are allowed to select themselves (self-approval via selection)
-            user_is_ceo_or_chro = (
+            # Determine requesting user's grade
+            user_grade = None
+            try:
+                profile = getattr(request.user, 'organizational_profile', None)
+                if profile and profile.grade:
+                    user_grade = profile.grade.name.upper()
+                elif getattr(request.user, 'grade', None):
+                    user_grade = request.user.grade.name.upper()
+            except Exception:
+                pass
+
+            user_can_self_select = (
                 request.user.has_role('CEO') or
-                request.user.has_role('CHRO')
+                request.user.has_role('CHRO') or
+                user_grade in ('B-2A', 'B-2B')
             )
-            if not user_is_ceo_or_chro:
+            if not user_can_self_select:
                 raise serializers.ValidationError(
                     "You cannot select yourself as the approver."
                 )

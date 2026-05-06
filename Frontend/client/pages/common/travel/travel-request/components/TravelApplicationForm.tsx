@@ -172,6 +172,7 @@ export const TravelApplicationForm: React.FC = () => {
 
   // Approver data from user profile
   const [userId, setUserId] = useState<number | null>(null);
+  const [userGrade, setUserGrade] = useState<string | null>(null);
   const [approverData, setApproverData] = useState<{
     full_name: string;
     email: string;
@@ -387,6 +388,11 @@ export const TravelApplicationForm: React.FC = () => {
         const profileData = await authAPI.getProfile();
         if (profileData?.id) {
           setUserId(profileData.id);
+        }
+
+        // Capture user's own grade for approver field contextual messaging
+        if (profileData?.profile?.grade_name) {
+          setUserGrade(profileData.profile.grade_name);
         }
 
         // Extract reporting_manager_details from organizational profile
@@ -1621,6 +1627,7 @@ export const TravelApplicationForm: React.FC = () => {
                   setIsBulkFileRemoved(true);
                 }}
                 selectedApproverId={selectedApproverId}
+                userGrade={userGrade}
                 onApproverSelected={(approver) => {
                   setSelectedApproverId(approver?.id ?? null);
                   setSelectedApproverDetails(

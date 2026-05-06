@@ -61,6 +61,7 @@ interface TravelForSectionProps {
   onRemoveExistingFile: () => void;
   selectedApproverId: number | null;
   onApproverSelected: (approver: EligibleApprover | null) => void;
+  userGrade?: string | null;
 }
 
 export const TravelForSection: React.FC<TravelForSectionProps> = ({
@@ -77,6 +78,7 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
   onRemoveExistingFile,
   selectedApproverId,
   onApproverSelected,
+  userGrade = null,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GuestProfile[]>([]);
@@ -253,9 +255,19 @@ export const TravelForSection: React.FC<TravelForSectionProps> = ({
             <label className="text-sm font-medium">
               Select Approver <span className="text-destructive">*</span>
             </label>
-            <p className="text-xs text-muted-foreground">
-              This person will approve your travel request.
-            </p>
+            {userGrade && ['B-2A', 'B-2B'].includes(userGrade.toUpperCase()) ? (
+              <p className="text-xs text-muted-foreground">
+                Your request will be auto-approved. In special conditions, CEO/CHRO approval will be required.
+              </p>
+            ) : userGrade && userGrade.toUpperCase() === 'B-3' ? (
+              <p className="text-xs text-muted-foreground">
+                Your request may be auto-approved based on your booking type. If higher authority approval is required, the selected person will be your approver.
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                This person will approve your travel request.
+              </p>
+            )}
           </div>
         </div>
 
