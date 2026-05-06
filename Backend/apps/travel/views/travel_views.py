@@ -1698,9 +1698,9 @@ class EligibleApproversView(APIView):
     Eligible users are those with grade B-2A, B-2B, or B-3, plus any users
     with an active TemporaryApproverAuthorization for today.
 
-    The requesting user is excluded from the list UNLESS they have the CEO or
-    CHRO role — in that case they are included so they can select themselves
-    (self-approval via selection for highest-authority users).
+    The requesting user is excluded from the list UNLESS they are CEO, CHRO,
+    B-2A, or B-2B grade — those users may select themselves since they
+    self-approve for all booking types.
     """
     permission_classes = [IsAuthenticated]
 
@@ -1711,10 +1711,23 @@ class EligibleApproversView(APIView):
 
         today = timezone.now().date()
 
-        # CEO and CHRO are allowed to select themselves as approver
-        user_is_ceo_or_chro = (
+        # Determine requesting user's grade
+        user_grade = None
+        try:
+            profile = getattr(request.user, 'organizational_profile', None)
+            if profile and profile.grade:
+                user_grade = profile.grade.name.upper()
+            elif getattr(request.user, 'grade', None):
+                user_grade = request.user.grade.name.upper()
+        except Exception:
+            pass
+
+        # CEO, CHRO, B-2A, and B-2B may select themselves as approver.
+        # B-2A/B-2B self-approve for all booking types per TSF policy.
+        user_can_self_select = (
             request.user.has_role('CEO') or
-            request.user.has_role('CHRO')
+            request.user.has_role('CHRO') or
+            user_grade in ('B-2A', 'B-2B')
         )
 
         # Get temp-authorized user IDs for badge display
@@ -1728,8 +1741,8 @@ class EligibleApproversView(APIView):
 
         eligible = get_eligible_approvers()
 
-        # Exclude self unless user is CEO or CHRO
-        if not user_is_ceo_or_chro:
+        # Exclude self unless user is allowed to self-select
+        if not user_can_self_select:
             eligible = eligible.exclude(id=request.user.id)
 
         data = []
