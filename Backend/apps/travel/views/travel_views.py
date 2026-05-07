@@ -649,6 +649,12 @@ class TravelApplicationSubmitView(APIView):
 
         is_ceo = UserRole.objects.filter(
             user=request.user,
+            role__name__iexact="CEO",
+            is_active=True
+        ).exists()
+
+        is_chro = UserRole.objects.filter(
+            user=request.user,
             role__name__iexact="CHRO",
             is_active=True
         ).exists()
