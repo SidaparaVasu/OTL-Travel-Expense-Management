@@ -5,7 +5,7 @@ from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from apps.travel.models import TravelApplication, Booking, BookingAssignment, BookingNote
+from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
 from apps.travel.serializers.travel_desk_serializers import *
 from apps.travel.models.audit import AuditLog
 from apps.authentication.permissions import IsTravelDesk
@@ -191,7 +191,10 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
 
     def get(self, request):
         # Base queryset: Filter by Travel Desk visible statuses
-        qs = TravelApplication.objects.select_related("employee").filter(
+        qs = TravelApplication.objects.select_related(
+            "employee",
+            "employee__organizational_profile__base_location",
+        ).filter(
             status__in=TRAVEL_DESK_VISIBLE_STATUSES
         )
         
@@ -206,6 +209,15 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         booking_action_status = request.query_params.get("booking_action_status")
         is_global = request.query_params.get("is_global") == "true"
         search = request.query_params.get("search")
+
+        # Tab filter: my_requests (actionable by current user) or forwarded (delegated to others)
+        tab = request.query_params.get("tab")  # "my_requests" | "forwarded" | None
+
+        # Location filter: employee base location name
+        location = request.query_params.get("location")
+
+        # Sort order
+        sort_by = request.query_params.get("sort_by", "submitted_desc")
 
         # If it's a global search and search term is provided, we skip status and date filters
         skip_narrow_filters = is_global and search
@@ -229,7 +241,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 except ValueError:
                     pass
 
-        def apply_frontend_filters(queryset):
+        def apply_common_filters(queryset):
             _qs = queryset
             if status_filter and status_filter != 'all' and not skip_narrow_filters:
                 _qs = _qs.filter(status=status_filter)
@@ -260,8 +272,8 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 _qs = _qs.filter(submitted_at__date__lte=date_to)
             return _qs
 
-        # Apply to main qs
-        qs = apply_frontend_filters(qs)
+        # Apply common filters to main qs
+        qs = apply_common_filters(qs)
 
         # Union with applications where bookings are forwarded to the current user
         # These might be outside the user's branch
@@ -270,16 +282,75 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         ).values_list('trip_details__travel_application_id', flat=True).distinct()
         
         if forwarded_app_ids:
-            forwarded_qs = TravelApplication.objects.select_related("employee").filter(
+            forwarded_qs = TravelApplication.objects.select_related(
+                "employee",
+                "employee__organizational_profile__base_location",
+            ).filter(
                 id__in=forwarded_app_ids,
                 status__in=TRAVEL_DESK_VISIBLE_STATUSES
             )
             forwarded_qs = annotate_booking_action_status(forwarded_qs, request.user)
-            forwarded_qs = apply_frontend_filters(forwarded_qs)
+            forwarded_qs = apply_common_filters(forwarded_qs)
             qs = qs | forwarded_qs
             qs = qs.distinct()
 
-        qs = qs.order_by("-submitted_at", "-id")
+        # --- Tab filter (backend) ---
+        # Terminal statuses have no actionable bookings by design; skip tab filter for them.
+        # Also skip when global search is active (show everything matching the search).
+        terminal_statuses = {'confirmed', 'completed', 'cancelled'}
+        is_terminal = booking_action_status in terminal_statuses
+        if tab and not is_terminal and not skip_narrow_filters:
+            if tab == 'my_requests':
+                # Applications that have at least one booking actionable by the current user
+                # (handling_travel_desk_user is null OR is the current user) and in an active state
+                qs = qs.filter(
+                    trip_details__bookings__status__in=['pending', 'requested', 'in_progress', 'booking_in_progress'],
+                ).filter(
+                    Q(trip_details__bookings__handling_travel_desk_user=request.user) |
+                    Q(trip_details__bookings__handling_travel_desk_user__isnull=True)
+                ).distinct()
+            elif tab == 'forwarded':
+                # Applications that have at least one booking delegated to another travel desk user
+                qs = qs.filter(
+                    trip_details__bookings__handling_travel_desk_user__isnull=False,
+                    trip_details__bookings__status__in=['pending', 'requested', 'in_progress', 'booking_in_progress', 'booked', 'completed'],
+                ).exclude(
+                    trip_details__bookings__handling_travel_desk_user=request.user,
+                ).distinct()
+
+        # --- Location filter (backend) ---
+        if location and location != 'all' and not skip_narrow_filters:
+            qs = qs.filter(
+                employee__organizational_profile__base_location__location_name=location
+            )
+
+        # --- Sorting (backend) ---
+        from django.db.models import Subquery, OuterRef, DateField
+
+        sort_map = {
+            'urgency':        ('first_departure_date', False),   # asc = most urgent first
+            'date_asc':       ('first_departure_date', False),
+            'date_desc':      ('first_departure_date', True),
+            'submitted_asc':  ('submitted_at', False),
+            'submitted_desc': ('submitted_at', True),
+        }
+
+        sort_field, descending = sort_map.get(sort_by, ('submitted_at', True))
+
+        if sort_field == 'first_departure_date':
+            # Annotate with the earliest departure date across all trip legs
+            first_departure = TripDetails.objects.filter(
+                travel_application=OuterRef('pk')
+            ).order_by('departure_date').values('departure_date')[:1]
+
+            qs = qs.annotate(
+                first_departure_date=Subquery(first_departure, output_field=DateField())
+            )
+            order_expr = F('first_departure_date').desc(nulls_last=True) if descending else F('first_departure_date').asc(nulls_last=True)
+        else:
+            order_expr = F(sort_field).desc(nulls_last=True) if descending else F(sort_field).asc(nulls_last=True)
+
+        qs = qs.order_by(order_expr, '-id')
 
         paginator = StandardResultsSetPagination()
         page = paginator.paginate_queryset(qs, request)
