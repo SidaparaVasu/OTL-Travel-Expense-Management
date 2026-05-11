@@ -29,6 +29,9 @@ export const travelDeskAPI = {
         status?: string;
         booking_action_status?: string;
         is_global?: boolean;
+        tab?: string;
+        location?: string;
+        sort_by?: string;
       },
       options?: { signal?: AbortSignal },
     ): Promise<ApplicationsListResponse> => {
@@ -39,6 +42,9 @@ export const travelDeskAPI = {
       if (params?.status) queryParams.append("status", params.status);
       if (params?.booking_action_status) queryParams.append("booking_action_status", params.booking_action_status);
       if (params?.is_global) queryParams.append("is_global", "true");
+      if (params?.tab) queryParams.append("tab", params.tab);
+      if (params?.location && params.location !== "all") queryParams.append("location", params.location);
+      if (params?.sort_by) queryParams.append("sort_by", params.sort_by);
 
       const { data } = await apiClient.get(
         `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ""}`,

@@ -116,6 +116,9 @@ const TravelDeskDashboard: React.FC = () => {
           booking_action_status: bookingActionStatus === "all" ? undefined : bookingActionStatus,
           search: debouncedSearchQuery,
           is_global: isGlobalSearch,
+          tab: isGlobalSearch ? undefined : activeTab,
+          location: isGlobalSearch ? undefined : locationFilter,
+          sort_by: sortBy,
         },
         { signal },
       );
@@ -130,12 +133,14 @@ const TravelDeskDashboard: React.FC = () => {
       console.error("Failed to fetch applications:", err);
       toast.error("Failed to load applications");
     } finally {
-      // Only stop loading if the component is still mounted and it's not a cancelled request
-      // (in a real scenario we'd check if this was the latest request, 
-      // but AbortController + state updates is generally safe for simple dashboards)
       setLoading(false);
     }
-  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch]);
+  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, activeTab, locationFilter, sortBy]);
+
+  // Reset to page 1 when tab, location, or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, locationFilter, sortBy]);
 
   // Fetch agents for dropdowns
   const fetchAgents = useCallback(async () => {
@@ -161,91 +166,6 @@ const TravelDeskDashboard: React.FC = () => {
     fetchLocations();
     fetchAgents();
   }, [fetchDashboard, fetchAgents, fetchLocations]);
-
-  // Filter and sort applications
-  const getFilteredApplications = useCallback(() => {
-    let filtered = [...applications];
-
-    // Tab Filter — skip for terminal statuses (booked/completed have no actionable bookings by design)
-    // ALSO SKIP if global search is active
-    const isTerminalStatus =
-      bookingActionStatus === "confirmed" || bookingActionStatus === "completed" || bookingActionStatus === "cancelled";
-
-    if (!isTerminalStatus && !isGlobalSearch) {
-      if (activeTab === "my_requests") {
-        filtered = filtered.filter(
-          (app) =>
-            app.actionable_booking_ids && app.actionable_booking_ids.length > 0,
-        );
-      } else if (activeTab === "forwarded") {
-        filtered = filtered.filter(
-          (app) =>
-            app.delegated_booking_ids &&
-            app.delegated_booking_ids.length > 0
-        );
-      }
-    }
-
-    // Location Filter - skip if global search is active
-    if (locationFilter && locationFilter !== "all" && !isGlobalSearch) {
-      filtered = filtered.filter(
-        (app) => app.employee_location === locationFilter,
-      );
-    }
-
-    // Search filter - Skip CLIENT-SIDE re-filter if it's already filtered by backend
-    // This allows backend-only logic (like regex/ID matching) to work correctly
-    // If not global, we might still want local quick filter, but for now let's trust backend
-    // if (searchQuery) { ... }
-
-    // Note: status filtering is already done by the API via the statusFilter param.
-    // No client-side re-filter needed here.
-
-    // Sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "urgency":
-          // Sort by departure date ascending (most urgent first)
-          return (
-            new Date(a.departure_date).getTime() -
-            new Date(b.departure_date).getTime()
-          );
-        case "date_asc":
-          return (
-            new Date(a.departure_date).getTime() -
-            new Date(b.departure_date).getTime()
-          );
-        case "date_desc":
-          return (
-            new Date(b.departure_date).getTime() -
-            new Date(a.departure_date).getTime()
-          );
-        case "submitted_asc":
-          return (
-            new Date(a.submitted_at).getTime() -
-            new Date(b.submitted_at).getTime()
-          );
-        case "submitted_desc":
-          return (
-            new Date(b.submitted_at).getTime() -
-            new Date(a.submitted_at).getTime()
-          );
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [
-    applications,
-    searchQuery,
-    statusFilter,
-    bookingActionStatus,
-    sortBy,
-    activeTab,
-    locationFilter,
-    isGlobalSearch,
-  ]);
 
   // Handlers
   const handleView = (app: DashboardApplication) => {
@@ -336,7 +256,7 @@ const TravelDeskDashboard: React.FC = () => {
     }
   };
 
-  const filteredApplications = getFilteredApplications();
+  const filteredApplications = applications;
 
   return (
     <div className="min-h-screen">
@@ -353,21 +273,11 @@ const TravelDeskDashboard: React.FC = () => {
                 id: "my_requests",
                 label: "Action Required",
                 icon: Briefcase,
-                count: applications.filter(
-                  (app) =>
-                    app.actionable_booking_ids &&
-                    app.actionable_booking_ids.length > 0,
-                ).length,
               },
               {
                 id: "forwarded",
                 label: "Forwarded Out / Delegated",
                 icon: Share2,
-                count: applications.filter(
-                  (app) =>
-                    app.delegated_booking_ids &&
-                    app.delegated_booking_ids.length > 0,
-                ).length,
               },
             ]}
           />
