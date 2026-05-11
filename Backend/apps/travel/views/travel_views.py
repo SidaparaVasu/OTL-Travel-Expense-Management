@@ -508,14 +508,16 @@ class TravelApplicationSubmitView(APIView):
         # Draft saves are always allowed, but submission is blocked if an active
         # (non-draft) self application already covers the same period.
         if travel_app.travel_for in ['self', 'self_guest']:
-            from apps.travel.business_logic.validators import validate_duplicate_travel_request
+            from apps.travel.business_logic.validators import validate_duplicate_travel_request_with_time
             for trip in travel_app.trip_details.all():
                 if trip.departure_date and trip.return_date:
                     try:
-                        validate_duplicate_travel_request(
+                        validate_duplicate_travel_request_with_time(
                             travel_app.employee,
                             trip.departure_date,
+                            trip.start_time,
                             trip.return_date,
+                            trip.end_time,
                             exclude_id=travel_app.id
                         )
                     except Exception as e:

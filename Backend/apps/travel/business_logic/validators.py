@@ -375,10 +375,17 @@ def validate_duplicate_travel_request(user, start_date, end_date, exclude_id=Non
     Prevent overlapping travel only for SELF/SELF_GUEST applications that are
     beyond draft status. Guest-only applications never block self travel.
     Rejected/Cancelled applications must not block new requests.
+
+    Overlap is checked at datetime precision (date + time) so that back-to-back
+    trips on the same date are allowed as long as the times do not overlap.
+    The new application's start_datetime and end_datetime are passed as date
+    objects here for the initial DB pre-filter; the precise time-aware check
+    is done in Python after fetching the candidate rows.
     """
 
     from apps.travel.models import TravelApplication
     from django.db.models import Q
+    import datetime
 
     # Draft is intentionally excluded — users are allowed to save overlapping
     # drafts freely. The block only kicks in at submission time.
@@ -396,9 +403,15 @@ def validate_duplicate_travel_request(user, start_date, end_date, exclude_id=Non
         "completed",
     ]
 
+    # ------------------------------------------------------------------
+    # STEP 1: Broad date-range pre-filter
+    # Fetches any application whose date range touches the new trip's dates.
+    # This may include false positives on same-day boundary cases — those
+    # are resolved by the precise datetime check in STEP 2.
+    # ------------------------------------------------------------------
     qs = TravelApplication.objects.filter(
         employee=user,
-        travel_for__in=["self", "self_guest"],  # guest applications never block self
+        travel_for__in=["self", "self_guest"],
         status__in=ACTIVE_STATUSES
     ).filter(
         Q(trip_details__departure_date__lte=end_date) &
@@ -409,12 +422,101 @@ def validate_duplicate_travel_request(user, start_date, end_date, exclude_id=Non
     if exclude_id:
         qs = qs.exclude(id=exclude_id)
 
-    qs = qs.distinct()
+    qs = qs.distinct().prefetch_related('trip_details')
 
-    if qs.exists():
-        raise Exception(
-            "You already have an active travel application overlapping this period."
-        )
+    if not qs.exists():
+        return  # No candidates at all — fast exit
+
+    # ------------------------------------------------------------------
+    # STEP 2: Precise datetime overlap check
+    # Two trips overlap only if:
+    #   existing.start_datetime < new.end_datetime
+    #   AND existing.end_datetime > new.start_datetime
+    # (strict inequality — back-to-back trips at the exact same moment
+    #  are NOT considered overlapping)
+    # ------------------------------------------------------------------
+
+    # Build the new trip's start/end datetimes.
+    # start_date/end_date are passed as date objects; times are not available
+    # at this call site, so we use the most conservative bounds:
+    #   new_start = start_date at 00:00:00 (earliest possible start)
+    #   new_end   = end_date   at 23:59:59 (latest possible end)
+    # This means: if the caller has actual times, they should pass
+    # start_datetime / end_datetime instead (see overload below).
+    new_start_dt = datetime.datetime.combine(start_date, datetime.time.min)
+    new_end_dt   = datetime.datetime.combine(end_date,   datetime.time.max)
+
+    for app in qs:
+        for trip in app.trip_details.all():
+            if not trip.departure_date or not trip.return_date:
+                continue
+
+            # Build existing trip's datetime bounds
+            existing_start_time = trip.start_time or datetime.time.min
+            existing_end_time   = trip.end_time   or datetime.time.max
+
+            existing_start_dt = datetime.datetime.combine(trip.departure_date, existing_start_time)
+            existing_end_dt   = datetime.datetime.combine(trip.return_date,    existing_end_time)
+
+            # Strict overlap: intervals (a, b) and (c, d) overlap iff a < d AND b > c
+            if existing_start_dt < new_end_dt and existing_end_dt > new_start_dt:
+                raise Exception(
+                    "You already have an active travel application overlapping this period."
+                )
+
+
+def validate_duplicate_travel_request_with_time(user, start_date, start_time, end_date, end_time, exclude_id=None):
+    """
+    Time-aware variant of validate_duplicate_travel_request.
+    Call this when exact start/end times are known (e.g. at submission).
+    """
+    import datetime
+
+    ACTIVE_STATUSES = [
+        "submitted", "pending_manager", "approved_manager",
+        "pending_chro", "approved_chro", "pending_ceo", "approved_ceo",
+        "pending_travel_desk", "booking_in_progress", "booked", "completed",
+    ]
+
+    from apps.travel.models import TravelApplication
+    from django.db.models import Q
+
+    qs = TravelApplication.objects.filter(
+        employee=user,
+        travel_for__in=["self", "self_guest"],
+        status__in=ACTIVE_STATUSES
+    ).filter(
+        Q(trip_details__departure_date__lte=end_date) &
+        Q(trip_details__return_date__gte=start_date)
+    )
+
+    if exclude_id:
+        qs = qs.exclude(id=exclude_id)
+
+    qs = qs.distinct().prefetch_related('trip_details')
+
+    if not qs.exists():
+        return
+
+    new_start_dt = datetime.datetime.combine(start_date, start_time or datetime.time.min)
+    new_end_dt   = datetime.datetime.combine(end_date,   end_time   or datetime.time.max)
+
+    for app in qs:
+        for trip in app.trip_details.all():
+            if not trip.departure_date or not trip.return_date:
+                continue
+
+            existing_start_dt = datetime.datetime.combine(
+                trip.departure_date, trip.start_time or datetime.time.min
+            )
+            existing_end_dt = datetime.datetime.combine(
+                trip.return_date, trip.end_time or datetime.time.max
+            )
+
+            if existing_start_dt < new_end_dt and existing_end_dt > new_start_dt:
+                raise Exception(
+                    "You already have an active travel application overlapping this period."
+                )
     
 
 # --- conveyance receipt rules ----------------------------------------------
