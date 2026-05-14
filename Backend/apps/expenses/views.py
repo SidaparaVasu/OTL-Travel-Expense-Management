@@ -846,8 +846,12 @@ class ClaimableTravelApplicationsView(APIView):
         3. do NOT already have an ExpenseClaim
         4. have ALL required approval flows approved or skipped
            (guards against manually-completed applications with unresolved approvals)
+        5. settlement period has NOT expired (today <= settlement_due_date)
         """
         from apps.travel.models.approval import TravelApprovalFlow
+        from django.utils import timezone
+
+        today = timezone.now().date()
 
         # Sub-query: IDs of applications that still have pending/rejected required approvals
         blocked_app_ids = TravelApprovalFlow.objects.filter(
@@ -863,6 +867,9 @@ class ClaimableTravelApplicationsView(APIView):
             .exclude(expense_claim__isnull=False)   # exclude apps with existing claim
             .exclude(travel_for='guest')             # exclude guest applications (no claims allowed)
             .exclude(id__in=blocked_app_ids)         # exclude apps with incomplete approval flows
+            .exclude(                                # exclude apps whose settlement window has closed
+                settlement_due_date__lt=today
+            )
             .select_related("employee", "general_ledger")
             .prefetch_related("trip_details", "trip_details__from_location", "trip_details__to_location")
             .order_by("-created_at")

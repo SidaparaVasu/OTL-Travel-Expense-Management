@@ -38,22 +38,23 @@ class ManagerApprovalListSerializer(serializers.ModelSerializer):
     trip_summary = serializers.SerializerMethodField()
     cancellation_reason = serializers.CharField(read_only=True)
     cancellation_rejection_reason = serializers.CharField(read_only=True)
-    
+    can_approve_or_reject = serializers.SerializerMethodField()
+
     class Meta:
         model = TravelApplication
         fields = [
-            'id', 'travel_request_id', 'employee_name', 'employee_grade', 
+            'id', 'travel_request_id', 'employee_name', 'employee_grade',
             'department', 'purpose', 'estimated_total_cost', 'status',
             'submitted_at', 'current_approval', 'trip_summary', 'cancellation_reason',
-            'cancellation_rejection_reason'
+            'cancellation_rejection_reason', 'can_approve_or_reject',
         ]
-    
+
     def get_current_approval(self, obj):
         current_flow = obj.approval_flows.filter(
             approver=self.context['request'].user,
             status='pending'
         ).first()
-        
+
         if current_flow:
             return {
                 'approval_level': current_flow.approval_level,
@@ -62,7 +63,34 @@ class ManagerApprovalListSerializer(serializers.ModelSerializer):
                 'triggered_by_rule': current_flow.triggered_by_rule
             }
         return None
-    
+
+    def get_can_approve_or_reject(self, obj):
+        """
+        True only when the requesting user has a pending approval flow AND
+        the 30-day settlement window is still open (today <= settlement_due_date).
+        Frontend uses this to show/hide Approve / Reject buttons.
+        """
+        from django.utils import timezone
+
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+
+        has_pending = obj.approval_flows.filter(
+            approver=request.user,
+            status='pending',
+            can_approve=True,
+        ).exists()
+
+        if not has_pending:
+            return False
+
+        today = timezone.now().date()
+        if obj.settlement_due_date and today > obj.settlement_due_date:
+            return False
+
+        return True
+
     def get_trip_summary(self, obj):
         trips = []
         for trip in obj.trip_details.all():

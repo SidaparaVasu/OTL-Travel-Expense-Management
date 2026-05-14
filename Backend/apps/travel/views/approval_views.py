@@ -176,6 +176,19 @@ class ApprovalActionView(APIView):
                 },
                 status_code=status.HTTP_403_FORBIDDEN
             )
+
+        # Guard: block approve/reject after the 30-day settlement window has closed
+        if travel_app.settlement_due_date and timezone.now().date() > travel_app.settlement_due_date:
+            return error_response(
+                message='Approval window has expired',
+                errors={
+                    'detail': (
+                        f'The 30-day approval window for this travel request closed on '
+                        f'{travel_app.settlement_due_date}. No further action can be taken.'
+                    )
+                },
+                status_code=status.HTTP_403_FORBIDDEN
+            )
         
         # Validate action
         serializer = ApprovalActionSerializer(data=request.data)

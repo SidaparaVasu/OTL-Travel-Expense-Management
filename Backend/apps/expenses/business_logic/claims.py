@@ -346,6 +346,14 @@ def validate_claim_payload(
         errors["travel_request"] = ["Expense claims are not allowed for Guest travel applications."]
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
+    # 3a — Block claim if settlement period has expired
+    if tr.settlement_due_date and date.today() > tr.settlement_due_date:
+        errors["travel_request.settlement"] = [
+            "The 30-day settlement period has expired. "
+            "Claims can no longer be submitted for this travel request."
+        ]
+        return {"errors": errors, "warnings": warnings, "computed": computed}
+
     # 3b — Validate that all required approval flows are completed
     # A travel application can only be claimed if every required approval step
     # (manager, CHRO, CEO, travel desk) is either approved or skipped.
