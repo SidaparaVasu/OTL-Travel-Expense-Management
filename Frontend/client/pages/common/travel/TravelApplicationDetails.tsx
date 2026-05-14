@@ -175,6 +175,12 @@ export const TravelApplicationDetails: React.FC = () => {
     (data.accommodation_bookings || []).length +
     (data.conveyance_bookings || []).length;
 
+  const hasAnyBookingBulkFile = [
+    ...(data.ticketing_bookings || []),
+    ...(data.accommodation_bookings || []),
+    ...(data.conveyance_bookings || []),
+  ].some((booking: any) => !!booking.bulk_booking_file);
+
   const canApprove = data?.can_approve_or_reject === true;
 
   return (
@@ -512,7 +518,7 @@ export const TravelApplicationDetails: React.FC = () => {
           </div>
 
           {/* Bulk File */}
-          {data?.application?.bulk_upload_file && (
+          {data?.application?.bulk_upload_file && !hasAnyBookingBulkFile && (
             <div className="border-b border-slate-200">
               <div className="p-4">
                 <span className="font-semibold text-slate-700">
@@ -636,6 +642,17 @@ export const TravelApplicationDetails: React.FC = () => {
                                 >
                                   <FileText className="w-4 h-4" />
                                   View File
+                                </a>
+                              )}
+                              {booking.bulk_booking_file && (
+                                <a
+                                  href={getFileUrl(booking.bulk_booking_file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  Bulk File
                                 </a>
                               )}
                             </td>
@@ -907,6 +924,17 @@ export const TravelApplicationDetails: React.FC = () => {
                                   View File
                                 </a>
                               )}
+                              {booking.bulk_booking_file && (
+                                <a
+                                  href={getFileUrl(booking.bulk_booking_file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  Bulk File
+                                </a>
+                              )}
                             </td>
                           </tr>
                           {booking.special_instructions && (
@@ -1158,6 +1186,17 @@ export const TravelApplicationDetails: React.FC = () => {
                                 >
                                   <FileText className="w-4 h-4" />
                                   View File
+                                </a>
+                              )}
+                              {booking.bulk_booking_file && (
+                                <a
+                                  href={getFileUrl(booking.bulk_booking_file)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  Bulk File
                                 </a>
                               )}
                             </td>

@@ -78,6 +78,13 @@ import { GuestProfile } from "@/src/types/travel.types";
 
 const STORAGE_KEY = "travel_application_form";
 
+type BulkBookingCategory = "ticketing" | "accommodation" | "conveyance";
+
+const getBulkFileClientKey = (
+  category: BulkBookingCategory,
+  index: number,
+) => `${category}-${index}`;
+
 interface TabConfig {
   id: string;
   label: string;
@@ -144,11 +151,6 @@ export const TravelApplicationForm: React.FC = () => {
   const [glCodes, setGLCodes] = useState<GLCode[]>([]);
   const [travelModes, setTravelModes] = useState<TravelMode[]>([]);
   const [mealPreferences, setMealPreferences] = useState<MealPreference[]>([]);
-
-  // Bulk File Upload
-  const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [existingBulkFile, setExistingBulkFile] = useState<string | null>(null);
-  const [isBulkFileRemoved, setIsBulkFileRemoved] = useState(false);
 
   // Policy & Permission State
   const [canSubmitBackdated, setCanSubmitBackdated] = useState(false);
@@ -471,11 +473,6 @@ export const TravelApplicationForm: React.FC = () => {
           if (app.trip_details && app.trip_details.length > 0) {
             const trip = app.trip_details[0];
 
-            // Set existing bulk file
-            if (app.bulk_upload_file) {
-              setExistingBulkFile(app.bulk_upload_file);
-            }
-
             setPurposeData({
               trip_id: trip.id || null, // Preserve Trip ID
               purpose: app.purpose || "",
@@ -513,7 +510,7 @@ export const TravelApplicationForm: React.FC = () => {
                 if (modeName === "Flight" || modeName === "Train") {
                   // Ticketing
                   ticketingData.push({
-                    id: booking.id, // Store ID
+                    id: booking.id,
                     booking_type: String(booking.booking_type),
                     sub_option: String(booking.sub_option),
                     estimated_cost: booking.estimated_cost || "",
@@ -535,11 +532,15 @@ export const TravelApplicationForm: React.FC = () => {
                     arrival_time: booking.booking_details?.arrival_time || "",
                     meal_preference:
                       booking.booking_details?.meal_preference || "",
+                    // Bulk file — pre-fill from server for edit mode
+                    existing_bulk_booking_file: booking.bulk_booking_file || null,
+                    bulk_booking_file: null,
+                    remove_bulk_booking_file: false,
                   });
                 } else if (modeName === "Accommodation") {
                   // Accommodation
                   accommodationData.push({
-                    id: booking.id, // Store ID
+                    id: booking.id,
                     accommodation_type: String(booking.booking_type),
                     accommodation_type_label: booking.booking_type_name || "",
                     accommodation_sub_option: String(booking.sub_option),
@@ -558,6 +559,10 @@ export const TravelApplicationForm: React.FC = () => {
                       booking.booking_details?.meal_preference || "",
                     arc_hotel_preferences:
                       booking.booking_details?.arc_hotel_preferences || [],
+                    // Bulk file — pre-fill from server for edit mode
+                    existing_bulk_booking_file: booking.bulk_booking_file || null,
+                    bulk_booking_file: null,
+                    remove_bulk_booking_file: false,
                   });
                 } else {
                   // Conveyance — only push if modeName is known (not empty/unmatched)
@@ -577,7 +582,7 @@ export const TravelApplicationForm: React.FC = () => {
                     dropLocation !== "Other";
 
                   conveyanceData.push({
-                    id: booking.id, // Store ID
+                    id: booking.id,
                     vehicle_type: String(booking.booking_type),
                     vehicle_type_label: booking.booking_type_name || "",
                     vehicle_sub_option: String(booking.sub_option),
@@ -616,6 +621,10 @@ export const TravelApplicationForm: React.FC = () => {
                         employee_id: g.employee_id || null,
                       }),
                     ),
+                    // Bulk file — pre-fill from server for edit mode
+                    existing_bulk_booking_file: booking.bulk_booking_file || null,
+                    bulk_booking_file: null,
+                    remove_bulk_booking_file: false,
                   });
                 }
               });
@@ -769,6 +778,9 @@ export const TravelApplicationForm: React.FC = () => {
       const mode = modes.find((m) => String(m.id) === modeId);
       if (!mode) return;
 
+      // Hide legacy "Bulk Booking" travel mode from new applications
+      if (mode.name === "Bulk Booking") return;
+
       switch (mode.name) {
         case "Flight":
         case "Train":
@@ -833,10 +845,6 @@ export const TravelApplicationForm: React.FC = () => {
   const isTravelForValid = () => {
     // Approver is always required
     if (!selectedApproverId) return false;
-
-    // If a bulk file is uploaded (new or existing), we don't need to enforce guest selection
-    if (bulkFile || existingBulkFile) return true;
-
     if (travelFor === "self") return true;
     return selectedGuests.length > 0;
   };
@@ -858,21 +866,18 @@ export const TravelApplicationForm: React.FC = () => {
   };
 
   const isTicketingValid = () => {
-    if (bulkFile) return true;
     if (ticketingNotRequired) return true;
     if (ticketing.length === 0) return false;
     return Object.keys(ticketingErrors).length === 0;
   };
 
   const isAccommodationValid = () => {
-    if (bulkFile) return true;
     if (accommodationNotRequired) return true;
     if (accommodation.length === 0) return false;
     return Object.keys(accommodationErrors).length === 0;
   };
 
   const isConveyanceValid = () => {
-    if (bulkFile) return true;
     if (conveyanceNotRequired) return true;
     if (conveyance.length === 0) return false;
     return Object.keys(conveyanceErrors).length === 0;
@@ -886,7 +891,6 @@ export const TravelApplicationForm: React.FC = () => {
     const conveyanceValid = isConveyanceValid();
 
     const hasAtLeastOneBooking =
-      bulkFile ||
       ticketing.length > 0 ||
       accommodation.length > 0 ||
       conveyance.length > 0 ||
@@ -906,6 +910,7 @@ export const TravelApplicationForm: React.FC = () => {
   }, [
     travelFor,
     selectedGuests,
+    selectedApproverId,
     purposeData,
     ticketing,
     accommodation,
@@ -917,7 +922,6 @@ export const TravelApplicationForm: React.FC = () => {
     accommodationErrors,
     conveyanceErrors,
     hasBookingErrors,
-    bulkFile,
   ]);
 
   const getTabStatus = (
@@ -975,11 +979,9 @@ export const TravelApplicationForm: React.FC = () => {
   const validateBookings = (): boolean => {
     // Validate Travel For First
     if (!isTravelForValid()) {
-      toast.error("Please add at least one guest or select 'Self' travel.");
+      toast.error("Please ensure travel guest details are correct.");
       return false;
     }
-
-    if (bulkFile) return true;
 
     const hasTicketing = ticketing.length > 0 || ticketingNotRequired;
     const hasAccommodation =
@@ -1035,8 +1037,6 @@ export const TravelApplicationForm: React.FC = () => {
       advance_amount: purposeData.advance_amount
         ? parseFloat(purposeData.advance_amount)
         : 0,
-      // Handle bulk file removal
-      bulk_upload_file: isBulkFileRemoved && !bulkFile ? null : undefined,
 
       trip_details: [
         {
@@ -1053,7 +1053,7 @@ export const TravelApplicationForm: React.FC = () => {
             conveyanceNotRequired,
 
           bookings: [
-            ...ticketing.map((t) => ({
+            ...ticketing.map((t, index) => ({
               id: (t as any).id || undefined, // Pass ID if exists
               booking_type: parseInt(t.booking_type), // // Ticketing mode ID
               sub_option: parseInt(t.sub_option),
@@ -1071,9 +1071,10 @@ export const TravelApplicationForm: React.FC = () => {
                 arrival_date: t.arrival_date,
                 arrival_time: t.arrival_time,
                 meal_preference: t.meal_preference,
+                bulk_file_client_key: getBulkFileClientKey("ticketing", index),
               },
             })),
-            ...accommodation.map((a) => ({
+            ...accommodation.map((a, index) => ({
               id: (a as any).id || undefined, // Pass ID if exists
               booking_type: a.accommodation_type, // Accommodation mode ID
               sub_option: parseInt(a.accommodation_sub_option),
@@ -1088,9 +1089,13 @@ export const TravelApplicationForm: React.FC = () => {
                 check_in_time: a.check_in_time,
                 check_out_time: a.check_out_time,
                 meal_preference: a.meal_preference,
+                bulk_file_client_key: getBulkFileClientKey(
+                  "accommodation",
+                  index,
+                ),
               },
             })),
-            ...conveyance.map((c) => ({
+            ...conveyance.map((c, index) => ({
               id: (c as any).id || undefined, // Pass ID if exists
               booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
               sub_option: parseInt(c.vehicle_sub_option),
@@ -1122,12 +1127,75 @@ export const TravelApplicationForm: React.FC = () => {
                   is_internal: !!g.employee_id, // employee = internal guest
                   is_external: !g.employee_id, // non-employee = external
                 })),
+                bulk_file_client_key: getBulkFileClientKey("conveyance", index),
               },
             })),
           ],
         },
       ],
     };
+  };
+
+  const normalizeApplicationResponse = (response: any) =>
+    response?.data?.application || response?.data || response;
+
+  const uploadPendingBookingBulkFiles = async (applicationId: number) => {
+    const savedApp = normalizeApplicationResponse(
+      await travelAPI.getApplication(applicationId),
+    );
+    const savedBookings: any[] =
+      savedApp?.trip_details?.flatMap((trip: any) => trip.bookings ?? []) ?? [];
+
+    const allItems = [
+      ...ticketing.map((booking: any, index) => ({
+        ...booking,
+        _category: "ticketing" as BulkBookingCategory,
+        _bulkFileClientKey: getBulkFileClientKey("ticketing", index),
+      })),
+      ...accommodation.map((booking: any, index) => ({
+        ...booking,
+        _category: "accommodation" as BulkBookingCategory,
+        _bulkFileClientKey: getBulkFileClientKey("accommodation", index),
+      })),
+      ...conveyance.map((booking: any, index) => ({
+        ...booking,
+        _category: "conveyance" as BulkBookingCategory,
+        _bulkFileClientKey: getBulkFileClientKey("conveyance", index),
+      })),
+    ];
+
+    for (const item of allItems) {
+      const hasNewFile = item.bulk_booking_file instanceof File;
+      const shouldRemoveExisting =
+        item.remove_bulk_booking_file && !item.bulk_booking_file;
+
+      if (!hasNewFile && !shouldRemoveExisting) {
+        continue;
+      }
+
+      const savedBooking = item.id
+        ? savedBookings.find((booking: any) => booking.id === item.id)
+        : savedBookings.find(
+            (booking: any) =>
+              booking.booking_details?.bulk_file_client_key ===
+              item._bulkFileClientKey,
+          );
+
+      if (!savedBooking) {
+        throw new Error(
+          `Could not match saved ${item._category} booking for bulk file operation.`,
+        );
+      }
+
+      if (hasNewFile) {
+        await travelAPI.uploadBookingBulkFile(
+          savedBooking.id,
+          item.bulk_booking_file,
+        );
+      } else if (shouldRemoveExisting) {
+        await travelAPI.removeBookingBulkFile(savedBooking.id);
+      }
+    }
   };
 
   function extractErrorMessage(error: any): string {
@@ -1185,9 +1253,11 @@ export const TravelApplicationForm: React.FC = () => {
       }
 
       const payload = buildPayload(true);
+      let applicationId = draftApplicationId;
 
-      if (draftApplicationId) {
-        await travelAPI.updateApplication(draftApplicationId, payload);
+      if (applicationId) {
+        await travelAPI.updateApplication(applicationId, payload);
+        await uploadPendingBookingBulkFiles(applicationId);
         toast.success("Draft updated successfully");
         clearForm();
         navigate(ROUTES.travelApplicationList);
@@ -1196,6 +1266,7 @@ export const TravelApplicationForm: React.FC = () => {
         const newId = result.data?.id || result.id;
 
         if (newId) {
+          await uploadPendingBookingBulkFiles(newId);
           setDraftApplicationId(newId);
           toast.success("Draft saved successfully");
           clearForm();
@@ -1294,15 +1365,7 @@ export const TravelApplicationForm: React.FC = () => {
       if (applicationId) {
         const shouldCallSubmit = !isEditMode || originalStatus === "draft";
 
-        // Upload Bulk File if exists
-        if (bulkFile) {
-          try {
-            await travelAPI.uploadBulkFile(applicationId, bulkFile);
-          } catch (uploadError) {
-            console.error("Bulk file upload failed:", uploadError);
-            toast.error("Application saved, but bulk file upload failed.");
-          }
-        }
+        await uploadPendingBookingBulkFiles(applicationId);
 
         if (shouldCallSubmit) {
           await travelAPI.submitApplication(applicationId);
@@ -1619,13 +1682,6 @@ export const TravelApplicationForm: React.FC = () => {
                 mealPreferences={mealPreferences}
                 selfPreferences={selfPreferences}
                 setSelfPreferences={setSelfPreferences}
-                bulkFile={bulkFile}
-                setBulkFile={setBulkFile}
-                existingBulkFile={existingBulkFile}
-                onRemoveExistingFile={() => {
-                  setExistingBulkFile(null);
-                  setIsBulkFileRemoved(true);
-                }}
                 selectedApproverId={selectedApproverId}
                 userGrade={userGrade}
                 onApproverSelected={(approver) => {
@@ -1674,7 +1730,7 @@ export const TravelApplicationForm: React.FC = () => {
                 )}
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
-                hasBulkFile={!!bulkFile}
+                travelFor={travelFor}
               />
             )}
 
@@ -1694,13 +1750,13 @@ export const TravelApplicationForm: React.FC = () => {
                 arcHotels={arcHotels}
                 cities={cities}
                 bookingErrors={accommodationErrors}
-                hasBulkFile={!!bulkFile}
                 defaultCityId={
                   purposeData.trip_to_location
                     ? Number(purposeData.trip_to_location)
                     : null
                 }
                 defaultCityLabel={purposeData.trip_to_location_label}
+                travelFor={travelFor}
               />
             )}
 
@@ -1713,11 +1769,11 @@ export const TravelApplicationForm: React.FC = () => {
                 tripStartDate={purposeData.departure_date}
                 tripEndDate={purposeData.return_date}
                 travelModes={travelModes.filter(
-                  (m) => !["Flight", "Train", "Accommodation"].includes(m.name),
+                  (m) => !["Flight", "Train", "Accommodation", "Bulk Booking"].includes(m.name),
                 )}
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}
-                hasBulkFile={!!bulkFile}
+                travelFor={travelFor}
               />
             )}
 

@@ -489,7 +489,7 @@ class TravelDeskAssignBookingsView(APIView):
 
                 # notify agent
                 from apps.travel.services.notification_service import notify_booking_agent_of_assignment
-                notify_booking_agent_of_assignment(b, booking_agent)
+                notify_booking_agent_of_assignment(b, booking_agent, request=request)
 
             # Refresh application level booking status using the unified service
             from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
@@ -605,7 +605,7 @@ class TravelDeskReassignBookingView(APIView):
 
             # 4. Notify new agent
             from apps.travel.services.notification_service import notify_booking_agent_of_assignment
-            notify_booking_agent_of_assignment(booking, new_agent)
+            notify_booking_agent_of_assignment(booking, new_agent, request=request)
             
             # Audit logging
             AuditLog.objects.create(
@@ -740,7 +740,7 @@ class ForwardApplicationView(APIView):
                 
                 # Notify assigned agent
                 from apps.travel.services.notification_service import notify_booking_agent_of_assignment
-                notify_booking_agent_of_assignment(booking, agent_user)
+                notify_booking_agent_of_assignment(booking, agent_user, request=request)
 
             # Refresh application level booking status using the unified service
             from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status

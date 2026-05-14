@@ -22,10 +22,12 @@ class BookingSerializer(serializers.ModelSerializer):
             'actual_cost',
             'booking_reference', 
             'vendor_reference', 
-            'booking_file', 
+            'booking_file',
+            'bulk_booking_file',
             'special_instruction',
             'meal_preference',
         ]
+        read_only_fields = ['bulk_booking_file']
     
     id = serializers.IntegerField(required=False)
     
@@ -80,7 +82,8 @@ class BookingListSerializer(serializers.ModelSerializer):
             'actual_cost',
             'booking_reference', 
             'vendor_reference', 
-            'booking_file', 
+            'booking_file',
+            'bulk_booking_file',
             'special_instruction',
             'created_at', #
             'meal_preference',
@@ -665,11 +668,16 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
         travel_app = self.instance
         
         # Validate Guest/Bulk Requirement
-        # At submission time, we MUST have either travelers (if guest) OR a bulk file.
+        # At submission time, guest travel must have either travelers or a
+        # guest data bulk file attached to at least one booking line item.
         # Check travelers count
         is_guest_travel = travel_app.travel_for in ['guest', 'self_guest']
         has_travelers = travel_app.display_travelers.exists()
-        has_bulk_file = bool(travel_app.bulk_upload_file)
+        has_booking_bulk_file = Booking.objects.filter(
+            trip_details__travel_application=travel_app,
+            bulk_booking_file__isnull=False,
+        ).exclude(bulk_booking_file='').exists()
+        has_bulk_file = bool(travel_app.bulk_upload_file) or has_booking_bulk_file
         
         if is_guest_travel and not has_travelers and not has_bulk_file:
             raise serializers.ValidationError({

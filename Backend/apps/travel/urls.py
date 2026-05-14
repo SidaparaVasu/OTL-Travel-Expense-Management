@@ -39,6 +39,14 @@ urlpatterns = [
     path('applications/<int:pk>/advance-report/', AdvanceRequestReportView.as_view(), name='advance-request-report'),
     path('applications/<int:application_id>/request-accommodation/', RequestAccommodationBookingView.as_view()),
 
+    # Bulk booking per-line-item file upload (new approach)
+    path('bookings/<int:booking_id>/upload-bulk-file/', BookingBulkFileUploadView.as_view(), name='booking-upload-bulk-file'),
+
+    # Sample file downloads (one per category, no auth required)
+    path('bulk-booking/sample/ticketing/', BulkBookingSampleDownloadView.as_view(), {'category': 'ticketing'}, name='bulk-sample-ticketing'),
+    path('bulk-booking/sample/accommodation/', BulkBookingSampleDownloadView.as_view(), {'category': 'accommodation'}, name='bulk-sample-accommodation'),
+    path('bulk-booking/sample/conveyance/', BulkBookingSampleDownloadView.as_view(), {'category': 'conveyance'}, name='bulk-sample-conveyance'),
+
     # Approval Workflow
     path('manager-approvals/', ManagerApprovalsView.as_view(), name='manager-approvals'),
     path('approvals/pending/', ManagerPendingApprovalsView.as_view(), name='pending-approvals'),

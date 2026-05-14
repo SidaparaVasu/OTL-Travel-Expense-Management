@@ -203,6 +203,7 @@ class TicketingBookingSerializer(serializers.Serializer):
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+    bulk_booking_file = serializers.SerializerMethodField()
 
     def get_booking_type(self, obj):
         return obj.booking_type.name if obj.booking_type else ""
@@ -270,6 +271,9 @@ class TicketingBookingSerializer(serializers.Serializer):
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
 
+    def get_bulk_booking_file(self, obj):
+        return obj.bulk_booking_file.url if obj.bulk_booking_file else None
+
 
 class AccommodationBookingSerializer(serializers.Serializer):
     """Serializer for accommodation bookings"""
@@ -290,6 +294,7 @@ class AccommodationBookingSerializer(serializers.Serializer):
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+    bulk_booking_file = serializers.SerializerMethodField()
 
     def get_is_self_arranged(self, obj):
         # Check sub_option name for 'Self'
@@ -415,6 +420,9 @@ class AccommodationBookingSerializer(serializers.Serializer):
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
 
+    def get_bulk_booking_file(self, obj):
+        return obj.bulk_booking_file.url if obj.bulk_booking_file else None
+
 
 class ConveyanceBookingSerializer(serializers.Serializer):
     """Serializer for conveyance bookings"""
@@ -440,6 +448,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+    bulk_booking_file = serializers.SerializerMethodField()
 
     def get_is_self_arranged(self, obj):
         # Check sub_option name for 'Self'
@@ -546,6 +555,9 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
+
+    def get_bulk_booking_file(self, obj):
+        return obj.bulk_booking_file.url if obj.bulk_booking_file else None
 
 
 class ApprovalWorkflowSerializer(serializers.ModelSerializer):

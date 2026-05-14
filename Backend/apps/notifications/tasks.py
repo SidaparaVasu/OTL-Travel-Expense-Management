@@ -49,7 +49,8 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
                 except Exception as e:
                     logger.error(f"Error generating duty slip attachment for log {log_id}: {str(e)}")
 
-            # General: Check for booking_file attachment (e.g. Bulk Upload Excel)
+            # General: attach applicant bulk files and booking confirmation
+            # files when a booking-specific notification is sent.
             booking_id = payload.get('booking_id')
             if booking_id:
                 try:
@@ -59,24 +60,34 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
                     
                     # optimized query if not already fetched
                     booking = Booking.objects.filter(id=booking_id).first()
-                    
-                    if booking and booking.booking_file:
+
+                    def append_file_attachment(file_field):
+                        if not file_field:
+                            return
                         try:
-                            # Open file if not already open
-                            if booking.booking_file.closed:
-                                booking.booking_file.open('rb')
-                            
-                            file_content = booking.booking_file.read()
-                            file_name = os.path.basename(booking.booking_file.name)
+                            if file_field.closed:
+                                file_field.open('rb')
+
+                            file_content = file_field.read()
+                            file_name = os.path.basename(file_field.name)
                             content_type, _ = mimetypes.guess_type(file_name)
-                            
+
                             attachments.append({
                                 'name': file_name,
                                 'content': file_content,
                                 'mimetype': content_type or 'application/octet-stream'
                             })
                         except Exception as file_error:
-                             logger.error(f"Error reading booking file for log {log_id}: {str(file_error)}")
+                            logger.error(f"Error reading booking attachment for log {log_id}: {str(file_error)}")
+                        finally:
+                            try:
+                                file_field.close()
+                            except Exception:
+                                pass
+
+                    if booking:
+                        append_file_attachment(booking.bulk_booking_file)
+                        append_file_attachment(booking.booking_file)
                 except Exception as e:
                     logger.error(f"Error attaching booking file for log {log_id}: {str(e)}")
 

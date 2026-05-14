@@ -111,6 +111,13 @@
                                 along with the address and contact details once the booking is completed.
                             </p>
 
+                            {% if bulk_booking_file_url %}
+                            <p style="margin-top:12px;">
+                                Bulk guest data file:
+                                <a href="{{ bulk_booking_file_url }}" style="color:#1d4ed8;">Download attached file</a>
+                            </p>
+                            {% endif %}
+
                             <p style="margin-top:25px;">
                                 Thank you,<br>
                                 <strong>Travel Desk Team</strong><br>

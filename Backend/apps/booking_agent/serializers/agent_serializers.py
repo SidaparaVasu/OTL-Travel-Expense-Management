@@ -37,7 +37,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'booking_type', 'sub_option', 'booking_type_name', 'sub_option_name', 
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
-            'status', 'booking_details', 'booking_file',
+            'status', 'booking_details', 'booking_file', 'bulk_booking_file',
             'assigned_agent_name',
             'meal_preference', 'employee_name', 'notes',
             'travelers'
@@ -122,7 +122,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "booking_details", "booking_type", "booking_type_name", "sub_option", "sub_option_name",
             "status", "status_label", "estimated_cost", "actual_cost", "max_allowed_cost",
             "grade_entitled_amount",
-            "booking_reference", "vendor_reference", "booking_file",
+            "booking_reference", "vendor_reference", "booking_file", "bulk_booking_file",
             "created_at", "updated_at",
             "assigned_agent",
             "meal_preference",
@@ -334,7 +334,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "purpose", "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
             "status", "status_label", "estimated_cost", "actual_cost", 
             "booking_reference", "vendor_reference", 
-            "booking_file", "special_instruction", 
+            "booking_file", "bulk_booking_file", "special_instruction", 
             "created_at", "updated_at", "booked_at", "assigned_agent",
             "booking_details",
             "meal_preference",

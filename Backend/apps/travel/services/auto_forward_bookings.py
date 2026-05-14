@@ -21,10 +21,13 @@ def get_central_flight_train_agent():
     )
 
 
-def auto_forward_flight_train_bookings(application: TravelApplication, system_user):
+def auto_forward_flight_train_bookings(application: TravelApplication, system_user, request=None):
     """
     Auto-assign flight & train bookings to central booking agent.
     Safe, idempotent, and auditable.
+
+    Pass `request` when calling from a view so that bulk file URLs in email
+    notifications are built as absolute URLs (same as the portal uses).
     """
 
     agent = get_central_flight_train_agent()
@@ -67,7 +70,7 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
 
         if agent.email:
             from apps.travel.services.notification_service import notify_booking_agent_of_assignment
-            notify_booking_agent_of_assignment(booking, agent, event_name="travel.booking.auto_assigned")
+            notify_booking_agent_of_assignment(booking, agent, event_name="travel.booking.auto_assigned", request=request)
         else:
             import logging
             logger = logging.getLogger(__name__)

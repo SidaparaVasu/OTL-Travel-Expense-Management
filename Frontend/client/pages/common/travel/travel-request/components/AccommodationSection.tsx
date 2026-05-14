@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Home, Plus, Save, FileText, Info } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Home, Plus, Save, Info } from "lucide-react";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -14,6 +13,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { TimePickerField } from "./TimePickerField";
 import { CityCombobox } from "./CityCombobox";
 import { DatePickerField } from "./DatePickerField";
+import { BulkFileUploadWidget } from "./BulkFileUploadWidget";
 import { travelAPI } from "@/src/api/travel-api";
 import {
   getEmptyAccommodation,
@@ -42,6 +42,10 @@ interface AccommodationFormData {
   estimated_cost: string;
   meal_preference?: string;
   special_instruction: string;
+  // Bulk file fields
+  bulk_booking_file?: File | null;
+  existing_bulk_booking_file?: string | null;
+  remove_bulk_booking_file?: boolean;
 }
 
 interface AccommodationSectionProps {
@@ -61,7 +65,8 @@ interface AccommodationSectionProps {
   arcHotels: any[];
   cities: any[];
   bookingErrors?: Record<number, string>;
-  hasBulkFile?: boolean;
+  /** Who the application is for — bulk file only shown for guest/self_guest */
+  travelFor?: "self" | "guest" | "self_guest";
   defaultCityId?: number | null;
   defaultCityLabel?: string;
 }
@@ -81,7 +86,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   arcHotels,
   cities,
   bookingErrors = {},
-  hasBulkFile = false,
+  travelFor = "self",
   defaultCityId = null,
   defaultCityLabel = "",
 }) => {
@@ -617,16 +622,6 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         </div>
       </div>
 
-      {hasBulkFile && (
-        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
-          <FileText className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Bulk Upload Active:</strong> You have uploaded a bulk
-            booking file. Individual entries below are optional.
-          </AlertDescription>
-        </Alert>
-      )}
-
       <NotRequiredToggle
         checked={notRequired}
         onChange={(checked) => {
@@ -900,6 +895,27 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   error={errors.special_instruction}
                 />
               </div>
+
+              {/* Row 6: Bulk File Upload — guest applications only */}
+              {travelFor !== "self" && (
+                <div className="md:col-span-6">
+                  <BulkFileUploadWidget
+                    category="accommodation"
+                    file={form.bulk_booking_file ?? null}
+                    existingFileUrl={form.existing_bulk_booking_file ?? null}
+                    onChange={(file) =>
+                      setForm({ ...form, bulk_booking_file: file })
+                    }
+                    onRemoveExisting={() =>
+                      setForm({
+                        ...form,
+                        existing_bulk_booking_file: null,
+                        remove_bulk_booking_file: true,
+                      })
+                    }
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 mt-6">

@@ -223,6 +223,29 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             )}
 
             {/* Bulk Booking File Alert */}
+            {booking.bulk_booking_file && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 my-4 flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-emerald-700 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-emerald-950">
+                      Bulk Guest Data
+                    </h4>
+                    <p className="text-sm text-emerald-800 mt-1">
+                      Applicant uploaded guest details for this booking line.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="w-full sm:w-auto self-start ml-8 bg-emerald-700 hover:bg-emerald-800"
+                  onClick={() => docViewer.onViewFile(booking.bulk_booking_file!)}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Guest Details (Excel/CSV)
+                </Button>
+              </div>
+            )}
+
             {(booking.booking_type_name?.toLowerCase().includes("bulk") ||
               booking.booking_type.toString().toLowerCase().includes("bulk")) &&
               booking.booking_file && (

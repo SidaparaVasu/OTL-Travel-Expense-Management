@@ -815,8 +815,19 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
       )}
 
       {/* View Document Icon */}
-      {booking.booking_file && (
-        <div className="mt-4 flex justify-end">
+      {(booking.bulk_booking_file || booking.booking_file) && (
+        <div className="mt-4 flex justify-end gap-2">
+          {booking.bulk_booking_file && (
+            <button
+              type="button"
+              onClick={() => docViewer.onViewFile(booking.bulk_booking_file)}
+              title="View Bulk Guest Data File"
+              className="w-8 h-8 flex items-center justify-center rounded-md border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+          )}
+          {booking.booking_file && (
           <button
             type="button"
             onClick={() => docViewer.onViewFile(booking.booking_file)}
@@ -825,6 +836,7 @@ const BookingCard = ({ booking, type, guestHousesMap }: any) => {
           >
             <FileText className="w-4 h-4 text-slate-700" />
           </button>
+          )}
         </div>
       )}
     </div>

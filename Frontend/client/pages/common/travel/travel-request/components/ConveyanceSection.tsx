@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Car, Plus, Save, AlertTriangle, FileText } from "lucide-react";
+import { Car, Plus, Save, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -13,6 +13,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { DatePickerField } from "./DatePickerField";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BulkFileUploadWidget } from "./BulkFileUploadWidget";
 import {
   VEHICLE_TYPES,
   VEHICLE_SUB_OPTIONS,
@@ -55,6 +56,10 @@ interface ConveyanceFormData {
   distance_km?: string;
   passenger_count?: string;
   has_six_airbags?: boolean;
+  // Bulk file fields
+  bulk_booking_file?: File | null;
+  existing_bulk_booking_file?: string | null;
+  remove_bulk_booking_file?: boolean;
 }
 
 interface ConveyanceSectionProps {
@@ -69,7 +74,8 @@ interface ConveyanceSectionProps {
   travelModes: any[];
   travelSubOptions: Record<string, any[]>;
   bookingErrors?: Record<number, string>;
-  hasBulkFile?: boolean;
+  /** Who the application is for — bulk file only shown for guest/self_guest */
+  travelFor?: "self" | "guest" | "self_guest";
 }
 
 export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
@@ -84,7 +90,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   travelModes,
   travelSubOptions,
   bookingErrors = {},
-  hasBulkFile = false,
+  travelFor = "self",
 }) => {
   const [form, setForm] = useState<ConveyanceFormData>({
     ...getEmptyConveyance(),
@@ -426,16 +432,6 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
           </p>
         </div>
       </div>
-
-      {hasBulkFile && (
-        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
-          <FileText className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Bulk Upload Active:</strong> You have uploaded a bulk
-            booking file. Individual entries below are optional.
-          </AlertDescription>
-        </Alert>
-      )}
 
       <NotRequiredToggle
         checked={notRequired}
@@ -845,6 +841,27 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   error={errors.special_instruction}
                 />
               </div>
+
+              {/* Bulk File Upload — guest applications only */}
+              {travelFor !== "self" && (
+                <div className="md:col-span-6">
+                  <BulkFileUploadWidget
+                    category="conveyance"
+                    file={form.bulk_booking_file ?? null}
+                    existingFileUrl={form.existing_bulk_booking_file ?? null}
+                    onChange={(file) =>
+                      setForm({ ...form, bulk_booking_file: file })
+                    }
+                    onRemoveExisting={() =>
+                      setForm({
+                        ...form,
+                        existing_bulk_booking_file: null,
+                        remove_bulk_booking_file: true,
+                      })
+                    }
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center gap-3 mt-6">

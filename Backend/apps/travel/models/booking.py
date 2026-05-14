@@ -139,6 +139,8 @@ class Booking(models.Model):
             "gl_code": gl_code_obj.gl_code if gl_code_obj else "N/A",
             "gl_description": gl_code_obj.vertical_name if gl_code_obj else "N/A",
             "sanc_number": app.sanction_number or "N/A",
+            # Bulk guest data file — relative URL; caller should make it absolute if needed
+            "bulk_booking_file_url": self.bulk_booking_file.url if self.bulk_booking_file else None,
         })
 
         details = self.booking_details or {}

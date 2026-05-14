@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plane, Plus, Save, UserCheck, FileText } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plane, Plus, Save, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { FormInput } from "./FormInput";
 import { FormSelect } from "./FormSelect";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DatePickerField } from "./DatePickerField";
 import { TimePickerField } from "./TimePickerField";
+import { BulkFileUploadWidget } from "./BulkFileUploadWidget";
 import {
   TRAVEL_MODES,
   TRAVEL_SUB_OPTIONS,
@@ -50,6 +50,10 @@ interface TicketingFormData {
   meal_preference?: string;
   special_instruction: string;
   is_self_arranged?: boolean;
+  // Bulk file fields
+  bulk_booking_file?: File | null;
+  existing_bulk_booking_file?: string | null;
+  remove_bulk_booking_file?: boolean;
 }
 
 interface TicketingSectionProps {
@@ -65,7 +69,8 @@ interface TicketingSectionProps {
   travelModes?: TravelMode[];
   travelSubOptions?: Record<string, TravelSubOption[]>;
   bookingErrors?: Record<number, string>;
-  hasBulkFile?: boolean;
+  /** Who the application is for — bulk file only shown for guest/self_guest */
+  travelFor?: "self" | "guest" | "self_guest";
 }
 
 export const TicketingSection: React.FC<TicketingSectionProps> = ({
@@ -81,7 +86,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   travelModes: propModes,
   travelSubOptions: propSubOptions,
   bookingErrors = {},
-  hasBulkFile = false,
+  travelFor = "self",
 }) => {
   const [form, setForm] = useState<TicketingFormData>({
     ...getEmptyTicketing(),
@@ -373,16 +378,6 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
         </div>
       </div>
 
-      {hasBulkFile && (
-        <Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
-          <FileText className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Bulk Upload Active:</strong> You have uploaded a bulk
-            booking file. Individual entries below are optional.
-          </AlertDescription>
-        </Alert>
-      )}
-
       <NotRequiredToggle
         checked={notRequired}
         onChange={(checked) => {
@@ -635,6 +630,27 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                   error={errors.special_instruction}
                 />
               </div>
+
+              {/* Row 7: Bulk File Upload — guest applications only */}
+              {travelFor !== "self" && (
+                <div className="md:col-span-6">
+                  <BulkFileUploadWidget
+                    category="ticketing"
+                    file={form.bulk_booking_file ?? null}
+                    existingFileUrl={form.existing_bulk_booking_file ?? null}
+                    onChange={(file) =>
+                      setForm({ ...form, bulk_booking_file: file })
+                    }
+                    onRemoveExisting={() =>
+                      setForm({
+                        ...form,
+                        existing_bulk_booking_file: null,
+                        remove_bulk_booking_file: true,
+                      })
+                    }
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
