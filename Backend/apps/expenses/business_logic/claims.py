@@ -9,7 +9,8 @@ from apps.expenses.models import *
 from apps.master_data.models.travel import GradeEntitlementMaster
 from apps.master_data.models.geography import CityCategoriesMaster
 from apps.master_data.models.approval import DAIncidentalMaster, ConveyanceRateMaster, ApprovalMatrix
-from apps.travel.models.application import TripDetails         
+from apps.travel.models.application import TripDetails
+from apps.travel.models.approval import TravelApprovalFlow
 import logging
 
 logger = logging.getLogger(__name__)
@@ -343,6 +344,35 @@ def validate_claim_payload(
     # 3 — Validate Guest Restriction
     if tr.travel_for == 'guest':
         errors["travel_request"] = ["Expense claims are not allowed for Guest travel applications."]
+        return {"errors": errors, "warnings": warnings, "computed": computed}
+
+    # 3b — Validate that all required approval flows are completed
+    # A travel application can only be claimed if every required approval step
+    # (manager, CHRO, CEO, travel desk) is either approved or skipped.
+    # This guards against edge cases where status was manually set to 'completed'
+    # without all approvals being resolved.
+    incomplete_approvals = TravelApprovalFlow.objects.filter(
+        travel_application=tr,
+        is_required=True,
+        status__in=["pending", "rejected"]
+    )
+    if incomplete_approvals.exists():
+        # Build a human-readable list of which levels are still pending/rejected
+        level_labels = {
+            "self_approval": "Self Approval",
+            "manager": "Reporting Manager",
+            "chro": "CHRO",
+            "ceo": "CEO",
+            "travel_desk": "Travel Desk",
+        }
+        blocking = incomplete_approvals.values_list("approval_level", "status")
+        detail = "; ".join(
+            f"{level_labels.get(lvl, lvl)} ({st})" for lvl, st in blocking
+        )
+        errors["travel_request.approval"] = [
+            f"All required approvals must be completed before submitting a claim. "
+            f"Pending/rejected: {detail}."
+        ]
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
     # 4 — Prevent duplicate claims

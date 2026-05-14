@@ -844,15 +844,25 @@ class ClaimableTravelApplicationsView(APIView):
         1. belong to logged-in user
         2. have status = completed
         3. do NOT already have an ExpenseClaim
+        4. have ALL required approval flows approved or skipped
+           (guards against manually-completed applications with unresolved approvals)
         """
+        from apps.travel.models.approval import TravelApprovalFlow
+
+        # Sub-query: IDs of applications that still have pending/rejected required approvals
+        blocked_app_ids = TravelApprovalFlow.objects.filter(
+            is_required=True,
+            status__in=["pending", "rejected"]
+        ).values_list("travel_application_id", flat=True)
 
         qs = (
             TravelApplication.objects.filter(
                 employee=request.user,
                 status="completed"
             )
-            .exclude(expense_claim__isnull=False)  # exclude apps with existing claim
-            .exclude(travel_for='guest')           # exclude guest applications (no claims allowed)
+            .exclude(expense_claim__isnull=False)   # exclude apps with existing claim
+            .exclude(travel_for='guest')             # exclude guest applications (no claims allowed)
+            .exclude(id__in=blocked_app_ids)         # exclude apps with incomplete approval flows
             .select_related("employee", "general_ledger")
             .prefetch_related("trip_details", "trip_details__from_location", "trip_details__to_location")
             .order_by("-created_at")
