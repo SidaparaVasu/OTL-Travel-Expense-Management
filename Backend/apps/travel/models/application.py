@@ -102,12 +102,15 @@ class TravelApplication(models.Model):
         null=True
     )
     
-    # Bulk Booking
+    # Bulk Booking (LEGACY)
+    # Used before per-booking bulk file support was introduced.
+    # Preserved for existing records only — do NOT write to this field for new applications.
+    # New applications use Booking.bulk_booking_file instead.
     bulk_upload_file = models.FileField(
         upload_to='travel/bulk_uploads/%Y/%m/',
         null=True,
         blank=True,
-        help_text="Excel/CSV file for bulk booking details (Guests)"
+        help_text="[LEGACY] Application-level bulk booking file. Use Booking.bulk_booking_file for new records."
     )
     estimated_total_cost = models.DecimalField(
         max_digits=10, 

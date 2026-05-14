@@ -60,7 +60,18 @@ class Booking(models.Model):
     vendor_reference = models.CharField(max_length=100, blank=True)
     
     # Files
+    # Agent-uploaded booking confirmation (output — filled by booking agent after booking is done)
     booking_file = models.FileField(upload_to=' booking_files/', blank=True, null=True)
+
+    # Applicant-uploaded bulk guest data file (input — filled by applicant at booking creation)
+    # Used for Ticketing / Accommodation / Conveyance bulk bookings.
+    # Replaces the legacy TravelApplication.bulk_upload_file approach.
+    bulk_booking_file = models.FileField(
+        upload_to='travel/bulk_booking_files/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Bulk guest data file uploaded by applicant for this booking line item (ticketing/accommodation/conveyance)"
+    )
 
     uploaded_by = models.ForeignKey(
         'authentication.User', on_delete=models.SET_NULL, null=True, blank=True,
