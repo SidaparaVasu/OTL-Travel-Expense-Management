@@ -975,6 +975,36 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
 
                                   <TableCell className="text-center">
                                     <div className="flex justify-center gap-1">
+                                      {booking.bulk_booking_file && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              className="h-9 px-2 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                                              asChild
+                                              title="View Bulk Booking File"
+                                            >
+                                              <a
+                                                href={getFileUrl(
+                                                  booking.bulk_booking_file,
+                                                )}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                              >
+                                                <FileDown className="w-4 h-4" />
+                                              </a>
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            View bulk guest data file
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
+
                                       {/* Bulk Download Action */}
                                       {type.includes("bulk") &&
                                         (booking as any).booking_file && (

@@ -50,4 +50,29 @@ class Command(BaseCommand):
             reminder_task.save()
         self.stdout.write(self.style.SUCCESS(f'Task "Notification Reminder Worker" {"created" if created else "updated"}.'))
 
+        # 3. Auto-Skip Expired Approvals (Daily at 00:10 IST)
+        # Runs after settlement expiry check (00:05) so notifications fire first.
+        skip_schedule, _ = CrontabSchedule.objects.get_or_create(
+            minute='10',
+            hour='0',
+            day_of_week='*',
+            day_of_month='*',
+            month_of_year='*',
+            timezone='Asia/Kolkata'
+        )
+
+        skip_task, created = PeriodicTask.objects.get_or_create(
+            name='Daily Auto-Skip Expired Approvals',
+            defaults={
+                'task': 'apps.notifications.tasks.auto_skip_expired_approvals',
+                'crontab': skip_schedule,
+                'queue': 'notifications',
+                'args': json.dumps([]),
+            }
+        )
+        if not created:
+            skip_task.crontab = skip_schedule
+            skip_task.save()
+        self.stdout.write(self.style.SUCCESS(f'Task "Daily Auto-Skip Expired Approvals" {"created" if created else "updated"}.'))
+
         self.stdout.write(self.style.SUCCESS('All periodic tasks registered successfully.'))

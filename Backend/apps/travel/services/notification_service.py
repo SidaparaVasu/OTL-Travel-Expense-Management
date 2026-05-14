@@ -1,9 +1,13 @@
 from apps.notifications.center import NotificationCenter
 
-def notify_booking_agent_of_assignment(booking, agent_user, event_name=None):
+def notify_booking_agent_of_assignment(booking, agent_user, event_name=None, request=None):
     """
     Sends the appropriate notification to a booking agent based on the booking type.
     Handles Flight, Train, Hotel, and Vehicle bookings.
+
+    Pass `request` (HttpRequest) when calling from a view so that any relative file
+    URLs in the payload (e.g. bulk_booking_file_url) are upgraded to absolute URLs
+    that work correctly in email links.
     """
     if not agent_user.email:
         import logging
@@ -31,8 +35,15 @@ def notify_booking_agent_of_assignment(booking, agent_user, event_name=None):
             event_name = "travel.vehicle.requested"
 
     # 3. Get enriched payload from booking
-    # Note: get_booking_payload is expected to be on the Booking model
     notification_payload = booking.get_booking_payload()
+
+    # Upgrade bulk_booking_file_url to an absolute URL using the current request.
+    # This ensures email links work correctly — the same URL the portal uses.
+    if request and notification_payload.get("bulk_booking_file_url"):
+        relative_url = notification_payload["bulk_booking_file_url"]
+        if not relative_url.startswith("http"):
+            notification_payload["bulk_booking_file_url"] = request.build_absolute_uri(relative_url)
+
     notification_payload.update({
         "booking_agent_id": agent_user.id,
         "booking_agent_name": agent_user.get_full_name(),

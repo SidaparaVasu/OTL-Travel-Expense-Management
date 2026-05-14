@@ -98,6 +98,13 @@
                                 <strong>e-ticket</strong> in the portal.
                             </p>
 
+                            {% if bulk_booking_file_url %}
+                            <p style="margin-top:12px;">
+                                Bulk guest data file:
+                                <a href="{{ bulk_booking_file_url }}" style="color:#1d4ed8;">Download attached file</a>
+                            </p>
+                            {% endif %}
+
                             <p style="margin-top:25px;">
                                 Thank you,<br>
                                 <strong>Travel Management System</strong><br>

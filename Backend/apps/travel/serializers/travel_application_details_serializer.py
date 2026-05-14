@@ -203,6 +203,7 @@ class TicketingBookingSerializer(serializers.Serializer):
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+    bulk_booking_file = serializers.SerializerMethodField()
 
     def get_booking_type(self, obj):
         return obj.booking_type.name if obj.booking_type else ""
@@ -270,6 +271,9 @@ class TicketingBookingSerializer(serializers.Serializer):
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
 
+    def get_bulk_booking_file(self, obj):
+        return obj.bulk_booking_file.url if obj.bulk_booking_file else None
+
 
 class AccommodationBookingSerializer(serializers.Serializer):
     """Serializer for accommodation bookings"""
@@ -290,6 +294,7 @@ class AccommodationBookingSerializer(serializers.Serializer):
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+    bulk_booking_file = serializers.SerializerMethodField()
 
     def get_is_self_arranged(self, obj):
         # Check sub_option name for 'Self'
@@ -415,6 +420,9 @@ class AccommodationBookingSerializer(serializers.Serializer):
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
 
+    def get_bulk_booking_file(self, obj):
+        return obj.bulk_booking_file.url if obj.bulk_booking_file else None
+
 
 class ConveyanceBookingSerializer(serializers.Serializer):
     """Serializer for conveyance bookings"""
@@ -440,6 +448,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     assignments = serializers.SerializerMethodField()
     booking_notes = serializers.SerializerMethodField()
     booking_file = serializers.SerializerMethodField()
+    bulk_booking_file = serializers.SerializerMethodField()
 
     def get_is_self_arranged(self, obj):
         # Check sub_option name for 'Self'
@@ -547,6 +556,9 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
 
+    def get_bulk_booking_file(self, obj):
+        return obj.bulk_booking_file.url if obj.bulk_booking_file else None
+
 
 class ApprovalWorkflowSerializer(serializers.ModelSerializer):
     """Serializer for approval workflow"""
@@ -582,6 +594,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
     timestamps = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
     current_approval = serializers.SerializerMethodField()
+    can_approve_or_reject = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -596,7 +609,8 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'cancellation',
             'settlement',
             'timestamps',
-            'can_edit'
+            'can_edit',
+            'can_approve_or_reject',
         ]
 
     def get_application(self, obj):
@@ -798,3 +812,34 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         
         can_edit, _ = can_edit_application(obj, request.user)
         return can_edit
+
+    def get_can_approve_or_reject(self, obj):
+        """
+        Returns True only when ALL of the following are true:
+          1. The requesting user has a pending approval flow for this TR.
+          2. Today is on or before the settlement_due_date (30-day window is still open).
+
+        Frontend uses this boolean to show/hide the Approve / Reject buttons.
+        """
+        from django.utils import timezone
+
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+
+        # Must have a pending, actionable approval flow for this user
+        has_pending = obj.approval_flows.filter(
+            approver=request.user,
+            status='pending',
+            can_approve=True,
+        ).exists()
+
+        if not has_pending:
+            return False
+
+        # Settlement window must still be open (today <= settlement_due_date)
+        today = timezone.now().date()
+        if obj.settlement_due_date and today > obj.settlement_due_date:
+            return False
+
+        return True

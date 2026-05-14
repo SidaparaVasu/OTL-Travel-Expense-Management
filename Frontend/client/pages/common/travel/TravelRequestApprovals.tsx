@@ -216,20 +216,10 @@ export default function TravelRequestApprovals() {
   }, [statusFilter, page, searchQuery, appliedStartDate, appliedEndDate]);
 
   const canUserApprove = (request) => {
-    const pendingStatuses = ["pending_manager", "pending_chro", "pending_ceo"];
-
-    // If request is not pending – cannot approve
-    if (!pendingStatuses.includes(request.status)) return false;
-
-    // Must match backend current approver
-    if (
-      request.current_approval !== null &&
-      request.current_approval.can_approve
-    ) {
-      return true;
-    } else {
-      return false;
-    }
+    // Backend now returns a single boolean that encapsulates:
+    //   1. User has a pending approval flow for this TR
+    //   2. The 30-day settlement window is still open
+    return request.can_approve_or_reject === true;
   };
 
   const fetchApprovals = async (

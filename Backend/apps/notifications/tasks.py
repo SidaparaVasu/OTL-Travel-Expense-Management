@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.utils import timezone
 from apps.travel.models import TravelApplication
+from apps.travel.models.approval import TravelApprovalFlow
 from .models import NotificationLog, NotificationEvent
 from .providers import EmailProviderFactory
 from .center import NotificationCenter
@@ -48,7 +49,8 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
                 except Exception as e:
                     logger.error(f"Error generating duty slip attachment for log {log_id}: {str(e)}")
 
-            # General: Check for booking_file attachment (e.g. Bulk Upload Excel)
+            # General: attach applicant bulk files and booking confirmation
+            # files when a booking-specific notification is sent.
             booking_id = payload.get('booking_id')
             if booking_id:
                 try:
@@ -58,24 +60,34 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
                     
                     # optimized query if not already fetched
                     booking = Booking.objects.filter(id=booking_id).first()
-                    
-                    if booking and booking.booking_file:
+
+                    def append_file_attachment(file_field):
+                        if not file_field:
+                            return
                         try:
-                            # Open file if not already open
-                            if booking.booking_file.closed:
-                                booking.booking_file.open('rb')
-                            
-                            file_content = booking.booking_file.read()
-                            file_name = os.path.basename(booking.booking_file.name)
+                            if file_field.closed:
+                                file_field.open('rb')
+
+                            file_content = file_field.read()
+                            file_name = os.path.basename(file_field.name)
                             content_type, _ = mimetypes.guess_type(file_name)
-                            
+
                             attachments.append({
                                 'name': file_name,
                                 'content': file_content,
                                 'mimetype': content_type or 'application/octet-stream'
                             })
                         except Exception as file_error:
-                             logger.error(f"Error reading booking file for log {log_id}: {str(file_error)}")
+                            logger.error(f"Error reading booking attachment for log {log_id}: {str(file_error)}")
+                        finally:
+                            try:
+                                file_field.close()
+                            except Exception:
+                                pass
+
+                    if booking:
+                        append_file_attachment(booking.bulk_booking_file)
+                        append_file_attachment(booking.booking_file)
                 except Exception as e:
                     logger.error(f"Error attaching booking file for log {log_id}: {str(e)}")
 
@@ -215,6 +227,97 @@ def check_for_expired_settlements():
             logger.error(f"Error notifying expiry for TR {app.id}: {str(e)}")
 
     return f"Notified {count} expired settlements."
+
+
+@shared_task
+def auto_skip_expired_approvals():
+    """
+    Daily task: auto-skip pending TravelApprovalFlow entries whose 30-day
+    settlement window has closed.
+
+    Idempotency:
+      - A NotificationEvent with event_name='travel.approval.auto_skipped' is
+        created per TravelApplication once flows are skipped.
+      - On subsequent runs the application is excluded via that event, so flows
+        are never double-processed.
+      - After all flows for an application are skipped the event is marked
+        is_resolved=True so the reminder system ignores it.
+
+    Runs daily at 00:10 IST (registered in setup_periodic_tasks).
+    """
+    today = timezone.now().date()
+
+    # Applications already processed by this task — skip them entirely.
+    already_processed_ids = NotificationEvent.objects.filter(
+        event_name='travel.approval.auto_skipped'
+    ).values_list('reference_id', flat=True)
+
+    # Find pending required flows whose settlement window has closed.
+    # Only target 'completed' TRs — any other status means the flow is
+    # still legitimately pending.
+    expired_flows = (
+        TravelApprovalFlow.objects.filter(
+            status='pending',
+            is_required=True,
+            travel_application__status='completed',
+            travel_application__settlement_due_date__lt=today,
+        )
+        .exclude(travel_application_id__in=already_processed_ids)
+        .select_related('travel_application', 'approver')
+    )
+
+    if not expired_flows.exists():
+        logger.info('auto_skip_expired_approvals: nothing to process.')
+        return 'No expired approval flows found.'
+
+    # Group flows by travel application so we create one event per TR.
+    from collections import defaultdict
+    flows_by_app = defaultdict(list)
+    for flow in expired_flows:
+        flows_by_app[flow.travel_application].append(flow)
+
+    skipped_total = 0
+    now = timezone.now()
+
+    for app, flows in flows_by_app.items():
+        try:
+            # Skip all pending flows for this TR
+            for flow in flows:
+                flow.status = 'skipped'
+                flow.notes = (
+                    f'Auto-skipped: settlement period expired on '
+                    f'{app.settlement_due_date}. '
+                    f'No action taken by approver within 30 days.'
+                )
+                flow.approved_at = now
+                flow.save(update_fields=['status', 'notes', 'approved_at'])
+                skipped_total += 1
+                logger.info(
+                    f'Skipped flow #{flow.id} | TR: {app.get_travel_request_id()} '
+                    f'| Approver: {flow.approver.get_full_name()} | Level: {flow.approval_level}'
+                )
+
+            # Record a resolved NotificationEvent so this TR is never re-processed.
+            NotificationEvent.objects.create(
+                event_name='travel.approval.auto_skipped',
+                reference_type='TravelApplication',
+                reference_id=app.id,
+                data={
+                    'request_id': app.get_travel_request_id(),
+                    'settlement_due_date': str(app.settlement_due_date),
+                    'flows_skipped': len(flows),
+                    'skipped_at': str(now.date()),
+                },
+                is_resolved=True,   # no reminders needed — this is a terminal record
+            )
+
+        except Exception as e:
+            logger.error(
+                f'auto_skip_expired_approvals: error processing TR {app.id}: {e}',
+                exc_info=True,
+            )
+
+    return f'Auto-skipped {skipped_total} approval flow(s) across {len(flows_by_app)} TR(s).'
 
 
 @shared_task

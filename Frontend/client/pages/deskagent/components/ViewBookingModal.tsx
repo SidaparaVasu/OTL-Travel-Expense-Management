@@ -380,6 +380,16 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             )}
 
             {/* File */}
+            {booking.bulk_booking_file && (
+              <button
+                type="button"
+                onClick={() => docViewer.onViewFile(booking.bulk_booking_file)}
+                className="text-emerald-700 text-sm underline flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" /> View Bulk Guest Data File
+              </button>
+            )}
+
             {booking.booking_file && (
               <a
                 onClick={() => docViewer.onViewFile(booking.booking_file)}

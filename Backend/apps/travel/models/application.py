@@ -102,12 +102,15 @@ class TravelApplication(models.Model):
         null=True
     )
     
-    # Bulk Booking
+    # Bulk Booking (LEGACY)
+    # Used before per-booking bulk file support was introduced.
+    # Preserved for existing records only — do NOT write to this field for new applications.
+    # New applications use Booking.bulk_booking_file instead.
     bulk_upload_file = models.FileField(
         upload_to='travel/bulk_uploads/%Y/%m/',
         null=True,
         blank=True,
-        help_text="Excel/CSV file for bulk booking details (Guests)"
+        help_text="[LEGACY] Application-level bulk booking file. Use Booking.bulk_booking_file for new records."
     )
     estimated_total_cost = models.DecimalField(
         max_digits=10, 
@@ -340,13 +343,12 @@ class TravelApplication(models.Model):
         if new_status in submit_statuses and not self.trip_details.exists():
             return False, "Cannot submit travel request without trip details"
 
-        # Cannot submit without bookings (unless bulk file is present)
+        # Cannot submit without bookings (unless all trips are marked no_bookings_required)
         if new_status in submit_statuses:
             has_bookings = any(trip.bookings.exists() for trip in self.trip_details.all())
             no_bookings_required = all(trip.no_bookings_required for trip in self.trip_details.all())
-            has_bulk_file = bool(self.bulk_upload_file)
-            
-            if not has_bookings and not no_bookings_required and not has_bulk_file:
+
+            if not has_bookings and not no_bookings_required:
                 return False, "Cannot submit travel request without booking details"
         
         # Cannot move to booking stages without approvals
@@ -370,14 +372,26 @@ class TravelApplication(models.Model):
 
     def create_bulk_booking_if_needed(self):
         """
-        Automatically create a 'Bulk Upload' booking if a bulk file is present
-        and no such booking exists.
+        Automatically create a 'Bulk Upload' booking if a legacy application-level
+        bulk file is present and no such booking exists yet.
+
+        LEGACY ONLY: This method only runs for old applications that used
+        TravelApplication.bulk_upload_file. New applications attach bulk files
+        directly to individual Booking records via Booking.bulk_booking_file.
         """
         if not self.bulk_upload_file:
             return
 
         from apps.travel.models.booking import Booking
         from apps.master_data.models.travel import TravelModeMaster
+
+        # Skip if any booking already has a per-booking bulk file (new-style record).
+        # This prevents double-processing if an application was partially migrated.
+        if Booking.objects.filter(
+            trip_details__travel_application=self,
+            bulk_booking_file__isnull=False
+        ).exclude(bulk_booking_file='').exists():
+            return
 
         # Get or Create 'Bulk Booking' mode (safety check)
         bulk_mode, _ = TravelModeMaster.objects.get_or_create(
@@ -404,7 +418,7 @@ class TravelApplication(models.Model):
             trip_details=trip,
             booking_type=bulk_mode,
             status='pending',
-            booking_file=self.bulk_upload_file, # Copy the file reference
+            booking_file=self.bulk_upload_file,  # Copy the legacy file reference
             special_instruction="Bulk Bookings Upload",
             booking_details={
                 "is_system_generated": True,

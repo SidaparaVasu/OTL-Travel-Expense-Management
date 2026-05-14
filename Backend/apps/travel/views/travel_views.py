@@ -388,7 +388,10 @@ class TravelApplicationEditView(APIView):
 
 class TravelApplicationBulkUploadView(APIView):
     """
-    Upload bulk booking file (Excel/CSV) for an application
+    Upload bulk booking file (Excel/CSV) for an application.
+    LEGACY: Kept for backward compatibility with old applications that used
+    application-level bulk file upload. New applications use
+    BookingBulkFileUploadView (per booking line item) instead.
     """
     permission_classes = [IsAuthenticated, IsOwnerOrApprover]
     parser_classes = [MultiPartParser, FormParser]
@@ -419,6 +422,185 @@ class TravelApplicationBulkUploadView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND
             )
 
+
+class BookingBulkFileUploadView(APIView):
+    """
+    POST: Upload a bulk guest data file to a specific booking line item.
+    DELETE: Remove the bulk guest data file from a booking line item.
+
+    Only allowed while the parent application is in 'draft' status.
+    The file is stored in Booking.bulk_booking_file and is separate from
+    Booking.booking_file (which is used by agents for booking confirmations).
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def _get_booking_and_check_permission(self, request, booking_id):
+        """Shared helper: fetch booking and verify the requester owns the application."""
+        try:
+            booking = Booking.objects.select_related(
+                'trip_details__travel_application__employee'
+            ).get(pk=booking_id)
+        except Booking.DoesNotExist:
+            return None, error_response(
+                message="Booking not found",
+                status_code=status.HTTP_404_NOT_FOUND
+            )
+
+        application = booking.trip_details.travel_application
+        if application.employee != request.user:
+            return None, error_response(
+                message="You do not have permission to modify this booking",
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+
+        if application.status != 'draft':
+            return None, error_response(
+                message="Cannot modify files on a submitted application",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        return booking, None
+
+    def post(self, request, booking_id):
+        booking, err = self._get_booking_and_check_permission(request, booking_id)
+        if err:
+            return err
+
+        file = request.FILES.get('bulk_booking_file')
+        if not file:
+            return error_response(
+                message="No file provided. Use field name 'bulk_booking_file'.",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate extension
+        allowed_extensions = {'.xlsx', '.xls', '.csv'}
+        import os
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext not in allowed_extensions:
+            return error_response(
+                message=f"Invalid file type '{ext}'. Allowed: {', '.join(allowed_extensions)}",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Delete old file from storage if one exists
+        if booking.bulk_booking_file:
+            booking.bulk_booking_file.delete(save=False)
+
+        booking.bulk_booking_file = file
+        booking.save(update_fields=['bulk_booking_file'])
+
+        return success_response(
+            data={
+                'booking_id': booking.id,
+                'bulk_booking_file': request.build_absolute_uri(booking.bulk_booking_file.url)
+            },
+            message="Bulk booking file uploaded successfully"
+        )
+
+    def delete(self, request, booking_id):
+        booking, err = self._get_booking_and_check_permission(request, booking_id)
+        if err:
+            return err
+
+        if not booking.bulk_booking_file:
+            return success_response(
+                data={'booking_id': booking.id},
+                message="No bulk booking file was attached"
+            )
+
+        booking.bulk_booking_file.delete(save=False)
+        booking.bulk_booking_file = None
+        booking.save(update_fields=['bulk_booking_file'])
+
+        return success_response(
+            data={'booking_id': booking.id},
+            message="Bulk booking file removed successfully"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Sample file column definitions per category
+# ---------------------------------------------------------------------------
+_BULK_SAMPLE_COLUMNS = {
+    'ticketing': [
+        'S. No.', 'TR No.', 'Department / Section', 'Requester Name',
+        'Requester Contact No.', 'Passenger Name', 'Passenger Contact No.',
+        'Gender', 'Age', 'From Location', 'To Location', 'Boarding From Location',
+        'Travel Date (DD-MM-YY)', 'Travel Time (HH:MM)', 'Train / Flight No.',
+        'Train / Flight Name', 'Travel Class', 'GL', 'IO', 'Sanction No.', 'Remarks',
+    ],
+    'accommodation': [
+        'S. No.', 'TR No.', 'Vertical', 'Requester Name', 'Requester Contact No.',
+        'Guest Name', 'Guest Contact No.', 'Gender', 'Age', 'No. of Person',
+        'Location', 'Checkin Date (DD.MM.YYYY)', 'Checkin Time (HH:MM)',
+        'Checkout Date (DD.MM.YYYY)', 'Checkout Time (HH:MM)', 'Occupancy Type',
+        'G.L', 'I.O.', 'Sanction No.', 'Remarks',
+    ],
+    'conveyance': [
+        'S. No.', 'TR No.', 'Department / Section', 'Requester Name',
+        'Requester Contact No.', 'From Date (DD-MM-YY)', 'From Time (HH:MM)',
+        'To Date (DD-MM-YY)', 'To Time (HH:MM)', 'Reporting Person Name',
+        "Reporting Person's Contact No.", 'Reporting Place', 'Travel Ending Place',
+        'Approx KM', 'No. of Person', 'Vehicle Model Required', 'AC/Non-AC',
+        'G.L.', 'I.O.', 'Sanction No.', 'Remarks',
+    ],
+}
+
+
+class BulkBookingSampleDownloadView(APIView):
+    """
+    GET /travel/bulk-booking/sample/<category>/
+
+    Returns a downloadable Excel (.xlsx) sample file with the correct header
+    columns for the given booking category (ticketing / accommodation / conveyance).
+    No data rows — headers only. No authentication required so applicants can
+    download the template before logging in if needed.
+    """
+    permission_classes = []  # Public endpoint — template files contain no sensitive data
+
+    def get(self, request, category):
+        category = category.lower()
+        columns = _BULK_SAMPLE_COLUMNS.get(category)
+        if not columns:
+            return error_response(
+                message=f"Unknown category '{category}'. Valid options: ticketing, accommodation, conveyance.",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from django.http import HttpResponse
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = category.capitalize()
+
+        # Write header row with styling
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        for col_idx, col_name in enumerate(columns, start=1):
+            cell = ws.cell(row=1, column=col_idx, value=col_name)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            # Auto-width: approximate based on header length
+            ws.column_dimensions[cell.column_letter].width = max(len(col_name) + 4, 14)
+
+        ws.row_dimensions[1].height = 30
+
+        # Stream response
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = (
+            f'attachment; filename="bulk_{category}_sample.xlsx"'
+        )
+        wb.save(response)
+        return response
 
 class TravelApplicationSubmitView(APIView):
     """
@@ -618,7 +800,7 @@ class TravelApplicationSubmitView(APIView):
             travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"]) 
             
             from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
-            auto_forward_flight_train_bookings(travel_app, system_user=request.user)
+            auto_forward_flight_train_bookings(travel_app, system_user=request.user, request=request)
             auto_confirm_self_arranged_bookings(travel_app, system_user=request.user)
 
             # Schedule auto-completion

@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { API_BASE_URL } from "../../config/api.config";
 
 export interface TravelApplication {
   id: number;
@@ -257,7 +258,7 @@ export const travelAPI = {
     const { data } = await apiClient.get(`/travel/applications/${id}/details/`);
     return data.data;
   },
-  // Upload Bulk File
+  // Upload Bulk File (LEGACY — application-level)
   uploadBulkFile: async (id: number, file: File) => {
     const formData = new FormData();
     formData.append("bulk_upload_file", file);
@@ -271,6 +272,36 @@ export const travelAPI = {
       },
     );
     return data;
+  },
+
+  // Upload bulk guest data file to a specific booking line item
+  uploadBookingBulkFile: async (bookingId: number, file: File) => {
+    const formData = new FormData();
+    formData.append("bulk_booking_file", file);
+    const { data } = await apiClient.post(
+      `/travel/bookings/${bookingId}/upload-bulk-file/`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return data;
+  },
+
+  // Remove bulk guest data file from a specific booking line item
+  removeBookingBulkFile: async (bookingId: number) => {
+    const { data } = await apiClient.delete(
+      `/travel/bookings/${bookingId}/upload-bulk-file/`,
+    );
+    return data;
+  },
+
+  downloadBulkSample: (
+    category: "ticketing" | "accommodation" | "conveyance",
+  ) => {
+    window.open(
+      `${API_BASE_URL}/travel/bulk-booking/sample/${category}/`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   },
 
   // Download Travel Application Report

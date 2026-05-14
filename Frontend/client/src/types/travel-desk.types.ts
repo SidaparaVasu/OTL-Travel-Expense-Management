@@ -59,6 +59,7 @@ export interface Booking {
   booking_reference: string;
   vendor_reference: string;
   booking_file: string | null;
+  bulk_booking_file?: string | null;
   special_instruction: string;
   can_reassign: boolean;
   trip_segment?: string;

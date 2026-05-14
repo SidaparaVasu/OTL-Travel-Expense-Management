@@ -90,8 +90,8 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         fields = [
             "id", "trip_id", "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
             "status", "status_display", "estimated_cost", "actual_cost", "booking_reference", "vendor_reference", 
-            "booking_file", "special_instruction", "created_at", "updated_at", "booked_at", "assigned_agent", 
-            "booking_details",
+            "booking_file", "bulk_booking_file", "special_instruction", "created_at", "updated_at", "booked_at",
+            "assigned_agent", "booking_details",
             "meal_preference",
             "can_reassign",
             "notes",

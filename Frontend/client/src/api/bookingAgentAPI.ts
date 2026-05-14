@@ -52,6 +52,7 @@ export interface Booking {
   status: string;
   booking_details: BookingDetails;
   booking_file: string | null;
+  bulk_booking_file?: string | null;
   assigned_agent_name: string | null;
   special_instruction?: string;
   travel_request_id?: string;
