@@ -111,7 +111,9 @@ class BookingAgentDashboardView(APIView):
             "total_assigned": bookings.count(),
             "pending": bookings.filter(status="requested").count(),
             "in_progress": bookings.filter(status="in_progress").count(),
-            "confirmed": bookings.filter(status="confirmed").count(),
+            # confirmed + completed are counted together — completed is the terminal
+            # state a booking reaches after the agent confirms it and travel ends.
+            "confirmed": bookings.filter(status__in=["confirmed", "completed"]).count(),
             "cancelled": bookings.filter(status="cancelled").count(),
         }
 
@@ -217,7 +219,12 @@ class BookingAgentBookingsListView(APIView):
 
         status_filter = request.query_params.get("status")
         if status_filter:
-            qs = qs.filter(status=status_filter)
+            # "confirmed" from the frontend covers both confirmed and completed —
+            # completed is the terminal state after travel ends for a confirmed booking.
+            if status_filter == "confirmed":
+                qs = qs.filter(status__in=["confirmed", "completed"])
+            else:
+                qs = qs.filter(status=status_filter)
 
         search = request.query_params.get("search")
         if search:
