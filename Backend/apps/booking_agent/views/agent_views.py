@@ -111,7 +111,9 @@ class BookingAgentDashboardView(APIView):
             "total_assigned": bookings.count(),
             "pending": bookings.filter(status="requested").count(),
             "in_progress": bookings.filter(status="in_progress").count(),
-            "confirmed": bookings.filter(status="confirmed").count(),
+            # confirmed + completed are counted together — completed is the terminal
+            # state a booking reaches after the agent confirms it and travel ends.
+            "confirmed": bookings.filter(status__in=["confirmed", "completed"]).count(),
             "cancelled": bookings.filter(status="cancelled").count(),
         }
 
@@ -217,7 +219,12 @@ class BookingAgentBookingsListView(APIView):
 
         status_filter = request.query_params.get("status")
         if status_filter:
-            qs = qs.filter(status=status_filter)
+            # "confirmed" from the frontend covers both confirmed and completed —
+            # completed is the terminal state after travel ends for a confirmed booking.
+            if status_filter == "confirmed":
+                qs = qs.filter(status__in=["confirmed", "completed"])
+            else:
+                qs = qs.filter(status=status_filter)
 
         search = request.query_params.get("search")
         if search:
@@ -243,6 +250,52 @@ class BookingAgentBookingsListView(APIView):
                     pass
             
             qs = qs.filter(query)
+
+        # ------------------------------------------------------------------
+        # Date range filter — checks booking start date across all booking
+        # types. Start date is stored inside booking_details JSON under
+        # different keys per type:
+        #   Ticket (Flight/Train) → departure_date
+        #   Accommodation        → check_in_date
+        #   Conveyance           → start_date
+        # We filter using the trip's departure_date as a reliable fallback
+        # when the JSON key is absent, and also check all three JSON keys.
+        # ------------------------------------------------------------------
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+
+        if date_from or date_to:
+            from datetime import date
+            date_filter = Q()
+
+            # Build per-key range conditions for each JSON date field
+            json_date_keys = ["departure_date", "check_in_date", "start_date"]
+            for key in json_date_keys:
+                if date_from:
+                    date_filter |= Q(**{f"booking_details__{key}__gte": date_from})
+                if date_to:
+                    # We need both bounds when both are provided; handle separately
+                    pass
+
+            # Rebuild properly: each key must satisfy the full range
+            date_filter = Q()
+            for key in json_date_keys:
+                key_q = Q()
+                if date_from:
+                    key_q &= Q(**{f"booking_details__{key}__gte": date_from})
+                if date_to:
+                    key_q &= Q(**{f"booking_details__{key}__lte": date_to})
+                date_filter |= key_q
+
+            # Also filter on trip departure_date as a reliable fallback
+            trip_q = Q()
+            if date_from:
+                trip_q &= Q(trip_details__departure_date__gte=date_from)
+            if date_to:
+                trip_q &= Q(trip_details__departure_date__lte=date_to)
+            date_filter |= trip_q
+
+            qs = qs.filter(date_filter)
 
         qs = qs.order_by("status", "created_at")
 

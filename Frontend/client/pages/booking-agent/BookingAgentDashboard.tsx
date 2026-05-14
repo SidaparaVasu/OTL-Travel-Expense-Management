@@ -146,7 +146,7 @@ const BookingAgentDashboard: React.FC = () => {
               bgColor="bg-blue-50"
             />
             <StatCard
-              title="Confirmed"
+              title="Confirmed / Completed"
               value={stats.confirmed}
               icon={<CheckCircle className="h-9 w-9 text-green-600" />}
               bgColor="bg-green-50"

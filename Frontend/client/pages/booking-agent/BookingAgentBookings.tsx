@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +24,8 @@ const BookingAgentBookings: React.FC = () => {
     page: 1,
     status: "requested",
     search: "",
+    date_from: "",
+    date_to: "",
   });
   const [searchInput, setSearchInput] = useState("");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -67,10 +69,21 @@ const BookingAgentBookings: React.FC = () => {
     }));
   };
 
+  const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters((prev) => ({ ...prev, date_from: e.target.value, page: 1 }));
+  };
+
+  const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters((prev) => ({ ...prev, date_to: e.target.value, page: 1 }));
+  };
+
+  const handleClearDates = () => {
+    setFilters((prev) => ({ ...prev, date_from: "", date_to: "", page: 1 }));
+  };
+
   const handlePageChange = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
   };
-
   const handleView = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsViewModalOpen(true);
@@ -165,6 +178,39 @@ const BookingAgentBookings: React.FC = () => {
                   onChange={handleSearchChange}
                   className="pl-9"
                 />
+              </div>
+
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="items-center">
+                  <Input
+                    type="date"
+                    value={filters.date_from || ""}
+                    onChange={handleDateFromChange}
+                    title="Start date from"
+                  />
+                </div>
+                <span className="text-muted-foreground text-sm">to</span>
+                <div className="items-center">
+                  <Input
+                    type="date"
+                    value={filters.date_to || ""}
+                    onChange={handleDateToChange}
+                    min={filters.date_from || undefined}
+                    title="Start date to"
+                  />
+                </div>
+                {(filters.date_from || filters.date_to) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearDates}
+                    className="h-9 px-2 text-muted-foreground hover:text-slate-100"
+                    title="Clear date filter"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
 
               {/* Status Filter */}
