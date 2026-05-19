@@ -84,6 +84,13 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
     assigned_agent = serializers.SerializerMethodField()
     booking_details = serializers.JSONField()
     is_forwardable = serializers.SerializerMethodField()
+    travel_for = serializers.CharField(source="trip_details.travel_application.travel_for", read_only=True)
+    travelers = serializers.SerializerMethodField()
+    employee_name = serializers.SerializerMethodField()
+    employee_email = serializers.SerializerMethodField()
+    employee_mobile = serializers.SerializerMethodField()
+    employee_gender = serializers.SerializerMethodField()
+    employee_grade = serializers.CharField(source="trip_details.travel_application.employee_grade", read_only=True)
 
     class Meta:
         model = Booking
@@ -99,6 +106,9 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "handling_travel_desk_user",
             "is_forwardable",
             "permissions",
+            "travel_for",
+            "travelers",
+            "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_grade",
         ]
     
     meal_preference = serializers.SerializerMethodField()
@@ -110,7 +120,33 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
-    
+
+    def get_travelers(self, obj):
+        app = obj.trip_details.travel_application
+        if app.travel_for in ['guest', 'self_guest']:
+            from apps.travel.serializers.travel_serializers import ApplicationTravelerSerializer
+            return ApplicationTravelerSerializer(
+                app.display_travelers.filter(guest__isnull=False),
+                many=True
+            ).data
+        return []
+
+    def get_employee_name(self, obj):
+        emp = obj.trip_details.travel_application.employee
+        return emp.get_full_name() or emp.username
+
+    def get_employee_email(self, obj):
+        emp = obj.trip_details.travel_application.employee
+        return getattr(emp, "get_email", lambda: emp.email)()
+
+    def get_employee_mobile(self, obj):
+        emp = obj.trip_details.travel_application.employee
+        return getattr(emp, "mobile_no", "") or ""
+
+    def get_employee_gender(self, obj):
+        emp = obj.trip_details.travel_application.employee
+        return emp.get_gender_display()
+
     def get_notes(self, obj):
         notes = BookingNote.objects.filter(booking=obj).select_related("author").order_by("-created_at")
         from apps.booking_agent.serializers.agent_serializers import BookingNoteSerializer

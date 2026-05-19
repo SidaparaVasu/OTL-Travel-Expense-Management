@@ -42,7 +42,9 @@ class TravelApplicationDetailsView(BranchFilterMixin, generics.RetrieveAPIView):
                     'booking_type',
                     'sub_option',  # For travel class
                     'trip_details__from_location',
-                    'trip_details__to_location'
+                    'trip_details__to_location',
+                    'trip_details__travel_application',
+                    'trip_details__travel_application__employee',
                 ).prefetch_related(
                     Prefetch(
                         'notes',

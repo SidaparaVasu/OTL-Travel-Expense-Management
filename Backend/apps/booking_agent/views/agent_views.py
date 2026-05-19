@@ -184,7 +184,18 @@ class BookingAgentDashboardView(APIView):
         # ---------------------------
         # 6. Recent Bookings (last 5)
         # ---------------------------
-        recent = bookings.filter(status="requested").order_by("-updated_at")[:5]
+        recent = (
+            Booking.objects
+            .filter(id__in=assigned_ids, status="requested")
+            .select_related(
+                "trip_details__travel_application",
+                "trip_details__travel_application__employee",
+                "trip_details__travel_application__general_ledger",
+                "booking_type",
+                "sub_option",
+            )
+            .order_by("-updated_at")[:5]
+        )
 
         return success_response(
             message="Dashboard data",

@@ -9,11 +9,11 @@ import {
   Calendar,
   Clock,
   User,
+  UserCheck,
   FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-// import { StatusBadge } from "./StatusBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   formatDateToDDMMYYYY,
@@ -55,11 +55,11 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
 }) => {
   if (!isOpen || !booking) return null;
 
-  console.log("In Booking Model: ", booking);
-
   const details = booking.booking_details || {};
   const Icon = getBookingIcon(booking.booking_type_name);
   const colorClass = getBookingColor(booking.booking_type_name);
+  const isGuestTravel =
+    booking.travel_for === "guest" || booking.travel_for === "self_guest";
 
   const renderRow = (label: string, value: any) => {
     if (!value) return null;
@@ -70,6 +70,68 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
       </div>
     );
   };
+
+  /* ── Inline traveler table ── */
+  const renderTravelersTable = () => {
+    if (!booking.travelers || booking.travelers.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <User className="w-4 h-4 text-primary" />
+          Guest(s) Details ({booking.travelers.length})
+        </h4>
+        <div className="bg-card border rounded-lg overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b bg-muted/40 text-left text-primary">
+                <th className="py-2 px-3 font-medium whitespace-nowrap">#</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Name</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Gender</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Age</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Contact</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Nationality</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Flight / Stay Meal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {booking.travelers.map((traveler: any, idx: number) => (
+                <tr key={traveler.id} className="border-b last:border-0 hover:bg-muted/20">
+                  <td className="py-2 px-3 text-muted-foreground">{idx + 1}</td>
+                  <td className="py-2 px-3 font-medium whitespace-nowrap">{traveler.full_name}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{traveler.gender || "—"}</td>
+                  <td className="py-2 px-3">{traveler.age ?? "—"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{traveler.contact_number || "—"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{traveler.nationality_type || "—"}</td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">
+                    {traveler.flight_meal_preference_name || "—"} /{" "}
+                    {traveler.accommodation_meal_preference_name || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── Applicant details section ── */
+  const renderApplicantDetails = () => (
+    <div className="space-y-2">
+      <h4 className="text-sm font-medium flex items-center gap-2">
+        <UserCheck className="w-4 h-4 text-primary" />
+        Applicant Details
+      </h4>
+      <div className="bg-card border rounded-lg p-3">
+        {renderRow("Name", booking.employee_name)}
+        {renderRow("Email", booking.employee_email)}
+        {renderRow("Mobile Number", booking.employee_mobile)}
+        {renderRow("Gender", booking.employee_gender)}
+        {renderRow("Grade", booking.employee_grade)}
+        {renderRow("Age", booking.employee_age)}
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -83,63 +145,68 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}
-            >
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
               <Icon className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">
-                {booking.booking_type_name}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {booking.sub_option_name}
-              </p>
+              <h3 className="text-lg font-semibold">{booking.booking_type_name}</h3>
+              <p className="text-sm text-muted-foreground">{booking.sub_option_name}</p>
             </div>
           </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={onClose}
-          >
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </div>
 
         {/* Body */}
-        {/* <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6"> */}
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* LEFT SECTION */}
           <div className="w-[60%] border-r overflow-y-auto px-6 py-4 space-y-6">
+
             {/* Status & Estimated Cost */}
             <div className="flex items-center justify-between">
-              {/* <StatusBadge status={booking.status} /> */}
               <StatusBadge statusType="booking" status={booking.status} />
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">
-                    Estimated Cost
-                  </p>
-                  <p className="text-xl font-semibold">
-                    {formatCurrency(booking.estimated_cost)}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Estimated Cost</p>
+                  <p className="text-xl font-semibold">{formatCurrency(booking.estimated_cost)}</p>
                 </div>
-                <div className="text-right">
-                  {booking.actual_cost && (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        Actual Cost
-                      </p>
-                      <p className="text-xl font-semibold text-green-600">
-                        {formatCurrency(booking.actual_cost)}
-                      </p>
-                    </>
-                  )}
-                </div>
+                {booking.actual_cost && (
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Actual Cost</p>
+                    <p className="text-xl font-semibold text-green-600">
+                      {formatCurrency(booking.actual_cost)}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/*
+              ── GUEST TRAVEL: Guest(s) Details first, then Applicant Details ──
+              ── SELF TRAVEL:  Only Applicant Details, no Guest(s) Details     ──
+            */}
+            {isGuestTravel ? (
+              <>
+                {renderTravelersTable()}
+                {renderApplicantDetails()}
+              </>
+            ) : (
+              renderApplicantDetails()
+            )}
+
+            {/* Special Instructions — right after applicant/guest info */}
+            {booking.special_instruction && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Special Instructions
+                </h4>
+                <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 text-sm">
+                  {booking.special_instruction}
+                </div>
+              </div>
+            )}
 
             {/* Assigned Agent */}
             {booking.assigned_agent && (
@@ -148,7 +215,6 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                   <User className="w-4 h-4 text-primary" />
                   <p className="text-sm font-medium">Assigned Agent</p>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Name</p>
@@ -156,19 +222,13 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                   </div>
                   {booking.assigned_agent.organization_name && (
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        Organization
-                      </p>
-                      <p className="font-medium">
-                        {booking.assigned_agent.organization_name}
-                      </p>
+                      <p className="text-xs text-muted-foreground">Organization</p>
+                      <p className="font-medium">{booking.assigned_agent.organization_name}</p>
                     </div>
                   )}
                   {booking.assigned_agent.contact_person && (
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        Contact Person
-                      </p>
+                      <p className="text-xs text-muted-foreground">Contact Person</p>
                       <p>{booking.assigned_agent.contact_person}</p>
                     </div>
                   )}
@@ -187,15 +247,12 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                   {booking.assigned_agent.address && (
                     <div className="md:col-span-2">
                       <p className="text-xs text-muted-foreground">Address</p>
-                      <p className="whitespace-pre-wrap">
-                        {booking.assigned_agent.address}
-                      </p>
+                      <p className="whitespace-pre-wrap">{booking.assigned_agent.address}</p>
                     </div>
                   )}
                   <div className="md:col-span-2 pt-1 border-t border-dashed border-border mt-1">
                     <p className="text-xs text-muted-foreground">
-                      Assigned at:{" "}
-                      {formatDateTime(booking.assigned_agent.assigned_at)}
+                      Assigned at: {formatDateTime(booking.assigned_agent.assigned_at)}
                     </p>
                   </div>
                 </div>
@@ -218,94 +275,58 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             {/* Requested Vehicle Type (For Conveyance) */}
             {booking.requested_vehicle_type && (
               <div className="bg-sky-50 border border-sky-100 rounded-lg p-3 flex justify-between items-center">
-                <span className="text-sm text-sky-700 font-medium">
-                  Requested Vehicle
-                </span>
+                <span className="text-sm text-sky-700 font-medium">Requested Vehicle</span>
                 <span className="text-sm font-bold text-sky-800">
                   {booking.requested_vehicle_type.name}
                 </span>
               </div>
             )}
 
-            {/* Flight / Train / Conveyance / Accommodation Schedule */}
+            {/* Schedule */}
             <div className="space-y-2">
               <h4 className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
                 Schedule
               </h4>
-
               <div className="bg-card border rounded-lg p-3 space-y-2">
                 {/* FLIGHT / TRAIN */}
                 {(details.departure_date || details.arrival_date) && (
                   <>
-                    {renderRow(
-                      "Ticket Name/No.",
-                      details?.ticket_number || "Not Provided",
-                    )}
-                    {renderRow(
-                      "Departure Date",
-                      formatDateToDDMMYYYY(details.departure_date),
-                    )}
-                    {renderRow(
-                      "Departure Time",
-                      formatTime(details.departure_time),
-                    )}
-                    {renderRow(
-                      "Arrival Date",
-                      formatDateToDDMMYYYY(details.arrival_date),
-                    )}
-                    {renderRow(
-                      "Arrival Time",
-                      formatTime(details.arrival_time),
-                    )}
+                    {renderRow("Ticket Name/No.", details?.ticket_number || "Not Provided")}
+                    {renderRow("Departure Date", formatDateToDDMMYYYY(details.departure_date))}
+                    {renderRow("Departure Time", formatTime(details.departure_time))}
+                    {renderRow("Arrival Date", formatDateToDDMMYYYY(details.arrival_date))}
+                    {renderRow("Arrival Time", formatTime(details.arrival_time))}
                   </>
                 )}
 
                 {/* ACCOMMODATION */}
                 {(details.check_in_date || details.check_out_date) && (
                   <>
-                    {renderRow(
-                      "Check-In Date",
-                      formatDateToDDMMYYYY(details.check_in_date),
-                    )}
-                    {renderRow(
-                      "Check-In Time",
-                      formatTime(details.check_in_time),
-                    )}
-                    {renderRow(
-                      "Check-Out Date",
-                      formatDateToDDMMYYYY(details.check_out_date),
-                    )}
-                    {renderRow(
-                      "Check-Out Time",
-                      formatTime(details.check_out_time),
-                    )}
-                    {renderRow("Place", details.place_name || "N/A")}
-
-                    {/* ARC Hotel Preferences */}
-                    {details.arc_hotel_preferences &&
-                      details.arc_hotel_preferences.length > 0 && (
-                        <div className="col-span-2">
-                          <span className="text-sm text-black block mb-3 mt-4">
-                            ARC Hotel Preferences
-                          </span>
-                          <div className="flex flex-col gap-2">
-                            {(
-                              details.arc_hotel_preferences_data ||
-                              details.arc_hotel_preferences
-                            ).map((pref: any, idx: number) => (
-                              <p
-                                key={idx}
-                                className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
-                              >
-                                {typeof pref === "object" && pref.name
-                                  ? idx + 1 + ". " + pref.name
-                                  : idx + 1 + ". " + pref}
-                              </p>
-                            ))}
-                          </div>
+                    {renderRow("Check-In Date", formatDateToDDMMYYYY(details.check_in_date))}
+                    {renderRow("Check-In Time", formatTime(details.check_in_time))}
+                    {renderRow("Check-Out Date", formatDateToDDMMYYYY(details.check_out_date))}
+                    {renderRow("Check-Out Time", formatTime(details.check_out_time))}
+                    {renderRow("Place", details.place_name || details.place || "N/A")}
+                    {details.arc_hotel_preferences && details.arc_hotel_preferences.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-sm text-black block mb-3 mt-4">
+                          ARC Hotel Preferences
+                        </span>
+                        <div className="flex flex-col gap-2">
+                          {details.arc_hotel_preferences.map((pref: any, idx: number) => (
+                            <p
+                              key={idx}
+                              className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
+                            >
+                              {typeof pref === "object" && pref.name
+                                ? `${idx + 1}. ${pref.name}`
+                                : `${idx + 1}. ${pref}`}
+                            </p>
+                          ))}
                         </div>
-                      )}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -321,7 +342,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </div>
             </div>
 
-            {/* Ticket Details */}
+            {/* Additional Details */}
             {(details.ticket_number ||
               details.report_at ||
               details.drop_location ||
@@ -333,16 +354,11 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 </h4>
                 <div className="bg-card border rounded-lg p-3">
                   {renderRow("Ticket Number", details.ticket_number)}
-                  {renderRow("From Location", details.from_location_name)}
-                  {renderRow("To Location", details.to_location_name)}
-                  {renderRow("From Location", details.from_location)}
-                  {renderRow("To Location", details.to_location)}
+                  {renderRow("From Location", details.from_location_name || details.from_location)}
+                  {renderRow("To Location", details.to_location_name || details.to_location)}
                   {renderRow("Report At", details.report_at)}
                   {renderRow("Drop Location", details.drop_location)}
-                  {renderRow(
-                    "Club Booking",
-                    details.club_booking ? "Yes" : null,
-                  )}
+                  {renderRow("Club Booking", details.club_booking ? "Yes" : null)}
                   {renderRow("Club Reason", details.club_reason)}
                   {renderRow("No. of Person", details.passenger_count)}
                   {renderRow("Approx. K.M.", details.distance_km)}
@@ -351,7 +367,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </div>
             )}
 
-            {/* Guests List */}
+            {/* Guests from booking_details (legacy badge list) */}
             {details.guests && details.guests.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium flex items-center gap-2">
@@ -369,17 +385,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </div>
             )}
 
-            {/* Special Instructions */}
-            {booking.special_instruction && (
-              <div>
-                <h4 className="text-sm font-medium">Special Instructions</h4>
-                <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mt-1 text-sm">
-                  {booking.special_instruction}
-                </div>
-              </div>
-            )}
-
-            {/* File */}
+            {/* Files */}
             {booking.bulk_booking_file && (
               <button
                 type="button"
@@ -389,12 +395,11 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 <FileText className="w-4 h-4" /> View Bulk Guest Data File
               </button>
             )}
-
             {booking.booking_file && (
               <a
                 onClick={() => docViewer.onViewFile(booking.booking_file)}
                 rel="noopener noreferrer"
-                className="text-primary text-sm underline flex items-center gap-2"
+                className="text-primary text-sm underline flex items-center gap-2 cursor-pointer"
               >
                 <FileText className="w-4 h-4" /> View Uploaded File
               </a>
@@ -407,31 +412,21 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               <FileText className="w-4 h-4 text-primary" />
               Notes & Remarks
             </h4>
-
             <div className="flex-1 overflow-y-auto bg-card border rounded-lg p-3 space-y-4 min-h-0">
               {booking.notes && booking.notes.length > 0 ? (
                 booking.notes.map((note: any) => (
-                  <div
-                    key={note.id}
-                    className="text-sm border-b last:border-0 pb-3 last:pb-0"
-                  >
+                  <div key={note.id} className="text-sm border-b last:border-0 pb-3 last:pb-0">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-slate-700">
-                        {note.author_name}
-                      </span>
+                      <span className="font-semibold text-slate-700">{note.author_name}</span>
                       <span className="text-xs text-muted-foreground">
                         {formatDateTime(note.created_at)}
                       </span>
                     </div>
-                    <p className="text-slate-600 whitespace-pre-wrap">
-                      {note.note}
-                    </p>
+                    <p className="text-slate-600 whitespace-pre-wrap">{note.note}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No notes available.
-                </p>
+                <p className="text-sm text-muted-foreground italic">No notes available.</p>
               )}
             </div>
           </div>

@@ -30,10 +30,16 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)   
     employee_name = serializers.SerializerMethodField()
+    employee_email = serializers.SerializerMethodField()
+    employee_mobile = serializers.SerializerMethodField()
+    employee_gender = serializers.SerializerMethodField()
+    employee_grade = serializers.CharField(source="trip_details.travel_application.employee_grade", read_only=True)
+    employee_age = serializers.SerializerMethodField()
     travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
     internal_order = serializers.SerializerMethodField()
     gl_code = serializers.SerializerMethodField()
     sanction_number = serializers.SerializerMethodField()
+    travel_for = serializers.CharField(source="trip_details.travel_application.travel_for", read_only=True)
 
     class Meta:
         model = Booking
@@ -42,9 +48,11 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file', 'bulk_booking_file',
             'assigned_agent_name', 'special_instruction',
-            'internal_order', 'gl_code', 'sanction_number',
-            'meal_preference', 'employee_name', 'notes',
-            'travelers'
+            'internal_order', 'gl_code', 'sanction_number', 'travel_for',
+            'meal_preference',
+            'employee_name', 'employee_email', 'employee_mobile',
+            'employee_gender', 'employee_grade', 'employee_age',
+            'notes', 'travelers',
         ]
     
     meal_preference = serializers.SerializerMethodField()
@@ -79,6 +87,22 @@ class AgentBookingSerializer(serializers.ModelSerializer):
         app = obj.trip_details.travel_application
         user = app.employee
         return user.get_full_name() or user.username
+
+    def get_employee_email(self, obj):
+        user = obj.trip_details.travel_application.employee
+        return getattr(user, "get_email", lambda: user.email)()
+
+    def get_employee_mobile(self, obj):
+        user = obj.trip_details.travel_application.employee
+        return getattr(user, "mobile_no", "") or ""
+
+    def get_employee_gender(self, obj):
+        user = obj.trip_details.travel_application.employee
+        return user.get_gender_display()
+
+    def get_employee_age(self, obj):
+        user = obj.trip_details.travel_application.employee
+        return calculate_age(user.date_of_birth)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -132,6 +156,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     internal_order = serializers.SerializerMethodField()
     gl_code = serializers.SerializerMethodField()
     sanction_number = serializers.SerializerMethodField()
+    travel_for = serializers.CharField(source="trip_details.travel_application.travel_for", read_only=True)
 
     class Meta:
         model = Booking
@@ -143,7 +168,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "grade_entitled_amount",
             "booking_reference", "vendor_reference", "booking_file", "bulk_booking_file",
             "special_instruction",
-            "internal_order", "gl_code", "sanction_number",
+            "internal_order", "gl_code", "sanction_number", "travel_for",
             "created_at", "updated_at",
             "assigned_agent",
             "meal_preference",
@@ -362,6 +387,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     internal_order = serializers.SerializerMethodField()
     gl_code = serializers.SerializerMethodField()
     sanction_number = serializers.SerializerMethodField()
+    travel_for = serializers.CharField(source="trip_details.travel_application.travel_for", read_only=True)
 
     class Meta:
         model = Booking
@@ -371,7 +397,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "status", "status_label", "estimated_cost", "actual_cost", 
             "booking_reference", "vendor_reference", 
             "booking_file", "bulk_booking_file", "special_instruction",
-            "internal_order", "gl_code", "sanction_number",
+            "internal_order", "gl_code", "sanction_number", "travel_for",
             "created_at", "updated_at", "booked_at", "assigned_agent",
             "booking_details",
             "meal_preference",

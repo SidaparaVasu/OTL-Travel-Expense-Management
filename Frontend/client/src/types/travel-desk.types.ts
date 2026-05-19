@@ -63,6 +63,22 @@ export interface Booking {
   special_instruction: string;
   can_reassign: boolean;
   trip_segment?: string;
+  travel_for?: "self" | "guest" | "self_guest";
+  travelers?: Array<{
+    id: number;
+    full_name: string;
+    gender: string;
+    age: number | null;
+    contact_number?: string | null;
+    nationality_type: string;
+    flight_meal_preference_name?: string | null;
+    accommodation_meal_preference_name?: string | null;
+  }>;
+  employee_name?: string;
+  employee_email?: string;
+  employee_mobile?: string;
+  employee_gender?: string;
+  employee_grade?: string;
   notes?: {
     id: number;
     note: string;
