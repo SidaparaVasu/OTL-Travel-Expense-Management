@@ -219,6 +219,9 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 )}
                 {renderRow("Travel Request", booking.travel_request_id)}
                 {renderRow("Meal Preference", details.meal_preference)}
+                {renderRow("Internal Order (IO)", booking.internal_order)}
+                {renderRow("GL Code", booking.gl_code)}
+                {renderRow("Sanction Number", booking.sanction_number)}
               </>,
             )}
 

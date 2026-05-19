@@ -211,6 +211,7 @@ class BookingAgentBookingsListView(APIView):
         ).select_related(
             "trip_details__travel_application",
             "trip_details__travel_application__employee",
+            "trip_details__travel_application__general_ledger",
             "trip_details__from_location",
             "trip_details__to_location",
             "booking_type",
@@ -325,6 +326,7 @@ class BookingAgentBookingDetailView(APIView):
             Booking.objects
             .select_related(
                 "trip_details__travel_application__employee",
+                "trip_details__travel_application__general_ledger",
                 "trip_details__from_location",
                 "trip_details__to_location",
                 "booking_type",

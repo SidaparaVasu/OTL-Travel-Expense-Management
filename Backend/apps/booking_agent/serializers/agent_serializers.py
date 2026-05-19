@@ -31,6 +31,9 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)   
     employee_name = serializers.SerializerMethodField()
     travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
+    internal_order = serializers.SerializerMethodField()
+    gl_code = serializers.SerializerMethodField()
+    sanction_number = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -39,6 +42,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file', 'bulk_booking_file',
             'assigned_agent_name', 'special_instruction',
+            'internal_order', 'gl_code', 'sanction_number',
             'meal_preference', 'employee_name', 'notes',
             'travelers'
         ]
@@ -58,6 +62,18 @@ class AgentBookingSerializer(serializers.ModelSerializer):
         if assignment and assignment.agent:
             return assignment.agent.user.first_name + " " + assignment.agent.user.last_name
         return None
+
+    def get_internal_order(self, obj):
+        return obj.trip_details.travel_application.internal_order or ""
+
+    def get_gl_code(self, obj):
+        gl = obj.trip_details.travel_application.general_ledger
+        if gl:
+            return f"{gl.gl_code} - {gl.vertical_name}"
+        return ""
+
+    def get_sanction_number(self, obj):
+        return obj.trip_details.travel_application.sanction_number or ""
 
     def get_employee_name(self, obj):
         app = obj.trip_details.travel_application
@@ -113,6 +129,9 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     grade_entitled_amount = serializers.SerializerMethodField()
     travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
     travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
+    internal_order = serializers.SerializerMethodField()
+    gl_code = serializers.SerializerMethodField()
+    sanction_number = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -124,6 +143,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "grade_entitled_amount",
             "booking_reference", "vendor_reference", "booking_file", "bulk_booking_file",
             "special_instruction",
+            "internal_order", "gl_code", "sanction_number",
             "created_at", "updated_at",
             "assigned_agent",
             "meal_preference",
@@ -173,6 +193,18 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
 
     def get_status_label(self, obj):
         return obj.get_status_display()
+
+    def get_internal_order(self, obj):
+        return obj.trip_details.travel_application.internal_order or ""
+
+    def get_gl_code(self, obj):
+        gl = obj.trip_details.travel_application.general_ledger
+        if gl:
+            return f"{gl.gl_code} - {gl.vertical_name}"
+        return ""
+
+    def get_sanction_number(self, obj):
+        return obj.trip_details.travel_application.sanction_number or ""
 
     def get_assigned_agent(self, obj):
         assignment = (
@@ -327,6 +359,9 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     ceo_approval_status = serializers.SerializerMethodField()
     travel_application_status = serializers.CharField(source="trip_details.travel_application.status", read_only=True)
     travelers = ApplicationTravelerSerializer(source="trip_details.travel_application.display_travelers", many=True, read_only=True)
+    internal_order = serializers.SerializerMethodField()
+    gl_code = serializers.SerializerMethodField()
+    sanction_number = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -335,7 +370,8 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
             "purpose", "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
             "status", "status_label", "estimated_cost", "actual_cost", 
             "booking_reference", "vendor_reference", 
-            "booking_file", "bulk_booking_file", "special_instruction", 
+            "booking_file", "bulk_booking_file", "special_instruction",
+            "internal_order", "gl_code", "sanction_number",
             "created_at", "updated_at", "booked_at", "assigned_agent",
             "booking_details",
             "meal_preference",
@@ -410,6 +446,18 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     def get_status_label(self, obj):
         return obj.get_status_display()
     
+    def get_internal_order(self, obj):
+        return obj.trip_details.travel_application.internal_order or ""
+
+    def get_gl_code(self, obj):
+        gl = obj.trip_details.travel_application.general_ledger
+        if gl:
+            return f"{gl.gl_code} - {gl.vertical_name}"
+        return ""
+
+    def get_sanction_number(self, obj):
+        return obj.trip_details.travel_application.sanction_number or ""
+
     def get_ceo_approval_status(self, obj):
         app = obj.trip_details.travel_application
         ceo_flow = app.approval_flows.filter(approval_level='ceo').first()

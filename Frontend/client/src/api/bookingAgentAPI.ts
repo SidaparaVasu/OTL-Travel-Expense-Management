@@ -57,6 +57,9 @@ export interface Booking {
   special_instruction?: string;
   travel_request_id?: string;
   purpose?: string;
+  internal_order?: string;
+  gl_code?: string;
+  sanction_number?: string;
   employee_name?: string;
   employee_email?: string;
   employee_mobile?: string;
