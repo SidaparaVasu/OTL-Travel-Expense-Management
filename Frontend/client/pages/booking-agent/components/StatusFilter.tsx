@@ -10,7 +10,7 @@ const STATUS_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'requested', label: 'Pending' },
   { value: 'in_progress', label: 'In Progress' },
-  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'confirmed', label: 'Confirmed / Completed' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
 

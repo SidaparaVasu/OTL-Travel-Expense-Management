@@ -151,6 +151,8 @@ export interface BookingsListParams {
   page?: number;
   status?: "pending" | "in_progress" | "confirmed" | "cancelled" | "";
   search?: string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
 }
 
 export const bookingAgentAPI = {
@@ -174,6 +176,8 @@ export const bookingAgentAPI = {
       if (params.page) queryParams.append("page", params.page.toString());
       if (params.status) queryParams.append("status", params.status);
       if (params.search) queryParams.append("search", params.search);
+      if (params.date_from) queryParams.append("date_from", params.date_from);
+      if (params.date_to) queryParams.append("date_to", params.date_to);
 
       const response = await apiClient.get(
         `/booking_agent/booking-agent/bookings/?${queryParams.toString()}`,
