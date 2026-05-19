@@ -838,6 +838,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   }
                   placeholder="Any special requirements..."
                   rows={2}
+                  maxLength={500}
                   error={errors.special_instruction}
                 />
               </div>
