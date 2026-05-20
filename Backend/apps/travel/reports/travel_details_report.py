@@ -61,10 +61,61 @@ class TravelDetailsReport(TravelReportMixin, BaseReport):
             "transportation": self._format_transportation_list(serialized_data['ticketing_bookings']),
             "accommodation": self._format_accommodation_list(serialized_data['accommodation_bookings']),
             "conveyance": self._format_conveyance_list(serialized_data['conveyance_bookings']),
+            "booking_references": self._build_booking_references(serialized_data),
             "travelers": serialized_data['application'].get('travelers', []),
             "approvals": self._get_approval_context(serialized_data)
         }
         return context
+
+    def _desk_agent_fields(self, booking):
+        td = booking.get("travel_desk") or {}
+        assignments = booking.get("assignments") or []
+        agent = assignments[0] if assignments else {}
+        desk_user = td.get("user") or ""
+        if not desk_user and td.get("desk_status"):
+            desk_user = td.get("desk_status")
+        return {
+            "desk_user": desk_user or "—",
+            "desk_email": td.get("user_email") or "—",
+            "desk_contact": td.get("user_contact") or "—",
+            "forwarded_to_desk": td.get("forwarded_to_desk_at")
+            or td.get("forwarded_at")
+            or "—",
+            "booking_agent": agent.get("assigned_to") or "—",
+            "agent_assigned_at": agent.get("assigned_at") or "—",
+            "agent_accepted_at": agent.get("accepted_at") or "—",
+            "agent_confirmed_cancelled_at": agent.get("completed_at") or "—",
+            "requested_vehicle_type": booking.get("requested_vehicle_model")
+            or "—",
+        }
+
+    def _build_booking_references(self, serialized_data):
+        rows = []
+        for b in serialized_data.get("ticketing_bookings", []):
+            row = {
+                "booking_id": b.get("id"),
+                "category": b.get("booking_type") or "Ticketing",
+                "status": (b.get("status") or "").title(),
+            }
+            row.update(self._desk_agent_fields(b))
+            rows.append(row)
+        for b in serialized_data.get("accommodation_bookings", []):
+            row = {
+                "booking_id": b.get("id"),
+                "category": b.get("accommodation_type") or "Accommodation",
+                "status": (b.get("status") or "").title(),
+            }
+            row.update(self._desk_agent_fields(b))
+            rows.append(row)
+        for b in serialized_data.get("conveyance_bookings", []):
+            row = {
+                "booking_id": b.get("id"),
+                "category": b.get("vehicle_type") or "Conveyance",
+                "status": (b.get("status") or "").title(),
+            }
+            row.update(self._desk_agent_fields(b))
+            rows.append(row)
+        return rows
 
     def _format_transportation_list(self, bookings):
         formatted = []
@@ -104,6 +155,7 @@ class TravelDetailsReport(TravelReportMixin, BaseReport):
             formatted.append({
                 "type": b.get('vehicle_type', ''),
                 "sub_type": b.get('vehicle_subtype', ''),
+                "requested_vehicle_model": b.get('requested_vehicle_model', ''),
                 "route": f"{b.get('from_location', '')} -> {b.get('to_location', '')}",
                 "reporting": f"{b.get('report_at', '')} {b.get('start_datetime', '')}",
                 "passengers": b.get('passengers', '1'),

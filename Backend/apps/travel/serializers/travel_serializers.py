@@ -1,14 +1,30 @@
 from rest_framework import serializers
 from django.db import transaction
-from ..models import TravelApplication, TripDetails, Booking, TravelAdvanceRequest
+from ..models import TravelApplication, TripDetails, Booking, TravelAdvanceRequest, BookingClosureLog
 from ..business_logic.validators import *
 from utils.date_utils import calculate_age
+
+
+class BookingClosureLogSerializer(serializers.ModelSerializer):
+    action_label = serializers.CharField(source='get_action_display', read_only=True)
+
+    class Meta:
+        model = BookingClosureLog
+        fields = [
+            'action',
+            'action_label',
+            'closure_reason',
+            'claim_decision_reason',
+            'allow_claim',
+            'created_at',
+        ]
 
 
 class BookingSerializer(serializers.ModelSerializer):
     booking_type_name = serializers.CharField(source='booking_type.name', read_only=True)
     sub_option_name = serializers.CharField(source='sub_option.name', read_only=True)
     booking_details = serializers.JSONField()
+    closure_logs = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -17,7 +33,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'booking_type', 'booking_type_name', 
             'sub_option', 'sub_option_name',
             'booking_details', 
-            'status', 
+            'status',
+            'allow_claim',
             'estimated_cost', 
             'actual_cost',
             'booking_reference', 
@@ -26,8 +43,15 @@ class BookingSerializer(serializers.ModelSerializer):
             'bulk_booking_file',
             'special_instruction',
             'meal_preference',
+            'closure_logs',
         ]
-        read_only_fields = ['bulk_booking_file']
+        read_only_fields = ['bulk_booking_file', 'allow_claim', 'closure_logs']
+
+    def get_closure_logs(self, obj):
+        logs = getattr(obj, '_prefetched_objects_cache', {}).get('closure_logs')
+        if logs is None:
+            logs = obj.closure_logs.all()
+        return BookingClosureLogSerializer(logs, many=True).data
     
     id = serializers.IntegerField(required=False)
     

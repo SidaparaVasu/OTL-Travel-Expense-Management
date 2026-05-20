@@ -41,6 +41,7 @@ const BOOKING_STATUS_LABELS: Record<string, string> = {
   confirmed: "Confirmed",
   cancelled: "Cancelled",
   completed: "Completed",
+  closed: "Closed",
 };
 
 // Claim Statuses

@@ -184,7 +184,19 @@ class BookingAgentDashboardView(APIView):
         # ---------------------------
         # 6. Recent Bookings (last 5)
         # ---------------------------
-        recent = bookings.filter(status="requested").order_by("-updated_at")[:5]
+        recent = (
+            Booking.objects
+            .filter(id__in=assigned_ids, status="requested")
+            .select_related(
+                "trip_details__travel_application",
+                "trip_details__travel_application__employee",
+                "trip_details__travel_application__general_ledger",
+                "booking_type",
+                "sub_option",
+                "assignment__requested_vehicle_type",
+            )
+            .order_by("-updated_at")[:5]
+        )
 
         return success_response(
             message="Dashboard data",
@@ -211,10 +223,12 @@ class BookingAgentBookingsListView(APIView):
         ).select_related(
             "trip_details__travel_application",
             "trip_details__travel_application__employee",
+            "trip_details__travel_application__general_ledger",
             "trip_details__from_location",
             "trip_details__to_location",
             "booking_type",
             "sub_option",
+            "assignment__requested_vehicle_type",
         )
 
         status_filter = request.query_params.get("status")
@@ -325,6 +339,7 @@ class BookingAgentBookingDetailView(APIView):
             Booking.objects
             .select_related(
                 "trip_details__travel_application__employee",
+                "trip_details__travel_application__general_ledger",
                 "trip_details__from_location",
                 "trip_details__to_location",
                 "booking_type",
@@ -460,6 +475,17 @@ class BookingAgentUpdateStatusView(APIView):
             booking.status = new_status
 
         booking.save()
+
+        if new_status in ("confirmed", "cancelled"):
+            try:
+                assignment = booking.assignment
+                if new_status == "confirmed":
+                    assignment.completed_at = booking.booked_at or timezone.now()
+                else:
+                    assignment.completed_at = timezone.now()
+                assignment.save(update_fields=["completed_at"])
+            except BookingAssignment.DoesNotExist:
+                pass
 
         # [RESTORED] Add note if provided
         if remarks:
@@ -803,8 +829,14 @@ class BookingAgentRejectBookingView(APIView):
             },
         )
 
-        # Clear assignment
-        assignment.delete()
+        # IMPORTANT:
+        # Do NOT delete the assignment row on rejection.
+        # We must preserve travel desk-selected metadata like requested_vehicle_type
+        # so it remains visible during re-forward/reassignment (and in reports).
+        assignment.assigned_to = None
+        assignment.accepted_at = None
+        assignment.completed_at = None
+        assignment.save(update_fields=["assigned_to", "accepted_at", "completed_at"])
 
         return success_response(
             message="Booking rejected successfully. It has been returned to the travel desk.",

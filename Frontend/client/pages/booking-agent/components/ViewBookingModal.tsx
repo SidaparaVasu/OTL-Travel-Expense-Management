@@ -19,13 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   formatDateToDDMMYYYY,
   formatTime,
   formatCurrency,
@@ -84,18 +77,12 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
   if (!isOpen || !booking) return null;
 
   const isRequested = booking.status === "requested";
-  const isOnHold =
-    booking.travel_application_status === "cancellation_requested";
-
-  console.log(booking);
+  const isOnHold = booking.travel_application_status === "cancellation_requested";
+  const isGuestTravel = booking.travel_for === "guest" || booking.travel_for === "self_guest";
 
   const details = booking.booking_details || {};
-  const Icon = getBookingIcon(
-    booking.booking_type_name || booking.booking_type,
-  );
-  const colorClass = getBookingColor(
-    booking.booking_type_name || booking.booking_type,
-  );
+  const Icon = getBookingIcon(booking.booking_type_name || booking.booking_type);
+  const colorClass = getBookingColor(booking.booking_type_name || booking.booking_type);
 
   const renderRow = (label: string, value: React.ReactNode) => {
     if (!value || value === "—") return null;
@@ -124,6 +111,65 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
     );
   };
 
+  /* ── Inline traveler table (replaces the old Dialog popup) ── */
+  const renderTravelersTable = () => {
+    if (!booking.travelers || booking.travelers.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium flex items-center gap-2">
+          <User className="w-4 h-4 text-primary" />
+          Guest(s) Details ({booking.travelers.length})
+        </h4>
+        <div className="bg-card border rounded-lg overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b bg-muted/40 text-left text-primary">
+                <th className="py-2 px-3 font-medium whitespace-nowrap">#</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Name</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Gender</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Age</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Contact</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Nationality</th>
+                <th className="py-2 px-3 font-medium whitespace-nowrap">Flight / Stay Meal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {booking.travelers.map((traveler, idx) => (
+                <tr key={traveler.id} className="border-b last:border-0 hover:bg-muted/20">
+                  <td className="py-2 px-3 text-muted-foreground">{idx + 1}</td>
+                  <td className="py-2 px-3 font-medium whitespace-nowrap">{traveler.full_name}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{traveler.gender || "—"}</td>
+                  <td className="py-2 px-3">{traveler.age ?? "—"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{traveler.contact_number || "—"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{traveler.nationality_type || "—"}</td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">
+                    {traveler.flight_meal_preference_name || "—"} /{" "}
+                    {traveler.accommodation_meal_preference_name || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── Applicant details section ── */
+  const renderApplicantDetails = () =>
+    renderSection(
+      "Applicant Details",
+      UserCheck,
+      <>
+        {renderRow("Name", booking.employee_name)}
+        {renderRow("Email", booking.employee_email)}
+        {renderRow("Mobile Number", booking.employee_mobile)}
+        {renderRow("Gender", booking.employee_gender)}
+        {renderRow("Grade", booking.employee_grade)}
+        {renderRow("Age", (booking as any).employee_age)}
+      </>,
+    );
+
   return (
     <div
       className="fixed top-0 left-0 right-0 bottom-0 bg-black/50 backdrop-blur-sm flex justify-center p-5 m-0 z-50"
@@ -136,23 +182,18 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}
-            >
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
               <Icon className="w-6 h-6" />
             </div>
             <div>
               <h3 className="text-lg font-semibold">
-                {booking.booking_type_name ||
-                  getBookingTypeLabel(booking.booking_type)}
+                {booking.booking_type_name || getBookingTypeLabel(booking.booking_type)}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {booking.sub_option_name ||
-                  getSubOptionLabel(booking.sub_option)}
+                {booking.sub_option_name || getSubOptionLabel(booking.sub_option)}
               </p>
             </div>
           </div>
-
           <Button
             variant="ghost"
             size="sm"
@@ -167,15 +208,13 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* LEFT SECTION */}
           <div className="w-[60%] border-r overflow-y-auto px-6 py-4 space-y-6">
+
             {/* Status & Cost */}
             <div className="flex items-center justify-between">
-              {/* <StatusBadge status={booking.status} /> */}
               <StatusBadge statusType="booking" status={booking.status} />
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Estimated Cost</p>
-                <p className="text-xl font-semibold">
-                  {formatCurrency(booking.estimated_cost)}
-                </p>
+                <p className="text-xl font-semibold">{formatCurrency(booking.estimated_cost)}</p>
               </div>
             </div>
 
@@ -194,18 +233,17 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </div>
             )}
 
-            {/* Applicant Details */}
-            {renderSection(
-              "Applicant Details",
-              UserCheck,
+            {/*
+              ── GUEST TRAVEL: Guest(s) Details first, then Applicant Details ──
+              ── SELF TRAVEL:  Only Applicant Details, no Guest(s) Details     ──
+            */}
+            {isGuestTravel ? (
               <>
-                {renderRow("Name", booking.employee_name)}
-                {renderRow("Email", booking.employee_email)}
-                {renderRow("Mobile Number", booking.employee_mobile)}
-                {renderRow("Gender", booking.employee_gender)}
-                {renderRow("Grade", booking.employee_grade)}
-                {renderRow("Age", booking.employee_age)}
-              </>,
+                {renderTravelersTable()}
+                {renderApplicantDetails()}
+              </>
+            ) : (
+              renderApplicantDetails()
             )}
 
             {/* Basic Info */}
@@ -213,24 +251,35 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               "Basic Information",
               Tag,
               <>
-                {renderRow(
-                  "Booking ID",
-                  `BK-${String(booking.id).padStart(5, "0")}`,
-                )}
+                {renderRow("Booking ID", `BK-${String(booking.id).padStart(5, "0")}`)}
                 {renderRow("Travel Request", booking.travel_request_id)}
                 {renderRow("Meal Preference", details.meal_preference)}
+                {renderRow("Internal Order (IO)", booking.internal_order)}
+                {renderRow("GL Code", booking.gl_code)}
+                {renderRow("Sanction Number", booking.sanction_number)}
               </>,
+            )}
+
+            {/* Special Instructions — right after Basic Info */}
+            {booking.special_instruction && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Special Instructions
+                </h4>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                  {booking.special_instruction}
+                </div>
+              </div>
             )}
 
             {/* Bulk Booking File Alert */}
             {booking.bulk_booking_file && (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 my-4 flex flex-col gap-3">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-col gap-3">
                 <div className="flex items-start gap-3">
                   <FileText className="w-5 h-5 text-emerald-700 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-emerald-950">
-                      Bulk Guest Data
-                    </h4>
+                    <h4 className="font-medium text-emerald-950">Bulk Guest Data</h4>
                     <p className="text-sm text-emerald-800 mt-1">
                       Applicant uploaded guest details for this booking line.
                     </p>
@@ -249,16 +298,13 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             {(booking.booking_type_name?.toLowerCase().includes("bulk") ||
               booking.booking_type.toString().toLowerCase().includes("bulk")) &&
               booking.booking_file && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4 flex flex-col gap-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col gap-3">
                   <div className="flex items-start gap-3">
                     <FileText className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
-                      <h4 className="font-medium text-blue-900">
-                        Bulk Guest Data
-                      </h4>
+                      <h4 className="font-medium text-blue-900">Bulk Guest Data</h4>
                       <p className="text-sm text-blue-700 mt-1">
-                        This booking contains bulk guest details. Content is in
-                        the attached file.
+                        This booking contains bulk guest details. Content is in the attached file.
                       </p>
                     </div>
                   </div>
@@ -287,30 +333,14 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
 
             {/* Schedule - Flight/Train */}
             {(details.departure_date || details.arrival_date) &&
-              // renderSection("Flight/Train Name/No.", Calendar, (
-              //   <>
-              //   </>
-              // )),
               renderSection(
                 "Schedule",
                 Calendar,
                 <>
-                  {renderRow(
-                    "Ticket Name/No.",
-                    details?.ticket_number || "Not Provided",
-                  )}
-                  {renderRow(
-                    "Departure Date",
-                    formatDateToDDMMYYYY(details.departure_date),
-                  )}
-                  {renderRow(
-                    "Departure Time",
-                    formatTime(details.departure_time),
-                  )}
-                  {renderRow(
-                    "Arrival Date",
-                    formatDateToDDMMYYYY(details.arrival_date),
-                  )}
+                  {renderRow("Ticket Name/No.", details?.ticket_number || "Not Provided")}
+                  {renderRow("Departure Date", formatDateToDDMMYYYY(details.departure_date))}
+                  {renderRow("Departure Time", formatTime(details.departure_time))}
+                  {renderRow("Arrival Date", formatDateToDDMMYYYY(details.arrival_date))}
                   {renderRow("Arrival Time", formatTime(details.arrival_time))}
                 </>,
               )}
@@ -322,47 +352,29 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 Calendar,
                 <>
                   {renderRow("Place", details.place)}
-                  {renderRow(
-                    "Check-In Date",
-                    formatDateToDDMMYYYY(details.check_in_date),
-                  )}
-                  {renderRow(
-                    "Check-In Time",
-                    formatTime(details.check_in_time),
-                  )}
-                  {renderRow(
-                    "Check-Out Date",
-                    formatDateToDDMMYYYY(details.check_out_date),
-                  )}
-                  {renderRow(
-                    "Check-Out Time",
-                    formatTime(details.check_out_time),
-                  )}
-
-                  {/* ARC Hotel Preferences */}
-                  {details.arc_hotel_preferences &&
-                    details.arc_hotel_preferences.length > 0 && (
-                      <div className="col-span-2">
-                        <span className="text-sm text-black block mb-3 mt-4">
-                          ARC Hotel Preferences
-                        </span>
-                        <div className="flex flex-col gap-2">
-                          {(
-                            details.arc_hotel_preferences_data ||
-                            details.arc_hotel_preferences
-                          ).map((pref: any, idx: number) => (
-                            <p
-                              key={idx}
-                              className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
-                            >
-                              {typeof pref === "object" && pref.name
-                                ? idx + 1 + ". " + pref.name
-                                : idx + 1 + ". " + pref}
-                            </p>
-                          ))}
-                        </div>
+                  {renderRow("Check-In Date", formatDateToDDMMYYYY(details.check_in_date))}
+                  {renderRow("Check-In Time", formatTime(details.check_in_time))}
+                  {renderRow("Check-Out Date", formatDateToDDMMYYYY(details.check_out_date))}
+                  {renderRow("Check-Out Time", formatTime(details.check_out_time))}
+                  {details.arc_hotel_preferences && details.arc_hotel_preferences.length > 0 && (
+                    <div className="col-span-2">
+                      <span className="text-sm text-black block mb-3 mt-4">
+                        ARC Hotel Preferences
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        {details.arc_hotel_preferences.map((pref: any, idx: number) => (
+                          <p
+                            key={idx}
+                            className="px-2 py-2 bg-blue-50/50 text-black text-sm border-b border-gray-200"
+                          >
+                            {typeof pref === "object" && pref.name
+                              ? `${idx + 1}. ${pref.name}`
+                              : `${idx + 1}. ${pref}`}
+                          </p>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </>,
               )}
 
@@ -372,11 +384,11 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 "Schedule",
                 Clock,
                 <>
-                  {renderRow("Start Date/Time", formatDateToDDMMYYYY(details.start_date) + " " + formatTime(details.start_time))}
-                  {renderRow("End Date/Time", formatDateToDDMMYYYY(details.end_date) + " " + formatTime(details.end_time))}
-                  {renderRow("From ↔ To Location", details.from_location + " ↔ " + details.to_location)}
-                  {renderRow("Report At ↔ Drop Location", details.report_at + " ↔ " + details.drop_location)}
-                  {renderRow("No. of Person", details.passenger_count?.toString())}
+                  {renderRow("Start Date/Time", `${formatDateToDDMMYYYY((details as any).start_date)} ${formatTime((details as any).start_time)}`)}
+                  {renderRow("End Date/Time", `${formatDateToDDMMYYYY((details as any).end_date)} ${formatTime((details as any).end_time)}`)}
+                  {renderRow("From ↔ To Location", `${details.from_location_name || details.from_location} ↔ ${details.to_location_name || details.to_location}`)}
+                  {renderRow("Report At ↔ Drop Location", `${details.report_at} ↔ ${details.drop_location}`)}
+                  {renderRow("No. of Person", (details as any).passenger_count?.toString())}
                   {renderRow("Approx. K.M.", details.distance_km?.toString())}
                 </>,
               )}
@@ -386,23 +398,13 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               "Financial",
               IndianRupee,
               <>
-                {renderRow(
-                  "Estimated Cost",
-                  formatCurrency(booking.estimated_cost) || "Not Provided",
-                )}
-                {renderRow(
-                  "Actual Cost",
-                  formatCurrency(booking.actual_cost) || "Not Provided",
-                )}
+                {renderRow("Estimated Cost", formatCurrency(booking.estimated_cost) || "Not Provided")}
+                {renderRow("Actual Cost", formatCurrency(booking.actual_cost) || "Not Provided")}
                 {renderRow("Booking Reference", booking.booking_reference)}
                 {renderRow("Vendor Reference", booking.vendor_reference)}
-
-                {/* Requested Vehicle Type (For Conveyance) */}
                 {booking.requested_vehicle_type && (
                   <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-sm text-sky-600 font-medium">
-                      Requested Vehicle
-                    </span>
+                    <span className="text-sm text-sky-600 font-medium">Requested Vehicle</span>
                     <span className="text-sm font-bold text-sky-700">
                       {booking.requested_vehicle_type.name}
                     </span>
@@ -411,40 +413,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               </>,
             )}
 
-            {/* Assigned Agent */}
-            {/* {booking.assigned_agent && (
-              <div className="bg-muted/40 border rounded-lg p-3 space-y-2">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <User className="w-4 h-4 text-primary" />
-                  Assigned Agent
-                </p>
-                <p className="text-sm">{booking.assigned_agent.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  Scope:{" "}
-                  {booking.assigned_agent.scope === "single_booking"
-                    ? "Single Booking"
-                    : "Full Application"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Assigned at:{" "}
-                  {formatDateTime(booking.assigned_agent.assigned_at)}
-                </p>
-              </div>
-            )} */}
-
-            {/* Special Instructions */}
-            {booking.special_instruction && (
-              <div>
-                <h4 className="text-sm font-medium mb-2">
-                  Special Instructions
-                </h4>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                  {booking.special_instruction}
-                </div>
-              </div>
-            )}
-
-            {/* Guests */}
+            {/* Guests from booking_details (legacy badge list) */}
             {details.guests && details.guests.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium flex items-center gap-2">
@@ -453,85 +422,13 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {details.guests.map((g, idx) => (
-                    <Badge key={idx} variant="primary">
+                    <Badge key={idx} variant="secondary">
                       {g.name}
                       {g.is_external && " (External)"}
                     </Badge>
                   ))}
                 </div>
               </div>
-            )}
-
-            {booking.travelers && booking.travelers.length > 0 && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div className="cursor-pointer space-y-2 group">
-                    <h4 className="text-sm font-medium flex items-center gap-2 group-hover:text-primary transition-colors">
-                      <User className="w-4 h-4 text-primary" />
-                      Guest(s) Details
-                    </h4>
-                    <div className="bg-card border rounded-lg p-3 group-hover:border-primary/50 transition-colors">
-                      <p className="text-sm font-medium text-primary hover:underline">
-                        View Details for {booking.travelers.length} Guest(s)
-                      </p>
-                    </div>
-                  </div>
-                </DialogTrigger>
-
-                <DialogContent className="max-w-4xl">
-                  <DialogHeader>
-                    <DialogTitle>
-                      Guest Details ({booking.travelers.length})
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-                    <table className="w-full text-sm border-collapse whitespace-nowrap">
-                      <thead>
-                        <tr className="border-b text-left text-primary">
-                          <th className="py-2 pr-4 font-medium">Name</th>
-                          <th className="py-2 pr-4 font-medium">Email</th>
-                          <th className="py-2 pr-4 font-medium">Contact</th>
-                          <th className="py-2 pr-4 font-medium">Gender</th>
-                          <th className="py-2 pr-4 font-medium">Age</th>
-                          <th className="py-2 pr-4 font-medium">Nationality</th>
-                          <th className="py-2 pr-4 font-medium">
-                            Flight / Stay Meal
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {booking.travelers.map((traveler) => (
-                          <tr
-                            key={traveler.id}
-                            className="border-b last:border-0"
-                          >
-                            <td className="py-2 pr-4 font-medium whitespace-nowrap">
-                              {traveler.full_name}
-                            </td>
-                            <td className="py-2 pr-4">
-                              {traveler.email || "—"}
-                            </td>
-                            <td className="py-2 pr-4">
-                              {traveler.contact_number || "—"}
-                            </td>
-                            <td className="py-2 pr-4">{traveler.gender}</td>
-                            <td className="py-2 pr-4">{traveler.age}</td>
-                            <td className="py-2 pr-4">
-                              {traveler.nationality_type}
-                            </td>
-                            <td className="py-2 pr-4 text-xs">
-                              {traveler.flight_meal_preference_name || "—"} /{" "}
-                              {traveler.accommodation_meal_preference_name ||
-                                "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </DialogContent>
-              </Dialog>
             )}
 
             {/* File - Generic Link (Hidden for Bulk Booking) */}
@@ -543,7 +440,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
                 <a
                   onClick={() => docViewer.onViewFile(booking.booking_file!)}
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-primary text-sm underline hover:no-underline"
+                  className="inline-flex items-center gap-2 text-primary text-sm underline hover:no-underline cursor-pointer"
                 >
                   <Download className="w-4 h-4" /> Download Ticket / Receipt
                 </a>
@@ -556,31 +453,21 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               <FileText className="w-4 h-4 text-primary" />
               Notes & Remarks
             </h4>
-
             <div className="flex-1 overflow-y-auto bg-card border rounded-lg p-3 space-y-4 min-h-0">
               {booking.notes && booking.notes.length > 0 ? (
                 booking.notes.map((note: any) => (
-                  <div
-                    key={note.id}
-                    className="text-sm border-b last:border-0 pb-3 last:pb-0"
-                  >
+                  <div key={note.id} className="text-sm border-b last:border-0 pb-3 last:pb-0">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-slate-700">
-                        {note.author_name}
-                      </span>
+                      <span className="font-semibold text-slate-700">{note.author_name}</span>
                       <span className="text-xs text-muted-foreground">
                         {formatDateTime(note.created_at)}
                       </span>
                     </div>
-                    <p className="text-slate-600 whitespace-pre-wrap">
-                      {note.note}
-                    </p>
+                    <p className="text-slate-600 whitespace-pre-wrap">{note.note}</p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No notes available.
-                </p>
+                <p className="text-sm text-muted-foreground italic">No notes available.</p>
               )}
             </div>
           </div>
@@ -593,20 +480,14 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               <Button
                 variant="outline"
                 className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                onClick={() => {
-                  onReject?.(booking);
-                  onClose();
-                }}
+                onClick={() => { onReject?.(booking); onClose(); }}
                 disabled={isOnHold}
               >
                 Reject Booking
               </Button>
               <Button
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={() => {
-                  onAccept?.(booking);
-                  onClose();
-                }}
+                onClick={() => { onAccept?.(booking); onClose(); }}
                 disabled={isOnHold}
               >
                 Accept Booking

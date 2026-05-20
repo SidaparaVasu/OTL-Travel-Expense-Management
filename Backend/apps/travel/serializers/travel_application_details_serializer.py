@@ -12,6 +12,10 @@ from apps.travel.models.booking_extended import AccommodationBooking, VehicleBoo
 from django.utils.dateformat import DateFormat
 from django.utils.timezone import localtime
 from utils.date_utils import calculate_age
+from apps.travel.services.travel_desk_display import (
+    build_travel_desk_payload,
+    build_agent_action_completed_at,
+)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -120,7 +124,7 @@ class BookingAssignmentSerializer(serializers.ModelSerializer):
         return format_datetime(obj.accepted_at)
 
     def get_completed_at(self, obj):
-        return format_datetime(obj.completed_at)
+        return build_agent_action_completed_at(obj, format_datetime)
 
 
 class ApplicationTravelerSerializer(serializers.ModelSerializer):
@@ -241,21 +245,7 @@ class TicketingBookingSerializer(serializers.Serializer):
         return obj.booking_details.get('meal_preference', '')
 
     def get_travel_desk(self, obj):
-        # Don't show travel desk for self-arranged bookings
-        if obj.sub_option and 'self' in obj.sub_option.name.lower():
-            return None
-        
-        # Use Booking model fields directly
-        if not obj.handling_travel_desk_user:
-            return None
-            
-        return {
-            'user': obj.handling_travel_desk_user.get_full_name(),
-            'user_email': obj.handling_travel_desk_user.email,
-            'user_contact': obj.handling_travel_desk_user.mobile_no,
-            'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
-            'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
-        }
+        return build_travel_desk_payload(obj, format_datetime)
 
     def get_assignments(self, obj):
         try:
@@ -372,50 +362,18 @@ class AccommodationBookingSerializer(serializers.Serializer):
         return obj.booking_details.get('meal_preference', '')
 
     def get_travel_desk(self, obj):
-        # Don't show travel desk for self-arranged bookings
-        if obj.sub_option and 'self' in obj.sub_option.name.lower():
-            return None
-        
-        # Use Booking model fields directly
-        if not obj.handling_travel_desk_user:
-            return None
-            
-        return {
-            'user': obj.handling_travel_desk_user.get_full_name(),
-            'user_email': obj.handling_travel_desk_user.email,
-            'user_contact': obj.handling_travel_desk_user.mobile_no,
-            'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
-            'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
-        }
+        return build_travel_desk_payload(obj, format_datetime)
 
     def get_assignments(self, obj):
-        # Get assignment from related booking
         try:
-            related_booking = obj.trip_details.bookings.filter(
-                booking_type__name='Accommodation'
-            ).first()
-            if related_booking:
-                try:
-                    assignment = related_booking.assignment
-                    return [BookingAssignmentSerializer(assignment).data]
-                except BookingAssignment.DoesNotExist:
-                    pass
-        except:
-            pass
-        return []
+            assignment = obj.assignment
+            return [BookingAssignmentSerializer(assignment).data]
+        except BookingAssignment.DoesNotExist:
+            return []
 
     def get_booking_notes(self, obj):
-        # Get notes from related booking
-        try:
-            related_booking = obj.trip_details.bookings.filter(
-                booking_type__name='Accommodation'
-            ).first()
-            if related_booking:
-                notes = related_booking.notes.all()
-                return BookingNoteSerializer(notes, many=True).data
-        except:
-            pass
-        return []
+        notes = obj.notes.all()
+        return BookingNoteSerializer(notes, many=True).data
 
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
@@ -430,6 +388,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     status = serializers.CharField()
     vehicle_type = serializers.SerializerMethodField()
     vehicle_subtype = serializers.SerializerMethodField()
+    requested_vehicle_model = serializers.SerializerMethodField()
     from_location = serializers.SerializerMethodField()
     to_location = serializers.SerializerMethodField()
     report_at = serializers.SerializerMethodField()
@@ -462,6 +421,16 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
     def get_vehicle_subtype(self, obj):
         return obj.sub_option.name if obj.sub_option else ""
+
+    def get_requested_vehicle_model(self, obj):
+        """Return the vehicle model requested by travel desk for this booking."""
+        try:
+            assignment = obj.assignment
+            if assignment and assignment.requested_vehicle_type:
+                return assignment.requested_vehicle_type.name
+        except BookingAssignment.DoesNotExist:
+            pass
+        return ""
     
     def get_from_location(self, obj):
         return obj.booking_details.get('from_location', '')
@@ -508,50 +477,18 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.booking_details.get('guests', [])
 
     def get_travel_desk(self, obj):
-        # Don't show travel desk for self-arranged bookings
-        if obj.sub_option and 'self' in obj.sub_option.name.lower():
-            return None
-        
-        # Use Booking model fields directly
-        if not obj.handling_travel_desk_user:
-            return None
-            
-        return {
-            'user': obj.handling_travel_desk_user.get_full_name(),
-            'user_email': obj.handling_travel_desk_user.email,
-            'user_contact': obj.handling_travel_desk_user.mobile_no,
-            'forwarded_at': format_datetime(obj.travel_desk_forwarded_at),
-            'completed_at': format_datetime(obj.travel_desk_forwarded_at) # Same as forwarded_at per requirement
-        }
+        return build_travel_desk_payload(obj, format_datetime)
 
     def get_assignments(self, obj):
-        # Get assignment from related booking
         try:
-            related_booking = obj.trip_details.bookings.filter(
-                booking_type__name='Conveyance'
-            ).first()
-            if related_booking:
-                try:
-                    assignment = related_booking.assignment
-                    return [BookingAssignmentSerializer(assignment).data]
-                except BookingAssignment.DoesNotExist:
-                    pass
-        except:
-            pass
-        return []
+            assignment = obj.assignment
+            return [BookingAssignmentSerializer(assignment).data]
+        except BookingAssignment.DoesNotExist:
+            return []
 
     def get_booking_notes(self, obj):
-        # Get notes from related booking
-        try:
-            related_booking = obj.trip_details.bookings.filter(
-                booking_type__name='Conveyance'
-            ).first()
-            if related_booking:
-                notes = related_booking.notes.all()
-                return BookingNoteSerializer(notes, many=True).data
-        except:
-            pass
-        return []
+        notes = obj.notes.all()
+        return BookingNoteSerializer(notes, many=True).data
 
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
@@ -714,7 +651,17 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         for trip in obj.trip_details.all():
             bookings = trip.bookings.filter(
                 booking_type__name__in=['Flight', 'Train']
-            ).select_related('booking_type', 'trip_details__from_location', 'trip_details__to_location')
+            ).select_related(
+                'booking_type',
+                'sub_option',
+                'trip_details__from_location',
+                'trip_details__to_location',
+                'handling_travel_desk_user',
+                'trip_details__travel_application__travel_desk_user',
+                'assignment__assigned_to',
+                'assignment__assigned_by',
+                'assignment__requested_vehicle_type',
+            )
             
             for booking in bookings:
                 ticketing_bookings.append(booking)
@@ -731,7 +678,12 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'booking_type',
             'sub_option',
             'trip_details__from_location',
-            'trip_details__to_location'
+            'trip_details__to_location',
+            'handling_travel_desk_user',
+            'trip_details__travel_application__travel_desk_user',
+            'assignment__assigned_to',
+            'assignment__assigned_by',
+            'assignment__requested_vehicle_type',
         )
         
         logger.info(f"DEBUG: Found {accommodation_bookings.count()} accommodation bookings for application {obj.id}")
@@ -748,8 +700,13 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'booking_type',
             'sub_option',
             'trip_details__from_location',
-            'trip_details__to_location'
-        )
+            'trip_details__to_location',
+            'handling_travel_desk_user',
+            'trip_details__travel_application__travel_desk_user',
+            'assignment__assigned_to',
+            'assignment__assigned_by',
+            'assignment__requested_vehicle_type',
+        ).prefetch_related('notes')
         
         logger.info(f"DEBUG: Found {vehicle_bookings.count()} vehicle bookings for application {obj.id}")
         return ConveyanceBookingSerializer(vehicle_bookings, many=True).data

@@ -65,10 +65,10 @@ export const formatHours = (hours: number | null | undefined): string => {
   return `${hours.toFixed(1)} hrs`;
 };
 
-export const getBookingTypeLabel = (type: string): string => {
-  return type;
+export const getBookingTypeLabel = (type: string | number): string => {
+  return String(type);
 };
 
-export const getSubOptionLabel = (subOption: string): string => {
-  return subOption;
+export const getSubOptionLabel = (subOption: string | number): string => {
+  return String(subOption);
 };

@@ -130,6 +130,37 @@ export const travelDeskAPI = {
       return data;
     },
 
+    close: async (
+      bookingId: number,
+      payload: {
+        closure_reason: string;
+        claim_decision_reason: string;
+        allow_claim: boolean;
+        is_primary_spoc?: boolean;
+      },
+    ) => {
+      const { data } = await apiClient.post(
+        `/travel/travel-desk/bookings/${bookingId}/close/`,
+        payload,
+      );
+      return data;
+    },
+
+    updateClaimEligibility: async (
+      bookingId: number,
+      payload: {
+        allow_claim: boolean;
+        claim_decision_reason: string;
+        is_primary_spoc?: boolean;
+      },
+    ) => {
+      const { data } = await apiClient.post(
+        `/travel/travel-desk/bookings/${bookingId}/update-claim-eligibility/`,
+        payload,
+      );
+      return data;
+    },
+
     forwardToDesk: async (
       bookingId: number,
       payload: { target_user_id: number; remarks?: string },

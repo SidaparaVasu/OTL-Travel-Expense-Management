@@ -19,6 +19,9 @@ class AuditLog(models.Model):
         ('update_booking_status', 'Booking Status Updated'),
         ('forward_to_travel_desk', 'Forwarded to Travel Desk'),
         ('ceo_resume_booking', 'CEO Resumed Booking'),
+        ('cancel_booking', 'Booking Cancelled'),
+        ('close_booking', 'Booking Closed'),
+        ('update_claim_elig', 'Claim Eligibility Updated'),
     ]
     
     user = models.ForeignKey('authentication.User', on_delete=models.SET_NULL, null=True)

@@ -168,7 +168,12 @@ def annotate_booking_action_status(queryset, user):
             'trip_details__bookings',
             filter=Q(trip_details__bookings__status='completed'),
             distinct=True
-        )
+        ),
+        closed_bookings=Count(
+            'trip_details__bookings',
+            filter=Q(trip_details__bookings__status='closed'),
+            distinct=True
+        ),
     ).annotate(
         booking_action_status=Case(
             When(general_pending_bookings__gt=0, then=Value('pending')),
@@ -176,6 +181,15 @@ def annotate_booking_action_status(queryset, user):
             When(general_pending_bookings=0, requested_bookings=0, in_progress_bookings__gt=0, then=Value('in_progress')),
             When(total_bookings__gt=0, confirmed_bookings=F('total_bookings'), then=Value('confirmed')),
             When(total_bookings__gt=0, completed_bookings=F('total_bookings'), then=Value('completed')),
+            # Desk-closed line items: desk work is done — show as completed in Action Status.
+            # The "closed" filter still matches booking.status='closed' directly.
+            When(
+                general_pending_bookings=0,
+                requested_bookings=0,
+                in_progress_bookings=0,
+                closed_bookings__gt=0,
+                then=Value('completed'),
+            ),
             When(cancelled_bookings__gt=0, then=Value('cancelled')),
             default=Value('none'),
             output_field=CharField()
@@ -264,6 +278,11 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                         in_progress_bookings=0,
                         cancelled_bookings__gt=0
                     )
+                elif booking_action_status == 'closed':
+                    # Applications that have at least one desk-closed booking line item
+                    _qs = _qs.filter(
+                        trip_details__bookings__status='closed',
+                    ).distinct()
             if search:
                 _qs = _qs.filter(q_objects)
             if date_from and not skip_narrow_filters:
@@ -297,7 +316,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         # --- Tab filter (backend) ---
         # Terminal statuses have no actionable bookings by design; skip tab filter for them.
         # Also skip when global search is active (show everything matching the search).
-        terminal_statuses = {'confirmed', 'completed', 'cancelled'}
+        terminal_statuses = {'confirmed', 'completed', 'cancelled', 'closed'}
         is_terminal = booking_action_status in terminal_statuses
         if tab and not is_terminal and not skip_narrow_filters:
             if tab == 'my_requests':
@@ -419,6 +438,8 @@ class TravelDeskAssignBookingsView(APIView):
         application_id = serializer.validated_data["_application_id"]
         bookings = serializer.validated_data["_bookings"]
         requested_vehicle_type_id = serializer.validated_data.get("requested_vehicle_type_id")
+        # Distinguish "not provided" from "explicitly set to null/value"
+        vehicle_type_explicitly_set = "requested_vehicle_type_id" in request.data
         note_text = serializer.validated_data.get("note")
         
         # Validate no self-arranged bookings
@@ -434,6 +455,10 @@ class TravelDeskAssignBookingsView(APIView):
 
         with transaction.atomic():
             for b in bookings:
+                from apps.travel.services.travel_desk_display import (
+                    ensure_handling_travel_desk_on_action,
+                )
+                ensure_handling_travel_desk_on_action(b, request.user)
 
                 assignment, created = BookingAssignment.objects.get_or_create(
                     booking=b,
@@ -453,12 +478,15 @@ class TravelDeskAssignBookingsView(APIView):
                     assignment.assigned_at = timezone.now()
                     assignment.accepted_at = None
                     assignment.completed_at = None
-                    assignment.requested_vehicle_type_id = requested_vehicle_type_id
-                    assignment.save(update_fields=[
+                    save_fields = [
                         "assigned_to", "assigned_by", "assignment_scope",
                         "assigned_at", "accepted_at", "completed_at",
-                        "requested_vehicle_type"
-                    ])
+                    ]
+                    # Only overwrite vehicle type if explicitly provided in the request
+                    if vehicle_type_explicitly_set:
+                        assignment.requested_vehicle_type_id = requested_vehicle_type_id
+                        save_fields.append("requested_vehicle_type_id")
+                    assignment.save(update_fields=save_fields)
 
                 # Update booking status
                 if b.status == "pending":
@@ -552,6 +580,8 @@ class TravelDeskReassignBookingView(APIView):
     def post(self, request, booking_id):
         new_agent_id = request.data.get("new_agent_id")
         remarks = request.data.get("remarks", "")
+        requested_vehicle_type_id = request.data.get("requested_vehicle_type_id")
+        vehicle_type_explicitly_set = "requested_vehicle_type_id" in request.data
 
         if not new_agent_id:
             return error_response(message="new_agent_id is required")
@@ -568,22 +598,32 @@ class TravelDeskReassignBookingView(APIView):
             return error_response(message="Invalid booking agent")
 
         with transaction.atomic():
+            from apps.travel.services.travel_desk_display import (
+                ensure_handling_travel_desk_on_action,
+            )
+
+            ensure_handling_travel_desk_on_action(booking, request.user)
 
             # Find existing assignment if any
             assignment = BookingAssignment.objects.filter(booking=booking).first()
             old_agent = assignment.assigned_to if assignment else None
 
-            # Update or create assignment
+            # Update or create assignment — preserve vehicle type if not explicitly changed
+            update_fields = {
+                "assigned_to": new_agent,
+                "assigned_by": request.user,
+                "assignment_scope": "single_booking",
+                "assigned_at": timezone.now(),
+                "accepted_at": None,
+                "completed_at": None,
+            }
+            # Only update vehicle type if explicitly provided in the request body
+            if vehicle_type_explicitly_set:
+                update_fields["requested_vehicle_type_id"] = requested_vehicle_type_id
+
             assignment, created = BookingAssignment.objects.update_or_create(
                 booking=booking,
-                defaults={
-                    "assigned_to": new_agent,
-                    "assigned_by": request.user,
-                    "assignment_scope": "single_booking",
-                    "assigned_at": timezone.now(),
-                    "accepted_at": None,
-                    "completed_at": None,
-                }
+                defaults=update_fields,
             )
 
             # Add note
@@ -708,7 +748,13 @@ class ForwardApplicationView(APIView):
         agent_user = agent_profile.user
 
         with transaction.atomic():
+            from apps.travel.services.travel_desk_display import (
+                ensure_handling_travel_desk_on_action,
+            )
+
             for booking in bookings:
+                ensure_handling_travel_desk_on_action(booking, request.user)
+
                 assignment, created = BookingAssignment.objects.update_or_create(
                     booking=booking,
                     defaults={
@@ -881,6 +927,110 @@ class TravelDeskCancelBookingView(APIView):
         except Exception as e:
             logger.error(f"DEBUG_CANCEL: Exception detected: {str(e)}")
             return error_response(f"Error cancelling booking: {str(e)}")
+
+
+class TravelDeskCloseBookingView(APIView):
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def post(self, request, booking_id):
+        from apps.travel.services.booking_closure import close_booking, is_primary_spoc_for_application
+        from django.core.exceptions import ValidationError
+
+        booking = Booking.objects.filter(id=booking_id).select_related(
+            'trip_details__travel_application',
+            'handling_travel_desk_user',
+        ).first()
+        if not booking:
+            return error_response(message="Booking not found")
+
+        allow_claim_raw = request.data.get("allow_claim")
+        if allow_claim_raw is None:
+            return error_response(message="allow_claim is required")
+
+        is_primary_spoc = request.data.get("is_primary_spoc")
+        if is_primary_spoc is None:
+            is_primary_spoc = is_primary_spoc_for_application(
+                booking.trip_details.travel_application,
+                request.user,
+            )
+
+        try:
+            close_booking(
+                booking,
+                request.user,
+                closure_reason=request.data.get("closure_reason", ""),
+                claim_decision_reason=request.data.get("claim_decision_reason", ""),
+                allow_claim=bool(allow_claim_raw),
+                is_primary_spoc=bool(is_primary_spoc),
+            )
+            booking.refresh_from_db()
+            return success_response(
+                message="Booking closed successfully",
+                data={
+                    "booking_id": booking.id,
+                    "status": booking.status,
+                    "allow_claim": booking.allow_claim,
+                },
+            )
+        except ValidationError as e:
+            if hasattr(e, 'message_dict'):
+                return error_response(message="Validation failed", data=e.message_dict)
+            return error_response(message=str(e))
+        except Exception as e:
+            return error_response(f"Error closing booking: {str(e)}")
+
+
+class TravelDeskUpdateBookingClaimEligibilityView(APIView):
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def post(self, request, booking_id):
+        from apps.travel.services.booking_closure import (
+            update_booking_claim_eligibility,
+            is_primary_spoc_for_application,
+        )
+        from django.core.exceptions import ValidationError
+
+        booking = Booking.objects.filter(id=booking_id).select_related(
+            'trip_details__travel_application',
+            'handling_travel_desk_user',
+        ).first()
+        if not booking:
+            return error_response(message="Booking not found")
+
+        allow_claim_raw = request.data.get("allow_claim")
+        if allow_claim_raw is None:
+            return error_response(message="allow_claim is required")
+
+        is_primary_spoc = request.data.get("is_primary_spoc")
+        if is_primary_spoc is None:
+            is_primary_spoc = is_primary_spoc_for_application(
+                booking.trip_details.travel_application,
+                request.user,
+            )
+
+        try:
+            update_booking_claim_eligibility(
+                booking,
+                request.user,
+                allow_claim=bool(allow_claim_raw),
+                claim_decision_reason=request.data.get("claim_decision_reason", ""),
+                is_primary_spoc=bool(is_primary_spoc),
+            )
+            booking.refresh_from_db()
+            return success_response(
+                message="Claim eligibility updated successfully",
+                data={
+                    "booking_id": booking.id,
+                    "status": booking.status,
+                    "allow_claim": booking.allow_claim,
+                },
+            )
+        except ValidationError as e:
+            if hasattr(e, 'message_dict'):
+                return error_response(message="Validation failed", data=e.message_dict)
+            return error_response(message=str(e))
+        except Exception as e:
+            return error_response(f"Error updating claim eligibility: {str(e)}")
 
 
 class GenerateDutySlipAPIView(APIView):

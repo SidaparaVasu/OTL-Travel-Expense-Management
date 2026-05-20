@@ -14,6 +14,7 @@ class Booking(models.Model):
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
+        ('closed', 'Closed'),
     ]
     
     trip_details = models.ForeignKey(
@@ -94,6 +95,21 @@ class Booking(models.Model):
         help_text="When this booking was specifically forwarded to a desk user."
     )
     
+    # Closure (Travel Desk — booking not required / alternative arrangement)
+    allow_claim = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Current claim eligibility for this booking when status is closed.",
+    )
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='closed_bookings',
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -301,3 +317,41 @@ class BookingNote(models.Model):
 
     def __str__(self):
         return f"Note for booking {self.booking_id} by {self.author}"
+
+
+class BookingClosureLog(models.Model):
+    """
+    Append-only audit log for booking closure and claim-eligibility changes.
+    """
+    ACTION_CHOICES = [
+        ('closed', 'Closed'),
+        ('claim_allowed', 'Claim Allowed'),
+        ('claim_disallowed', 'Claim Disallowed'),
+    ]
+
+    booking = models.ForeignKey(
+        'Booking',
+        on_delete=models.CASCADE,
+        related_name='closure_logs',
+    )
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES)
+    closure_reason = models.TextField(blank=True, default='')
+    claim_decision_reason = models.TextField()
+    allow_claim = models.BooleanField()
+    created_by = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='booking_closure_logs',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['booking', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"Closure log #{self.id} for booking {self.booking_id} ({self.action})"

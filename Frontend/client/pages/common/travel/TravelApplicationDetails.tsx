@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/StatusBadge";
 import { API_BASE_URL } from "@/config/api.config";
@@ -55,6 +55,35 @@ const CollapsibleSection: React.FC<{
   );
 };
 
+const isBlank = (v: unknown) =>
+  v == null || (typeof v === "string" && v.trim().length === 0);
+
+const show = (v: unknown, fallback = "—") => (isBlank(v) ? fallback : String(v));
+
+const travelDeskUserLabel = (booking: any) => {
+  if (booking?.is_self_arranged) return "Self arranged";
+  const td = booking?.travel_desk;
+  if (!td) return "With Travel Desk";
+  if (td.desk_status && isBlank(td.user)) return String(td.desk_status);
+  return show(td.user, "With Travel Desk");
+};
+
+const travelDeskEmail = (booking: any) => {
+  if (booking?.is_self_arranged) return "—";
+  return show(booking?.travel_desk?.user_email, "—");
+};
+
+const travelDeskContact = (booking: any) => {
+  if (booking?.is_self_arranged) return "—";
+  return show(booking?.travel_desk?.user_contact, "—");
+};
+
+const travelDeskForwardedToDesk = (booking: any) => {
+  if (booking?.is_self_arranged) return "—";
+  const td = booking?.travel_desk;
+  return show(td?.forwarded_to_desk_at ?? td?.forwarded_at, "—");
+};
+
 export const TravelApplicationDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -62,7 +91,7 @@ export const TravelApplicationDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,7 +107,6 @@ export const TravelApplicationDetails: React.FC = () => {
         const response = await travelAPI.getTravelApplicationDetails(
           parseInt(id),
         );
-        console.log("response", response);
         setData(response);
       } catch (err: any) {
         console.error("Failed to fetch travel application details:", err);
@@ -102,7 +130,7 @@ export const TravelApplicationDetails: React.FC = () => {
     try {
       setUpdatingId(applicationId);
       if (action === "approve") {
-        await approvalAPI.approve(applicationId);
+        await approvalAPI.approve(parseInt(applicationId));
         toast.success("Application approved successfully");
         navigate(-1);
       } else {
@@ -111,7 +139,7 @@ export const TravelApplicationDetails: React.FC = () => {
           toast.error("Rejection reason is required");
           return;
         }
-        await approvalAPI.reject(applicationId, notes);
+        await approvalAPI.reject(parseInt(applicationId), notes);
         toast.success("Application rejected");
         navigate(-1);
       }
@@ -308,16 +336,40 @@ export const TravelApplicationDetails: React.FC = () => {
                 {data?.application?.grade || ""}
               </span>
             </div>
-            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200 flex-1 min-w-[150px]">
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[150px]">
               <span className="font-semibold text-slate-700">Department:</span>{" "}
               <span className="text-slate-900">
                 {data?.application?.department || ""}
               </span>
             </div>
-            <div className="p-4 flex-1 min-w-[180px]">
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[180px]">
               <span className="font-semibold text-slate-700">Designation:</span>{" "}
               <span className="text-slate-900">
                 {data?.application?.designation || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[150px]">
+              <span className="font-semibold text-slate-700">Email:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.email || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[180px]">
+              <span className="font-semibold text-slate-700">Mobile:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.mobile || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200 flex-1 min-w-[150px]">
+              <span className="font-semibold text-slate-700">Age:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.age || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200 flex-1 min-w-[180px]">
+              <span className="font-semibold text-slate-700">Gender:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.gender || ""}
               </span>
             </div>
           </div>
@@ -686,7 +738,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "Not assigned yet."}
+                              {travelDeskUserLabel(booking)}
                             </span>
                           </div>
                           <div>
@@ -694,7 +746,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Email:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                              {travelDeskEmail(booking)}
                             </span>
                           </div>
                           <div>
@@ -702,23 +754,15 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Contact:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_contact || "N/A"}
+                              {travelDeskContact(booking)}
                             </span>
                           </div>
                           <div>
                             <span className="font-medium text-slate-700">
-                              Forwarded:
+                              Forwarded to Other Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.forwarded_at || "Pending"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-slate-700">
-                              Completed:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at || "Pending"}
+                              {travelDeskForwardedToDesk(booking)}
                             </span>
                           </div>
                         </div>
@@ -726,57 +770,57 @@ export const TravelApplicationDetails: React.FC = () => {
                     </CollapsibleSection>
 
                     {/* Booking Agent - Collapsible */}
-                    {booking.assignments.length > 0 && (
-                      <CollapsibleSection title="Booking Agent Details">
-                        {booking.assignments.map((assignment, assignIdx) => (
-                          <div
-                            key={assignIdx}
-                            className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
-                          >
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Booking Agent:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.assigned_to}
-                              </span>
+                    <CollapsibleSection title="Booking Agent Details">
+                      {(booking?.assignments ?? []).length === 0 ? (
+                        <div className="text-sm text-slate-600">
+                          {booking?.is_self_arranged
+                            ? "Self arranged — no booking agent assignment."
+                            : "Not assigned to any booking agent yet."}
+                        </div>
+                      ) : (
+                        (booking?.assignments ?? []).map(
+                          (assignment: any, assignIdx: number) => (
+                            <div
+                              key={assignIdx}
+                              className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
+                            >
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Booking Agent:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.assigned_to, "—")}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Assigned:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.assigned_at, "Pending")}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Accepted:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.accepted_at, "Action Pending")}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Confirmed / Cancelled:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.completed_at, "Action Pending")}
+                                </span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Assigned:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.assigned_at}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Accepted:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.accepted_at || "Action Pending"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Completed:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.completed_at || "Action Pending"}
-                              </span>
-                            </div>
-                            {/* <div className="md:col-span-5">
-                              <span className="font-medium text-slate-700">
-                                Notes:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.notes || "No notes added"}
-                              </span>
-                            </div> */}
-                          </div>
-                        ))}
-                      </CollapsibleSection>
-                    )}
+                          ),
+                        )
+                      )}
+                    </CollapsibleSection>
 
                     {/* Booking Notes - Collapsible */}
                     {booking.booking_notes.length > 0 && (
@@ -965,7 +1009,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "Not assigned yet."}
+                              {travelDeskUserLabel(booking)}
                             </span>
                           </div>
                           <div>
@@ -973,7 +1017,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Email:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                              {travelDeskEmail(booking)}
                             </span>
                           </div>
                           <div>
@@ -981,25 +1025,15 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Contact:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_contact || "N/A"}
+                              {travelDeskContact(booking)}
                             </span>
                           </div>
                           <div>
                             <span className="font-medium text-slate-700">
-                              Forwarded:
+                              Forwarded to Other Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.forwarded_at ||
-                                "Pending" ||
-                                "Pending"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-slate-700">
-                              Completed:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at || "Pending"}
+                              {travelDeskForwardedToDesk(booking)}
                             </span>
                           </div>
                         </div>
@@ -1007,9 +1041,15 @@ export const TravelApplicationDetails: React.FC = () => {
                     </CollapsibleSection>
 
                     {/* Booking Agent - Collapsible */}
-                    {booking.assignments.length > 0 && (
-                      <CollapsibleSection title="Booking Agent">
-                        {booking.assignments.map((assignment, assignIdx) => (
+                    <CollapsibleSection title="Booking Agent Details">
+                      {(booking?.assignments ?? []).length === 0 ? (
+                        <div className="text-sm text-slate-600">
+                          {booking?.is_self_arranged
+                            ? "Self arranged — no booking agent assignment."
+                            : "Not assigned to any booking agent yet."}
+                        </div>
+                      ) : (
+                        (booking?.assignments ?? []).map((assignment, assignIdx) => (
                           <div
                             key={assignIdx}
                             className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
@@ -1035,29 +1075,21 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.accepted_at}
+                                {show(assignment?.accepted_at, "Action Pending")}
                               </span>
                             </div>
                             <div>
                               <span className="font-medium text-slate-700">
-                                Completed:
+                                Confirmed / Cancelled:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.completed_at || "Pending"}
-                              </span>
-                            </div>
-                            <div className="md:col-span-5">
-                              <span className="font-medium text-slate-700">
-                                Notes:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.notes}
+                                {show(assignment?.completed_at, "Action Pending")}
                               </span>
                             </div>
                           </div>
-                        ))}
-                      </CollapsibleSection>
-                    )}
+                        ))
+                      )}
+                    </CollapsibleSection>
 
                     {/* Booking Notes - Collapsible */}
                     {booking.booking_notes.length > 0 && (
@@ -1112,6 +1144,9 @@ export const TravelApplicationDetails: React.FC = () => {
                               Sub-type
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Requested Vehicle Model
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Route
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
@@ -1147,6 +1182,9 @@ export const TravelApplicationDetails: React.FC = () => {
                             </td>
                             <td className="border border-slate-200 p-3">
                               {booking.vehicle_subtype}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.requested_vehicle_model || "—"}
                             </td>
                             <td className="border border-slate-200 p-3">
                               {booking.from_location} → {booking.to_location}
@@ -1204,7 +1242,7 @@ export const TravelApplicationDetails: React.FC = () => {
                           {booking.special_instructions && (
                             <tr className="bg-blue-50/30">
                               <td
-                                colSpan={11}
+                                colSpan={12}
                                 className="border border-slate-200 p-3"
                               >
                                 <strong className="text-slate-700">
@@ -1218,7 +1256,7 @@ export const TravelApplicationDetails: React.FC = () => {
                           )}
                           <tr className="bg-slate-50">
                             <td
-                              colSpan={11}
+                              colSpan={12}
                               className="border border-slate-200 p-3"
                             >
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1278,7 +1316,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "Not assigned yet."}
+                              {travelDeskUserLabel(booking)}
                             </span>
                           </div>
                           <div>
@@ -1286,7 +1324,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Email:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                              {travelDeskEmail(booking)}
                             </span>
                           </div>
                           <div>
@@ -1294,33 +1332,43 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Contact:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_contact || "N/A"}
+                              {travelDeskContact(booking)}
                             </span>
                           </div>
                           <div>
                             <span className="font-medium text-slate-700">
-                              Forwarded:
+                              Forwarded to Other Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.forwarded_at || "Pending"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-slate-700">
-                              Completed:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at || "Pending"}
+                              {travelDeskForwardedToDesk(booking)}
                             </span>
                           </div>
                         </div>
                       </div>
                     </CollapsibleSection>
 
+
                     {/* Booking Agent - Collapsible */}
-                    {booking.assignments.length > 0 && (
-                      <CollapsibleSection title="Booking Agent">
-                        {booking.assignments.map((assignment, assignIdx) => (
+                    <CollapsibleSection title="Booking Agent Details">
+                        {/* Assigned vehicle model — shown prominently for conveyance bookings */}
+                        {booking.requested_vehicle_model && (
+                          <div className="mb-3 flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-md px-3 py-2 text-sm">
+                            <span className="font-semibold text-sky-700">
+                              Requested Vehicle Type:
+                            </span>
+                            <span className="text-sky-900 font-bold">
+                              {booking.requested_vehicle_model}
+                            </span>
+                          </div>
+                        )}
+                        {(booking?.assignments ?? []).length === 0 ? (
+                          <div className="text-sm text-slate-600">
+                            {booking?.is_self_arranged
+                              ? "Self arranged — no booking agent assignment."
+                              : "Not assigned to any booking agent yet."}
+                          </div>
+                        ) : (
+                          (booking?.assignments ?? []).map((assignment, assignIdx) => (
                           <div
                             key={assignIdx}
                             className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
@@ -1346,29 +1394,21 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.accepted_at}
+                                {show(assignment?.accepted_at, "Action Pending")}
                               </span>
                             </div>
                             <div>
                               <span className="font-medium text-slate-700">
-                                Completed:
+                                Confirmed / Cancelled:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.completed_at || "Pending"}
-                              </span>
-                            </div>
-                            <div className="md:col-span-5">
-                              <span className="font-medium text-slate-700">
-                                Notes:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.notes}
+                                {show(assignment?.completed_at, "Action Pending")}
                               </span>
                             </div>
                           </div>
-                        ))}
+                          ))
+                        )}
                       </CollapsibleSection>
-                    )}
 
                     {/* Booking Notes - Collapsible */}
                     {booking.booking_notes.length > 0 && (

@@ -871,7 +871,13 @@ class ClaimableTravelApplicationsView(APIView):
                 settlement_due_date__lt=today
             )
             .select_related("employee", "general_ledger")
-            .prefetch_related("trip_details", "trip_details__from_location", "trip_details__to_location")
+            .prefetch_related(
+                "trip_details",
+                "trip_details__from_location",
+                "trip_details__to_location",
+                "trip_details__bookings",
+                "trip_details__bookings__closure_logs",
+            )
             .order_by("-created_at")
         )
 

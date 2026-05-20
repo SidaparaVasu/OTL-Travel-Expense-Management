@@ -627,6 +627,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                   }
                   placeholder="Write any special request for your ticket (example: window seat, lower berth, meal preference)"
                   rows={2}
+                  maxLength={500}
                   error={errors.special_instruction}
                 />
               </div>

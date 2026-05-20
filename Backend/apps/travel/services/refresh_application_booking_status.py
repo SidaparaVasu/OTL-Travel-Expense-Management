@@ -33,9 +33,13 @@ def refresh_application_booking_status(application: TravelApplication):
             application.save(update_fields=["status"])
         return
 
-    # 3. Handle "All Finished" Scenario (mixture of confirmed/completed/cancelled)
-    # If no work remains and we have at least one confirmed/completed booking
-    if statuses.issubset({"confirmed", "completed", "cancelled"}) and any(s in {"confirmed", "completed"} for s in statuses):
+    # 3. Handle "All Finished" Scenario (mixture of confirmed/completed/cancelled/closed)
+    # If no work remains and we have at least one confirmed/completed/closed booking
+    finished_subset = {"confirmed", "completed", "cancelled", "closed"}
+    has_positive_resolution = any(s in {"confirmed", "completed", "closed"} for s in statuses)
+    all_work_done = not any(s in {"pending", "requested", "in_progress"} for s in statuses)
+
+    if all_work_done and statuses.issubset(finished_subset) and has_positive_resolution:
         # Only allow valid transitions
         if application.status in [
             "pending_travel_desk",

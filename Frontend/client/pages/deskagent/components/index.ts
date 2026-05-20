@@ -1,6 +1,8 @@
 export { ForwardModal } from "./ForwardModal";
 export { AddNoteModal } from "./AddNoteModal";
 export { CancelModal } from "./CancelModal";
+export { CloseBookingModal } from "./CloseBookingModal";
+export { UpdateClaimEligibilityModal } from "./UpdateClaimEligibilityModal";
 export { ViewBookingModal } from "./ViewBookingModal";
 export { KPICards } from "./KPICards";
 export { SearchFilterBar } from "./SearchFilterBar";

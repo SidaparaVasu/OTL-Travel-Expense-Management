@@ -41,8 +41,10 @@ export interface BookingDetails {
 export interface BookingPermissions {
   can_forward: boolean;
   can_cancel: boolean;
+  can_close: boolean;
   can_add_note: boolean;
   can_reclaim: boolean;
+  can_update_claim_eligibility: boolean;
   is_delegated: boolean;
 }
 
@@ -63,6 +65,22 @@ export interface Booking {
   special_instruction: string;
   can_reassign: boolean;
   trip_segment?: string;
+  travel_for?: "self" | "guest" | "self_guest";
+  travelers?: Array<{
+    id: number;
+    full_name: string;
+    gender: string;
+    age: number | null;
+    contact_number?: string | null;
+    nationality_type: string;
+    flight_meal_preference_name?: string | null;
+    accommodation_meal_preference_name?: string | null;
+  }>;
+  employee_name?: string;
+  employee_email?: string;
+  employee_mobile?: string;
+  employee_gender?: string;
+  employee_grade?: string;
   notes?: {
     id: number;
     note: string;
@@ -88,6 +106,8 @@ export interface Booking {
     id: number;
     name: string;
   } | null;
+  allow_claim?: boolean | null;
+  closed_at?: string | null;
   is_forwardable?: boolean;
   permissions?: BookingPermissions;
 }
@@ -139,6 +159,7 @@ export interface Application {
   bulk_upload_file?: string | null;
   actionable_booking_ids?: number[];
   delegated_booking_ids?: number[];
+  is_primary_spoc?: boolean;
 }
 
 export interface DashboardApplication {
@@ -240,6 +261,7 @@ export interface AddNotePayload {
 
 export interface ReassignBookingPayload {
   new_agent_id: number;
+  requested_vehicle_type_id?: number | null;
 }
 
 export interface CancelApplicationPayload {
