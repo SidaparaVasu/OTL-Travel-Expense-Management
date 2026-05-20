@@ -392,6 +392,25 @@ def validate_claim_payload(
         errors["duplicate"] = ["Claim already submitted for this travel."]
         return {"errors": errors, "warnings": warnings, "computed": computed}
 
+    # 4b — Closed bookings with claim not allowed
+    from apps.travel.models.booking import Booking
+
+    active_bookings = Booking.objects.filter(
+        trip_details__travel_application=tr,
+    ).exclude(status='cancelled')
+
+    if active_bookings.exists():
+        closed_no_claim = active_bookings.filter(status='closed', allow_claim=False)
+        if closed_no_claim.exists():
+            all_closed_no_claim = not active_bookings.exclude(
+                status='closed', allow_claim=False
+            ).exists()
+            if all_closed_no_claim:
+                errors["travel_request.bookings"] = [
+                    "Claim is not allowed because all bookings were closed with claim disabled by Travel Desk."
+                ]
+                return {"errors": errors, "warnings": warnings, "computed": computed}
+
     # 4 — DA Breakdown
     
     # Helper to parse time string/obj
@@ -483,6 +502,22 @@ def validate_claim_payload(
                  pass
 
         code = _get_expense_type_code(etype)
+
+        booking_id = item.get("booking_id")
+        if booking_id:
+            linked_booking = Booking.objects.filter(
+                id=booking_id,
+                trip_details__travel_application=tr,
+            ).first()
+            if linked_booking:
+                if linked_booking.status == 'closed' and linked_booking.allow_claim is not True:
+                    errors.setdefault(f"{prefix}.booking_id", []).append(
+                        "Expenses linked to this booking are not allowed because Travel Desk closed it with claim disabled."
+                    )
+                elif linked_booking.status not in {'completed', 'closed'}:
+                    errors.setdefault(f"{prefix}.booking_id", []).append(
+                        "Expenses can only be linked to completed or desk-approved closed bookings."
+                    )
 
         # date
         if not item.get("expense_date"):

@@ -96,9 +96,28 @@ class TripDetailsAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'trip_details', 'booking_type', 'sub_option', 'status', 'estimated_cost')
-    list_filter = ('booking_type', 'status', 'created_at')
+    list_display = ('id', 'trip_details', 'booking_type', 'sub_option', 'status', 'allow_claim', 'estimated_cost')
+    list_filter = ('booking_type', 'status', 'created_at', 'allow_claim')
     search_fields = ('booking_reference', 'vendor_reference')
+
+
+@admin.register(BookingClosureLog)
+class BookingClosureLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'booking', 'action', 'allow_claim', 'created_by', 'created_at',
+    )
+    list_filter = ('action', 'allow_claim', 'created_at')
+    search_fields = (
+        'booking__id',
+        'closure_reason',
+        'claim_decision_reason',
+        'created_by__username',
+    )
+    readonly_fields = (
+        'booking', 'action', 'closure_reason', 'claim_decision_reason',
+        'allow_claim', 'created_by', 'created_at',
+    )
+    ordering = ('-created_at',)
 
 
 @admin.register(TravelApprovalFlow)

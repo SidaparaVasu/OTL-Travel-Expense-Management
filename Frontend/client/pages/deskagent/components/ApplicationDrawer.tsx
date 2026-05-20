@@ -16,6 +16,8 @@ import {
   Home,
   Info,
   UserCheck,
+  Archive,
+  ShieldCheck,
 } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 import { Button } from "@/components/ui/button";
@@ -44,7 +46,14 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { ForwardModal, AddNoteModal, ViewBookingModal, CancelModal } from "./";
+import {
+  ForwardModal,
+  AddNoteModal,
+  ViewBookingModal,
+  CancelModal,
+  CloseBookingModal,
+  UpdateClaimEligibilityModal,
+} from "./";
 import { formatDateToDDMMYYYY, formatCurrency, formatTimeAMPM } from "../utils/format";
 import { travelDeskAPI } from "@/src/api/travel-desk";
 import { toast } from "sonner";
@@ -118,6 +127,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const [addNoteModalOpen, setAddNoteModalOpen] = useState(false);
   const [viewBookingModalOpen, setViewBookingModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [closeModalOpen, setCloseModalOpen] = useState(false);
+  const [updateClaimModalOpen, setUpdateClaimModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Current logged-in user context
@@ -255,6 +266,16 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     setCancelModalOpen(true);
   };
 
+  const handleCloseBooking = (booking: Booking) => {
+    setSelectedBookingForAction(booking);
+    setCloseModalOpen(true);
+  };
+
+  const handleUpdateClaimEligibility = (booking: Booking) => {
+    setSelectedBookingForAction(booking);
+    setUpdateClaimModalOpen(true);
+  };
+
   const handleBulkForward = async () => {
     if (selectedBookings.length === 0) {
       toast.error("Please select at least one booking");
@@ -386,6 +407,56 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     }
   };
 
+  const confirmCloseBooking = async (payload: {
+    closure_reason: string;
+    claim_decision_reason: string;
+    allow_claim: boolean;
+  }) => {
+    if (!selectedBookingForAction) return;
+    setActionLoading(true);
+    try {
+      await travelDeskAPI.bookings.close(selectedBookingForAction.id, {
+        ...payload,
+        is_primary_spoc: application?.is_primary_spoc,
+      });
+      toast.success("Booking closed");
+      setCloseModalOpen(false);
+      setSelectedBookingForAction(null);
+      fetchApplicationDetails();
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to close booking");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmUpdateClaimEligibility = async (payload: {
+    allow_claim: boolean;
+    claim_decision_reason: string;
+  }) => {
+    if (!selectedBookingForAction) return;
+    setActionLoading(true);
+    try {
+      await travelDeskAPI.bookings.updateClaimEligibility(
+        selectedBookingForAction.id,
+        {
+          ...payload,
+          is_primary_spoc: application?.is_primary_spoc,
+        },
+      );
+      toast.success("Claim eligibility updated");
+      setUpdateClaimModalOpen(false);
+      setSelectedBookingForAction(null);
+      fetchApplicationDetails();
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update claim eligibility");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleClose = () => {
     setSelectedBookings([]);
     setApplication(null);
@@ -401,7 +472,10 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const someSelected =
     selectedBookings.length > 0 && selectedBookings.length < allBookings.length;
   const completedBookings = allBookings.filter(
-    (b) => b.status === "completed" || b.status === "confirmed",
+    (b) =>
+      b.status === "completed" ||
+      b.status === "confirmed" ||
+      b.status === "closed",
   ).length;
   const isAllCompleted =
     totalBookings > 0 && completedBookings === totalBookings;
@@ -782,8 +856,10 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                               const perms = booking.permissions ?? {
                                 can_forward: false,
                                 can_cancel: false,
+                                can_close: false,
                                 can_add_note: false,
                                 can_reclaim: false,
+                                can_update_claim_eligibility: false,
                                 is_delegated: false,
                               };
 
@@ -801,6 +877,7 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         isAllCompleted ||
                                         (!perms.can_forward &&
                                           !perms.can_cancel &&
+                                          !perms.can_close &&
                                           !perms.can_reclaim)
                                       }
                                       onCheckedChange={(checked) =>
@@ -1193,6 +1270,28 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                                     </Tooltip>
                                                   )}
 
+                                                  {perms.can_close && (
+                                                    <Tooltip>
+                                                      <TooltipTrigger asChild>
+                                                        <Button
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className="bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
+                                                          onClick={() =>
+                                                            handleCloseBooking(
+                                                              booking,
+                                                            )
+                                                          }
+                                                        >
+                                                          <Archive className="w-4 h-4" />
+                                                        </Button>
+                                                      </TooltipTrigger>
+                                                      <TooltipContent>
+                                                        Close Booking
+                                                      </TooltipContent>
+                                                    </Tooltip>
+                                                  )}
+
                                                   {perms.can_cancel && (
                                                     <Tooltip>
                                                       <TooltipTrigger asChild>
@@ -1219,6 +1318,28 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                             </>
                                           )}
                                         </>
+                                      )}
+
+                                      {perms.can_update_claim_eligibility && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 hover:text-indigo-900"
+                                              onClick={() =>
+                                                handleUpdateClaimEligibility(
+                                                  booking,
+                                                )
+                                              }
+                                            >
+                                              <ShieldCheck className="w-4 h-4" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Update Claim Eligibility
+                                          </TooltipContent>
+                                        </Tooltip>
                                       )}
                                     </div>
                                   </TableCell>
@@ -1269,6 +1390,21 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         onClose={() => setCancelModalOpen(false)}
         onConfirm={confirmCancelBooking}
         applicationId={selectedBookingForAction?.id ?? null}
+        isLoading={actionLoading}
+      />
+
+      <CloseBookingModal
+        isOpen={closeModalOpen}
+        onClose={() => setCloseModalOpen(false)}
+        onConfirm={confirmCloseBooking}
+        isLoading={actionLoading}
+      />
+
+      <UpdateClaimEligibilityModal
+        isOpen={updateClaimModalOpen}
+        onClose={() => setUpdateClaimModalOpen(false)}
+        onConfirm={confirmUpdateClaimEligibility}
+        currentAllowClaim={selectedBookingForAction?.allow_claim ?? false}
         isLoading={actionLoading}
       />
 

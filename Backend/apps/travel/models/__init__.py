@@ -1,5 +1,5 @@
 from .application import TravelApplication, TripDetails
-from .booking import Booking, BookingAssignment, BookingNote
+from .booking import Booking, BookingAssignment, BookingNote, BookingClosureLog
 from .approval import TravelApprovalFlow
 from .booking_extended import *
 from .travel_advance import *
@@ -8,7 +8,7 @@ from .permission import BackdatedTRAllowance
 
 __all__ = [
     'TravelApplication', 'TripDetails', 'Booking', 'TravelApprovalFlow', 
-    'BookingAssignment', 'BookingNote',
+    'BookingAssignment', 'BookingNote', 'BookingClosureLog',
     'AccommodationBooking', 'VehicleBooking', 'TravelDocument', 'TravelAdvanceRequest',
     'AdvanceProcessing', 'BackdatedTRAllowance'
 ]

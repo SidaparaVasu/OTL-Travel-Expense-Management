@@ -28,6 +28,13 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  buildClaimableBookingRow,
+  getClosedBookingClosureInfo,
+  isClaimableBookingForExpense,
+  isClosedNonClaimableBooking,
+} from "./claimBookingHelpers";
 import {
   Upload,
   PlusCircle,
@@ -110,6 +117,9 @@ export default function CreateClaimApplicationPage() {
   const [expenseTypes, setExpenseTypes] = useState([]);
 
   const [bookingRows, setBookingRows] = useState<any[]>([]);
+  const [closedNonClaimableBookings, setClosedNonClaimableBookings] = useState<
+    any[]
+  >([]);
   const [otherExpenses, setOtherExpenses] = useState<any[]>([]);
   const [declarationConfirmed, setDeclarationConfirmed] = useState(false);
 
@@ -300,37 +310,29 @@ export default function CreateClaimApplicationPage() {
   // When user selects Travel App
   const handleSelectApplication = (appId: string) => {
     const app = applications.find((a: any) => a.id === Number(appId));
-    console.log(app);
     setSelectedApp(app);
     setErrors({});
 
-    // Auto-fill booking rows from confirmed bookings
+    const rows: any[] = [];
+    const notClaimableClosed: any[] = [];
+
     if (app?.trip_details) {
-      const rows = [];
       app.trip_details.forEach((trip: any) => {
-        trip.bookings
-          .filter((b: any) => b.status === "completed")
-          .forEach((b: any) => {
-            rows.push({
-              bookingId: b.id,
-              expense_type: b.booking_type_id || "",
-              expense_date: trip.departure_date || "",
-              typeName: b.booking_type_name,
-              subType: b.sub_option_name || "",
-              estimated: Number(b.estimated_cost || 0),
-              amount: Number(b.estimated_cost || 0),
-              booking_file: b.booking_file,
-              has_receipt: Boolean(b.booking_file),
-              receipt_file: null,
-              distance_km: "",
-              remarks: "",
+        trip.bookings?.forEach((booking: any) => {
+          if (isClaimableBookingForExpense(booking)) {
+            rows.push(buildClaimableBookingRow(booking, trip));
+          } else if (isClosedNonClaimableBooking(booking)) {
+            notClaimableClosed.push({
+              ...booking,
+              tripDepartureDate: trip.departure_date,
             });
-          });
+          }
+        });
       });
-      console.log(rows);
-      setBookingRows(rows);
     }
 
+    setBookingRows(rows);
+    setClosedNonClaimableBookings(notClaimableClosed);
     setOtherExpenses([]);
   };
 
@@ -974,11 +976,67 @@ export default function CreateClaimApplicationPage() {
               )}
             </Card>
 
+            {closedNonClaimableBookings.length > 0 && (
+              <Card className="p-6 mb-6 border-amber-200 bg-amber-50/40">
+                <h3 className="text-base font-medium text-foreground mb-2">
+                  Closed Bookings — Not Claimable
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Travel Desk closed these bookings and marked them as not
+                  eligible for reimbursement. Details are shown for your
+                  reference.
+                </p>
+                <div className="space-y-3">
+                  {closedNonClaimableBookings.map((booking) => {
+                    const info = getClosedBookingClosureInfo(booking);
+                    return (
+                      <div
+                        key={booking.id}
+                        className="rounded-md border border-amber-200 bg-white p-4 text-sm"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="font-medium text-slate-900">
+                            {booking.booking_type_name}
+                            {booking.sub_option_name
+                              ? ` (${booking.sub_option_name})`
+                              : ""}
+                          </span>
+                          <Badge variant="outline" className="text-red-700 border-red-200">
+                            Closed — Claim Not Allowed
+                          </Badge>
+                        </div>
+                        {info.closureReason ? (
+                          <p className="text-slate-700">
+                            <span className="font-medium">Closure reason: </span>
+                            {info.closureReason}
+                          </p>
+                        ) : null}
+                        {info.claimDecisionReason ? (
+                          <p className="text-slate-700 mt-1">
+                            <span className="font-medium">
+                              Why claim is not allowed:{" "}
+                            </span>
+                            {info.claimDecisionReason}
+                          </p>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+
             {/* BOOKING EXPENSES TABLE */}
             <Card className="p-6 mb-6">
               <h3 className="text-base font-medium text-foreground mb-4">
                 Claim Items — Bookings
               </h3>
+
+              {bookingRows.length === 0 && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  No claimable booking line items for this travel application.
+                </p>
+              )}
 
               <div className="overflow-x-auto no-scrollbar">
                 <Table>
@@ -1054,6 +1112,16 @@ export default function CreateClaimApplicationPage() {
                                 ({row.subType})
                               </span>
                             )}
+                            {/* {row.isDeskClosed && (
+                              <div className="mt-1 space-y-1">
+                                Desk Closed — Claim Allowed
+                                {row.closureReason ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    {row.closureReason}
+                                  </p>
+                                ) : null}
+                              </div>
+                            )} */}
                           </div>
                         </TableCell>
 

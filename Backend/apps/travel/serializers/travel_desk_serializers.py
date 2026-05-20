@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
+from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote, BookingClosureLog
 from apps.travel.models.audit import AuditLog
 from apps.travel.serializers.travel_serializers import TripDetailsSerializer, BookingSerializer
 from apps.travel.serializers.travel_application_details_serializer import ApplicationTravelerSerializer
@@ -106,6 +106,8 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             "handling_travel_desk_user",
             "is_forwardable",
             "permissions",
+            "allow_claim",
+            "closed_at",
             "travel_for",
             "travelers",
             "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_grade",
@@ -240,28 +242,42 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         is_primary_spoc = self.context.get('is_primary_spoc', False)
 
-        # --- Leaf-node states: no actions possible at all ---
-        is_self_arranged = bool(obj.booking_details.get('is_self_arranged', False))
-        is_terminal = obj.status in ['cancelled', 'completed']
+        inactive = {
+            'can_forward': False,
+            'can_cancel': False,
+            'can_close': False,
+            'can_add_note': False,
+            'can_reclaim': False,
+            'can_update_claim_eligibility': False,
+            'is_delegated': False,
+        }
 
-        if is_self_arranged or is_terminal:
+        is_self_arranged = bool(obj.booking_details.get('is_self_arranged', False))
+
+        if is_self_arranged:
+            return inactive
+
+        if obj.status == 'closed':
+            if not request:
+                return inactive
+            handler = obj.handling_travel_desk_user
+            current_user = request.user
+            owned_by_me = handler is not None and handler.id == current_user.id
+            unassigned = handler is None
+            can_manage_closed = owned_by_me or (unassigned and is_primary_spoc)
             return {
-                'can_forward': False,
-                'can_cancel': False,
-                'can_add_note': False,
-                'can_reclaim': False,
-                'is_delegated': False,
+                **inactive,
+                'can_add_note': can_manage_closed,
+                'can_update_claim_eligibility': can_manage_closed,
             }
+
+        is_terminal = obj.status in ['cancelled', 'completed']
+        if is_terminal:
+            return inactive
 
         # --- Active booking: determine ownership ---
         if not request:
-            return {
-                'can_forward': False,
-                'can_cancel': False,
-                'can_add_note': False,
-                'can_reclaim': False,
-                'is_delegated': False,
-            }
+            return inactive
 
         handler = obj.handling_travel_desk_user
         current_user = request.user
@@ -271,12 +287,16 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         unassigned = (handler is None)
         owned_by_other = (handler is not None and handler.id != current_user.id)
 
+        closable_statuses = ['pending', 'requested', 'in_progress', 'confirmed']
+
         if owned_by_me:
             return {
                 'can_forward': obj.status in ['pending', 'requested'],
-                'can_cancel': obj.status in ['pending', 'requested', 'in_progress', 'confirmed'],
+                'can_cancel': obj.status in closable_statuses,
+                'can_close': obj.status in closable_statuses,
                 'can_add_note': True,
                 'can_reclaim': False,
+                'can_update_claim_eligibility': False,
                 'is_delegated': False,
             }
 
@@ -285,38 +305,29 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
                 # SPOC1 can act on unassigned bookings in their application
                 return {
                     'can_forward': obj.status in ['pending', 'requested'],
-                    'can_cancel': obj.status in ['pending', 'requested', 'in_progress', 'confirmed'],
+                    'can_cancel': obj.status in closable_statuses,
+                    'can_close': obj.status in closable_statuses,
                     'can_add_note': True,
                     'can_reclaim': False,
+                    'can_update_claim_eligibility': False,
                     'is_delegated': False,
                 }
             else:
                 # SPOC2 cannot act on bookings not explicitly assigned to them
-                return {
-                    'can_forward': False,
-                    'can_cancel': False,
-                    'can_add_note': False,
-                    'can_reclaim': False,
-                    'is_delegated': False,
-                }
+                return inactive
 
         if owned_by_other:
             return {
                 'can_forward': False,
                 'can_cancel': False,
+                'can_close': False,
                 'can_add_note': False,
-                # Primary SPOC can always reclaim a booking they delegated out
                 'can_reclaim': is_primary_spoc,
+                'can_update_claim_eligibility': False,
                 'is_delegated': True,
             }
 
-        return {
-            'can_forward': False,
-            'can_cancel': False,
-            'can_add_note': False,
-            'can_reclaim': False,
-            'is_delegated': False,
-        }
+        return inactive
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -453,7 +464,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     def get_booked_bookings(self, obj):
         return Booking.objects.filter(
             trip_details__travel_application=obj,
-            status__in=["confirmed", "completed"]
+            status__in=["confirmed", "completed", "closed"]
         ).count()
     
     def get_actionable_booking_ids(self, obj):
