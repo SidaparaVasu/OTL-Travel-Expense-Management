@@ -805,7 +805,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                   Accepted:
                                 </span>{" "}
                                 <span className="text-slate-900">
-                                  {show(assignment?.accepted_at, "Action Pending")}
+                                  {show(assignment?.accepted_at, "Action not taken")}
                                 </span>
                               </div>
                               <div>
@@ -813,7 +813,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                   Confirmed / Cancelled:
                                 </span>{" "}
                                 <span className="text-slate-900">
-                                  {show(assignment?.completed_at, "Action Pending")}
+                                  {show(assignment?.completed_at, "Action not taken")}
                                 </span>
                               </div>
                             </div>
@@ -1075,7 +1075,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {show(assignment?.accepted_at, "Action Pending")}
+                                {show(assignment?.accepted_at, "Action not taken")}
                               </span>
                             </div>
                             <div>
@@ -1083,7 +1083,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Confirmed / Cancelled:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {show(assignment?.completed_at, "Action Pending")}
+                                {show(assignment?.completed_at, "Action not taken")}
                               </span>
                             </div>
                           </div>
@@ -1394,7 +1394,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {show(assignment?.accepted_at, "Action Pending")}
+                                {show(assignment?.accepted_at, "Action not taken")}
                               </span>
                             </div>
                             <div>
@@ -1402,7 +1402,7 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Confirmed / Cancelled:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {show(assignment?.completed_at, "Action Pending")}
+                                {show(assignment?.completed_at, "Action not taken")}
                               </span>
                             </div>
                           </div>
