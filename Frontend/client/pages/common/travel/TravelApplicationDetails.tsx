@@ -308,16 +308,40 @@ export const TravelApplicationDetails: React.FC = () => {
                 {data?.application?.grade || ""}
               </span>
             </div>
-            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200 flex-1 min-w-[150px]">
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[150px]">
               <span className="font-semibold text-slate-700">Department:</span>{" "}
               <span className="text-slate-900">
                 {data?.application?.department || ""}
               </span>
             </div>
-            <div className="p-4 flex-1 min-w-[180px]">
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[180px]">
               <span className="font-semibold text-slate-700">Designation:</span>{" "}
               <span className="text-slate-900">
                 {data?.application?.designation || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[150px]">
+              <span className="font-semibold text-slate-700">Email:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.email || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-1 md:border-r border-slate-200 flex-1 min-w-[180px]">
+              <span className="font-semibold text-slate-700">Mobile:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.mobile || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200 flex-1 min-w-[150px]">
+              <span className="font-semibold text-slate-700">Age:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.age || ""}
+              </span>
+            </div>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200 flex-1 min-w-[180px]">
+              <span className="font-semibold text-slate-700">Gender:</span>{" "}
+              <span className="text-slate-900">
+                {data?.application?.gender || ""}
               </span>
             </div>
           </div>
