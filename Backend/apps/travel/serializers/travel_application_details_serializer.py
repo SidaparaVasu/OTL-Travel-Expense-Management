@@ -430,6 +430,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     status = serializers.CharField()
     vehicle_type = serializers.SerializerMethodField()
     vehicle_subtype = serializers.SerializerMethodField()
+    requested_vehicle_model = serializers.SerializerMethodField()
     from_location = serializers.SerializerMethodField()
     to_location = serializers.SerializerMethodField()
     report_at = serializers.SerializerMethodField()
@@ -462,6 +463,16 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
     def get_vehicle_subtype(self, obj):
         return obj.sub_option.name if obj.sub_option else ""
+
+    def get_requested_vehicle_model(self, obj):
+        """Return the vehicle model requested by travel desk for this booking."""
+        try:
+            assignment = obj.assignment
+            if assignment and assignment.requested_vehicle_type:
+                return assignment.requested_vehicle_type.name
+        except BookingAssignment.DoesNotExist:
+            pass
+        return ""
     
     def get_from_location(self, obj):
         return obj.booking_details.get('from_location', '')
@@ -525,33 +536,15 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         }
 
     def get_assignments(self, obj):
-        # Get assignment from related booking
         try:
-            related_booking = obj.trip_details.bookings.filter(
-                booking_type__name='Conveyance'
-            ).first()
-            if related_booking:
-                try:
-                    assignment = related_booking.assignment
-                    return [BookingAssignmentSerializer(assignment).data]
-                except BookingAssignment.DoesNotExist:
-                    pass
-        except:
-            pass
-        return []
+            assignment = obj.assignment
+            return [BookingAssignmentSerializer(assignment).data]
+        except BookingAssignment.DoesNotExist:
+            return []
 
     def get_booking_notes(self, obj):
-        # Get notes from related booking
-        try:
-            related_booking = obj.trip_details.bookings.filter(
-                booking_type__name='Conveyance'
-            ).first()
-            if related_booking:
-                notes = related_booking.notes.all()
-                return BookingNoteSerializer(notes, many=True).data
-        except:
-            pass
-        return []
+        notes = obj.notes.all()
+        return BookingNoteSerializer(notes, many=True).data
 
     def get_booking_file(self, obj):
         return obj.booking_file.url if obj.booking_file else None
@@ -748,8 +741,9 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'booking_type',
             'sub_option',
             'trip_details__from_location',
-            'trip_details__to_location'
-        )
+            'trip_details__to_location',
+            'assignment__requested_vehicle_type',
+        ).prefetch_related('notes')
         
         logger.info(f"DEBUG: Found {vehicle_bookings.count()} vehicle bookings for application {obj.id}")
         return ConveyanceBookingSerializer(vehicle_bookings, many=True).data

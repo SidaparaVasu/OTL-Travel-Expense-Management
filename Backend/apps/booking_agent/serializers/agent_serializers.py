@@ -40,6 +40,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     gl_code = serializers.SerializerMethodField()
     sanction_number = serializers.SerializerMethodField()
     travel_for = serializers.CharField(source="trip_details.travel_application.travel_for", read_only=True)
+    requested_vehicle_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -52,7 +53,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
             'meal_preference',
             'employee_name', 'employee_email', 'employee_mobile',
             'employee_gender', 'employee_grade', 'employee_age',
-            'notes', 'travelers',
+            'notes', 'travelers', 'requested_vehicle_type',
         ]
     
     meal_preference = serializers.SerializerMethodField()
@@ -64,6 +65,18 @@ class AgentBookingSerializer(serializers.ModelSerializer):
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
+
+    def get_requested_vehicle_type(self, obj):
+        try:
+            assignment = obj.assignment
+            if assignment and assignment.requested_vehicle_type:
+                return {
+                    "id": assignment.requested_vehicle_type.id,
+                    "name": assignment.requested_vehicle_type.name,
+                }
+        except BookingAssignment.DoesNotExist:
+            pass
+        return None
 
     def get_assigned_agent_name(self, obj):
         assignment = getattr(obj, 'active_assignment', None)
@@ -157,6 +170,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     gl_code = serializers.SerializerMethodField()
     sanction_number = serializers.SerializerMethodField()
     travel_for = serializers.CharField(source="trip_details.travel_application.travel_for", read_only=True)
+    requested_vehicle_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -176,7 +190,8 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
             "trip_start_date",
             "trip_end_date",
             "notes",
-            "travelers"
+            "travelers",
+            "requested_vehicle_type",
         ]
 
     meal_preference = serializers.SerializerMethodField()
@@ -218,6 +233,18 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
 
     def get_status_label(self, obj):
         return obj.get_status_display()
+
+    def get_requested_vehicle_type(self, obj):
+        try:
+            assignment = obj.assignment
+            if assignment and assignment.requested_vehicle_type:
+                return {
+                    "id": assignment.requested_vehicle_type.id,
+                    "name": assignment.requested_vehicle_type.name,
+                }
+        except BookingAssignment.DoesNotExist:
+            pass
+        return None
 
     def get_internal_order(self, obj):
         return obj.trip_details.travel_application.internal_order or ""

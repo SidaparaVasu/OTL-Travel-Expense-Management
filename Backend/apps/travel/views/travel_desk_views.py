@@ -419,6 +419,8 @@ class TravelDeskAssignBookingsView(APIView):
         application_id = serializer.validated_data["_application_id"]
         bookings = serializer.validated_data["_bookings"]
         requested_vehicle_type_id = serializer.validated_data.get("requested_vehicle_type_id")
+        # Distinguish "not provided" from "explicitly set to null/value"
+        vehicle_type_explicitly_set = "requested_vehicle_type_id" in request.data
         note_text = serializer.validated_data.get("note")
         
         # Validate no self-arranged bookings
@@ -453,12 +455,15 @@ class TravelDeskAssignBookingsView(APIView):
                     assignment.assigned_at = timezone.now()
                     assignment.accepted_at = None
                     assignment.completed_at = None
-                    assignment.requested_vehicle_type_id = requested_vehicle_type_id
-                    assignment.save(update_fields=[
+                    save_fields = [
                         "assigned_to", "assigned_by", "assignment_scope",
                         "assigned_at", "accepted_at", "completed_at",
-                        "requested_vehicle_type"
-                    ])
+                    ]
+                    # Only overwrite vehicle type if explicitly provided in the request
+                    if vehicle_type_explicitly_set:
+                        assignment.requested_vehicle_type_id = requested_vehicle_type_id
+                        save_fields.append("requested_vehicle_type_id")
+                    assignment.save(update_fields=save_fields)
 
                 # Update booking status
                 if b.status == "pending":
@@ -552,6 +557,8 @@ class TravelDeskReassignBookingView(APIView):
     def post(self, request, booking_id):
         new_agent_id = request.data.get("new_agent_id")
         remarks = request.data.get("remarks", "")
+        requested_vehicle_type_id = request.data.get("requested_vehicle_type_id")
+        vehicle_type_explicitly_set = "requested_vehicle_type_id" in request.data
 
         if not new_agent_id:
             return error_response(message="new_agent_id is required")
@@ -573,17 +580,22 @@ class TravelDeskReassignBookingView(APIView):
             assignment = BookingAssignment.objects.filter(booking=booking).first()
             old_agent = assignment.assigned_to if assignment else None
 
-            # Update or create assignment
+            # Update or create assignment — preserve vehicle type if not explicitly changed
+            update_fields = {
+                "assigned_to": new_agent,
+                "assigned_by": request.user,
+                "assignment_scope": "single_booking",
+                "assigned_at": timezone.now(),
+                "accepted_at": None,
+                "completed_at": None,
+            }
+            # Only update vehicle type if explicitly provided in the request body
+            if vehicle_type_explicitly_set:
+                update_fields["requested_vehicle_type_id"] = requested_vehicle_type_id
+
             assignment, created = BookingAssignment.objects.update_or_create(
                 booking=booking,
-                defaults={
-                    "assigned_to": new_agent,
-                    "assigned_by": request.user,
-                    "assignment_scope": "single_booking",
-                    "assigned_at": timezone.now(),
-                    "accepted_at": None,
-                    "completed_at": None,
-                }
+                defaults=update_fields,
             )
 
             # Add note

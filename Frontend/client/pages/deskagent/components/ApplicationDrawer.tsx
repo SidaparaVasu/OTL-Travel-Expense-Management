@@ -288,6 +288,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
       } else if (forwardType === "reassign" && selectedBookingForAction) {
         await travelDeskAPI.bookings.reassign(selectedBookingForAction.id, {
           new_agent_id: agentId,
+          // Only include the key when a vehicle was explicitly selected
+          ...(vehicleTypeId !== undefined && { requested_vehicle_type_id: vehicleTypeId }),
         });
       } else {
         await travelDeskAPI.bookings.assign({
@@ -295,7 +297,8 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
           booking_agent_id: agentId,
           scope: ids.length === 1 ? "single_booking" : "full_application",
           note: note || undefined,
-          requested_vehicle_type_id: vehicleTypeId,
+          // Only include when explicitly selected — omitting preserves existing vehicle type
+          ...(vehicleTypeId !== undefined && { requested_vehicle_type_id: vehicleTypeId }),
         });
       }
 

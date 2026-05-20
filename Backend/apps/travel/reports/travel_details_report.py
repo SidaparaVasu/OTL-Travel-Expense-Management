@@ -104,6 +104,7 @@ class TravelDetailsReport(TravelReportMixin, BaseReport):
             formatted.append({
                 "type": b.get('vehicle_type', ''),
                 "sub_type": b.get('vehicle_subtype', ''),
+                "requested_vehicle_model": b.get('requested_vehicle_model', ''),
                 "route": f"{b.get('from_location', '')} -> {b.get('to_location', '')}",
                 "reporting": f"{b.get('report_at', '')} {b.get('start_datetime', '')}",
                 "passengers": b.get('passengers', '1'),

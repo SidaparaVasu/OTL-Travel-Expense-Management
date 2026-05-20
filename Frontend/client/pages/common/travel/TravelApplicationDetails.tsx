@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/StatusBadge";
 import { API_BASE_URL } from "@/config/api.config";
@@ -1112,6 +1112,9 @@ export const TravelApplicationDetails: React.FC = () => {
                               Sub-type
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                              Requested Vehicle Model
+                            </th>
+                            <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                               Route
                             </th>
                             <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
@@ -1147,6 +1150,9 @@ export const TravelApplicationDetails: React.FC = () => {
                             </td>
                             <td className="border border-slate-200 p-3">
                               {booking.vehicle_subtype}
+                            </td>
+                            <td className="border border-slate-200 p-3">
+                              {booking.requested_vehicle_model || "—"}
                             </td>
                             <td className="border border-slate-200 p-3">
                               {booking.from_location} → {booking.to_location}
@@ -1204,7 +1210,7 @@ export const TravelApplicationDetails: React.FC = () => {
                           {booking.special_instructions && (
                             <tr className="bg-blue-50/30">
                               <td
-                                colSpan={11}
+                                colSpan={12}
                                 className="border border-slate-200 p-3"
                               >
                                 <strong className="text-slate-700">
@@ -1218,7 +1224,7 @@ export const TravelApplicationDetails: React.FC = () => {
                           )}
                           <tr className="bg-slate-50">
                             <td
-                              colSpan={11}
+                              colSpan={12}
                               className="border border-slate-200 p-3"
                             >
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1317,9 +1323,17 @@ export const TravelApplicationDetails: React.FC = () => {
                       </div>
                     </CollapsibleSection>
 
+
                     {/* Booking Agent - Collapsible */}
                     {booking.assignments.length > 0 && (
                       <CollapsibleSection title="Booking Agent">
+                        {/* Assigned vehicle model — shown prominently for conveyance bookings */}
+                        {booking.requested_vehicle_model && (
+                          <div className="mb-3 flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-md px-3 py-2 text-sm">
+                            <span className="font-semibold text-sky-700">Assigned Vehicle Model:</span>
+                            <span className="text-sky-900 font-bold">{booking.requested_vehicle_model}</span>
+                          </div>
+                        )}
                         {booking.assignments.map((assignment, assignIdx) => (
                           <div
                             key={assignIdx}

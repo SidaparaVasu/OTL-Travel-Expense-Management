@@ -256,6 +256,7 @@ export interface AddNotePayload {
 
 export interface ReassignBookingPayload {
   new_agent_id: number;
+  requested_vehicle_type_id?: number | null;
 }
 
 export interface CancelApplicationPayload {

@@ -94,7 +94,6 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
               ) {
                 group = "ticket";
               } else {
-                // Default everything else to conveyance (Cab, Local, Rent-a-car)
                 group = "conveyance";
               }
             }
@@ -117,9 +116,11 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
     }
   }, [isOpen, isDeskForward, booking]);
 
-  // Determine if vehicle selection is applicable
+  // Determine if vehicle selection is applicable (forward OR reassign, not desk-forward)
   const isVehicleSelectionApplicable = () => {
-    if (!booking || type !== "forward" || isDeskForward) return false;
+    if (!booking || isDeskForward) return false;
+    if (type !== "forward" && type !== "reassign") return false;
+
     const typeName = booking.booking_type_name?.toLowerCase() || "";
     // Exclude Flight, Train, Accommodation
     if (
@@ -146,19 +147,39 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
 
   const showVehicleSelection = isVehicleSelectionApplicable();
 
-  // Fetch Vehicle Types when Agent matches and Booking is applicable
+  // When re-assigning, initialize selected vehicle type from stored booking value.
+  // This ensures the previous choice is visible even before agent selection.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!showVehicleSelection) return;
+    if (type !== "reassign") return;
+    if (booking?.requested_vehicle_type?.id && selectedVehicleTypeId == null) {
+      setSelectedVehicleTypeId(booking.requested_vehicle_type.id);
+    }
+  }, [isOpen, showVehicleSelection, type, booking, selectedVehicleTypeId]);
+
+  // Fetch Vehicle Types when agent is selected and booking is applicable
   useEffect(() => {
     if (showVehicleSelection && selectedAgentId) {
       const fetchVehicles = async () => {
         setFetchingVehicleTypes(true);
-        setVehicleTypes([]); // Clear previous
+        setVehicleTypes([]);
         try {
           const res =
             await travelDeskAPI.agents.getAgentVehicleTypes(selectedAgentId);
-          setVehicleTypes(res.data || []);
+          const types = res.data || [];
+          setVehicleTypes(types);
+
+          // Pre-fill with existing vehicle type if re-assigning and it exists in the list
+          if (type === "reassign" && booking?.requested_vehicle_type) {
+            const existingId = booking.requested_vehicle_type.id;
+            const match = types.find((vt) => vt.id === existingId);
+            if (match) {
+              setSelectedVehicleTypeId(existingId);
+            }
+          }
         } catch (err) {
           console.error("Failed to load vehicle types", err);
-          // Don't block UI, just no options
         } finally {
           setFetchingVehicleTypes(false);
         }
@@ -166,8 +187,9 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
       fetchVehicles();
     } else {
       setVehicleTypes([]);
+      // Don't clear selectedVehicleTypeId here; for reassign we must retain
+      // the previously selected value even when changing the agent.
     }
-    setSelectedVehicleTypeId(null);
   }, [selectedAgentId, showVehicleSelection]);
 
   // Reset state on close
@@ -196,7 +218,7 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
     }
 
     setError(null);
-    onConfirm(selectedAgentId, note, selectedVehicleTypeId || undefined);
+    onConfirm(selectedAgentId, note, selectedVehicleTypeId != null ? selectedVehicleTypeId : undefined);
   };
 
   const handleClose = () => {
@@ -340,16 +362,27 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
           </div>
 
           {/* Vehicle Type Selection */}
-          {showVehicleSelection && selectedAgentId && (
+          {showVehicleSelection && (
             <div className="space-y-2">
-              <Label>Preferred Vehicle Type (Optional)</Label>
-              {fetchingVehicleTypes ? (
+              <Label>
+                Preferred Vehicle Type{" "}
+                {type === "reassign" && booking?.requested_vehicle_type && (
+                  <span className="text-xs text-primary font-normal ml-1">
+                    (previously: {booking.requested_vehicle_type.name})
+                  </span>
+                )}
+              </Label>
+              {!selectedAgentId ? (
+                <div className="text-sm text-slate-400 italic">
+                  Select an agent first to see available vehicle types.
+                </div>
+              ) : fetchingVehicleTypes ? (
                 <div className="text-sm text-slate-500">
                   Loading vehicle types...
                 </div>
               ) : vehicleTypes.length > 0 ? (
                 <Select
-                  value={selectedVehicleTypeId?.toString()}
+                  value={selectedVehicleTypeId?.toString() ?? ""}
                   onValueChange={(val) =>
                     setSelectedVehicleTypeId(parseInt(val))
                   }
@@ -358,11 +391,23 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({
                     <SelectValue placeholder="Select vehicle type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicleTypes.map((vt) => (
-                      <SelectItem key={vt.id} value={vt.id.toString()}>
-                        {vt.name}
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const existing = booking?.requested_vehicle_type;
+                      const shouldInjectExisting =
+                        !!existing &&
+                        selectedVehicleTypeId === existing.id &&
+                        !vehicleTypes.some((vt) => vt.id === existing.id);
+
+                      const combined = shouldInjectExisting
+                        ? [{ id: existing.id, name: existing.name }, ...vehicleTypes]
+                        : vehicleTypes;
+
+                      return combined.map((vt) => (
+                        <SelectItem key={vt.id} value={vt.id.toString()}>
+                          {vt.name}
+                        </SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
               ) : (

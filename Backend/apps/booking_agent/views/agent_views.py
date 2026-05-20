@@ -193,6 +193,7 @@ class BookingAgentDashboardView(APIView):
                 "trip_details__travel_application__general_ledger",
                 "booking_type",
                 "sub_option",
+                "assignment__requested_vehicle_type",
             )
             .order_by("-updated_at")[:5]
         )
@@ -227,6 +228,7 @@ class BookingAgentBookingsListView(APIView):
             "trip_details__to_location",
             "booking_type",
             "sub_option",
+            "assignment__requested_vehicle_type",
         )
 
         status_filter = request.query_params.get("status")
@@ -816,8 +818,14 @@ class BookingAgentRejectBookingView(APIView):
             },
         )
 
-        # Clear assignment
-        assignment.delete()
+        # IMPORTANT:
+        # Do NOT delete the assignment row on rejection.
+        # We must preserve travel desk-selected metadata like requested_vehicle_type
+        # so it remains visible during re-forward/reassignment (and in reports).
+        assignment.assigned_to = None
+        assignment.accepted_at = None
+        assignment.completed_at = None
+        assignment.save(update_fields=["assigned_to", "accepted_at", "completed_at"])
 
         return success_response(
             message="Booking rejected successfully. It has been returned to the travel desk.",
