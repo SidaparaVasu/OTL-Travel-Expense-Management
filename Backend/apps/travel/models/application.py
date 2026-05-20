@@ -292,6 +292,18 @@ class TravelApplication(models.Model):
 
             # Helper to trigger auto-forwarding (only if going to travel desk/bookings)
             if self.status == 'pending_travel_desk':
+                try:
+                    from apps.travel.services.travel_desk_display import (
+                        initialize_travel_desk_ownership,
+                    )
+                    initialize_travel_desk_ownership(self)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(
+                        f"Failed to initialize travel desk ownership for app {self.id}: {e}"
+                    )
+
                 # Trigger Notification for Travel Desk
                 try:
                     from apps.notifications.center import NotificationCenter
@@ -685,6 +697,19 @@ class TravelApplication(models.Model):
 
         if travel_desk_user:
             self.travel_desk_user = travel_desk_user
+            from apps.travel.models.booking import Booking as BookingModel
+            from apps.travel.services.travel_desk_display import (
+                is_self_arranged_booking,
+            )
+
+            for booking in BookingModel.objects.filter(
+                trip_details__travel_application=self
+            ).select_related("sub_option"):
+                if is_self_arranged_booking(booking):
+                    continue
+                if not booking.handling_travel_desk_user_id:
+                    booking.handling_travel_desk_user = travel_desk_user
+                    booking.save(update_fields=["handling_travel_desk_user"])
         if not self.booking_forwarded_at:
             self.booking_forwarded_at = timezone.now()
 

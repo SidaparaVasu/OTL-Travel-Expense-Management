@@ -476,6 +476,17 @@ class BookingAgentUpdateStatusView(APIView):
 
         booking.save()
 
+        if new_status in ("confirmed", "cancelled"):
+            try:
+                assignment = booking.assignment
+                if new_status == "confirmed":
+                    assignment.completed_at = booking.booked_at or timezone.now()
+                else:
+                    assignment.completed_at = timezone.now()
+                assignment.save(update_fields=["completed_at"])
+            except BookingAssignment.DoesNotExist:
+                pass
+
         # [RESTORED] Add note if provided
         if remarks:
             BookingNote.objects.create(

@@ -219,6 +219,43 @@
     </tbody>
   </table>
 
+  <!-- Travel desk & booking agent references -->
+  <div class="section-title">Travel Desk &amp; Booking Agent References</div>
+  <table>
+    <thead>
+      <tr>
+        <th>BookingID</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Travel Desk</th>
+        <th>Desk Email</th>
+        <th>Forwarded to Desk</th>
+        <th>Booking Agent</th>
+        <th>Assigned</th>
+        <th>Accepted</th>
+        <th>Confirmed / Cancelled</th>
+        <th>Req. Vehicle Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ref in booking_references %}
+      <tr>
+        <td>{{ ref.booking_id }}</td>
+        <td>{{ ref.category }}</td>
+        <td>{{ ref.status }}</td>
+        <td>{{ ref.desk_user }}</td>
+        <td>{{ ref.desk_email }}</td>
+        <td>{{ ref.forwarded_to_desk }}</td>
+        <td>{{ ref.booking_agent }}</td>
+        <td>{{ ref.agent_assigned_at }}</td>
+        <td>{{ ref.agent_accepted_at }}</td>
+        <td>{{ ref.agent_confirmed_cancelled_at }}</td>
+        <td>{{ ref.requested_vehicle_type }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   <!-- Transportation (Proper Column Separation) -->
   <div class="section-title">Booking: Ticketing</div>
   <table>

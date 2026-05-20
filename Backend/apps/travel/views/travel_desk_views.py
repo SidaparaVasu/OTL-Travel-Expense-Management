@@ -436,6 +436,10 @@ class TravelDeskAssignBookingsView(APIView):
 
         with transaction.atomic():
             for b in bookings:
+                from apps.travel.services.travel_desk_display import (
+                    ensure_handling_travel_desk_on_action,
+                )
+                ensure_handling_travel_desk_on_action(b, request.user)
 
                 assignment, created = BookingAssignment.objects.get_or_create(
                     booking=b,
@@ -575,6 +579,11 @@ class TravelDeskReassignBookingView(APIView):
             return error_response(message="Invalid booking agent")
 
         with transaction.atomic():
+            from apps.travel.services.travel_desk_display import (
+                ensure_handling_travel_desk_on_action,
+            )
+
+            ensure_handling_travel_desk_on_action(booking, request.user)
 
             # Find existing assignment if any
             assignment = BookingAssignment.objects.filter(booking=booking).first()
@@ -720,7 +729,13 @@ class ForwardApplicationView(APIView):
         agent_user = agent_profile.user
 
         with transaction.atomic():
+            from apps.travel.services.travel_desk_display import (
+                ensure_handling_travel_desk_on_action,
+            )
+
             for booking in bookings:
+                ensure_handling_travel_desk_on_action(booking, request.user)
+
                 assignment, created = BookingAssignment.objects.update_or_create(
                     booking=booking,
                     defaults={

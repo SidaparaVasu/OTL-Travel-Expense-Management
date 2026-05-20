@@ -55,6 +55,35 @@ const CollapsibleSection: React.FC<{
   );
 };
 
+const isBlank = (v: unknown) =>
+  v == null || (typeof v === "string" && v.trim().length === 0);
+
+const show = (v: unknown, fallback = "—") => (isBlank(v) ? fallback : String(v));
+
+const travelDeskUserLabel = (booking: any) => {
+  if (booking?.is_self_arranged) return "Self arranged";
+  const td = booking?.travel_desk;
+  if (!td) return "With Travel Desk";
+  if (td.desk_status && isBlank(td.user)) return String(td.desk_status);
+  return show(td.user, "With Travel Desk");
+};
+
+const travelDeskEmail = (booking: any) => {
+  if (booking?.is_self_arranged) return "—";
+  return show(booking?.travel_desk?.user_email, "—");
+};
+
+const travelDeskContact = (booking: any) => {
+  if (booking?.is_self_arranged) return "—";
+  return show(booking?.travel_desk?.user_contact, "—");
+};
+
+const travelDeskForwardedToDesk = (booking: any) => {
+  if (booking?.is_self_arranged) return "—";
+  const td = booking?.travel_desk;
+  return show(td?.forwarded_to_desk_at ?? td?.forwarded_at, "—");
+};
+
 export const TravelApplicationDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -62,7 +91,7 @@ export const TravelApplicationDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,7 +107,6 @@ export const TravelApplicationDetails: React.FC = () => {
         const response = await travelAPI.getTravelApplicationDetails(
           parseInt(id),
         );
-        console.log("response", response);
         setData(response);
       } catch (err: any) {
         console.error("Failed to fetch travel application details:", err);
@@ -102,7 +130,7 @@ export const TravelApplicationDetails: React.FC = () => {
     try {
       setUpdatingId(applicationId);
       if (action === "approve") {
-        await approvalAPI.approve(applicationId);
+        await approvalAPI.approve(parseInt(applicationId));
         toast.success("Application approved successfully");
         navigate(-1);
       } else {
@@ -111,7 +139,7 @@ export const TravelApplicationDetails: React.FC = () => {
           toast.error("Rejection reason is required");
           return;
         }
-        await approvalAPI.reject(applicationId, notes);
+        await approvalAPI.reject(parseInt(applicationId), notes);
         toast.success("Application rejected");
         navigate(-1);
       }
@@ -710,7 +738,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "Not assigned yet."}
+                              {travelDeskUserLabel(booking)}
                             </span>
                           </div>
                           <div>
@@ -718,7 +746,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Email:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                              {travelDeskEmail(booking)}
                             </span>
                           </div>
                           <div>
@@ -726,23 +754,15 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Contact:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_contact || "N/A"}
+                              {travelDeskContact(booking)}
                             </span>
                           </div>
                           <div>
                             <span className="font-medium text-slate-700">
-                              Forwarded:
+                              Forwarded to Other Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.forwarded_at || "Pending"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-slate-700">
-                              Completed:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at || "Pending"}
+                              {travelDeskForwardedToDesk(booking)}
                             </span>
                           </div>
                         </div>
@@ -750,57 +770,57 @@ export const TravelApplicationDetails: React.FC = () => {
                     </CollapsibleSection>
 
                     {/* Booking Agent - Collapsible */}
-                    {booking.assignments.length > 0 && (
-                      <CollapsibleSection title="Booking Agent Details">
-                        {booking.assignments.map((assignment, assignIdx) => (
-                          <div
-                            key={assignIdx}
-                            className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
-                          >
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Booking Agent:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.assigned_to}
-                              </span>
+                    <CollapsibleSection title="Booking Agent Details">
+                      {(booking?.assignments ?? []).length === 0 ? (
+                        <div className="text-sm text-slate-600">
+                          {booking?.is_self_arranged
+                            ? "Self arranged — no booking agent assignment."
+                            : "Not assigned to any booking agent yet."}
+                        </div>
+                      ) : (
+                        (booking?.assignments ?? []).map(
+                          (assignment: any, assignIdx: number) => (
+                            <div
+                              key={assignIdx}
+                              className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
+                            >
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Booking Agent:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.assigned_to, "—")}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Assigned:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.assigned_at, "Pending")}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Accepted:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.accepted_at, "Action Pending")}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-slate-700">
+                                  Confirmed / Cancelled:
+                                </span>{" "}
+                                <span className="text-slate-900">
+                                  {show(assignment?.completed_at, "Action Pending")}
+                                </span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Assigned:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.assigned_at}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Accepted:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.accepted_at || "Action Pending"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-slate-700">
-                                Completed:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.completed_at || "Action Pending"}
-                              </span>
-                            </div>
-                            {/* <div className="md:col-span-5">
-                              <span className="font-medium text-slate-700">
-                                Notes:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.notes || "No notes added"}
-                              </span>
-                            </div> */}
-                          </div>
-                        ))}
-                      </CollapsibleSection>
-                    )}
+                          ),
+                        )
+                      )}
+                    </CollapsibleSection>
 
                     {/* Booking Notes - Collapsible */}
                     {booking.booking_notes.length > 0 && (
@@ -989,7 +1009,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "Not assigned yet."}
+                              {travelDeskUserLabel(booking)}
                             </span>
                           </div>
                           <div>
@@ -997,7 +1017,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Email:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                              {travelDeskEmail(booking)}
                             </span>
                           </div>
                           <div>
@@ -1005,25 +1025,15 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Contact:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_contact || "N/A"}
+                              {travelDeskContact(booking)}
                             </span>
                           </div>
                           <div>
                             <span className="font-medium text-slate-700">
-                              Forwarded:
+                              Forwarded to Other Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.forwarded_at ||
-                                "Pending" ||
-                                "Pending"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-slate-700">
-                              Completed:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at || "Pending"}
+                              {travelDeskForwardedToDesk(booking)}
                             </span>
                           </div>
                         </div>
@@ -1031,9 +1041,15 @@ export const TravelApplicationDetails: React.FC = () => {
                     </CollapsibleSection>
 
                     {/* Booking Agent - Collapsible */}
-                    {booking.assignments.length > 0 && (
-                      <CollapsibleSection title="Booking Agent">
-                        {booking.assignments.map((assignment, assignIdx) => (
+                    <CollapsibleSection title="Booking Agent Details">
+                      {(booking?.assignments ?? []).length === 0 ? (
+                        <div className="text-sm text-slate-600">
+                          {booking?.is_self_arranged
+                            ? "Self arranged — no booking agent assignment."
+                            : "Not assigned to any booking agent yet."}
+                        </div>
+                      ) : (
+                        (booking?.assignments ?? []).map((assignment, assignIdx) => (
                           <div
                             key={assignIdx}
                             className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
@@ -1059,29 +1075,21 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.accepted_at}
+                                {show(assignment?.accepted_at, "Action Pending")}
                               </span>
                             </div>
                             <div>
                               <span className="font-medium text-slate-700">
-                                Completed:
+                                Confirmed / Cancelled:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.completed_at || "Pending"}
-                              </span>
-                            </div>
-                            <div className="md:col-span-5">
-                              <span className="font-medium text-slate-700">
-                                Notes:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.notes}
+                                {show(assignment?.completed_at, "Action Pending")}
                               </span>
                             </div>
                           </div>
-                        ))}
-                      </CollapsibleSection>
-                    )}
+                        ))
+                      )}
+                    </CollapsibleSection>
 
                     {/* Booking Notes - Collapsible */}
                     {booking.booking_notes.length > 0 && (
@@ -1308,7 +1316,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk User:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user || "Not assigned yet."}
+                              {travelDeskUserLabel(booking)}
                             </span>
                           </div>
                           <div>
@@ -1316,7 +1324,7 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Email:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_email || "Not assigned yet."}
+                              {travelDeskEmail(booking)}
                             </span>
                           </div>
                           <div>
@@ -1324,23 +1332,15 @@ export const TravelApplicationDetails: React.FC = () => {
                               Travel Desk Contact:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.user_contact || "N/A"}
+                              {travelDeskContact(booking)}
                             </span>
                           </div>
                           <div>
                             <span className="font-medium text-slate-700">
-                              Forwarded:
+                              Forwarded to Other Desk:
                             </span>{" "}
                             <span className="text-slate-900">
-                              {booking?.travel_desk?.forwarded_at || "Pending"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-slate-700">
-                              Completed:
-                            </span>{" "}
-                            <span className="text-slate-900">
-                              {booking?.travel_desk?.completed_at || "Pending"}
+                              {travelDeskForwardedToDesk(booking)}
                             </span>
                           </div>
                         </div>
@@ -1349,16 +1349,26 @@ export const TravelApplicationDetails: React.FC = () => {
 
 
                     {/* Booking Agent - Collapsible */}
-                    {booking.assignments.length > 0 && (
-                      <CollapsibleSection title="Booking Agent">
+                    <CollapsibleSection title="Booking Agent Details">
                         {/* Assigned vehicle model — shown prominently for conveyance bookings */}
                         {booking.requested_vehicle_model && (
                           <div className="mb-3 flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-md px-3 py-2 text-sm">
-                            <span className="font-semibold text-sky-700">Assigned Vehicle Model:</span>
-                            <span className="text-sky-900 font-bold">{booking.requested_vehicle_model}</span>
+                            <span className="font-semibold text-sky-700">
+                              Requested Vehicle Type:
+                            </span>
+                            <span className="text-sky-900 font-bold">
+                              {booking.requested_vehicle_model}
+                            </span>
                           </div>
                         )}
-                        {booking.assignments.map((assignment, assignIdx) => (
+                        {(booking?.assignments ?? []).length === 0 ? (
+                          <div className="text-sm text-slate-600">
+                            {booking?.is_self_arranged
+                              ? "Self arranged — no booking agent assignment."
+                              : "Not assigned to any booking agent yet."}
+                          </div>
+                        ) : (
+                          (booking?.assignments ?? []).map((assignment, assignIdx) => (
                           <div
                             key={assignIdx}
                             className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm"
@@ -1384,29 +1394,21 @@ export const TravelApplicationDetails: React.FC = () => {
                                 Accepted:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.accepted_at}
+                                {show(assignment?.accepted_at, "Action Pending")}
                               </span>
                             </div>
                             <div>
                               <span className="font-medium text-slate-700">
-                                Completed:
+                                Confirmed / Cancelled:
                               </span>{" "}
                               <span className="text-slate-900">
-                                {assignment.completed_at || "Pending"}
-                              </span>
-                            </div>
-                            <div className="md:col-span-5">
-                              <span className="font-medium text-slate-700">
-                                Notes:
-                              </span>{" "}
-                              <span className="text-slate-900">
-                                {assignment.notes}
+                                {show(assignment?.completed_at, "Action Pending")}
                               </span>
                             </div>
                           </div>
-                        ))}
+                          ))
+                        )}
                       </CollapsibleSection>
-                    )}
 
                     {/* Booking Notes - Collapsible */}
                     {booking.booking_notes.length > 0 && (

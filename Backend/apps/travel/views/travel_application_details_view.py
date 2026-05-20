@@ -45,6 +45,11 @@ class TravelApplicationDetailsView(BranchFilterMixin, generics.RetrieveAPIView):
                     'trip_details__to_location',
                     'trip_details__travel_application',
                     'trip_details__travel_application__employee',
+                    'trip_details__travel_application__travel_desk_user',
+                    'handling_travel_desk_user',
+                    'assignment__assigned_to',
+                    'assignment__assigned_by',
+                    'assignment__requested_vehicle_type',
                 ).prefetch_related(
                     Prefetch(
                         'notes',
