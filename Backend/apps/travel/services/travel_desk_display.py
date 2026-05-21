@@ -5,6 +5,14 @@ from django.db.models import Q
 
 from apps.travel.models import Booking
 
+TRAVEL_DESK_ROLE_NAMES = ("Travel Desk", "Global Travel Desk")
+
+
+def user_is_travel_desk(user) -> bool:
+    if not user:
+        return False
+    return any(user.has_role(role_name) for role_name in TRAVEL_DESK_ROLE_NAMES)
+
 
 def is_self_arranged_booking(booking: Booking) -> bool:
     if booking.sub_option and "self" in (booking.sub_option.name or "").lower():
@@ -20,30 +28,41 @@ def resolve_primary_travel_desk_for_application(application):
 
     employee = application.employee
     profile = getattr(employee, "get_profile", lambda: None)()
-    if not profile or not getattr(profile, "base_location_id", None):
+    if not profile or not profile.base_location_id:
         return None
 
     loc_id = profile.base_location_id
     assignment = (
         LocationSPOCAssignment.objects.filter(
             is_active=True,
-            role__name__in=["Travel Desk", "Global Travel Desk"],
+            role__name__in=list(TRAVEL_DESK_ROLE_NAMES),
         )
-        .filter(Q(is_global=True) | Q(locations__id=loc_id))
+        .filter(Q(is_global=True) | Q(locations__location_id=loc_id))
         .select_related("user")
         .order_by("-is_global", "id")
         .first()
     )
-    return assignment.user if assignment else None
+    if not assignment:
+        return None
+    spoc_user = assignment.user
+    return spoc_user if user_is_travel_desk(spoc_user) else None
 
 
 def resolve_handling_travel_desk_user(booking: Booking):
-    """Booking handler first, then application-level travel desk owner."""
+    """
+    Booking handler first, then application-level travel desk owner.
+    Ignores stored users who do not have a Travel Desk role (e.g. approvers
+    incorrectly written by auto-forward).
+    """
     if booking.handling_travel_desk_user_id:
-        return booking.handling_travel_desk_user
+        user = booking.handling_travel_desk_user
+        if user_is_travel_desk(user):
+            return user
     app = booking.trip_details.travel_application
     if app.travel_desk_user_id:
-        return app.travel_desk_user
+        user = app.travel_desk_user
+        if user_is_travel_desk(user):
+            return user
     return None
 
 
@@ -52,12 +71,16 @@ def initialize_travel_desk_ownership(application, desk_user=None):
     Set application.travel_desk_user and per-booking handling_travel_desk_user
     when a request enters the travel desk queue.
     """
+    if desk_user is not None and not user_is_travel_desk(desk_user):
+        desk_user = None
     if desk_user is None:
         desk_user = resolve_primary_travel_desk_for_application(application)
     if not desk_user:
         return
 
-    if not application.travel_desk_user_id:
+    if not application.travel_desk_user_id or not user_is_travel_desk(
+        application.travel_desk_user
+    ):
         application.travel_desk_user = desk_user
         application.save(update_fields=["travel_desk_user"])
 
@@ -66,23 +89,32 @@ def initialize_travel_desk_ownership(application, desk_user=None):
     ).select_related("sub_option"):
         if is_self_arranged_booking(booking):
             continue
-        if not booking.handling_travel_desk_user_id:
+        if not booking.handling_travel_desk_user_id or not user_is_travel_desk(
+            booking.handling_travel_desk_user
+        ):
             booking.handling_travel_desk_user = desk_user
             booking.save(update_fields=["handling_travel_desk_user"])
 
 
 def ensure_handling_travel_desk_on_action(booking: Booking, desk_user):
-    """Keep travel desk contact on the booking when a desk user acts on it."""
+    """
+    Keep travel desk contact on the booking when a travel desk user acts on it.
+    Non–travel-desk users (approvers, applicants, etc.) are ignored.
+    """
     if is_self_arranged_booking(booking) or not desk_user:
+        return
+    if not user_is_travel_desk(desk_user):
         return
     app = booking.trip_details.travel_application
     app_updates = []
-    if not app.travel_desk_user_id:
+    if not app.travel_desk_user_id or not user_is_travel_desk(app.travel_desk_user):
         app.travel_desk_user = desk_user
         app_updates.append("travel_desk_user")
     if app_updates:
         app.save(update_fields=app_updates)
-    if not booking.handling_travel_desk_user_id:
+    if not booking.handling_travel_desk_user_id or not user_is_travel_desk(
+        booking.handling_travel_desk_user
+    ):
         booking.handling_travel_desk_user = desk_user
         booking.save(update_fields=["handling_travel_desk_user"])
 
@@ -91,14 +123,10 @@ def build_travel_desk_payload(booking: Booking, format_datetime):
     if is_self_arranged_booking(booking):
         return None
 
+    app = booking.trip_details.travel_application
     user = resolve_handling_travel_desk_user(booking)
     if not user:
-        try:
-            assignment = booking.assignment
-            if assignment and assignment.assigned_by_id:
-                user = assignment.assigned_by
-        except Exception:
-            pass
+        user = resolve_primary_travel_desk_for_application(app)
 
     if not user:
         return {

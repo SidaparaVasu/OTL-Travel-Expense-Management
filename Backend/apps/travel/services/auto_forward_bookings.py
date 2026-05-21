@@ -46,17 +46,15 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
         .select_related("booking_type")
     )
 
+    from apps.travel.services.travel_desk_display import initialize_travel_desk_ownership
+
+    initialize_travel_desk_ownership(application)
+
     for booking in bookings:
         mode_name = booking.booking_type.name.lower()
 
         if "flight" not in mode_name and "train" not in mode_name:
             continue
-
-        from apps.travel.services.travel_desk_display import (
-            ensure_handling_travel_desk_on_action,
-        )
-
-        ensure_handling_travel_desk_on_action(booking, system_user)
 
         BookingAssignment.objects.update_or_create(
             booking=booking,
