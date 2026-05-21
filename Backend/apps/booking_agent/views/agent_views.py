@@ -33,10 +33,14 @@ class BookingAgentsListView(APIView):
         try:
             group = request.query_params.get("group")
             
-            # Get all users who are booking agents
+            # Active booking agents only (user + profile must be active)
             agents = (
                 User.objects
-                .filter(user_type="external", is_active=True)
+                .filter(
+                    user_type="external",
+                    is_active=True,
+                    booking_agent_profile__is_active=True,
+                )
                 .select_related("booking_agent_profile")
             )
 
