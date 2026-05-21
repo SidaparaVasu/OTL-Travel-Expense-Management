@@ -4,7 +4,13 @@ from django.utils import timezone
 
 from apps.travel.models import Booking, BookingNote, BookingClosureLog
 from apps.travel.models.audit import AuditLog
-from apps.travel.services.refresh_application_booking_status import refresh_application_booking_status
+from apps.travel.services.refresh_application_booking_status import (
+    refresh_application_booking_status,
+)
+from apps.travel.services.travel_desk_display import (
+    is_primary_spoc_for_application as _is_primary_spoc_for_application,
+    user_is_travel_desk,
+)
 
 
 CLOSEABLE_STATUSES = {'pending', 'requested', 'in_progress', 'confirmed'}
@@ -12,12 +18,7 @@ TERMINAL_STATUSES = {'cancelled', 'completed', 'closed'}
 
 
 def is_primary_spoc_for_application(application, user) -> bool:
-    has_forwarded_bookings = Booking.objects.filter(
-        trip_details__travel_application=application,
-        handling_travel_desk_user=user,
-        travel_desk_forwarded_at__isnull=False,
-    ).exists()
-    return not has_forwarded_bookings
+    return _is_primary_spoc_for_application(application, user)
 
 
 def _validate_reason(value: str, field_label: str) -> str:
@@ -40,7 +41,7 @@ def _desk_can_act_on_booking(booking: Booking, user, is_primary_spoc: bool) -> b
     handler = booking.handling_travel_desk_user
     if handler is not None and handler.id == user.id:
         return True
-    if handler is None and is_primary_spoc:
+    if handler is None and (is_primary_spoc or user_is_travel_desk(user)):
         return True
     return False
 

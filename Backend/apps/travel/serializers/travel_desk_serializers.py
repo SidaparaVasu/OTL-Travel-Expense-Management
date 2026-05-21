@@ -239,6 +239,8 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         Returns a permissions dict that tells the frontend exactly what the
         current user can do with this booking. Backend is the single source of truth.
         """
+        from apps.travel.services.travel_desk_display import user_is_travel_desk
+
         request = self.context.get('request')
         is_primary_spoc = self.context.get('is_primary_spoc', False)
 
@@ -301,8 +303,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             }
 
         if unassigned:
-            if is_primary_spoc:
-                # SPOC1 can act on unassigned bookings in their application
+            if is_primary_spoc or user_is_travel_desk(current_user):
                 return {
                     'can_forward': obj.status in ['pending', 'requested'],
                     'can_cancel': obj.status in closable_statuses,
@@ -312,9 +313,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
                     'can_update_claim_eligibility': False,
                     'is_delegated': False,
                 }
-            else:
-                # SPOC2 cannot act on bookings not explicitly assigned to them
-                return inactive
+            return inactive
 
         if owned_by_other:
             return {
@@ -322,7 +321,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
                 'can_cancel': False,
                 'can_close': False,
                 'can_add_note': False,
-                'can_reclaim': is_primary_spoc,
+                'can_reclaim': user_is_travel_desk(current_user),
                 'can_update_claim_eligibility': False,
                 'is_delegated': True,
             }
@@ -589,38 +588,17 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
 
     def get_is_primary_spoc(self, obj):
         """
-        Determines if the current user is the 'primary' SPOC (SPOC1) for this application.
-
-        Logic:
-        - A user is a SECONDARY SPOC (SPOC2) if they have at least one booking
-          explicitly forwarded to them via `handling_travel_desk_user`.
-        - Everyone else is the PRIMARY SPOC who owns unassigned bookings.
-
-        This avoids relying on `application.travel_desk_user` which is rarely
-        set in the current workflow.
+        Primary SPOC for the application queue unless another desk user forwarded
+        work to the current user (self-reclaim does not demote primary access).
         """
+        from apps.travel.services.travel_desk_display import (
+            is_primary_spoc_for_application,
+        )
+
         request = self.context.get('request')
         if not request:
             return False
-
-        user = request.user
-
-        # If this user has ANY booking explicitly forwarded to them (not just migration-seeded),
-        # they are SPOC2 (a secondary / receiving SPOC), NOT the primary owner.
-        # We use travel_desk_forwarded_at__isnull=False to distinguish explicit forwards
-        # from bookings populated by migration (which have travel_desk_forwarded_at=null).
-        has_forwarded_bookings = Booking.objects.filter(
-            trip_details__travel_application=obj,
-            handling_travel_desk_user=user,
-            travel_desk_forwarded_at__isnull=False  # Only count explicitly forwarded ones
-        ).exists()
-
-        # If they have forwarded bookings, they are secondary → NOT primary SPOC
-        if has_forwarded_bookings:
-            return False
-
-        # Otherwise, this user is the primary handler of this application
-        return True
+        return is_primary_spoc_for_application(obj, request.user)
 
     def to_representation(self, instance):
         """Override to inject is_primary_spoc into context before serializing trips."""
