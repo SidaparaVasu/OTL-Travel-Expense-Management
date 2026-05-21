@@ -20,6 +20,14 @@ def is_self_arranged_booking(booking: Booking) -> bool:
     return bool(booking.booking_details.get("is_self_arranged", False))
 
 
+def is_flight_or_train_booking(booking: Booking) -> bool:
+    """Ticketing modes auto-forwarded to the central booking agent by the system."""
+    if not booking.booking_type_id:
+        return False
+    mode = (booking.booking_type.name or "").lower()
+    return "flight" in mode or "train" in mode
+
+
 def resolve_primary_travel_desk_for_application(application):
     """
     Resolve the primary Travel Desk SPOC for an employee's branch location.
@@ -86,8 +94,8 @@ def initialize_travel_desk_ownership(application, desk_user=None):
 
     for booking in Booking.objects.filter(
         trip_details__travel_application=application
-    ).select_related("sub_option"):
-        if is_self_arranged_booking(booking):
+    ).select_related("sub_option", "booking_type"):
+        if is_self_arranged_booking(booking) or is_flight_or_train_booking(booking):
             continue
         if not booking.handling_travel_desk_user_id or not user_is_travel_desk(
             booking.handling_travel_desk_user
@@ -121,6 +129,9 @@ def ensure_handling_travel_desk_on_action(booking: Booking, desk_user):
 
 def build_travel_desk_payload(booking: Booking, format_datetime):
     if is_self_arranged_booking(booking):
+        return None
+    # Flight/train are system auto-forwarded to booking agent — no travel desk contact.
+    if is_flight_or_train_booking(booking):
         return None
 
     app = booking.trip_details.travel_application
