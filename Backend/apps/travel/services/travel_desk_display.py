@@ -14,6 +14,45 @@ def user_is_travel_desk(user) -> bool:
     return any(user.has_role(role_name) for role_name in TRAVEL_DESK_ROLE_NAMES)
 
 
+def user_received_booking_from_other_desk(application, user) -> bool:
+    """
+    True when another travel desk user explicitly forwarded a booking to `user`
+    (excludes reclaim/assign-to-self, which must not demote primary queue access).
+    """
+    if not user:
+        return False
+    from apps.travel.models.audit import AuditLog
+
+    bookings = Booking.objects.filter(
+        trip_details__travel_application=application,
+        handling_travel_desk_user=user,
+        travel_desk_forwarded_at__isnull=False,
+    ).only("id")
+
+    for booking in bookings:
+        log = (
+            AuditLog.objects.filter(
+                action="forward_to_travel_desk",
+                changes__booking_id=booking.id,
+            )
+            .order_by("-timestamp")
+            .first()
+        )
+        if not log or not log.changes:
+            continue
+        previous = log.changes.get("previous_handler")
+        if previous and previous != user.id:
+            return True
+    return False
+
+
+def is_primary_spoc_for_application(application, user) -> bool:
+    """Primary desk queue owner unless they only hold bookings forwarded by others."""
+    if not user_is_travel_desk(user):
+        return False
+    return not user_received_booking_from_other_desk(application, user)
+
+
 def is_self_arranged_booking(booking: Booking) -> bool:
     if booking.sub_option and "self" in (booking.sub_option.name or "").lower():
         return True
@@ -76,32 +115,14 @@ def resolve_handling_travel_desk_user(booking: Booking):
 
 def initialize_travel_desk_ownership(application, desk_user=None):
     """
-    Set application.travel_desk_user and per-booking handling_travel_desk_user
-    when a request enters the travel desk queue.
+    Deprecated: do not auto-assign travel desk ownership on submit/approval.
+
+    handling_travel_desk_user and travel_desk_user are set only when a travel desk
+    user acts (ensure_handling_travel_desk_on_action, forward to desk, etc.).
+    Applicant-facing desk contact uses resolve_primary_travel_desk_for_application
+    at read time in build_travel_desk_payload.
     """
-    if desk_user is not None and not user_is_travel_desk(desk_user):
-        desk_user = None
-    if desk_user is None:
-        desk_user = resolve_primary_travel_desk_for_application(application)
-    if not desk_user:
-        return
-
-    if not application.travel_desk_user_id or not user_is_travel_desk(
-        application.travel_desk_user
-    ):
-        application.travel_desk_user = desk_user
-        application.save(update_fields=["travel_desk_user"])
-
-    for booking in Booking.objects.filter(
-        trip_details__travel_application=application
-    ).select_related("sub_option", "booking_type"):
-        if is_self_arranged_booking(booking) or is_flight_or_train_booking(booking):
-            continue
-        if not booking.handling_travel_desk_user_id or not user_is_travel_desk(
-            booking.handling_travel_desk_user
-        ):
-            booking.handling_travel_desk_user = desk_user
-            booking.save(update_fields=["handling_travel_desk_user"])
+    return
 
 
 def ensure_handling_travel_desk_on_action(booking: Booking, desk_user):

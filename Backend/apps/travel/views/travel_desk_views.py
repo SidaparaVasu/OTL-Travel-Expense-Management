@@ -1170,8 +1170,14 @@ class TravelDeskForwardToDeskView(APIView):
         with transaction.atomic():
             # 1. Update Booking
             booking.handling_travel_desk_user = target_user
-            booking.travel_desk_forwarded_at = timezone.now()
-            booking.save(update_fields=["handling_travel_desk_user", "travel_desk_forwarded_at"])
+            # Only mark forwarded when assigning to another desk user (not self-reclaim).
+            if target_user.id != request.user.id:
+                booking.travel_desk_forwarded_at = timezone.now()
+                update_fields = ["handling_travel_desk_user", "travel_desk_forwarded_at"]
+            else:
+                booking.travel_desk_forwarded_at = None
+                update_fields = ["handling_travel_desk_user", "travel_desk_forwarded_at"]
+            booking.save(update_fields=update_fields)
 
             # 2. Add System Note
             note_text = f"Forwarded to {target_user.get_full_name()} by {request.user.get_full_name()}"

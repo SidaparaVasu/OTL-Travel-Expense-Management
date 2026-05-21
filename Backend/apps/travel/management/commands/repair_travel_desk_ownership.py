@@ -1,16 +1,14 @@
 """
-Repair travel_desk_user / handling_travel_desk_user after bad auto-forward patches.
+Repair travel_desk_user / handling_travel_desk_user after bad auto-assign patches.
 
 1. Clear handling on flight/train (system auto-forward — no desk contact).
 2. Clear handling / app owner when the user is not Travel Desk / Global Travel Desk.
-3. Re-apply branch SPOC on non–flight/train bookings only.
+3. Optionally clear system-preassigned handling (no forward timestamp) on desk-queue bookings.
 """
 from django.core.management.base import BaseCommand
-from django.db import transaction
 
 from apps.travel.models import Booking, TravelApplication
 from apps.travel.services.travel_desk_display import (
-    initialize_travel_desk_ownership,
     is_flight_or_train_booking,
     user_is_travel_desk,
 )
@@ -38,6 +36,15 @@ class Command(BaseCommand):
             type=str,
             help="Limit repair to one TR id (e.g. TR/TSF/2026/0000180)",
         )
+        parser.add_argument(
+            "--clear-system-handling",
+            action="store_true",
+            help=(
+                "Also clear handling on non–flight/train bookings that were only "
+                "system-preassigned (travel_desk_forwarded_at is null). "
+                "Skips rows with an active booking-agent assignment."
+            ),
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
@@ -57,10 +64,11 @@ class Command(BaseCommand):
                 ) from exc
             apps = apps.filter(pk=pk)
 
+        clear_system = options["clear_system_handling"]
         flight_train_cleared = 0
         invalid_user_cleared = 0
+        system_handling_cleared = 0
         app_invalid_cleared = 0
-        apps_reinitialized = 0
 
         for application in apps.iterator():
             changed = False
@@ -81,7 +89,7 @@ class Command(BaseCommand):
 
             bookings = Booking.objects.filter(
                 trip_details__travel_application=application
-            ).select_related("booking_type", "handling_travel_desk_user")
+            ).select_related("booking_type", "handling_travel_desk_user", "assignment")
 
             for booking in bookings:
                 clear_handling = False
@@ -96,6 +104,19 @@ class Command(BaseCommand):
                 ):
                     clear_handling = True
                     reason = "non–travel-desk user"
+                elif (
+                    clear_system
+                    and booking.handling_travel_desk_user_id
+                    and not is_flight_or_train_booking(booking)
+                    and booking.travel_desk_forwarded_at is None
+                    and not (
+                        hasattr(booking, "assignment")
+                        and booking.assignment
+                        and booking.assignment.assigned_to_id
+                    )
+                ):
+                    clear_handling = True
+                    reason = "system pre-assign (no desk action yet)"
 
                 if clear_handling:
                     self.stdout.write(
@@ -107,22 +128,19 @@ class Command(BaseCommand):
                         booking.save(update_fields=["handling_travel_desk_user"])
                     if is_flight_or_train_booking(booking):
                         flight_train_cleared += 1
-                    else:
+                    elif reason == "non–travel-desk user":
                         invalid_user_cleared += 1
+                    else:
+                        system_handling_cleared += 1
                     changed = True
-
-            if changed and not dry_run:
-                with transaction.atomic():
-                    initialize_travel_desk_ownership(application)
-                apps_reinitialized += 1
 
         self.stdout.write(
             self.style.SUCCESS(
                 "Done. "
                 f"flight/train handling cleared={flight_train_cleared}, "
                 f"invalid desk user on bookings={invalid_user_cleared}, "
-                f"app travel_desk_user cleared={app_invalid_cleared}, "
-                f"apps reinitialized={apps_reinitialized}"
+                f"system pre-assign handling cleared={system_handling_cleared}, "
+                f"app travel_desk_user cleared={app_invalid_cleared}"
                 + (" (dry-run)" if dry_run else "")
             )
         )
