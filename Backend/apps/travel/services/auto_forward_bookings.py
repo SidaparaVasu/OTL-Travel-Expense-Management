@@ -13,7 +13,8 @@ def get_central_flight_train_agent():
         .filter(
             user_type="external",
             booking_agent_profile__services__service_categories__service_category__code="flight_booking",
-            is_active=True
+            is_active=True,
+            booking_agent_profile__is_active=True,
         )
         .select_related("booking_agent_profile")
         .distinct()

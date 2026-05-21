@@ -447,7 +447,11 @@ class TravelDeskAssignBookingsView(APIView):
             if b.booking_details and b.booking_details.get("accommodation_type") == "self":
                 return error_response(message=f"Booking {b.id} is self-arranged and cannot be assigned.")
 
-        booking_agent = User.objects.filter(id=booking_agent_id, is_active=True).first()
+        booking_agent = User.objects.filter(
+            id=booking_agent_id,
+            is_active=True,
+            booking_agent_profile__is_active=True,
+        ).first()
         if not booking_agent:
             return error_response(message="Invalid booking agent")
 
@@ -546,7 +550,11 @@ class TravelDeskAgentVehicleTypesView(APIView):
 
     def get(self, request, agent_id):
         # Verify agent exists
-        if not User.objects.filter(id=agent_id, is_active=True).exists():
+        if not User.objects.filter(
+            id=agent_id,
+            is_active=True,
+            booking_agent_profile__is_active=True,
+        ).exists():
             return error_response(message="Invalid agent ID")
 
         # Query BookingAgentVehicleTypeMap via BookingAgentService
@@ -593,8 +601,12 @@ class TravelDeskReassignBookingView(APIView):
         if booking.booking_details and booking.booking_details.get("accommodation_type") == "self":
             return error_response(message="Cannot reassign self-arranged booking")
 
-        new_agent = User.objects.filter(id=new_agent_id, is_active=True).first()
-        if not new_agent or not hasattr(new_agent, "booking_agent_profile"):
+        new_agent = User.objects.filter(
+            id=new_agent_id,
+            is_active=True,
+            booking_agent_profile__is_active=True,
+        ).first()
+        if not new_agent:
             return error_response(message="Invalid booking agent")
 
         with transaction.atomic():
@@ -733,7 +745,11 @@ class ForwardApplicationView(APIView):
             return error_response(message="Booking agent not provided")
 
         try:
-            agent_profile = BookingAgentProfile.objects.select_related("user").get(user_id=agent_id)
+            agent_profile = BookingAgentProfile.objects.select_related("user").get(
+                user_id=agent_id,
+                is_active=True,
+                user__is_active=True,
+            )
         except BookingAgentProfile.DoesNotExist:
             return error_response(message="Invalid booking agent")
 

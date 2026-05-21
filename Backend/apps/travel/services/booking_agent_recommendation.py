@@ -43,6 +43,7 @@ def get_recommended_booking_agents(application: TravelApplication):
             user_type="external",
             booking_agent_profile__services__service_categories__service_category__code="flight_booking",
             is_active=True,
+            booking_agent_profile__is_active=True,
         )
         .select_related("booking_agent_profile")
         .distinct()
@@ -89,6 +90,7 @@ def get_recommended_booking_agents(application: TravelApplication):
                 user_type="external",
                 booking_agent_profile__services__service_categories__service_category__code__in=["hotel_booking", "arc_hotel_booking", "guest_house_booking"],
                 is_active=True,
+                booking_agent_profile__is_active=True,
             )
             .filter(
                 Q(booking_agent_profile__services__serves_all_cities=True) |
@@ -110,6 +112,7 @@ def get_recommended_booking_agents(application: TravelApplication):
                     user_type="external",
                     booking_agent_profile__services__service_categories__service_category__code__in=["hotel_booking", "arc_hotel_booking", "guest_house_booking"],
                     is_active=True,
+                    booking_agent_profile__is_active=True,
                 )
                 .select_related("booking_agent_profile")
                 .distinct()
