@@ -71,9 +71,17 @@ class TravelDetailsReport(TravelReportMixin, BaseReport):
         td = booking.get("travel_desk") or {}
         assignments = booking.get("assignments") or []
         agent = assignments[0] if assignments else {}
-        desk_user = td.get("user") or ""
-        if not desk_user and td.get("desk_status"):
-            desk_user = td.get("desk_status")
+        category = (
+            booking.get("booking_type")
+            or booking.get("accommodation_type")
+            or ""
+        ).lower()
+        is_auto_ticketing = "flight" in category or "train" in category
+        desk_user = ""
+        if not is_auto_ticketing:
+            desk_user = td.get("user") or ""
+            if not desk_user and td.get("desk_status"):
+                desk_user = td.get("desk_status")
         return {
             "desk_user": desk_user or "—",
             "desk_email": td.get("user_email") or "—",

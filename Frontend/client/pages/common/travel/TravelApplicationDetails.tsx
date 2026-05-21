@@ -60,8 +60,16 @@ const isBlank = (v: unknown) =>
 
 const show = (v: unknown, fallback = "—") => (isBlank(v) ? fallback : String(v));
 
+const isFlightOrTrainBooking = (booking: any) => {
+  const mode = String(
+    booking?.booking_type || booking?.accommodation_type || "",
+  ).toLowerCase();
+  return mode.includes("flight") || mode.includes("train");
+};
+
 const travelDeskUserLabel = (booking: any) => {
   if (booking?.is_self_arranged) return "Self arranged";
+  if (!booking?.travel_desk && isFlightOrTrainBooking(booking)) return "—";
   const td = booking?.travel_desk;
   if (!td) return "With Travel Desk";
   if (td.desk_status && isBlank(td.user)) return String(td.desk_status);
@@ -69,17 +77,17 @@ const travelDeskUserLabel = (booking: any) => {
 };
 
 const travelDeskEmail = (booking: any) => {
-  if (booking?.is_self_arranged) return "—";
+  if (booking?.is_self_arranged || isFlightOrTrainBooking(booking)) return "—";
   return show(booking?.travel_desk?.user_email, "—");
 };
 
 const travelDeskContact = (booking: any) => {
-  if (booking?.is_self_arranged) return "—";
+  if (booking?.is_self_arranged || isFlightOrTrainBooking(booking)) return "—";
   return show(booking?.travel_desk?.user_contact, "—");
 };
 
 const travelDeskForwardedToDesk = (booking: any) => {
-  if (booking?.is_self_arranged) return "—";
+  if (booking?.is_self_arranged || isFlightOrTrainBooking(booking)) return "—";
   const td = booking?.travel_desk;
   return show(td?.forwarded_to_desk_at ?? td?.forwarded_at, "—");
 };
