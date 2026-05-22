@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   X,
   Plane,
@@ -22,6 +22,7 @@ import {
   formatDateTime,
 } from "../utils/format";
 import { docViewer } from "@/src/api/document_viewer";
+import { BulkFilePreviewDrawer } from "@/pages/common/travel/components/BulkFilePreviewDrawer";
 
 interface ViewBookingModalProps {
   isOpen: boolean;
@@ -53,6 +54,8 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
   onClose,
   booking,
 }) => {
+  const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false);
+
   if (!isOpen || !booking) return null;
 
   const details = booking.booking_details || {};
@@ -389,10 +392,10 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
             {booking.bulk_booking_file && (
               <button
                 type="button"
-                onClick={() => docViewer.onViewFile(booking.bulk_booking_file)}
+                onClick={() => setBulkPreviewOpen(true)}
                 className="text-emerald-700 text-sm underline flex items-center gap-2"
               >
-                <FileText className="w-4 h-4" /> View Bulk Guest Data File
+                <FileText className="w-4 h-4" /> View bulk data
               </button>
             )}
             {booking.booking_file && (
@@ -437,6 +440,12 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
           <Button onClick={onClose}>Close</Button>
         </div>
       </div>
+
+      <BulkFilePreviewDrawer
+        open={bulkPreviewOpen}
+        onClose={() => setBulkPreviewOpen(false)}
+        bookingId={booking.id}
+      />
     </div>
   );
 };
