@@ -7,6 +7,7 @@ from apps.travel.models import (
     BookingNote,
     TravelApprovalFlow,
 )
+from apps.travel.models.edit_history import TravelApplicationEditHistory
 from apps.travel.models.traveler import ApplicationTraveler, GuestProfile
 from apps.travel.models.booking_extended import AccommodationBooking, VehicleBooking
 from django.utils.dateformat import DateFormat
@@ -497,6 +498,44 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.bulk_booking_file.url if obj.bulk_booking_file else None
 
 
+class TravelApplicationEditHistorySerializer(serializers.ModelSerializer):
+    edited_by_name = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
+    submitted_at = serializers.SerializerMethodField()
+    display_request_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TravelApplicationEditHistory
+        fields = [
+            "edit_count",
+            "display_request_id",
+            "reason",
+            "edited_by_name",
+            "needs_reapproval",
+            "system_change_summary",
+            "previous_status",
+            "status_after_update",
+            "created_at",
+            "submitted_at",
+        ]
+
+    def get_edited_by_name(self, obj):
+        return obj.edited_by.get_full_name() if obj.edited_by else ""
+
+    def get_created_at(self, obj):
+        return format_datetime(obj.created_at)
+
+    def get_submitted_at(self, obj):
+        return format_datetime(obj.submitted_at)
+
+    def get_display_request_id(self, obj):
+        app = obj.travel_application
+        base = f"TR/TSF/{app.created_at.year}/{app.id:07d}"
+        if obj.edit_count and obj.edit_count > 0:
+            return f"{base}/{obj.edit_count}"
+        return base
+
+
 class ApprovalWorkflowSerializer(serializers.ModelSerializer):
     """Serializer for approval workflow (all cycles for history table)"""
     level = serializers.CharField(source='approval_level')
@@ -529,6 +568,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
     accommodation_bookings = serializers.SerializerMethodField()
     conveyance_bookings = serializers.SerializerMethodField()
     approval_workflow = serializers.SerializerMethodField()
+    edit_history = serializers.SerializerMethodField()
     cancellation = serializers.SerializerMethodField()
     settlement = serializers.SerializerMethodField()
     timestamps = serializers.SerializerMethodField()
@@ -545,6 +585,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             'accommodation_bookings',
             'conveyance_bookings',
             'approval_workflow',
+            'edit_history',
             'current_approval',
             'cancellation',
             'settlement',
@@ -719,6 +760,12 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         from apps.travel.services.approval_cycle import all_flows_for_history
         approvals = all_flows_for_history(obj)
         return ApprovalWorkflowSerializer(approvals, many=True).data
+
+    def get_edit_history(self, obj):
+        records = TravelApplicationEditHistory.objects.filter(
+            travel_application=obj
+        ).select_related("edited_by").order_by("-created_at")
+        return TravelApplicationEditHistorySerializer(records, many=True).data
 
     def get_current_approval(self, obj):
         request = self.context.get('request')

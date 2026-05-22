@@ -1547,6 +1547,85 @@ export const TravelApplicationDetails: React.FC = () => {
           </div>
         </div>
 
+        {/* Edit History */}
+        {Array.isArray(data.edit_history) && data.edit_history.length > 0 && (
+          <div className="bg-white border border-slate-200 overflow-hidden rounded-md shadow-sm transition-shadow duration-300">
+            <div className="bg-blue-500 border-b p-4">
+              <h2 className="text-lg font-bold text-white">Edit History</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Cycle
+                    </th>
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Request ID
+                    </th>
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Edited By
+                    </th>
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Reason
+                    </th>
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Re-approval
+                    </th>
+                    {/* <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Status Change
+                    </th>
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      System Summary
+                    </th> */}
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Edited At
+                    </th>
+                    <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                      Resubmitted At
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.edit_history.map((entry: any, idx: number) => (
+                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                      <td className="border border-slate-200 p-3 font-medium">
+                        {entry.edit_count ?? "-"}
+                      </td>
+                      <td className="border border-slate-200 p-3">
+                        {entry.display_request_id || "-"}
+                      </td>
+                      <td className="border border-slate-200 p-3">
+                        {entry.edited_by_name || "-"}
+                      </td>
+                      <td className="border border-slate-200 p-3 max-w-xs whitespace-pre-wrap">
+                        {entry.reason || "-"}
+                      </td>
+                      <td className="border border-slate-200 p-3">
+                        {entry.needs_reapproval ? "Yes" : "No"}
+                      </td>
+                      {/* <td className="border border-slate-200 p-3">
+                        {(entry.previous_status || "-") +
+                          " → " +
+                          (entry.status_after_update || "-")}
+                      </td>
+                      <td className="border border-slate-200 p-3 max-w-xs whitespace-pre-wrap">
+                        {entry.system_change_summary || "-"}
+                      </td> */}
+                      <td className="border border-slate-200 p-3">
+                        {entry.created_at || "-"}
+                      </td>
+                      <td className="border border-slate-200 p-3">
+                        {entry.submitted_at || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Cancellation Details - Only show if exists */}
         {data.cancellation && (
           <div className="bg-white border border-slate-200 overflow-hidden rounded-md shadow-sm  transition-shadow duration-300">

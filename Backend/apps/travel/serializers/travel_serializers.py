@@ -241,6 +241,12 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
+    edit_reason = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        help_text="Required when editing a previously submitted application.",
+    )
 
     # Optional: user-selected approver (must be B-2A/B-2B/B-3 or temp authorized)
     selected_approver = serializers.PrimaryKeyRelatedField(
@@ -276,6 +282,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             'cancellation_reason', 'cancellation_requested_at', 'can_edit',
             'bulk_upload_file',
             'selected_approver', 'selected_approver_name',
+            'edit_reason',
         ]
         read_only_fields = [
             'employee', 'status', 'edit_count', 'is_settled', 'estimated_total_cost',

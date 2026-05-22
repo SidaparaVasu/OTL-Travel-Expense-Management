@@ -33,6 +33,7 @@ import { AccommodationSection } from "./AccommodationSection";
 import { ConveyanceSection } from "./ConveyanceSection";
 import { AdvanceSection } from "./AdvanceSection";
 import { TravelForSection } from "./TravelForSection";
+import { EditReasonDialog } from "./EditReasonDialog";
 import {
   getEmptyPurposeForm,
   getEmptyTicketing,
@@ -127,7 +128,13 @@ export const TravelApplicationForm: React.FC = () => {
   );
   const [isLoadingEditData, setIsLoadingEditData] = useState(false);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
+  const [applicationWasSubmitted, setApplicationWasSubmitted] = useState(false);
   const [applicationCreatedAt, setApplicationCreatedAt] = useState<string | null>(null);
+  const [editReasonDialogOpen, setEditReasonDialogOpen] = useState(false);
+  const [editReason, setEditReason] = useState("");
+  const [editReasonPendingAction, setEditReasonPendingAction] = useState<
+    "submit" | "draft" | null
+  >(null);
 
   // Guest Logic
   const [travelFor, setTravelFor] = useState<"self" | "guest" | "self_guest">(
@@ -436,6 +443,7 @@ export const TravelApplicationForm: React.FC = () => {
 
           // Store original status to determine if we need to call submit later
           setOriginalStatus(app.status);
+          setApplicationWasSubmitted(!!app.submitted_at);
           setApplicationCreatedAt(app.created_at || null);
 
           // Populate Travel For & Guests
@@ -1006,7 +1014,7 @@ export const TravelApplicationForm: React.FC = () => {
     return true;
   };
 
-  const buildPayload = (isDraft: boolean = false) => {
+  const buildPayload = (isDraft: boolean = false, editReasonText?: string) => {
     const travelersPayload: any[] = [];
     if (travelFor === "self" || travelFor === "self_guest") {
       travelersPayload.push({
@@ -1026,7 +1034,7 @@ export const TravelApplicationForm: React.FC = () => {
       });
     }
 
-    return {
+    const payload: Record<string, unknown> = {
       purpose: purposeData.purpose,
       travel_for: travelFor,
       travelers_data: travelersPayload,
@@ -1134,6 +1142,12 @@ export const TravelApplicationForm: React.FC = () => {
         },
       ],
     };
+
+    if (editReasonText?.trim()) {
+      payload.edit_reason = editReasonText.trim();
+    }
+
+    return payload;
   };
 
   const normalizeApplicationResponse = (response: any) =>
@@ -1229,7 +1243,7 @@ export const TravelApplicationForm: React.FC = () => {
     return null;
   }
 
-  const handleSaveAsDraft = async () => {
+  const performSaveAsDraft = async (reasonForEdit?: string) => {
     if (!purposeData.purpose.trim()) {
       toast.error("Purpose is required to save as draft");
       setActiveTab("purpose");
@@ -1252,7 +1266,7 @@ export const TravelApplicationForm: React.FC = () => {
         }
       }
 
-      const payload = buildPayload(true);
+      const payload = buildPayload(true, reasonForEdit);
       let applicationId = draftApplicationId;
 
       if (applicationId) {
@@ -1302,7 +1316,19 @@ export const TravelApplicationForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSaveAsDraft = () => {
+    if (requiresEditReason) {
+      setEditReasonPendingAction("draft");
+      setEditReasonDialogOpen(true);
+      return;
+    }
+    void performSaveAsDraft();
+  };
+
+  const requiresEditReason =
+    isEditMode && applicationWasSubmitted;
+
+  const performSubmit = async (reasonForEdit?: string) => {
     if (!isTravelForValid()) {
       toast.error("Please ensure travel guest details are correct.");
       setActiveTab("travel_for");
@@ -1351,7 +1377,7 @@ export const TravelApplicationForm: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const payload = buildPayload(false);
+      const payload = buildPayload(false, reasonForEdit);
 
       let applicationId = draftApplicationId;
 
@@ -1424,6 +1450,31 @@ export const TravelApplicationForm: React.FC = () => {
       toast.error(message || "Failed to submit application. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (requiresEditReason) {
+      setEditReasonPendingAction("submit");
+      setEditReasonDialogOpen(true);
+      return;
+    }
+    void performSubmit();
+  };
+
+  const handleEditReasonConfirm = () => {
+    const trimmed = editReason.trim();
+    if (trimmed.length < 10) {
+      toast.error("Edit reason must be at least 10 characters.");
+      return;
+    }
+    const action = editReasonPendingAction;
+    setEditReasonDialogOpen(false);
+    setEditReasonPendingAction(null);
+    if (action === "draft") {
+      void performSaveAsDraft(trimmed);
+    } else {
+      void performSubmit(trimmed);
     }
   };
 
@@ -1855,6 +1906,15 @@ export const TravelApplicationForm: React.FC = () => {
           )}
         </div>
       </main>
+
+      <EditReasonDialog
+        open={editReasonDialogOpen}
+        onOpenChange={setEditReasonDialogOpen}
+        reason={editReason}
+        onReasonChange={setEditReason}
+        onConfirm={handleEditReasonConfirm}
+        isSubmitting={isSubmitting || isSaving}
+      />
 
       {/* Clear Form Confirmation Dialog */}
       <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>

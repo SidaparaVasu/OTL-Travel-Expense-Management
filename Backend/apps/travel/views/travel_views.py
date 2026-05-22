@@ -238,6 +238,21 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         
         # Determine if re-approval is needed
         needs_reapproval, reason, new_status = determine_reapproval_needed(instance, request.data)
+
+        from apps.travel.services.edit_history import (
+            requires_edit_reason,
+            validate_edit_reason,
+            record_edit_history,
+        )
+
+        edit_reason = ""
+        if requires_edit_reason(instance):
+            try:
+                edit_reason = validate_edit_reason(
+                    instance, request.data.get("edit_reason", "")
+                )
+            except ValidationError as exc:
+                return validation_error_response(exc.message_dict)
         
         # Save the updated application
         self.perform_update(serializer)
@@ -271,6 +286,17 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
                     f"Failed to reschedule completion task for TR {instance.id} after date edit: {e}"
                 )
         
+        if edit_reason:
+            record_edit_history(
+                instance,
+                request.user,
+                edit_reason,
+                needs_reapproval=needs_reapproval,
+                system_change_summary=reason if needs_reapproval else "",
+                previous_status=original_status,
+                status_after_update=instance.status,
+            )
+
         # Handle re-approval if needed
         if needs_reapproval:
             reset_approval_flows(instance, request.user)
@@ -784,6 +810,8 @@ class TravelApplicationSubmitView(APIView):
             current_cycle,
         )
 
+        from apps.travel.services.edit_history import mark_edit_history_submitted
+
         is_resubmission = travel_app.submitted_at is not None
         resolve_cycle_on_submit(travel_app)
         cycle = current_cycle(travel_app)
@@ -811,7 +839,10 @@ class TravelApplicationSubmitView(APIView):
             travel_app.submitted_at = timezone.now()
             travel_app.current_approver = None
             travel_app.set_settlement_due_date()
-            travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"]) 
+            travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"])
+
+            if is_resubmission:
+                mark_edit_history_submitted(travel_app)
             
             from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
             auto_forward_flight_train_bookings(travel_app, system_user=request.user, request=request)
@@ -901,6 +932,9 @@ class TravelApplicationSubmitView(APIView):
         travel_app.current_approver = first_approver.user
         travel_app.set_settlement_due_date()
         travel_app.save()
+
+        if is_resubmission:
+            mark_edit_history_submitted(travel_app)
 
         # Schedule auto-completion
         from apps.notifications.tasks import schedule_travel_completion
