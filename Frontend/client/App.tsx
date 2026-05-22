@@ -27,6 +27,7 @@ import BookingAgentDashboard from "./pages/booking-agent/BookingAgentDashboard";
 
 // Finance Page
 import FinancePage from "./pages/finance/FinancePage";
+import SettlementOverduePage from "./pages/finance/SettlementOverduePage";
 import AdvanceRequisitionPage from "./pages/finance/AdvanceRequisitionPage";
 import AdvanceWorkspacePage from "./pages/finance/AdvanceWorkspacePage";
 
@@ -221,6 +222,16 @@ const App = () => (
                 <AuthOnly>
                   <UnifiedLayout>
                     <AdvanceWorkspacePage />
+                  </UnifiedLayout>
+                </AuthOnly>
+              }
+            />
+            <Route
+              path={ROUTES.settlementOverduePage}
+              element={
+                <AuthOnly>
+                  <UnifiedLayout>
+                    <SettlementOverduePage />
                   </UnifiedLayout>
                 </AuthOnly>
               }

@@ -17,6 +17,7 @@ export const ROUTES = {
       ? `/dashboard/finance/advance-requisition/${id}`
       : `/dashboard/finance/advance-requisition`,
   advanceWorkspacePage: "/dashboard/finance/advance-workspace",
+  settlementOverduePage: "/dashboard/finance/settlement-overdue",
 
   // ---------------- PROFILE ----------------
   profile: "/profile",

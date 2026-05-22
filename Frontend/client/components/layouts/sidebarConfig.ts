@@ -19,6 +19,7 @@ import {
   FileX,
   FileXIcon,
   ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 
@@ -134,6 +135,11 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
               path: ROUTES.financeActionPage,
               Icon: ClipboardList,
             },
+            {
+              label: "Settlement Overdue",
+              path: ROUTES.settlementOverduePage,
+              Icon: AlertTriangle,
+            },
           ],
         },
       ]
@@ -237,6 +243,11 @@ export const getEmployeeSidebar = (
               label: "Claims Workspace",
               path: ROUTES.financeActionPage,
               Icon: ClipboardList,
+            },
+            {
+              label: "Settlement Overdue",
+              path: ROUTES.settlementOverduePage,
+              Icon: AlertTriangle,
             },
           ],
         },

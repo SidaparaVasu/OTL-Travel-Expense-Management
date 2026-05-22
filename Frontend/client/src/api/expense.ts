@@ -207,5 +207,26 @@ export const expenseAPI = {
       const { data } = await apiClient.get("/travel/finance/assigned-locations/");
       return data;
     },
+    getSettlementOverdue: async (params?: {
+      search?: string;
+      location_id?: number | string;
+      page?: number;
+      page_size?: number;
+    }) => {
+      const { data } = await apiClient.get("/travel/finance/settlement-overdue/", {
+        params,
+      });
+      return data;
+    },
+    exportSettlementOverdue: async (params?: {
+      search?: string;
+      location_id?: number | string;
+    }) => {
+      const response = await apiClient.get(
+        "/travel/finance/settlement-overdue/export/",
+        { params, responseType: "blob" },
+      );
+      return response.data as Blob;
+    },
   },
 };
