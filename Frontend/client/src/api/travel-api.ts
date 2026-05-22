@@ -71,6 +71,19 @@ export interface MealPreference {
   is_active?: boolean;
 }
 
+export interface BulkFilePreviewData {
+  source: "booking" | "application";
+  booking_id?: number;
+  application_id?: number;
+  file_name: string;
+  file_url?: string;
+  columns: string[];
+  rows: Record<string, string | number | boolean | null>[];
+  total_rows: number;
+  truncated: boolean;
+  max_preview_rows: number;
+}
+
 export interface EligibleApprover {
   id: number;
   name: string;
@@ -292,6 +305,24 @@ export const travelAPI = {
       `/travel/bookings/${bookingId}/upload-bulk-file/`,
     );
     return data;
+  },
+
+  getBookingBulkFilePreview: async (
+    bookingId: number,
+  ): Promise<BulkFilePreviewData> => {
+    const { data } = await apiClient.get(
+      `/travel/bookings/${bookingId}/bulk-file/preview/`,
+    );
+    return data.data;
+  },
+
+  getApplicationBulkFilePreview: async (
+    applicationId: number,
+  ): Promise<BulkFilePreviewData> => {
+    const { data } = await apiClient.get(
+      `/travel/applications/${applicationId}/bulk-file/preview/`,
+    );
+    return data.data;
   },
 
   downloadBulkSample: (

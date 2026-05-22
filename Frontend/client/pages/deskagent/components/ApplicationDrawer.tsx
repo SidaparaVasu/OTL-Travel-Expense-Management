@@ -54,6 +54,7 @@ import {
   CloseBookingModal,
   UpdateClaimEligibilityModal,
 } from "./";
+import { BulkFilePreviewDrawer } from "@/pages/common/travel/components/BulkFilePreviewDrawer";
 import { formatDateToDDMMYYYY, formatCurrency, formatTimeAMPM } from "../utils/format";
 import { travelDeskAPI } from "@/src/api/travel-desk";
 import { toast } from "sonner";
@@ -130,6 +131,10 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [updateClaimModalOpen, setUpdateClaimModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false);
+  const [bulkPreviewBookingId, setBulkPreviewBookingId] = useState<
+    number | undefined
+  >();
 
   // Current logged-in user context
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -1062,25 +1067,20 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                               variant="outline"
                                               size="sm"
                                               className="h-9 px-2 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
-                                              asChild
-                                              title="View Bulk Booking File"
+                                              title="View bulk guest data"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setBulkPreviewBookingId(
+                                                  booking.id,
+                                                );
+                                                setBulkPreviewOpen(true);
+                                              }}
                                             >
-                                              <a
-                                                href={getFileUrl(
-                                                  booking.bulk_booking_file,
-                                                )}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) =>
-                                                  e.stopPropagation()
-                                                }
-                                              >
-                                                <FileDown className="w-4 h-4" />
-                                              </a>
+                                              <FileDown className="w-4 h-4" />
                                             </Button>
                                           </TooltipTrigger>
                                           <TooltipContent>
-                                            View bulk guest data file
+                                            View bulk guest data
                                           </TooltipContent>
                                         </Tooltip>
                                       )}
@@ -1412,6 +1412,12 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
         isOpen={viewBookingModalOpen}
         onClose={() => setViewBookingModalOpen(false)}
         booking={selectedBookingForAction}
+      />
+
+      <BulkFilePreviewDrawer
+        open={bulkPreviewOpen}
+        onClose={() => setBulkPreviewOpen(false)}
+        bookingId={bulkPreviewBookingId}
       />
     </>
   );

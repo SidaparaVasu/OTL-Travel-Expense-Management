@@ -2,6 +2,10 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views.travel_views import *
+from .views.bulk_file_preview_views import (
+    BookingBulkFilePreviewView,
+    ApplicationBulkFilePreviewView,
+)
 from .views.travel_application_details_view import TravelApplicationDetailsView
 from .views.guest_views import GuestProfileViewSet
 from .views.permission_views import BackdatedTRAllowanceViewSet
@@ -41,6 +45,8 @@ urlpatterns = [
 
     # Bulk booking per-line-item file upload (new approach)
     path('bookings/<int:booking_id>/upload-bulk-file/', BookingBulkFileUploadView.as_view(), name='booking-upload-bulk-file'),
+    path('bookings/<int:booking_id>/bulk-file/preview/', BookingBulkFilePreviewView.as_view(), name='booking-bulk-file-preview'),
+    path('applications/<int:pk>/bulk-file/preview/', ApplicationBulkFilePreviewView.as_view(), name='application-bulk-file-preview'),
 
     # Sample file downloads (one per category, no auth required)
     path('bulk-booking/sample/ticketing/', BulkBookingSampleDownloadView.as_view(), {'category': 'ticketing'}, name='bulk-sample-ticketing'),

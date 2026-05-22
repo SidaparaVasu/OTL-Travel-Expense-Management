@@ -19,6 +19,7 @@ import { travelAPI } from "@/src/api/travel-api";
 import { approvalAPI } from "@/src/api/approval";
 import { ROUTES } from "@/routes/routes";
 import { toast } from "sonner";
+import { BulkFilePreviewDrawer } from "./components/BulkFilePreviewDrawer";
 
 // Helper to get full file URL
 const getFileUrl = (url: string) => {
@@ -100,6 +101,26 @@ export const TravelApplicationDetails: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false);
+  const [bulkPreviewBookingId, setBulkPreviewBookingId] = useState<
+    number | undefined
+  >();
+  const [bulkPreviewApplicationId, setBulkPreviewApplicationId] = useState<
+    number | undefined
+  >();
+
+  const openBookingBulkPreview = (bookingId: number) => {
+    setBulkPreviewApplicationId(undefined);
+    setBulkPreviewBookingId(bookingId);
+    setBulkPreviewOpen(true);
+  };
+
+  const openApplicationBulkPreview = () => {
+    if (!id) return;
+    setBulkPreviewBookingId(undefined);
+    setBulkPreviewApplicationId(parseInt(id, 10));
+    setBulkPreviewOpen(true);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -584,15 +605,14 @@ export const TravelApplicationDetails: React.FC = () => {
                 <span className="font-semibold text-slate-700">
                   Bulk Upload Document:
                 </span>
-                <a
-                  href={getFileUrl(data.application.bulk_upload_file)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline inline-flex items-center gap-1 ml-2"
+                <button
+                  type="button"
+                  onClick={openApplicationBulkPreview}
+                  className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
                 >
                   <FileText className="w-4 h-4" />
-                  View File
-                </a>
+                  View
+                </button>
               </div>
             </div>
           )}
@@ -705,15 +725,16 @@ export const TravelApplicationDetails: React.FC = () => {
                                 </a>
                               )}
                               {booking.bulk_booking_file && (
-                                <a
-                                  href={getFileUrl(booking.bulk_booking_file)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openBookingBulkPreview(booking.id)
+                                  }
                                   className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
                                 >
                                   <FileText className="w-4 h-4" />
-                                  Bulk File
-                                </a>
+                                  View
+                                </button>
                               )}
                             </td>
                           </tr>
@@ -977,15 +998,16 @@ export const TravelApplicationDetails: React.FC = () => {
                                 </a>
                               )}
                               {booking.bulk_booking_file && (
-                                <a
-                                  href={getFileUrl(booking.bulk_booking_file)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openBookingBulkPreview(booking.id)
+                                  }
                                   className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
                                 >
                                   <FileText className="w-4 h-4" />
-                                  Bulk File
-                                </a>
+                                  View
+                                </button>
                               )}
                             </td>
                           </tr>
@@ -1235,15 +1257,16 @@ export const TravelApplicationDetails: React.FC = () => {
                                 </a>
                               )}
                               {booking.bulk_booking_file && (
-                                <a
-                                  href={getFileUrl(booking.bulk_booking_file)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openBookingBulkPreview(booking.id)
+                                  }
                                   className="text-emerald-700 hover:underline inline-flex items-center gap-1 ml-2"
                                 >
                                   <FileText className="w-4 h-4" />
-                                  Bulk File
-                                </a>
+                                  View
+                                </button>
                               )}
                             </td>
                           </tr>
@@ -1633,6 +1656,13 @@ export const TravelApplicationDetails: React.FC = () => {
           </div>
         </div>
       )}
+
+      <BulkFilePreviewDrawer
+        open={bulkPreviewOpen}
+        onClose={() => setBulkPreviewOpen(false)}
+        bookingId={bulkPreviewBookingId}
+        applicationId={bulkPreviewApplicationId}
+      />
     </div>
   );
 };
