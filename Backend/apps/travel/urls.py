@@ -22,6 +22,10 @@ from .views.travel_desk_recommendation import *
 from .views.agent_analytics_views import *
 from .views.advance_views import AdvanceWorkspaceViewSet
 from .views.export_views import TravelApplicationExportView, TravelApplicationExportPreviewView
+from .views.finance_settlement_views import (
+    SettlementOverdueExportView,
+    SettlementOverdueListView,
+)
 
 router = DefaultRouter()
 router.register(r'guest-profiles', GuestProfileViewSet, basename='guest-profiles')
@@ -107,6 +111,9 @@ urlpatterns = [
     path('dashboard/manager/', ManagerDashboardView.as_view(), name="manager-dashboard"),
     path('dashboard/travel-desk/', TravelDeskDashboardView.as_view(), name="travel-desk-agent-dashboard"),
     path('dashboard/finance/', FinanceDashboardView.as_view(), name='finance-dashboard'),
+    path('finance/assigned-locations/', FinanceAssignedLocationsView.as_view(), name='finance-assigned-locations'),
+    path('finance/settlement-overdue/', SettlementOverdueListView.as_view(), name='finance-settlement-overdue'),
+    path('finance/settlement-overdue/export/', SettlementOverdueExportView.as_view(), name='finance-settlement-overdue-export'),
 
     # Analytics
     path('analytics/', TravelAnalyticsView.as_view()),

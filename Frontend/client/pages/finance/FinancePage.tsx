@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,10 @@ const FinanceDashboard = () => {
   // filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("pending"); // default pending
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [assignedLocations, setAssignedLocations] = useState<
+    { id: number; name: string }[]
+  >([]);
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,6 +82,17 @@ const FinanceDashboard = () => {
   const [closeRemarks, setCloseRemarks] = useState("");
   const [returnRemarks, setReturnRemarks] = useState("");
 
+  const fetchAssignedLocations = useCallback(async () => {
+    try {
+      const response = await expenseAPI.finance.getAssignedLocations();
+      if (response.success && response.data) {
+        setAssignedLocations(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch assigned locations:", err);
+    }
+  }, []);
+
   // Fetch dashboard data
   const fetchDashboard = async () => {
     try {
@@ -87,6 +102,8 @@ const FinanceDashboard = () => {
       const response = await expenseAPI.finance.getDashboard({
         status: statusFilter === "all" ? undefined : statusFilter,
         search: searchTerm || undefined,
+        location_id:
+          locationFilter === "all" ? undefined : Number(locationFilter),
         page: currentPage,
         page_size: pageSize,
       });
@@ -105,10 +122,14 @@ const FinanceDashboard = () => {
     }
   };
 
+  useEffect(() => {
+    fetchAssignedLocations();
+  }, [fetchAssignedLocations]);
+
   // Load data on component mount and when filters change
   useEffect(() => {
     fetchDashboard();
-  }, [currentPage, statusFilter, searchTerm]);
+  }, [currentPage, statusFilter, searchTerm, locationFilter]);
 
   // Map backend status codes to frontend display values
   const getDisplayStatus = (statusCode: string | null): string => {
@@ -264,10 +285,16 @@ const FinanceDashboard = () => {
     setCurrentPage(1);
   };
 
+  const handleLocationFilterChange = (value: string) => {
+    setLocationFilter(value);
+    setCurrentPage(1);
+  };
+
   // Clear filters
   const handleClearFilters = () => {
     setSearchTerm("");
     setStatusFilter("pending");
+    setLocationFilter("all");
     setCurrentPage(1);
   };
 
@@ -351,6 +378,27 @@ const FinanceDashboard = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
+              {assignedLocations.length > 0 && (
+                <div className="w-full sm:w-[220px]">
+                  <Select
+                    value={locationFilter}
+                    onValueChange={handleLocationFilterChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      {assignedLocations.map((loc) => (
+                        <SelectItem key={loc.id} value={String(loc.id)}>
+                          {loc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="w-full sm:w-[200px]">
                 <Select
                   value={statusFilter}

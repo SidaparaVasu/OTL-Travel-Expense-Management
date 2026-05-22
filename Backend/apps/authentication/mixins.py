@@ -24,7 +24,7 @@ class BranchFilterMixin:
                 return self.apply_branch_filter(queryset, self.request.user)
     """
     
-    def apply_branch_filter(self, queryset, user, employee_field='employee'):
+    def apply_branch_filter(self, queryset, user, employee_field='employee', spoc_role_name=None):
         """
         Apply branch filtering based on user role and base_location.
         
@@ -83,9 +83,11 @@ class BranchFilterMixin:
                 
                 # Ideally, we find assignments where user=user AND is_active=True
                 assignments = LocationSPOCAssignment.objects.filter(
-                    user=user, 
-                    is_active=True
+                    user=user,
+                    is_active=True,
                 ).prefetch_related('locations')
+                if spoc_role_name:
+                    assignments = assignments.filter(role__name__iexact=spoc_role_name)
 
                 if assignments.exists():
                     # Check for Global assignment
