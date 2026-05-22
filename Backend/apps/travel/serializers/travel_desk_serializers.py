@@ -77,6 +77,12 @@ class ApplicationDetailSerializer(serializers.ModelSerializer):
     
 class TravelDeskBookingSerializer(serializers.ModelSerializer):
     trip_id = serializers.IntegerField(source="trip_details.id", read_only=True)
+    travel_request_id = serializers.SerializerMethodField()
+    edit_count = serializers.IntegerField(
+        source="trip_details.travel_application.edit_count",
+        read_only=True,
+    )
+    closure_reason = serializers.SerializerMethodField()
     trip_segment = serializers.SerializerMethodField()
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)
@@ -95,7 +101,8 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            "id", "trip_id", "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
+            "id", "trip_id", "travel_request_id", "edit_count", "closure_reason",
+            "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
             "status", "status_display", "estimated_cost", "actual_cost", "booking_reference", "vendor_reference", 
             "booking_file", "bulk_booking_file", "special_instruction", "created_at", "updated_at", "booked_at",
             "assigned_agent", "booking_details",
@@ -119,6 +126,13 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
     requested_vehicle_type = serializers.SerializerMethodField()
     handling_travel_desk_user = serializers.SerializerMethodField()
     permissions = serializers.SerializerMethodField()
+
+    def get_travel_request_id(self, obj):
+        return obj.trip_details.travel_application.get_travel_request_id()
+
+    def get_closure_reason(self, obj):
+        from apps.travel.services.booking_closure import get_latest_closure_reason
+        return get_latest_closure_reason(obj)
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -415,7 +429,8 @@ class TravelDeskTripSerializer(serializers.ModelSerializer):
 
 
 class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
-    travel_request_id = serializers.CharField(read_only=True)
+    travel_request_id = serializers.SerializerMethodField()
+    edit_count = serializers.IntegerField(read_only=True)
     booking_action_status = serializers.CharField(read_only=True)
     employee_name = serializers.SerializerMethodField()
     employee_grade = serializers.CharField(read_only=True)
@@ -435,12 +450,15 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelApplication
         fields = [
-            "id", "travel_request_id", "booking_action_status", "employee", "employee_name", "employee_grade", "employee_location",
+            "id", "travel_request_id", "edit_count", "booking_action_status", "employee", "employee_name", "employee_grade", "employee_location",
             "from_location", "to_location", "departure_date", "return_date", 
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
             "actionable_booking_ids", "delegated_booking_ids", "travelers",
         ]
+
+    def get_travel_request_id(self, obj):
+        return obj.get_travel_request_id()
 
     def get_employee_name(self, obj):
         return getattr(obj.employee, "get_full_name", lambda: obj.employee.username)()
@@ -531,7 +549,8 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
         return []
 
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
-    travel_request_id = serializers.CharField(source='get_travel_request_id', read_only=True)
+    travel_request_id = serializers.SerializerMethodField()
+    edit_count = serializers.IntegerField(read_only=True)
     employee_name = serializers.SerializerMethodField()
     employee_email = serializers.SerializerMethodField()
     employee_mobile = serializers.SerializerMethodField()
@@ -547,13 +566,16 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelApplication
         fields = [
-            "id", "travel_request_id", 
+            "id", "travel_request_id", "edit_count",
             "employee", "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_age", "employee_grade", 
             "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
             "submitted_at", "created_at", "updated_at",
             "bulk_upload_file", "travelers", "is_primary_spoc", "trips",
         ]
+
+    def get_travel_request_id(self, obj):
+        return obj.get_travel_request_id()
 
     def get_employee_name(self, obj):
         return getattr(obj.employee, "get_full_name", lambda: obj.employee.username)()

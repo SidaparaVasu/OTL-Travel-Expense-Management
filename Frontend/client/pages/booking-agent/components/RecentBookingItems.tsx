@@ -97,6 +97,11 @@ function RecentBookingItemBase({ booking, onClick }: RecentBookingItemProps) {
         </div>
         <div>
           <h4 className="text-base font-medium text-foreground">{typeLabel}</h4>
+          {booking.travel_request_id && (
+            <p className="text-xs font-medium text-slate-700 mt-0.5">
+              {booking.travel_request_id}
+            </p>
+          )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{route.from}</span>
             {route.to && (

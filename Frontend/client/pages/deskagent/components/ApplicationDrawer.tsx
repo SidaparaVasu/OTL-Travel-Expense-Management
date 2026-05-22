@@ -909,6 +909,32 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
                                         <p className="text-xs text-slate-500">
                                           {booking.sub_option_name || "N/A"}
                                         </p>
+                                        {booking.status === "closed" &&
+                                          (
+                                            booking as {
+                                              closure_reason?: string;
+                                            }
+                                          ).closure_reason && (
+                                            <p
+                                              className="text-xs text-yellow-600 line-clamp-2"
+                                              title={
+                                                (
+                                                  booking as {
+                                                    closure_reason?: string;
+                                                  }
+                                                ).closure_reason
+                                              }
+                                            >
+                                              Closed:{" "}
+                                              {
+                                                (
+                                                  booking as {
+                                                    closure_reason?: string;
+                                                  }
+                                                ).closure_reason
+                                              }
+                                            </p>
+                                          )}
                                         {(booking.booking_reference ||
                                           booking.vendor_reference ||
                                           booking.booking_file ||

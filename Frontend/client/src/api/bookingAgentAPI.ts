@@ -6,6 +6,7 @@ export interface BookingAgentDashboardStats {
   in_progress: number;
   confirmed: number;
   cancelled: number;
+  closed?: number;
   overdue_pending: number;
   avg_response_hours: number | null;
   avg_confirmation_hours: number | null;
@@ -56,6 +57,7 @@ export interface Booking {
   assigned_agent_name: string | null;
   special_instruction?: string;
   travel_request_id?: string;
+  closure_reason?: string | null;
   purpose?: string;
   internal_order?: string;
   gl_code?: string;
@@ -153,7 +155,7 @@ export interface BookingsListResponse {
 
 export interface BookingsListParams {
   page?: number;
-  status?: "pending" | "in_progress" | "confirmed" | "cancelled" | "";
+  status?: "requested" | "in_progress" | "confirmed" | "cancelled" | "closed" | "";
   search?: string;
   date_from?: string; // YYYY-MM-DD
   date_to?: string;   // YYYY-MM-DD

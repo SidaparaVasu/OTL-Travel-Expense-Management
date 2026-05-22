@@ -123,17 +123,21 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
               </TableRow>
             ) : (
               bookings.map((booking) => {
+                const isClosed = booking.status === "closed";
                 const isOnHold =
                   booking.travel_application_status ===
                   "cancellation_requested";
                 const isCancelled =
                   booking.travel_application_status === "cancelled";
+                const actionsDisabled =
+                  isClosed || isOnHold || isCancelled;
 
                 return (
                   <TableRow
                     key={booking.id}
                     className={cn(
                       "hover:bg-muted/50 transition",
+                      isClosed && "bg-slate-50/80",
                       isOnHold && "bg-amber-50/30",
                       isCancelled && "bg-red-50/30",
                     )}
@@ -171,9 +175,19 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                             />
                           </svg>
                         )}
-                        <span className="font-semibold text-sm">
-                          {booking.travel_request_id || "—"}
-                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-sm">
+                            {booking.travel_request_id || "—"}
+                          </span>
+                          {isClosed && booking.closure_reason && (
+                            <span
+                              className="text-xs text-slate-600 mt-0.5 line-clamp-2 max-w-[200px]"
+                              title={booking.closure_reason}
+                            >
+                              Closed: {booking.closure_reason}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
 
@@ -249,6 +263,12 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                           <TooltipContent>View Details</TooltipContent>
                         </Tooltip>
 
+                        {isClosed ? (
+                          <span className="text-xs text-muted-foreground px-1">
+                            No actions
+                          </span>
+                        ) : (
+                          <>
                         {/* Accept / Reject (ONLY for requested) */}
                         {booking.status === "requested" ? (
                           <>
@@ -260,7 +280,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                                   size="sm"
                                   className="h-8 w-8 p-0 bg-emerald-100 hover:bg-emerald-200 text-emerald-600 hover:text-emerald-700"
                                   onClick={() => onAccept?.(booking)}
-                                  disabled={isOnHold || isCancelled}
+                                  disabled={actionsDisabled}
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                 </Button>
@@ -276,7 +296,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                                   size="sm"
                                   className="h-8 w-8 p-0 bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700"
                                   onClick={() => onReject?.(booking)}
-                                  disabled={isOnHold || isCancelled}
+                                  disabled={actionsDisabled}
                                 >
                                   <CircleX className="w-4 h-4" />
                                 </Button>
@@ -294,7 +314,7 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                                   size="sm"
                                   className="h-8 w-8 p-0 bg-green-100 hover:bg-green-200 text-green-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                   onClick={() => onUpdateStatus(booking)}
-                                  disabled={isOnHold || isCancelled}
+                                  disabled={actionsDisabled}
                                 >
                                   <RefreshCw className="w-4 h-4" />
                                 </Button>
@@ -318,17 +338,21 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                               size="sm"
                               className="h-8 w-8 p-0 bg-yellow-100 hover:bg-yellow-200 text-yellow-600 hover:text-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => onAddNote(booking)}
-                              disabled={isCancelled}
+                              disabled={actionsDisabled}
                             >
                               <MessageSquarePlus className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {isCancelled
+                            {isClosed
+                              ? "Closed — view only"
+                              : isCancelled
                               ? "Actions disabled - Application cancelled"
                               : "Add Note"}
                           </TooltipContent>
                         </Tooltip>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

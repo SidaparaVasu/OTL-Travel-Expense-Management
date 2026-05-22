@@ -7,11 +7,12 @@ interface StatusFilterProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All' },
+  { value: '', label: 'All Active' },
   { value: 'requested', label: 'Pending' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'confirmed', label: 'Confirmed / Completed' },
   { value: 'cancelled', label: 'Cancelled' },
+  { value: 'closed', label: 'Closed' },
 ];
 
 export const StatusFilter: React.FC<StatusFilterProps> = ({ value, onChange }) => {

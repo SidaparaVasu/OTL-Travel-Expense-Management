@@ -17,6 +17,16 @@ CLOSEABLE_STATUSES = {'pending', 'requested', 'in_progress', 'confirmed'}
 TERMINAL_STATUSES = {'cancelled', 'completed', 'closed'}
 
 
+def get_latest_closure_reason(booking: Booking) -> str | None:
+    """Most recent closure reason for display (travel desk / booking agent)."""
+    log = (
+        booking.closure_logs.filter(action='closed')
+        .order_by('-created_at')
+        .first()
+    )
+    return (log.closure_reason or '').strip() or None if log else None
+
+
 def is_primary_spoc_for_application(application, user) -> bool:
     return _is_primary_spoc_for_application(application, user)
 
