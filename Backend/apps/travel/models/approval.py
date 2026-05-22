@@ -50,6 +50,11 @@ class TravelApprovalFlow(models.Model):
     triggered_by_rule = models.CharField(max_length=100, blank=True)  # e.g., "flight_above_10k"
     parallel_group = models.CharField(max_length=50, blank=True, null=True,  help_text="Group ID for parallel approvals")
 
+    edit_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Application version this step applies to (matches TravelApplication.edit_count).",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -57,6 +62,10 @@ class TravelApprovalFlow(models.Model):
         ordering = ['sequence']
         indexes = [
             models.Index(fields=['travel_application', 'sequence']),
+            models.Index(
+                fields=['travel_application', 'edit_count'],
+                name='travel_trav_travel_edit_idx',
+            ),
             models.Index(fields=['approver', 'status']),
         ]
     
@@ -70,7 +79,8 @@ class TravelApprovalFlow(models.Model):
         
         parallel_approvals = TravelApprovalFlow.objects.filter(
             travel_application=self.travel_application,
-            parallel_group=self.parallel_group
+            parallel_group=self.parallel_group,
+            edit_count=self.travel_application.edit_count,
         )
         
         # Check if all in group are approved

@@ -45,9 +45,9 @@ def requires_ceo_escalation(application, booking):
     actual = Decimal(str(booking.actual_cost or 0))
 
     # Check if CEO already approved
-    ceo_already_approved = application.approval_flows.filter(
+    ceo_already_approved = application.active_approval_flows().filter(
         approval_level="ceo",
-        status="approved"
+        status="approved",
     ).exists()
 
     # -----------------------------
@@ -102,16 +102,18 @@ def escalate_application_to_ceo(application, booking, triggered_by, reason):
         raise RuntimeError("CEO user not found in the system (Role: CEO)")
 
     # Create CEO approval flow if missing
+    cycle = application.edit_count or 0
     TravelApprovalFlow.objects.get_or_create(
         travel_application=application,
         approval_level="ceo",
+        approver=ceo_user,
         defaults={
-            "approver": ceo_user,
             "sequence": 999,
+            "edit_count": cycle,
             "status": "pending",
             "is_required": True,
             "triggered_by_rule": reason,
-        }
+        },
     )
 
     ceo_flow = get_ceo_approver(application)

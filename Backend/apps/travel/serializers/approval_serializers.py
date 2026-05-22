@@ -11,8 +11,9 @@ class TravelApprovalFlowSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'travel_application', 'travel_request_id', 'employee_name',
             'approver', 'approver_name', 'approval_level', 'sequence',
+            'edit_count',
             'can_view', 'can_approve', 'status', 'approved_at', 'notes',
-            'is_required', 'triggered_by_rule', 'created_at'
+            'is_required', 'triggered_by_rule', 'created_at',
         ]
         read_only_fields = ['approver', 'approval_level', 'sequence', 'created_at']
 
@@ -50,9 +51,9 @@ class ManagerApprovalListSerializer(serializers.ModelSerializer):
         ]
 
     def get_current_approval(self, obj):
-        current_flow = obj.approval_flows.filter(
+        current_flow = obj.active_approval_flows().filter(
             approver=self.context['request'].user,
-            status='pending'
+            status='pending',
         ).first()
 
         if current_flow:
@@ -76,7 +77,7 @@ class ManagerApprovalListSerializer(serializers.ModelSerializer):
         if not request or not request.user:
             return False
 
-        has_pending = obj.approval_flows.filter(
+        has_pending = obj.active_approval_flows().filter(
             approver=request.user,
             status='pending',
             can_approve=True,

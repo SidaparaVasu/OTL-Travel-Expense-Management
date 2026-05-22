@@ -513,7 +513,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
 
     def get_ceo_approval_status(self, obj):
         app = obj.trip_details.travel_application
-        ceo_flow = app.approval_flows.filter(approval_level='ceo').first()
+        ceo_flow = app.active_approval_flows().filter(approval_level='ceo').first()
         if not ceo_flow:
             return 'not_required'
         return ceo_flow.status

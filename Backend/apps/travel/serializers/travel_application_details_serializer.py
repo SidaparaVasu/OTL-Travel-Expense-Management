@@ -498,15 +498,18 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
 
 class ApprovalWorkflowSerializer(serializers.ModelSerializer):
-    """Serializer for approval workflow"""
+    """Serializer for approval workflow (all cycles for history table)"""
     level = serializers.CharField(source='approval_level')
+    cycle = serializers.IntegerField(source='edit_count')
     approver = serializers.SerializerMethodField()
     approved_at = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
-
     class Meta:
         model = TravelApprovalFlow
-        fields = ['level', 'sequence', 'approver', 'status', 'approved_at', 'notes', 'created_at']
+        fields = [
+            'cycle', 'level', 'sequence', 'approver', 'status',
+            'approved_at', 'notes', 'created_at',
+        ]
 
     def get_approver(self, obj):
         return obj.approver.get_full_name() if obj.approver else ""
@@ -587,6 +590,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
 
         return {
             'travel_request_id': obj.get_travel_request_id(),
+            'edit_count': obj.edit_count or 0,
             'purpose': obj.purpose,
             'employee_name': employee.get_full_name(),
             'employee_id': employee_id,
@@ -712,7 +716,8 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         return ConveyanceBookingSerializer(vehicle_bookings, many=True).data
 
     def get_approval_workflow(self, obj):
-        approvals = obj.approval_flows.all().select_related('approver').order_by('sequence')
+        from apps.travel.services.approval_cycle import all_flows_for_history
+        approvals = all_flows_for_history(obj)
         return ApprovalWorkflowSerializer(approvals, many=True).data
 
     def get_current_approval(self, obj):
@@ -720,9 +725,9 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         if not request:
             return None
             
-        current_flow = obj.approval_flows.filter(
+        current_flow = obj.active_approval_flows().filter(
             approver=request.user,
-            status='pending'
+            status='pending',
         ).first()
         
         if current_flow:
@@ -785,7 +790,7 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
             return False
 
         # Must have a pending, actionable approval flow for this user
-        has_pending = obj.approval_flows.filter(
+        has_pending = obj.active_approval_flows().filter(
             approver=request.user,
             status='pending',
             can_approve=True,

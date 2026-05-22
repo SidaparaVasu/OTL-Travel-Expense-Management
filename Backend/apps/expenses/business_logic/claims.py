@@ -362,7 +362,8 @@ def validate_claim_payload(
     incomplete_approvals = TravelApprovalFlow.objects.filter(
         travel_application=tr,
         is_required=True,
-        status__in=["pending", "rejected"]
+        edit_count=tr.edit_count,
+        status__in=["pending", "rejected"],
     )
     if incomplete_approvals.exists():
         # Build a human-readable list of which levels are still pending/rejected

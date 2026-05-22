@@ -328,8 +328,12 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
                 }
             )
         
+        response_data = dict(serializer.data)
+        response_data['needs_reapproval'] = needs_reapproval
+        response_data['status'] = instance.status
+
         return success_response(
-            data=serializer.data,
+            data=response_data,
             message=f"Travel application updated successfully{' - Re-approval required' if needs_reapproval else ''}",
             status_code=status.HTTP_200_OK
         )
@@ -774,13 +778,23 @@ class TravelApplicationSubmitView(APIView):
         if not approver_entries:
             self_approved = True
 
+        from apps.travel.services.approval_cycle import (
+            resolve_cycle_on_submit,
+            upsert_approval_flow,
+            current_cycle,
+        )
+
+        is_resubmission = travel_app.submitted_at is not None
+        resolve_cycle_on_submit(travel_app)
+        cycle = current_cycle(travel_app)
+
         # -----------------------------------------
         # SELF-APPROVAL SCENARIO (NO APPROVERS)
         # -----------------------------------------
         if self_approved or not approver_entries:            
-            # Create auto-approval flow entry for record
-            TravelApprovalFlow.objects.create(
+            flow = upsert_approval_flow(
                 travel_application=travel_app,
+                cycle=cycle,
                 approver=request.user,
                 approval_level="self_approval",
                 sequence=1,
@@ -789,7 +803,7 @@ class TravelApplicationSubmitView(APIView):
                 can_approve=True,
                 is_required=True,
                 notes="Auto-approved (no approver required)",
-                approved_at=timezone.now()
+                approved_at=timezone.now(),
             )
             # Directly move to travel desk
             travel_app.status = "pending_travel_desk"
@@ -864,20 +878,14 @@ class TravelApplicationSubmitView(APIView):
                 status_code=400
             )
 
-        # 7) Create TravelApprovalFlow rows
-        approval_chain = []
-        for entry in approver_entries:
-            flow = TravelApprovalFlow.objects.create(
-                travel_application=travel_app,
-                approver=entry.user,
-                approval_level=entry.level,
-                sequence=entry.sequence,
-                status="pending",
-                can_view=entry.can_view,
-                can_approve=entry.can_approve,
-                is_required=entry.is_required
-            )
+        # 7) Create or refresh approval flows in place (no duplicate rows per cycle)
+        from apps.travel.services.approval_cycle import sync_approval_chain
 
+        synced_flows = sync_approval_chain(
+            travel_app, approver_entries, is_resubmission=is_resubmission
+        )
+        approval_chain = []
+        for flow in synced_flows:
             approval_chain.append({
                 "sequence": flow.sequence,
                 "approval_level": flow.approval_level,

@@ -859,9 +859,12 @@ class ClaimableTravelApplicationsView(APIView):
         today = timezone.now().date()
 
         # Sub-query: IDs of applications that still have pending/rejected required approvals
+        from django.db.models import F
+
         blocked_app_ids = TravelApprovalFlow.objects.filter(
             is_required=True,
-            status__in=["pending", "rejected"]
+            status__in=["pending", "rejected"],
+            edit_count=F("travel_application__edit_count"),
         ).values_list("travel_application_id", flat=True)
 
         qs = (

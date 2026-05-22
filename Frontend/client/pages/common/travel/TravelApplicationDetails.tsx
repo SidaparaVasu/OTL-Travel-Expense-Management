@@ -1484,6 +1484,9 @@ export const TravelApplicationDetails: React.FC = () => {
               <thead>
                 <tr className="bg-slate-100">
                   <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
+                    Cycle
+                  </th>
+                  <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
                     Level
                   </th>
                   <th className="border border-slate-200 p-3 text-left font-semibold text-slate-700">
@@ -1509,6 +1512,9 @@ export const TravelApplicationDetails: React.FC = () => {
               <tbody>
                 {data.approval_workflow.map((approval, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                    <td className="border border-slate-200 p-3 font-medium">
+                      {approval.cycle ?? "-"}
+                    </td>
                     <td className="border border-slate-200 p-3">
                       {approval.level}
                     </td>

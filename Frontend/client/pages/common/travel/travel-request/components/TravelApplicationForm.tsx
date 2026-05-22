@@ -1355,25 +1355,43 @@ export const TravelApplicationForm: React.FC = () => {
 
       let applicationId = draftApplicationId;
 
+      let updateResult: any = null;
       if (applicationId) {
-        await travelAPI.updateApplication(applicationId, payload);
+        updateResult = await travelAPI.updateApplication(applicationId, payload);
       } else {
         const result: any = await travelAPI.createApplication(payload as any);
         applicationId = result.data?.id || result.id;
       }
 
       if (applicationId) {
-        const shouldCallSubmit = !isEditMode || originalStatus === "draft";
-
         await uploadPendingBookingBulkFiles(applicationId);
 
+        const updatedApp =
+          updateResult?.data?.application ||
+          updateResult?.data ||
+          updateResult;
+        const updatedStatus = updatedApp?.status;
+        const needsReapproval = Boolean(updatedApp?.needs_reapproval);
+
+        const shouldCallSubmit =
+          !isEditMode ||
+          originalStatus === "draft" ||
+          updatedStatus === "draft" ||
+          needsReapproval;
+
+        let submitted = false;
         if (shouldCallSubmit) {
           await travelAPI.submitApplication(applicationId);
+          submitted = true;
         }
 
-        const successMessage = isEditMode
-          ? "Travel application updated successfully!"
-          : "Travel application submitted successfully!";
+        const successMessage = submitted
+          ? isEditMode
+            ? "Travel application updated and submitted for approval."
+            : "Travel application submitted successfully!"
+          : isEditMode
+            ? "Travel application updated successfully."
+            : "Travel application saved successfully.";
         toast.success(successMessage);
         clearForm();
         navigate(ROUTES.travelApplicationList);
