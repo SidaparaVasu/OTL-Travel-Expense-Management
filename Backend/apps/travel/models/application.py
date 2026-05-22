@@ -301,6 +301,9 @@ class TravelApplication(models.Model):
                 
             self.save()  # Save first to ensure status is updated
 
+            from apps.travel.services.booking_lock import sync_booking_approval_locks
+            sync_booking_approval_locks(self)
+
             # Helper to trigger auto-forwarding (only if going to travel desk/bookings)
             if self.status == 'pending_travel_desk':
                 # Trigger Notification for Travel Desk

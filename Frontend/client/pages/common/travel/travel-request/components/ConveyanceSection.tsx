@@ -6,6 +6,10 @@ import { FormSelect } from "./FormSelect";
 import { FormTextarea } from "./FormTextarea";
 import { NotRequiredToggle } from "./NotRequiredToggle";
 import { DataTable } from "./DataTable";
+import {
+  getBookingRowActions,
+  type BookingRowLockFields,
+} from "../lib/booking-row-actions";
 import { GuestSelector } from "./GuestSelector";
 import { TimePickerField } from "./TimePickerField";
 import { Button } from "@/components/ui/button";
@@ -33,7 +37,7 @@ interface Guest {
   is_colleague: boolean;
 }
 
-interface ConveyanceFormData {
+interface ConveyanceFormData extends BookingRowLockFields {
   vehicle_type: string;
   vehicle_type_label: string;
   vehicle_sub_option: string;
@@ -76,6 +80,7 @@ interface ConveyanceSectionProps {
   bookingErrors?: Record<number, string>;
   /** Who the application is for — bulk file only shown for guest/self_guest */
   travelFor?: "self" | "guest" | "self_guest";
+  onCloseRow?: (index: number) => void;
 }
 
 export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
@@ -91,6 +96,7 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   travelSubOptions,
   bookingErrors = {},
   travelFor = "self",
+  onCloseRow,
 }) => {
   const [form, setForm] = useState<ConveyanceFormData>({
     ...getEmptyConveyance(),
@@ -910,6 +916,8 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
             data={conveyance}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onClose={onCloseRow}
+            getRowActions={(row) => getBookingRowActions(row)}
             emptyMessage="No conveyance added yet"
             rowErrors={bookingErrors}
           />

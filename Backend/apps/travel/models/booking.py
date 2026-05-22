@@ -38,6 +38,13 @@ class Booking(models.Model):
     
     # Status and Cost
     status = models.CharField(max_length=20, choices=BOOKING_STATUS_CHOICES, default='pending')
+    is_approved = models.BooleanField(
+        default=False,
+        help_text=(
+            "True once the parent travel application has completed all approvals "
+            "for the current cycle; blocks applicant edit/delete until reset on resubmit."
+        ),
+    )
     estimated_cost = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 

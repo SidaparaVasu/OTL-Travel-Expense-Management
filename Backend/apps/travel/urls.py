@@ -40,6 +40,11 @@ urlpatterns = [
     path('applications/<int:pk>/', TravelApplicationDetailView.as_view(), name='travel-application-detail'),
     path('applications/<int:pk>/details/', TravelApplicationDetailsView.as_view(), name='travel-application-details'),
     path('applications/<int:pk>/edit/', TravelApplicationEditView.as_view(), name='travel-application-edit'),
+    path(
+        'applications/<int:application_id>/bookings/<int:booking_id>/close/',
+        ApplicantCloseBookingView.as_view(),
+        name='applicant-close-booking',
+    ),
     path('applications/<int:pk>/submit/', TravelApplicationSubmitView.as_view(), name='travel-application-submit'),
     path('applications/<int:pk>/validate/', TravelApplicationValidationView.as_view(), name='travel-application-validate'),
     path('applications/<int:pk>/upload-bulk-file/', TravelApplicationBulkUploadView.as_view(), name='travel-application-upload-bulk-file'),

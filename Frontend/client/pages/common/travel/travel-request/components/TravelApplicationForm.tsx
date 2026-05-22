@@ -34,6 +34,8 @@ import { ConveyanceSection } from "./ConveyanceSection";
 import { AdvanceSection } from "./AdvanceSection";
 import { TravelForSection } from "./TravelForSection";
 import { EditReasonDialog } from "./EditReasonDialog";
+import { ApplicantCloseBookingModal } from "./ApplicantCloseBookingModal";
+import type { BookingRowLockFields } from "../lib/booking-row-actions";
 import {
   getEmptyPurposeForm,
   getEmptyTicketing,
@@ -135,6 +137,96 @@ export const TravelApplicationForm: React.FC = () => {
   const [editReasonPendingAction, setEditReasonPendingAction] = useState<
     "submit" | "draft" | null
   >(null);
+  const [closeBookingTarget, setCloseBookingTarget] = useState<{
+    category: "ticketing" | "accommodation" | "conveyance";
+    index: number;
+  } | null>(null);
+  const [isClosingBooking, setIsClosingBooking] = useState(false);
+
+  const mapBookingLockFields = (booking: {
+    status?: string;
+    is_approved?: boolean;
+    is_actionable?: boolean;
+    can_close?: boolean;
+  }): BookingRowLockFields => ({
+    status: booking.status,
+    is_approved: !!booking.is_approved,
+    is_actionable: booking.is_actionable !== false,
+    can_close: !!booking.can_close,
+  });
+
+  const applyClosedBookingToRow = (
+    category: "ticketing" | "accommodation" | "conveyance",
+    index: number,
+    booking: {
+      status?: string;
+      is_approved?: boolean;
+      is_actionable?: boolean;
+      can_close?: boolean;
+    },
+  ) => {
+    const lockFields = mapBookingLockFields(booking);
+    if (category === "ticketing") {
+      setTicketing((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, ...lockFields } : row)),
+      );
+    } else if (category === "accommodation") {
+      setAccommodation((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, ...lockFields } : row)),
+      );
+    } else {
+      setConveyance((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, ...lockFields } : row)),
+      );
+    }
+  };
+
+  const requestCloseBooking = (
+    category: "ticketing" | "accommodation" | "conveyance",
+    index: number,
+  ) => {
+    setCloseBookingTarget({ category, index });
+  };
+
+  const handleConfirmCloseBooking = async (closureReason: string) => {
+    if (!closeBookingTarget || !editApplicationId) return;
+
+    const { category, index } = closeBookingTarget;
+    const lists = {
+      ticketing,
+      accommodation,
+      conveyance,
+    } as const;
+    const row = lists[category][index] as { id?: number };
+    if (!row?.id) {
+      toast.error("Save the application before closing this booking line.");
+      return;
+    }
+
+    setIsClosingBooking(true);
+    try {
+      const response = await travelAPI.closeApplicantBooking(
+        editApplicationId,
+        row.id,
+        { closure_reason: closureReason },
+      );
+      const booking =
+        response?.data?.booking ?? response?.booking ?? response?.data;
+      if (booking) {
+        applyClosedBookingToRow(category, index, booking);
+      }
+      toast.success("Booking line closed.");
+      setCloseBookingTarget(null);
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.non_field_errors?.[0] ||
+        "Failed to close booking.";
+      toast.error(msg);
+    } finally {
+      setIsClosingBooking(false);
+    }
+  };
 
   // Guest Logic
   const [travelFor, setTravelFor] = useState<"self" | "guest" | "self_guest">(
@@ -519,6 +611,7 @@ export const TravelApplicationForm: React.FC = () => {
                   // Ticketing
                   ticketingData.push({
                     id: booking.id,
+                    ...mapBookingLockFields(booking),
                     booking_type: String(booking.booking_type),
                     sub_option: String(booking.sub_option),
                     estimated_cost: booking.estimated_cost || "",
@@ -549,6 +642,7 @@ export const TravelApplicationForm: React.FC = () => {
                   // Accommodation
                   accommodationData.push({
                     id: booking.id,
+                    ...mapBookingLockFields(booking),
                     accommodation_type: String(booking.booking_type),
                     accommodation_type_label: booking.booking_type_name || "",
                     accommodation_sub_option: String(booking.sub_option),
@@ -591,6 +685,7 @@ export const TravelApplicationForm: React.FC = () => {
 
                   conveyanceData.push({
                     id: booking.id,
+                    ...mapBookingLockFields(booking),
                     vehicle_type: String(booking.booking_type),
                     vehicle_type_label: booking.booking_type_name || "",
                     vehicle_sub_option: String(booking.sub_option),
@@ -1063,6 +1158,7 @@ export const TravelApplicationForm: React.FC = () => {
           bookings: [
             ...ticketing.map((t, index) => ({
               id: (t as any).id || undefined, // Pass ID if exists
+              ...(t.status ? { status: t.status } : {}),
               booking_type: parseInt(t.booking_type), // // Ticketing mode ID
               sub_option: parseInt(t.sub_option),
               estimated_cost: parseFloat(t.estimated_cost) || null,
@@ -1084,6 +1180,7 @@ export const TravelApplicationForm: React.FC = () => {
             })),
             ...accommodation.map((a, index) => ({
               id: (a as any).id || undefined, // Pass ID if exists
+              ...(a.status ? { status: a.status } : {}),
               booking_type: a.accommodation_type, // Accommodation mode ID
               sub_option: parseInt(a.accommodation_sub_option),
               estimated_cost: parseFloat(a.estimated_cost),
@@ -1105,6 +1202,7 @@ export const TravelApplicationForm: React.FC = () => {
             })),
             ...conveyance.map((c, index) => ({
               id: (c as any).id || undefined, // Pass ID if exists
+              ...(c.status ? { status: c.status } : {}),
               booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
               sub_option: parseInt(c.vehicle_sub_option),
               estimated_cost: parseFloat(c.estimated_cost),
@@ -1800,6 +1898,7 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
                 travelFor={travelFor}
+                onCloseRow={(index) => requestCloseBooking("ticketing", index)}
               />
             )}
 
@@ -1826,6 +1925,9 @@ export const TravelApplicationForm: React.FC = () => {
                 }
                 defaultCityLabel={purposeData.trip_to_location_label}
                 travelFor={travelFor}
+                onCloseRow={(index) =>
+                  requestCloseBooking("accommodation", index)
+                }
               />
             )}
 
@@ -1843,6 +1945,7 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}
                 travelFor={travelFor}
+                onCloseRow={(index) => requestCloseBooking("conveyance", index)}
               />
             )}
 
@@ -1906,6 +2009,15 @@ export const TravelApplicationForm: React.FC = () => {
           )}
         </div>
       </main>
+
+      <ApplicantCloseBookingModal
+        open={closeBookingTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setCloseBookingTarget(null);
+        }}
+        onConfirm={handleConfirmCloseBooking}
+        isSubmitting={isClosingBooking}
+      />
 
       <EditReasonDialog
         open={editReasonDialogOpen}

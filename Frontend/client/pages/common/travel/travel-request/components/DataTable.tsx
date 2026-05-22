@@ -1,5 +1,6 @@
 import React from "react";
-import { Edit2, Trash2, AlertCircle } from "lucide-react";
+import { Edit2, Trash2, AlertCircle, Archive } from "lucide-react";
+import type { RowActionState } from "../lib/booking-row-actions";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -20,15 +21,25 @@ interface DataTableProps<T> {
   data: T[];
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
+  onClose?: (index: number) => void;
+  getRowActions?: (row: T, index: number) => RowActionState;
   emptyMessage?: string;
   rowErrors?: Record<number, string>;
 }
+
+const defaultRowActions: RowActionState = {
+  canEdit: true,
+  canDelete: true,
+  canClose: false,
+};
 
 export function DataTable<T>({
   columns,
   data,
   onEdit,
   onDelete,
+  onClose,
+  getRowActions,
   emptyMessage = "No items added yet",
   rowErrors = {},
 }: DataTableProps<T>) {
@@ -69,6 +80,13 @@ export function DataTable<T>({
             ) : (
               data.map((row, idx) => {
                 const hasError = !!rowErrors[idx];
+                const actions = getRowActions
+                  ? getRowActions(row, idx)
+                  : defaultRowActions;
+                const hasAnyAction =
+                  actions.canEdit ||
+                  actions.canDelete ||
+                  actions.canClose;
                 return (
                   <tr
                     key={idx}
@@ -111,20 +129,41 @@ export function DataTable<T>({
                             </Tooltip>
                           </TooltipProvider>
                         )}
-                        <button
-                          onClick={() => onEdit(idx)}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => onDelete(idx)}
-                          className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {actions.canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => onEdit(idx)}
+                            className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        {actions.canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => onDelete(idx)}
+                            className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            title="Remove"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                        {actions.canClose && onClose && (
+                          <button
+                            type="button"
+                            onClick={() => onClose(idx)}
+                            className="p-2 text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Close booking (keeps audit record)"
+                          >
+                            <Archive size={16} />
+                          </button>
+                        )}
+                        {!hasAnyAction && !hasError && (
+                          <span className="text-xs text-muted-foreground px-2">
+                            Locked
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>

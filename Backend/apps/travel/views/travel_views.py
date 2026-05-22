@@ -365,6 +365,52 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         )
 
 
+class ApplicantCloseBookingView(APIView):
+    """Applicant closes an approval-locked booking line (no hard delete)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, application_id, booking_id):
+        from apps.travel.services.booking_closure import close_booking_by_applicant
+        from apps.travel.services.edit_helpers import can_edit_application
+
+        try:
+            application = TravelApplication.objects.get(pk=application_id)
+        except TravelApplication.DoesNotExist:
+            return error_response("Travel application not found", status_code=404)
+
+        can_edit, message = can_edit_application(application, request.user)
+        if not can_edit:
+            return error_response(message, status_code=403)
+
+        try:
+            booking = Booking.objects.select_related(
+                "trip_details__travel_application",
+            ).get(
+                pk=booking_id,
+                trip_details__travel_application_id=application_id,
+            )
+        except Booking.DoesNotExist:
+            return error_response("Booking not found", status_code=404)
+
+        closure_reason = request.data.get("closure_reason", "")
+        try:
+            close_booking_by_applicant(
+                booking,
+                request.user,
+                closure_reason=closure_reason,
+            )
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                return validation_error_response(exc.message_dict)
+            return error_response(str(exc), status_code=400)
+
+        serializer = BookingSerializer(booking)
+        return success_response(
+            data={"booking": serializer.data},
+            message="Booking closed successfully",
+        )
+
+
 class TravelApplicationEditView(APIView):
     """
     Get travel application data for editing with eligibility check
@@ -841,6 +887,9 @@ class TravelApplicationSubmitView(APIView):
             travel_app.set_settlement_due_date()
             travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"])
 
+            from apps.travel.services.booking_lock import sync_booking_approval_locks
+            sync_booking_approval_locks(travel_app)
+
             if is_resubmission:
                 mark_edit_history_submitted(travel_app)
             
@@ -932,6 +981,9 @@ class TravelApplicationSubmitView(APIView):
         travel_app.current_approver = first_approver.user
         travel_app.set_settlement_due_date()
         travel_app.save()
+
+        from apps.travel.services.booking_lock import sync_booking_approval_locks
+        sync_booking_approval_locks(travel_app)
 
         if is_resubmission:
             mark_edit_history_submitted(travel_app)

@@ -25,6 +25,8 @@ class BookingSerializer(serializers.ModelSerializer):
     sub_option_name = serializers.CharField(source='sub_option.name', read_only=True)
     booking_details = serializers.JSONField()
     closure_logs = serializers.SerializerMethodField()
+    is_actionable = serializers.SerializerMethodField()
+    can_close = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -34,6 +36,9 @@ class BookingSerializer(serializers.ModelSerializer):
             'sub_option', 'sub_option_name',
             'booking_details', 
             'status',
+            'is_approved',
+            'is_actionable',
+            'can_close',
             'allow_claim',
             'estimated_cost', 
             'actual_cost',
@@ -45,7 +50,22 @@ class BookingSerializer(serializers.ModelSerializer):
             'meal_preference',
             'closure_logs',
         ]
-        read_only_fields = ['bulk_booking_file', 'allow_claim', 'closure_logs']
+        read_only_fields = [
+            'bulk_booking_file',
+            'allow_claim',
+            'closure_logs',
+            'is_approved',
+            'is_actionable',
+            'can_close',
+        ]
+
+    def get_is_actionable(self, obj):
+        from apps.travel.services.booking_lock import is_booking_actionable
+        return is_booking_actionable(obj)
+
+    def get_can_close(self, obj):
+        from apps.travel.services.booking_lock import can_applicant_close_booking
+        return can_applicant_close_booking(obj)
 
     def get_closure_logs(self, obj):
         logs = getattr(obj, '_prefetched_objects_cache', {}).get('closure_logs')
@@ -595,6 +615,8 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         # Update trip details if provided
         if trip_details_data is not None:
+            from apps.travel.services.booking_lock import is_booking_actionable
+
             # Load existing trips to allow fuzzy matching
             existing_trips = {t.id: t for t in instance.trip_details.all()}
             matched_trip_ids = []
@@ -627,6 +649,11 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
 
                 for booking_data in bookings_data:
                     booking_id = booking_data.pop('id', None)
+                    if booking_id is not None:
+                        try:
+                            booking_id = int(booking_id)
+                        except (TypeError, ValueError):
+                            booking_id = None
                     booking_type_id = booking_data.get('booking_type')
                     
                     # Handle meal_preference (nested extraction)
@@ -649,6 +676,22 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
 
                     if booking:
                         matched_booking_ids.append(booking.id)
+
+                        if booking.is_approved:
+                            # Approval-locked lines are not updated from the nested TR payload.
+                            # The form rebuilds booking_details on every save, so strict diff checks
+                            # falsely reject minor TR edits and post-close submits. Use the
+                            # applicant close API to close a line; omit lines to hard-delete only
+                            # before approval (blocked above for is_approved).
+                            continue
+
+                        if not is_booking_actionable(booking):
+                            raise serializers.ValidationError({
+                                "non_field_errors": [
+                                    f"Booking line {booking.id} cannot be modified "
+                                    f"(status: {booking.status})."
+                                ]
+                            })
                         
                         incoming_status = booking_data.pop('status', 'pending')
                         if incoming_status == 'pending' and booking.status != 'pending':
@@ -673,8 +716,17 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                             booking.status = 'confirmed'
                             booking.save(update_fields=['status'])
 
-                # Delete removed bookings
-                trip_detail.bookings.exclude(id__in=matched_booking_ids).delete()
+                # Delete removed bookings (never hard-delete approval-locked lines)
+                to_remove = trip_detail.bookings.exclude(id__in=matched_booking_ids)
+                locked = to_remove.filter(is_approved=True)
+                if locked.exists():
+                    raise serializers.ValidationError({
+                        "non_field_errors": [
+                            "Cannot remove booking lines that are locked after approval. "
+                            "Use Close booking instead."
+                        ]
+                    })
+                to_remove.delete()
 
                 # Handle Advance Request
                 if advance_data:

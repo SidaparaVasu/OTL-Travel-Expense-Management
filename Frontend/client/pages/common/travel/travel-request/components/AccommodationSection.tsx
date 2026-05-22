@@ -6,6 +6,10 @@ import { FormSelect } from "./FormSelect";
 import { FormTextarea } from "./FormTextarea";
 import { NotRequiredToggle } from "./NotRequiredToggle";
 import { DataTable } from "./DataTable";
+import {
+  getBookingRowActions,
+  type BookingRowLockFields,
+} from "../lib/booking-row-actions";
 import { GuestHouseSelector } from "./GuestHouseSelector";
 import { ARCHotelSelector } from "./ARCHotelSelector";
 import { Button } from "@/components/ui/button";
@@ -26,7 +30,7 @@ import {
   isAmountWithinLimit,
 } from "../lib/travel-validation";
 
-interface AccommodationFormData {
+interface AccommodationFormData extends BookingRowLockFields {
   accommodation_type: string;
   accommodation_type_label: string;
   accommodation_sub_option: string;
@@ -69,6 +73,7 @@ interface AccommodationSectionProps {
   travelFor?: "self" | "guest" | "self_guest";
   defaultCityId?: number | null;
   defaultCityLabel?: string;
+  onCloseRow?: (index: number) => void;
 }
 
 export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
@@ -89,6 +94,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
   travelFor = "self",
   defaultCityId = null,
   defaultCityLabel = "",
+  onCloseRow,
 }) => {
   const [form, setForm] = useState<AccommodationFormData>(
     getEmptyAccommodation(),
@@ -951,6 +957,8 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
             data={accommodation}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onClose={onCloseRow}
+            getRowActions={(row) => getBookingRowActions(row)}
             emptyMessage="No accommodation added yet"
             rowErrors={bookingErrors}
           />

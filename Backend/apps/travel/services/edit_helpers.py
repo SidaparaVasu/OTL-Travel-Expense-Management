@@ -212,3 +212,6 @@ def reset_approval_flows(application, triggered_by):
     application.status = 'draft'
     application.current_approver = None
     application.save(update_fields=['status', 'current_approver', 'updated_at'])
+
+    from apps.travel.services.booking_lock import unlock_booking_approval_locks
+    unlock_booking_approval_locks(application)
