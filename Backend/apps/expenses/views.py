@@ -713,7 +713,12 @@ class ClaimFinanceActionView(BranchFilterMixin, APIView):
             claim_qs = ExpenseClaim.objects.select_related("status").filter(id=claim_id)
             
             # Apply branch filtering - Finance can only act on their branch claims
-            claim_qs = self.apply_branch_filter(claim_qs, request.user, employee_field='employee')
+            claim_qs = self.apply_branch_filter(
+                claim_qs,
+                request.user,
+                employee_field='employee',
+                spoc_role_name='Finance',
+            )
             
             claim = claim_qs.first()
             if not claim:

@@ -107,6 +107,7 @@ urlpatterns = [
     path('dashboard/manager/', ManagerDashboardView.as_view(), name="manager-dashboard"),
     path('dashboard/travel-desk/', TravelDeskDashboardView.as_view(), name="travel-desk-agent-dashboard"),
     path('dashboard/finance/', FinanceDashboardView.as_view(), name='finance-dashboard'),
+    path('finance/assigned-locations/', FinanceAssignedLocationsView.as_view(), name='finance-assigned-locations'),
 
     # Analytics
     path('analytics/', TravelAnalyticsView.as_view()),
