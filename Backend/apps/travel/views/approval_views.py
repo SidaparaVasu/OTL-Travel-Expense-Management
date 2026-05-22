@@ -40,7 +40,7 @@ class ManagerApprovalsView(ListAPIView):
         # Base queryset: Applications where user is an approver
         queryset = TravelApplication.objects.filter(
             approval_flows__approver=user,
-            approval_flows__can_approve=True
+            approval_flows__can_approve=True,
         ).select_related(
             'employee__grade', 'employee__department', 'employee__organizational_profile__reporting_manager'
         ).prefetch_related(
@@ -52,7 +52,18 @@ class ManagerApprovalsView(ListAPIView):
 
         # Status filtering
         if status_filter == 'pending':
-            queryset = queryset.filter(approval_flows__status='pending')
+            from django.db.models import Exists, OuterRef
+            queryset = queryset.filter(
+                Exists(
+                    TravelApprovalFlow.objects.filter(
+                        travel_application_id=OuterRef('pk'),
+                        approver=user,
+                        can_approve=True,
+                        status='pending',
+                        edit_count=OuterRef('edit_count'),
+                    )
+                )
+            )
         elif status_filter == 'approved':
             queryset = queryset.filter(approval_flows__status='approved')
         elif status_filter == 'rejected':
@@ -101,10 +112,18 @@ class ManagerPendingApprovalsView(ListAPIView):
     
     def get_queryset(self):
         # Base queryset: Pending approvals for this manager
+        from django.db.models import Exists, OuterRef
+
         queryset = TravelApplication.objects.filter(
-            approval_flows__approver=self.request.user,
-            approval_flows__status='pending',
-            approval_flows__can_approve=True
+            Exists(
+                TravelApprovalFlow.objects.filter(
+                    travel_application_id=OuterRef('pk'),
+                    approver=self.request.user,
+                    status='pending',
+                    can_approve=True,
+                    edit_count=OuterRef('edit_count'),
+                )
+            )
         ).select_related(
             'employee__grade', 'employee__department'
         ).prefetch_related(
@@ -166,7 +185,8 @@ class ApprovalActionView(APIView):
                 travel_application=travel_app,
                 approver=request.user,
                 status='pending',
-                can_approve=True
+                can_approve=True,
+                edit_count=travel_app.edit_count,
             )
         except TravelApprovalFlow.DoesNotExist:
             return error_response(
@@ -334,18 +354,26 @@ class ApprovalHistoryView(APIView):
                 status_code=status.HTTP_403_FORBIDDEN
             )
         
-        approval_flows = travel_app.approval_flows.all().order_by('sequence')
+        from apps.travel.services.approval_cycle import (
+            all_flows_for_history,
+            current_flows_for_application,
+        )
+
+        approval_flows = all_flows_for_history(travel_app)
         serializer = TravelApprovalFlowSerializer(approval_flows, many=True)
-        
-        # Calculate summary
+
+        active_flows = current_flows_for_application(travel_app)
         summary = {
             'total_approvals': approval_flows.count(),
-            'completed_approvals': approval_flows.filter(status__in=['approved', 'rejected']).count(),
-            'pending_approvals': approval_flows.filter(status='pending').count(),
-            'current_step': None
+            'completed_approvals': approval_flows.filter(
+                status__in=['approved', 'rejected']
+            ).count(),
+            'pending_approvals': active_flows.filter(status='pending').count(),
+            'current_cycle': travel_app.edit_count or 0,
+            'current_step': None,
         }
         
-        current_pending = approval_flows.filter(status='pending').first()
+        current_pending = active_flows.filter(status='pending').first()
         if current_pending:
             summary['current_step'] = {
                 'level': current_pending.approval_level,

@@ -7,6 +7,10 @@ import { FormTextarea } from "./FormTextarea";
 import { CityCombobox } from "./CityCombobox";
 import { NotRequiredToggle } from "./NotRequiredToggle";
 import { DataTable } from "./DataTable";
+import {
+  getBookingRowActions,
+  type BookingRowLockFields,
+} from "../lib/booking-row-actions";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { DatePickerField } from "./DatePickerField";
@@ -34,7 +38,7 @@ import {
   type TravelSubOption,
 } from "@/src/api/travel-api";
 
-interface TicketingFormData {
+interface TicketingFormData extends BookingRowLockFields {
   booking_type: string;
   sub_option: string;
   from_location: string;
@@ -71,6 +75,7 @@ interface TicketingSectionProps {
   bookingErrors?: Record<number, string>;
   /** Who the application is for — bulk file only shown for guest/self_guest */
   travelFor?: "self" | "guest" | "self_guest";
+  onCloseRow?: (index: number) => void;
 }
 
 export const TicketingSection: React.FC<TicketingSectionProps> = ({
@@ -87,6 +92,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   travelSubOptions: propSubOptions,
   bookingErrors = {},
   travelFor = "self",
+  onCloseRow,
 }) => {
   const [form, setForm] = useState<TicketingFormData>({
     ...getEmptyTicketing(),
@@ -686,6 +692,8 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
             data={ticketing}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onClose={onCloseRow}
+            getRowActions={(row) => getBookingRowActions(row)}
             emptyMessage="No tickets added yet"
             rowErrors={bookingErrors}
           />

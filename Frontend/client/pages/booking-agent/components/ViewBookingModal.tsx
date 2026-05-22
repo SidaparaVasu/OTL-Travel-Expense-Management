@@ -80,6 +80,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
   if (!isOpen || !booking) return null;
 
   const isRequested = booking.status === "requested";
+  const isClosed = booking.status === "closed";
   const isOnHold = booking.travel_application_status === "cancellation_requested";
   const isGuestTravel = booking.travel_for === "guest" || booking.travel_for === "self_guest";
 
@@ -211,6 +212,16 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* LEFT SECTION */}
           <div className="w-[60%] border-r overflow-y-auto px-6 py-4 space-y-6">
+
+            {isClosed && booking.closure_reason && (
+              <div className="bg-slate-100 border border-slate-300 rounded-lg px-4 py-3 text-sm text-slate-800">
+                <p className="font-semibold text-slate-900">Booking closed</p>
+                <p className="mt-1 whitespace-pre-wrap">{booking.closure_reason}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  No further vendor actions are required on this line.
+                </p>
+              </div>
+            )}
 
             {/* Status & Cost */}
             <div className="flex items-center justify-between">
@@ -478,7 +489,7 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t flex justify-end gap-3">
-          {isRequested ? (
+          {isRequested && !isClosed ? (
             <>
               <Button
                 variant="outline"

@@ -26,6 +26,8 @@ class BookingAgentSerializer(serializers.ModelSerializer):
 
 
 class AgentBookingSerializer(serializers.ModelSerializer):
+    travel_request_id = serializers.SerializerMethodField()
+    closure_reason = serializers.SerializerMethodField()
     assigned_agent_name = serializers.SerializerMethodField()
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)   
@@ -45,7 +47,8 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            'id', 'booking_type', 'sub_option', 'booking_type_name', 'sub_option_name', 
+            'id', 'travel_request_id', 'closure_reason',
+            'booking_type', 'sub_option', 'booking_type_name', 'sub_option_name', 
             'estimated_cost', 'actual_cost', 'vendor_reference', 'booking_reference',
             'status', 'booking_details', 'booking_file', 'bulk_booking_file',
             'assigned_agent_name', 'special_instruction',
@@ -62,6 +65,13 @@ class AgentBookingSerializer(serializers.ModelSerializer):
     def get_notes(self, obj):
         notes = BookingNote.objects.filter(booking=obj).select_related("author").order_by("-created_at")
         return BookingNoteSerializer(notes, many=True).data
+
+    def get_travel_request_id(self, obj):
+        return obj.trip_details.travel_application.get_travel_request_id()
+
+    def get_closure_reason(self, obj):
+        from apps.travel.services.booking_closure import get_latest_closure_reason
+        return get_latest_closure_reason(obj)
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -148,6 +158,7 @@ class AgentBookingSerializer(serializers.ModelSerializer):
 class AgentBookingListSerializer(serializers.ModelSerializer):
     application_id = serializers.IntegerField(source="trip_details.travel_application.id", read_only=True)
     travel_request_id = serializers.SerializerMethodField()
+    closure_reason = serializers.SerializerMethodField()
     employee_name = serializers.SerializerMethodField()
     employee_email = serializers.SerializerMethodField()
     employee_mobile = serializers.SerializerMethodField()
@@ -175,7 +186,7 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            "id", "application_id", "travel_request_id", "purpose", "trip_segment", 
+            "id", "application_id", "travel_request_id", "closure_reason", "purpose", "trip_segment", 
             "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_age",
             "booking_details", "booking_type", "booking_type_name", "sub_option", "sub_option_name",
             "status", "status_label", "estimated_cost", "actual_cost", "max_allowed_cost",
@@ -206,6 +217,10 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
 
     def get_travel_request_id(self, obj):
         return obj.trip_details.travel_application.get_travel_request_id()
+
+    def get_closure_reason(self, obj):
+        from apps.travel.services.booking_closure import get_latest_closure_reason
+        return get_latest_closure_reason(obj)
 
     def get_employee_name(self, obj):
         emp = obj.trip_details.travel_application.employee
@@ -393,7 +408,8 @@ class AgentBookingListSerializer(serializers.ModelSerializer):
 
 class AgentBookingDetailSerializer(serializers.ModelSerializer):
     application_id = serializers.IntegerField(source="trip_details.travel_application.id", read_only=True)
-    travel_request_id = serializers.CharField(source="trip_details.travel_application.travel_request_id", read_only=True)
+    travel_request_id = serializers.SerializerMethodField()
+    closure_reason = serializers.SerializerMethodField()
     employee_name = serializers.SerializerMethodField()
     employee_email = serializers.SerializerMethodField()
     employee_mobile = serializers.SerializerMethodField()
@@ -419,7 +435,8 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            "id", "application_id", "travel_request_id", "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_grade", "employee_age",
+            "id", "application_id", "travel_request_id", "closure_reason",
+            "employee_name", "employee_email", "employee_mobile", "employee_gender", "employee_grade", "employee_age",
             "purpose", "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
             "status", "status_label", "estimated_cost", "actual_cost", 
             "booking_reference", "vendor_reference", 
@@ -441,6 +458,13 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
     meal_preference = serializers.SerializerMethodField()
     requested_vehicle_type = serializers.SerializerMethodField()
     notes = serializers.SerializerMethodField()
+
+    def get_travel_request_id(self, obj):
+        return obj.trip_details.travel_application.get_travel_request_id()
+
+    def get_closure_reason(self, obj):
+        from apps.travel.services.booking_closure import get_latest_closure_reason
+        return get_latest_closure_reason(obj)
 
     def get_meal_preference(self, obj):
         return obj.booking_details.get('meal_preference', "")
@@ -513,7 +537,7 @@ class AgentBookingDetailSerializer(serializers.ModelSerializer):
 
     def get_ceo_approval_status(self, obj):
         app = obj.trip_details.travel_application
-        ceo_flow = app.approval_flows.filter(approval_level='ceo').first()
+        ceo_flow = app.active_approval_flows().filter(approval_level='ceo').first()
         if not ceo_flow:
             return 'not_required'
         return ceo_flow.status

@@ -17,6 +17,16 @@ CLOSEABLE_STATUSES = {'pending', 'requested', 'in_progress', 'confirmed'}
 TERMINAL_STATUSES = {'cancelled', 'completed', 'closed'}
 
 
+def get_latest_closure_reason(booking: Booking) -> str | None:
+    """Most recent closure reason for display (travel desk / booking agent)."""
+    log = (
+        booking.closure_logs.filter(action='closed')
+        .order_by('-created_at')
+        .first()
+    )
+    return (log.closure_reason or '').strip() or None if log else None
+
+
 def is_primary_spoc_for_application(application, user) -> bool:
     return _is_primary_spoc_for_application(application, user)
 
@@ -113,6 +123,82 @@ def close_booking(
                 "allow_claim": allow_claim,
                 "closure_reason": closure_reason,
                 "claim_decision_reason": claim_decision_reason,
+            },
+        )
+
+    return booking
+
+
+def close_booking_by_applicant(
+    booking: Booking,
+    user,
+    *,
+    closure_reason: str,
+) -> Booking:
+    """
+    Applicant closes an approval-locked line instead of hard-deleting it.
+    Always records allow_claim=False.
+    """
+    application = booking.trip_details.travel_application
+    if application.employee_id != user.id:
+        raise ValidationError("You do not have permission to close this booking.")
+
+    from apps.travel.services.booking_lock import can_applicant_close_booking
+
+    if not can_applicant_close_booking(booking):
+        raise ValidationError(
+            "This booking cannot be closed. It may still be editable, "
+            "or is already closed/cancelled."
+        )
+
+    if application.status in {"cancelled", "cancellation_requested"}:
+        raise ValidationError("Cannot close booking on a cancelled application.")
+
+    closure_reason = _validate_reason(closure_reason, "closure_reason")
+    claim_note = "Applicant closed line item (not claimable)."
+
+    with transaction.atomic():
+        old_status = booking.status
+        now = timezone.now()
+
+        booking.status = "closed"
+        booking.allow_claim = False
+        booking.closed_at = now
+        booking.closed_by = user
+        booking.save(
+            update_fields=["status", "allow_claim", "closed_at", "closed_by", "updated_at"]
+        )
+
+        BookingClosureLog.objects.create(
+            booking=booking,
+            action="closed",
+            closure_reason=closure_reason,
+            claim_decision_reason=claim_note,
+            allow_claim=False,
+            created_by=user,
+        )
+
+        BookingNote.objects.create(
+            booking=booking,
+            author=user,
+            note=f"[CLOSED BY APPLICANT] {closure_reason} | Claim not allowed: {claim_note}",
+        )
+
+        _release_agent_assignment(booking)
+        refresh_application_booking_status(application)
+
+        AuditLog.objects.create(
+            user=user,
+            action="close_booking",
+            content_object=booking,
+            changes={
+                "booking_id": booking.id,
+                "old_status": old_status,
+                "new_status": "closed",
+                "allow_claim": False,
+                "closure_reason": closure_reason,
+                "claim_decision_reason": claim_note,
+                "closed_by_applicant": True,
             },
         )
 

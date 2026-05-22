@@ -191,33 +191,27 @@ def determine_reapproval_needed(original_app, updated_data) -> Tuple[bool, str, 
 
 def reset_approval_flows(application, triggered_by):
     """
-    Reset all approval flows for an application that requires re-approval.
-    
-    Args:
-        application: TravelApplication instance
-        triggered_by: User who triggered the edit
+    Critical edit: reset TR to draft for resubmit. Approval rows are kept;
+    edit_count and flow statuses are updated on the next submit.
     """
-    from apps.travel.models import TravelApprovalFlow
     from apps.travel.models.audit import AuditLog
     from django.contrib.contenttypes.models import ContentType
-    
-    # Delete existing approval flows
-    deleted_count = application.approval_flows.all().delete()[0]
-    
-    # Create audit log
+
     AuditLog.objects.create(
         user=triggered_by,
         action='reset_approvals',
         content_type=ContentType.objects.get_for_model(application),
         object_id=application.id,
         changes={
-            'reason': 'Application edited with critical changes',
-            'deleted_approval_flows': deleted_count,
-            'reset_to_status': 'draft'  # Reset to draft so submit can trigger workflow
-        }
+            'reason': 'Application edited with critical changes — requires resubmit',
+            'edit_count': application.edit_count,
+            'reset_to_status': 'draft',
+        },
     )
-    
-    # Reset application status to draft so submit endpoint can trigger approval workflow
+
     application.status = 'draft'
     application.current_approver = None
-    application.save(update_fields=['status', 'current_approver'])
+    application.save(update_fields=['status', 'current_approver', 'updated_at'])
+
+    from apps.travel.services.booking_lock import unlock_booking_approval_locks
+    unlock_booking_approval_locks(application)

@@ -105,7 +105,8 @@ class ManagerDashboardView(APIView):
         # Pending approvals
         pending = TravelApprovalFlow.objects.filter(
             approver=user,
-            status='pending'
+            status='pending',
+            edit_count=F('travel_application__edit_count'),
         ).count()
         
         # Team statistics (subordinates)
@@ -125,7 +126,8 @@ class ManagerDashboardView(APIView):
         # Budget overview
         pending_budget = TravelApplication.objects.filter(
             approval_flows__approver=user,
-            approval_flows__status='pending'
+            approval_flows__status='pending',
+            approval_flows__edit_count=F('edit_count'),
         ).aggregate(total=Sum('estimated_total_cost'))['total'] or 0
         
         # Average approval time

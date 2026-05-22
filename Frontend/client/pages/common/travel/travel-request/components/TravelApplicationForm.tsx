@@ -33,6 +33,9 @@ import { AccommodationSection } from "./AccommodationSection";
 import { ConveyanceSection } from "./ConveyanceSection";
 import { AdvanceSection } from "./AdvanceSection";
 import { TravelForSection } from "./TravelForSection";
+import { EditReasonDialog } from "./EditReasonDialog";
+import { ApplicantCloseBookingModal } from "./ApplicantCloseBookingModal";
+import type { BookingRowLockFields } from "../lib/booking-row-actions";
 import {
   getEmptyPurposeForm,
   getEmptyTicketing,
@@ -127,7 +130,103 @@ export const TravelApplicationForm: React.FC = () => {
   );
   const [isLoadingEditData, setIsLoadingEditData] = useState(false);
   const [originalStatus, setOriginalStatus] = useState<string | null>(null);
+  const [applicationWasSubmitted, setApplicationWasSubmitted] = useState(false);
   const [applicationCreatedAt, setApplicationCreatedAt] = useState<string | null>(null);
+  const [editReasonDialogOpen, setEditReasonDialogOpen] = useState(false);
+  const [editReason, setEditReason] = useState("");
+  const [editReasonPendingAction, setEditReasonPendingAction] = useState<
+    "submit" | "draft" | null
+  >(null);
+  const [closeBookingTarget, setCloseBookingTarget] = useState<{
+    category: "ticketing" | "accommodation" | "conveyance";
+    index: number;
+  } | null>(null);
+  const [isClosingBooking, setIsClosingBooking] = useState(false);
+
+  const mapBookingLockFields = (booking: {
+    status?: string;
+    is_approved?: boolean;
+    is_actionable?: boolean;
+    can_close?: boolean;
+  }): BookingRowLockFields => ({
+    status: booking.status,
+    is_approved: !!booking.is_approved,
+    is_actionable: booking.is_actionable !== false,
+    can_close: !!booking.can_close,
+  });
+
+  const applyClosedBookingToRow = (
+    category: "ticketing" | "accommodation" | "conveyance",
+    index: number,
+    booking: {
+      status?: string;
+      is_approved?: boolean;
+      is_actionable?: boolean;
+      can_close?: boolean;
+    },
+  ) => {
+    const lockFields = mapBookingLockFields(booking);
+    if (category === "ticketing") {
+      setTicketing((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, ...lockFields } : row)),
+      );
+    } else if (category === "accommodation") {
+      setAccommodation((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, ...lockFields } : row)),
+      );
+    } else {
+      setConveyance((prev) =>
+        prev.map((row, i) => (i === index ? { ...row, ...lockFields } : row)),
+      );
+    }
+  };
+
+  const requestCloseBooking = (
+    category: "ticketing" | "accommodation" | "conveyance",
+    index: number,
+  ) => {
+    setCloseBookingTarget({ category, index });
+  };
+
+  const handleConfirmCloseBooking = async (closureReason: string) => {
+    if (!closeBookingTarget || !editApplicationId) return;
+
+    const { category, index } = closeBookingTarget;
+    const lists = {
+      ticketing,
+      accommodation,
+      conveyance,
+    } as const;
+    const row = lists[category][index] as { id?: number };
+    if (!row?.id) {
+      toast.error("Save the application before closing this booking line.");
+      return;
+    }
+
+    setIsClosingBooking(true);
+    try {
+      const response = await travelAPI.closeApplicantBooking(
+        editApplicationId,
+        row.id,
+        { closure_reason: closureReason },
+      );
+      const booking =
+        response?.data?.booking ?? response?.booking ?? response?.data;
+      if (booking) {
+        applyClosedBookingToRow(category, index, booking);
+      }
+      toast.success("Booking line closed.");
+      setCloseBookingTarget(null);
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.non_field_errors?.[0] ||
+        "Failed to close booking.";
+      toast.error(msg);
+    } finally {
+      setIsClosingBooking(false);
+    }
+  };
 
   // Guest Logic
   const [travelFor, setTravelFor] = useState<"self" | "guest" | "self_guest">(
@@ -436,6 +535,7 @@ export const TravelApplicationForm: React.FC = () => {
 
           // Store original status to determine if we need to call submit later
           setOriginalStatus(app.status);
+          setApplicationWasSubmitted(!!app.submitted_at);
           setApplicationCreatedAt(app.created_at || null);
 
           // Populate Travel For & Guests
@@ -511,6 +611,7 @@ export const TravelApplicationForm: React.FC = () => {
                   // Ticketing
                   ticketingData.push({
                     id: booking.id,
+                    ...mapBookingLockFields(booking),
                     booking_type: String(booking.booking_type),
                     sub_option: String(booking.sub_option),
                     estimated_cost: booking.estimated_cost || "",
@@ -541,6 +642,7 @@ export const TravelApplicationForm: React.FC = () => {
                   // Accommodation
                   accommodationData.push({
                     id: booking.id,
+                    ...mapBookingLockFields(booking),
                     accommodation_type: String(booking.booking_type),
                     accommodation_type_label: booking.booking_type_name || "",
                     accommodation_sub_option: String(booking.sub_option),
@@ -583,6 +685,7 @@ export const TravelApplicationForm: React.FC = () => {
 
                   conveyanceData.push({
                     id: booking.id,
+                    ...mapBookingLockFields(booking),
                     vehicle_type: String(booking.booking_type),
                     vehicle_type_label: booking.booking_type_name || "",
                     vehicle_sub_option: String(booking.sub_option),
@@ -1006,7 +1109,7 @@ export const TravelApplicationForm: React.FC = () => {
     return true;
   };
 
-  const buildPayload = (isDraft: boolean = false) => {
+  const buildPayload = (isDraft: boolean = false, editReasonText?: string) => {
     const travelersPayload: any[] = [];
     if (travelFor === "self" || travelFor === "self_guest") {
       travelersPayload.push({
@@ -1026,7 +1129,7 @@ export const TravelApplicationForm: React.FC = () => {
       });
     }
 
-    return {
+    const payload: Record<string, unknown> = {
       purpose: purposeData.purpose,
       travel_for: travelFor,
       travelers_data: travelersPayload,
@@ -1055,6 +1158,7 @@ export const TravelApplicationForm: React.FC = () => {
           bookings: [
             ...ticketing.map((t, index) => ({
               id: (t as any).id || undefined, // Pass ID if exists
+              ...(t.status ? { status: t.status } : {}),
               booking_type: parseInt(t.booking_type), // // Ticketing mode ID
               sub_option: parseInt(t.sub_option),
               estimated_cost: parseFloat(t.estimated_cost) || null,
@@ -1076,6 +1180,7 @@ export const TravelApplicationForm: React.FC = () => {
             })),
             ...accommodation.map((a, index) => ({
               id: (a as any).id || undefined, // Pass ID if exists
+              ...(a.status ? { status: a.status } : {}),
               booking_type: a.accommodation_type, // Accommodation mode ID
               sub_option: parseInt(a.accommodation_sub_option),
               estimated_cost: parseFloat(a.estimated_cost),
@@ -1097,6 +1202,7 @@ export const TravelApplicationForm: React.FC = () => {
             })),
             ...conveyance.map((c, index) => ({
               id: (c as any).id || undefined, // Pass ID if exists
+              ...(c.status ? { status: c.status } : {}),
               booking_type: parseInt(c.vehicle_type), // Conveyance mode ID
               sub_option: parseInt(c.vehicle_sub_option),
               estimated_cost: parseFloat(c.estimated_cost),
@@ -1134,6 +1240,12 @@ export const TravelApplicationForm: React.FC = () => {
         },
       ],
     };
+
+    if (editReasonText?.trim()) {
+      payload.edit_reason = editReasonText.trim();
+    }
+
+    return payload;
   };
 
   const normalizeApplicationResponse = (response: any) =>
@@ -1229,7 +1341,7 @@ export const TravelApplicationForm: React.FC = () => {
     return null;
   }
 
-  const handleSaveAsDraft = async () => {
+  const performSaveAsDraft = async (reasonForEdit?: string) => {
     if (!purposeData.purpose.trim()) {
       toast.error("Purpose is required to save as draft");
       setActiveTab("purpose");
@@ -1252,7 +1364,7 @@ export const TravelApplicationForm: React.FC = () => {
         }
       }
 
-      const payload = buildPayload(true);
+      const payload = buildPayload(true, reasonForEdit);
       let applicationId = draftApplicationId;
 
       if (applicationId) {
@@ -1302,7 +1414,19 @@ export const TravelApplicationForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSaveAsDraft = () => {
+    if (requiresEditReason) {
+      setEditReasonPendingAction("draft");
+      setEditReasonDialogOpen(true);
+      return;
+    }
+    void performSaveAsDraft();
+  };
+
+  const requiresEditReason =
+    isEditMode && applicationWasSubmitted;
+
+  const performSubmit = async (reasonForEdit?: string) => {
     if (!isTravelForValid()) {
       toast.error("Please ensure travel guest details are correct.");
       setActiveTab("travel_for");
@@ -1351,29 +1475,47 @@ export const TravelApplicationForm: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const payload = buildPayload(false);
+      const payload = buildPayload(false, reasonForEdit);
 
       let applicationId = draftApplicationId;
 
+      let updateResult: any = null;
       if (applicationId) {
-        await travelAPI.updateApplication(applicationId, payload);
+        updateResult = await travelAPI.updateApplication(applicationId, payload);
       } else {
         const result: any = await travelAPI.createApplication(payload as any);
         applicationId = result.data?.id || result.id;
       }
 
       if (applicationId) {
-        const shouldCallSubmit = !isEditMode || originalStatus === "draft";
-
         await uploadPendingBookingBulkFiles(applicationId);
 
+        const updatedApp =
+          updateResult?.data?.application ||
+          updateResult?.data ||
+          updateResult;
+        const updatedStatus = updatedApp?.status;
+        const needsReapproval = Boolean(updatedApp?.needs_reapproval);
+
+        const shouldCallSubmit =
+          !isEditMode ||
+          originalStatus === "draft" ||
+          updatedStatus === "draft" ||
+          needsReapproval;
+
+        let submitted = false;
         if (shouldCallSubmit) {
           await travelAPI.submitApplication(applicationId);
+          submitted = true;
         }
 
-        const successMessage = isEditMode
-          ? "Travel application updated successfully!"
-          : "Travel application submitted successfully!";
+        const successMessage = submitted
+          ? isEditMode
+            ? "Travel application updated and submitted for approval."
+            : "Travel application submitted successfully!"
+          : isEditMode
+            ? "Travel application updated successfully."
+            : "Travel application saved successfully.";
         toast.success(successMessage);
         clearForm();
         navigate(ROUTES.travelApplicationList);
@@ -1406,6 +1548,31 @@ export const TravelApplicationForm: React.FC = () => {
       toast.error(message || "Failed to submit application. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (requiresEditReason) {
+      setEditReasonPendingAction("submit");
+      setEditReasonDialogOpen(true);
+      return;
+    }
+    void performSubmit();
+  };
+
+  const handleEditReasonConfirm = () => {
+    const trimmed = editReason.trim();
+    if (trimmed.length < 10) {
+      toast.error("Edit reason must be at least 10 characters.");
+      return;
+    }
+    const action = editReasonPendingAction;
+    setEditReasonDialogOpen(false);
+    setEditReasonPendingAction(null);
+    if (action === "draft") {
+      void performSaveAsDraft(trimmed);
+    } else {
+      void performSubmit(trimmed);
     }
   };
 
@@ -1731,6 +1898,7 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
                 travelFor={travelFor}
+                onCloseRow={(index) => requestCloseBooking("ticketing", index)}
               />
             )}
 
@@ -1757,6 +1925,9 @@ export const TravelApplicationForm: React.FC = () => {
                 }
                 defaultCityLabel={purposeData.trip_to_location_label}
                 travelFor={travelFor}
+                onCloseRow={(index) =>
+                  requestCloseBooking("accommodation", index)
+                }
               />
             )}
 
@@ -1774,6 +1945,7 @@ export const TravelApplicationForm: React.FC = () => {
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}
                 travelFor={travelFor}
+                onCloseRow={(index) => requestCloseBooking("conveyance", index)}
               />
             )}
 
@@ -1837,6 +2009,24 @@ export const TravelApplicationForm: React.FC = () => {
           )}
         </div>
       </main>
+
+      <ApplicantCloseBookingModal
+        open={closeBookingTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setCloseBookingTarget(null);
+        }}
+        onConfirm={handleConfirmCloseBooking}
+        isSubmitting={isClosingBooking}
+      />
+
+      <EditReasonDialog
+        open={editReasonDialogOpen}
+        onOpenChange={setEditReasonDialogOpen}
+        reason={editReason}
+        onReasonChange={setEditReason}
+        onConfirm={handleEditReasonConfirm}
+        isSubmitting={isSubmitting || isSaving}
+      />
 
       {/* Clear Form Confirmation Dialog */}
       <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>

@@ -11,6 +11,7 @@ const COLORS = {
   in_progress: "#3B82F6",  // blue-500
   confirmed: "#22C55E",    // green-500
   cancelled: "#EF4444",    // red-500
+  closed: "#64748B",       // slate-500
 };
 
 export function BookingStatsChart({ stats }: BookingStatsChartProps) {
@@ -19,6 +20,7 @@ export function BookingStatsChart({ stats }: BookingStatsChartProps) {
     { name: "In Progress", value: stats.in_progress, color: COLORS.in_progress },
     { name: "Confirmed", value: stats.confirmed, color: COLORS.confirmed },
     { name: "Cancelled", value: stats.cancelled, color: COLORS.cancelled },
+    { name: "Closed", value: stats.closed ?? 0, color: COLORS.closed },
   ].filter(item => item.value > 0);
 
   // If no data, show empty state

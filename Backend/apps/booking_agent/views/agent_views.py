@@ -119,6 +119,7 @@ class BookingAgentDashboardView(APIView):
             # state a booking reaches after the agent confirms it and travel ends.
             "confirmed": bookings.filter(status__in=["confirmed", "completed"]).count(),
             "cancelled": bookings.filter(status="cancelled").count(),
+            "closed": bookings.filter(status="closed").count(),
         }
 
         # ---------------------------
@@ -233,7 +234,7 @@ class BookingAgentBookingsListView(APIView):
             "booking_type",
             "sub_option",
             "assignment__requested_vehicle_type",
-        )
+        ).prefetch_related("closure_logs")
 
         status_filter = request.query_params.get("status")
         if status_filter:
@@ -241,8 +242,13 @@ class BookingAgentBookingsListView(APIView):
             # completed is the terminal state after travel ends for a confirmed booking.
             if status_filter == "confirmed":
                 qs = qs.filter(status__in=["confirmed", "completed"])
+            elif status_filter == "closed":
+                qs = qs.filter(status="closed")
             else:
                 qs = qs.filter(status=status_filter)
+        else:
+            # Default list: hide closed lines (they remain visible via Closed filter).
+            qs = qs.exclude(status="closed")
 
         search = request.query_params.get("search")
         if search:
@@ -379,6 +385,13 @@ class BookingAgentUpdateStatusView(APIView):
             return error_response(
                 message="Booking not found or not assigned to you.",
                 data={"id": ["Invalid booking id"]}
+            )
+
+        if booking.status == "closed":
+            return error_response(
+                message="This booking was closed and cannot be updated.",
+                data={"status": ["Booking is closed."]},
+                status_code=403,
             )
         
         # Check if travel application is cancelled or cancellation requested
@@ -670,6 +683,13 @@ class BookingAgentAcceptBookingView(APIView):
                 message="Booking not found or not assigned to you.",
                 data={"id": ["Invalid booking id"]}
             )
+
+        if booking.status == "closed":
+            return error_response(
+                message="This booking was closed and cannot be accepted.",
+                data={"status": ["Booking is closed."]},
+                status_code=403,
+            )
         
         # Check if travel application is cancelled or cancellation requested
         application = booking.trip_details.travel_application
@@ -775,6 +795,13 @@ class BookingAgentRejectBookingView(APIView):
             return error_response(
                 message="Booking not found or not assigned to you.",
                 data={"id": ["Invalid booking id"]}
+            )
+
+        if booking.status == "closed":
+            return error_response(
+                message="This booking was closed and cannot be rejected.",
+                data={"status": ["Booking is closed."]},
+                status_code=403,
             )
 
         application = booking.trip_details.travel_application

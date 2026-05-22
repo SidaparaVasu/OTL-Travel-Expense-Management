@@ -238,6 +238,21 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         
         # Determine if re-approval is needed
         needs_reapproval, reason, new_status = determine_reapproval_needed(instance, request.data)
+
+        from apps.travel.services.edit_history import (
+            requires_edit_reason,
+            validate_edit_reason,
+            record_edit_history,
+        )
+
+        edit_reason = ""
+        if requires_edit_reason(instance):
+            try:
+                edit_reason = validate_edit_reason(
+                    instance, request.data.get("edit_reason", "")
+                )
+            except ValidationError as exc:
+                return validation_error_response(exc.message_dict)
         
         # Save the updated application
         self.perform_update(serializer)
@@ -271,6 +286,17 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
                     f"Failed to reschedule completion task for TR {instance.id} after date edit: {e}"
                 )
         
+        if edit_reason:
+            record_edit_history(
+                instance,
+                request.user,
+                edit_reason,
+                needs_reapproval=needs_reapproval,
+                system_change_summary=reason if needs_reapproval else "",
+                previous_status=original_status,
+                status_after_update=instance.status,
+            )
+
         # Handle re-approval if needed
         if needs_reapproval:
             reset_approval_flows(instance, request.user)
@@ -328,10 +354,60 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
                 }
             )
         
+        response_data = dict(serializer.data)
+        response_data['needs_reapproval'] = needs_reapproval
+        response_data['status'] = instance.status
+
         return success_response(
-            data=serializer.data,
+            data=response_data,
             message=f"Travel application updated successfully{' - Re-approval required' if needs_reapproval else ''}",
             status_code=status.HTTP_200_OK
+        )
+
+
+class ApplicantCloseBookingView(APIView):
+    """Applicant closes an approval-locked booking line (no hard delete)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, application_id, booking_id):
+        from apps.travel.services.booking_closure import close_booking_by_applicant
+        from apps.travel.services.edit_helpers import can_edit_application
+
+        try:
+            application = TravelApplication.objects.get(pk=application_id)
+        except TravelApplication.DoesNotExist:
+            return error_response("Travel application not found", status_code=404)
+
+        can_edit, message = can_edit_application(application, request.user)
+        if not can_edit:
+            return error_response(message, status_code=403)
+
+        try:
+            booking = Booking.objects.select_related(
+                "trip_details__travel_application",
+            ).get(
+                pk=booking_id,
+                trip_details__travel_application_id=application_id,
+            )
+        except Booking.DoesNotExist:
+            return error_response("Booking not found", status_code=404)
+
+        closure_reason = request.data.get("closure_reason", "")
+        try:
+            close_booking_by_applicant(
+                booking,
+                request.user,
+                closure_reason=closure_reason,
+            )
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                return validation_error_response(exc.message_dict)
+            return error_response(str(exc), status_code=400)
+
+        serializer = BookingSerializer(booking)
+        return success_response(
+            data={"booking": serializer.data},
+            message="Booking closed successfully",
         )
 
 
@@ -774,13 +850,25 @@ class TravelApplicationSubmitView(APIView):
         if not approver_entries:
             self_approved = True
 
+        from apps.travel.services.approval_cycle import (
+            resolve_cycle_on_submit,
+            upsert_approval_flow,
+            current_cycle,
+        )
+
+        from apps.travel.services.edit_history import mark_edit_history_submitted
+
+        is_resubmission = travel_app.submitted_at is not None
+        resolve_cycle_on_submit(travel_app)
+        cycle = current_cycle(travel_app)
+
         # -----------------------------------------
         # SELF-APPROVAL SCENARIO (NO APPROVERS)
         # -----------------------------------------
         if self_approved or not approver_entries:            
-            # Create auto-approval flow entry for record
-            TravelApprovalFlow.objects.create(
+            flow = upsert_approval_flow(
                 travel_application=travel_app,
+                cycle=cycle,
                 approver=request.user,
                 approval_level="self_approval",
                 sequence=1,
@@ -789,7 +877,7 @@ class TravelApplicationSubmitView(APIView):
                 can_approve=True,
                 is_required=True,
                 notes="Auto-approved (no approver required)",
-                approved_at=timezone.now()
+                approved_at=timezone.now(),
             )
             # Directly move to travel desk
             travel_app.status = "pending_travel_desk"
@@ -797,7 +885,13 @@ class TravelApplicationSubmitView(APIView):
             travel_app.submitted_at = timezone.now()
             travel_app.current_approver = None
             travel_app.set_settlement_due_date()
-            travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"]) 
+            travel_app.save(update_fields=["status", "self_approved", "submitted_at", "current_approver", "settlement_due_date"])
+
+            from apps.travel.services.booking_lock import sync_booking_approval_locks
+            sync_booking_approval_locks(travel_app)
+
+            if is_resubmission:
+                mark_edit_history_submitted(travel_app)
             
             from apps.travel.services.auto_forward_bookings import auto_forward_flight_train_bookings, auto_confirm_self_arranged_bookings
             auto_forward_flight_train_bookings(travel_app, system_user=request.user, request=request)
@@ -864,20 +958,14 @@ class TravelApplicationSubmitView(APIView):
                 status_code=400
             )
 
-        # 7) Create TravelApprovalFlow rows
-        approval_chain = []
-        for entry in approver_entries:
-            flow = TravelApprovalFlow.objects.create(
-                travel_application=travel_app,
-                approver=entry.user,
-                approval_level=entry.level,
-                sequence=entry.sequence,
-                status="pending",
-                can_view=entry.can_view,
-                can_approve=entry.can_approve,
-                is_required=entry.is_required
-            )
+        # 7) Create or refresh approval flows in place (no duplicate rows per cycle)
+        from apps.travel.services.approval_cycle import sync_approval_chain
 
+        synced_flows = sync_approval_chain(
+            travel_app, approver_entries, is_resubmission=is_resubmission
+        )
+        approval_chain = []
+        for flow in synced_flows:
             approval_chain.append({
                 "sequence": flow.sequence,
                 "approval_level": flow.approval_level,
@@ -893,6 +981,12 @@ class TravelApplicationSubmitView(APIView):
         travel_app.current_approver = first_approver.user
         travel_app.set_settlement_due_date()
         travel_app.save()
+
+        from apps.travel.services.booking_lock import sync_booking_approval_locks
+        sync_booking_approval_locks(travel_app)
+
+        if is_resubmission:
+            mark_edit_history_submitted(travel_app)
 
         # Schedule auto-completion
         from apps.notifications.tasks import schedule_travel_completion

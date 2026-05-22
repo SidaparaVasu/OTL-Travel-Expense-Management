@@ -266,6 +266,18 @@ export const travelAPI = {
     return data;
   },
 
+  closeApplicantBooking: async (
+    applicationId: number,
+    bookingId: number,
+    payload: { closure_reason: string },
+  ) => {
+    const { data } = await apiClient.post(
+      `/travel/applications/${applicationId}/bookings/${bookingId}/close/`,
+      payload,
+    );
+    return data;
+  },
+
   // Get Travel Application Details (comprehensive view)
   getTravelApplicationDetails: async (id: number) => {
     const { data } = await apiClient.get(`/travel/applications/${id}/details/`);

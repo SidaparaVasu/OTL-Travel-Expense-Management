@@ -121,6 +121,10 @@ class TravelApplication(models.Model):
     
     # Status and Tracking
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='draft')
+    edit_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Modification count (0 = original submission). Incremented on resubmit after critical edit.",
+    )
     is_settled = models.BooleanField(default=False)
     settlement_due_date = models.DateField(null=True, blank=True)
 
@@ -207,8 +211,15 @@ class TravelApplication(models.Model):
     
     def get_travel_request_id(self):
         """Generate formatted travel request ID"""
-        # Format: TR/TSF/YYYY/0000000 (7 digit sequence)
-        return f"TR/TSF/{self.created_at.year}/{self.id:07d}"
+        # Format: TR/TSF/YYYY/0000000 (7 digit sequence); /N suffix after first submit cycle
+        base = f"TR/TSF/{self.created_at.year}/{self.id:07d}"
+        if self.edit_count and self.edit_count > 0:
+            return f"{base}/{self.edit_count}"
+        return base
+
+    def active_approval_flows(self):
+        from apps.travel.services.approval_cycle import current_flows_for_application
+        return current_flows_for_application(self)
     
     def calculate_estimated_cost(self):
         """Calculate estimated cost from trip details"""
@@ -260,7 +271,7 @@ class TravelApplication(models.Model):
         Update application status after an approval step is completed
         """
         # Get next pending approval
-        next_approval = self.approval_flows.filter(
+        next_approval = self.active_approval_flows().filter(
             sequence__gt=approved_flow.sequence,
             status='pending'
         ).order_by('sequence').first()
@@ -289,6 +300,9 @@ class TravelApplication(models.Model):
                 self.status = 'pending_travel_desk'
                 
             self.save()  # Save first to ensure status is updated
+
+            from apps.travel.services.booking_lock import sync_booking_approval_locks
+            sync_booking_approval_locks(self)
 
             # Helper to trigger auto-forwarding (only if going to travel desk/bookings)
             if self.status == 'pending_travel_desk':
@@ -353,7 +367,7 @@ class TravelApplication(models.Model):
         
         # Cannot move to booking stages without approvals
         if new_status == 'pending_travel_desk':
-            required_approvals = self.approval_flows.filter(is_required=True)
+            required_approvals = self.active_approval_flows().filter(is_required=True)
             if required_approvals.exists():
                 pending_approvals = required_approvals.filter(status='pending')
                 if pending_approvals.exists():
