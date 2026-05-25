@@ -7,6 +7,8 @@ import {
   ToggleLeft,
   ToggleRight,
   UserCheck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { spocAssignmentAPI } from "@/src/api/spoc_assignment";
@@ -14,15 +16,22 @@ import { locationAPI } from "@/src/api/master_location";
 import { roleManagementAPI } from "@/src/api/master_role_management";
 import SPOCAssignmentModal from "./SPOCAssignmentModal";
 
+const PAGE_SIZE = 25;
+
 const SPOCAssignmentList = () => {
   const [assignments, setAssignments] = useState([]);
-  const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterActive, setFilterActive] = useState("all");
@@ -33,12 +42,22 @@ const SPOCAssignmentList = () => {
 
   useEffect(() => {
     fetchDropdownData();
-    fetchAssignments();
   }, []);
 
   useEffect(() => {
-    filterAssignments();
-  }, [assignments, searchTerm, filterLocation, filterRole, filterActive]);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [page, filterLocation, filterRole, filterActive, debouncedSearch]);
 
   const fetchDropdownData = async () => {
     try {
@@ -55,12 +74,26 @@ const SPOCAssignmentList = () => {
   const fetchAssignments = async () => {
     setLoading(true);
     try {
-      // Fetch all without filters initially, or add backend filters if performance needed
-      const response = await spocAssignmentAPI.getAll();
-      // API returns structure { status: "success", data: { results: [] } }
-      setAssignments(response.data?.results || response.results || []);
+      const params: Record<string, string | number | boolean> = {
+        page,
+        page_size: PAGE_SIZE,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (filterRole) params.role_id = filterRole;
+      if (filterLocation) params.location_id = filterLocation;
+      if (filterActive !== "all") {
+        params.is_active = filterActive === "active";
+      }
+
+      const response = await spocAssignmentAPI.getAll(params);
+      const results = response?.results || [];
+      setAssignments(results);
+      setTotalCount(response?.count ?? results.length);
+      setTotalPages(
+        response?.total_pages ??
+          Math.max(1, Math.ceil((response?.count ?? 0) / PAGE_SIZE)),
+      );
     } catch (error) {
-      console.error(error);
       console.error(error);
       toast.error("Failed to fetch assignments.");
     } finally {
@@ -68,41 +101,9 @@ const SPOCAssignmentList = () => {
     }
   };
 
-  const filterAssignments = () => {
-    let filtered = assignments;
-
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (item) =>
-          item.user?.username?.toLowerCase().includes(lowerSearch) ||
-          item.user?.email?.toLowerCase().includes(lowerSearch) ||
-          item.role?.name?.toLowerCase().includes(lowerSearch),
-      );
-    }
-
-    if (filterLocation) {
-      const locId = parseInt(filterLocation);
-      filtered = filtered.filter(
-        (item) =>
-          item.is_global || // Global covers all locations? Or just filter explicitly?
-          // Depending on requirement. Usually user wants to see "Who handles this location?"
-          // So if Global, they handle it.
-          item.locations?.some((l) => l.location_id === locId),
-      );
-    }
-
-    if (filterRole) {
-      const roleId = parseInt(filterRole);
-      filtered = filtered.filter((item) => item.role?.id === roleId);
-    }
-
-    if (filterActive !== "all") {
-      const isActive = filterActive === "active";
-      filtered = filtered.filter((item) => item.is_active === isActive);
-    }
-
-    setFilteredAssignments(filtered);
+  const handleFilterChange = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    setPage(1);
   };
 
   const handleEdit = (item) => {
@@ -189,7 +190,7 @@ const SPOCAssignmentList = () => {
             <div className="sm:col-span-1 lg:col-span-2">
               <select
                 value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
+                onChange={(e) => handleFilterChange(setFilterRole)(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm text-slate-700 cursor-pointer"
               >
                 <option value="">All Roles</option>
@@ -205,7 +206,7 @@ const SPOCAssignmentList = () => {
             <div className="sm:col-span-1 lg:col-span-2">
               <select
                 value={filterLocation}
-                onChange={(e) => setFilterLocation(e.target.value)}
+                onChange={(e) => handleFilterChange(setFilterLocation)(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm text-slate-700 cursor-pointer"
               >
                 <option value="">All Locations</option>
@@ -221,7 +222,7 @@ const SPOCAssignmentList = () => {
             <div className="sm:col-span-2 lg:col-span-2">
               <select
                 value={filterActive}
-                onChange={(e) => setFilterActive(e.target.value)}
+                onChange={(e) => handleFilterChange(setFilterActive)(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm text-slate-700 cursor-pointer"
               >
                 <option value="all">All Status</option>
@@ -239,7 +240,7 @@ const SPOCAssignmentList = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-slate-600">Loading assignments...</p>
             </div>
-          ) : filteredAssignments.length === 0 ? (
+          ) : assignments.length === 0 ? (
             <div className="p-12 text-center">
               <UserCheck className="mx-auto text-slate-300 mb-4" size={48} />
               <p className="text-slate-600">No assignments found.</p>
@@ -267,7 +268,7 @@ const SPOCAssignmentList = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {filteredAssignments.map((item) => (
+                  {assignments.map((item) => (
                     <tr
                       key={item.id}
                       className="hover:bg-neutral-50 transition-colors"
@@ -335,6 +336,38 @@ const SPOCAssignmentList = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {!loading && totalCount > PAGE_SIZE && (
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-6 py-4 border-t border-slate-100">
+              <p className="text-sm text-slate-500">
+                Showing {(page - 1) * PAGE_SIZE + 1}–
+                {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount} assignments
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+                <span className="text-sm text-slate-600 px-2">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           )}
         </div>

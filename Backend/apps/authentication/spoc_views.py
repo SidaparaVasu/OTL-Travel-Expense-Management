@@ -11,8 +11,17 @@ from .spoc_serializers import LocationSPOCAssignmentSerializer
 class LocationSPOCAssignmentViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows Location SPOC Assignments to be viewed or edited.
+
+    Query params:
+      - search: username, email, name, employee_id, role name, location name
+      - role_id, location_id, user_id, role_name, is_active
+      - page, page_size (standard pagination)
     """
-    queryset = LocationSPOCAssignment.objects.all().order_by('-updated_at')
+    queryset = (
+        LocationSPOCAssignment.objects.select_related('user', 'role')
+        .prefetch_related('locations')
+        .order_by('-updated_at')
+    )
     serializer_class = LocationSPOCAssignmentSerializer
     permission_classes = [permissions.IsAuthenticated]
     
@@ -41,9 +50,22 @@ class LocationSPOCAssignmentViewSet(viewsets.ModelViewSet):
             ).distinct()
             
         is_active = self.request.query_params.get('is_active')
-        if is_active is not None:
-            active_bool = is_active.lower() == 'true'
+        if is_active is not None and is_active != '':
+            active_bool = str(is_active).lower() in ('true', '1', 'yes')
             queryset = queryset.filter(is_active=active_bool)
+
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                models.Q(user__username__icontains=search)
+                | models.Q(user__email__icontains=search)
+                | models.Q(user__first_name__icontains=search)
+                | models.Q(user__last_name__icontains=search)
+                | models.Q(user__employee_id__icontains=search)
+                | models.Q(role__name__icontains=search)
+                | models.Q(locations__location_name__icontains=search)
+                | models.Q(locations__location_code__icontains=search)
+            ).distinct()
 
         return queryset
 

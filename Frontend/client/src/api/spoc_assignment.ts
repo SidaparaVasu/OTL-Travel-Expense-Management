@@ -8,10 +8,12 @@ export const spocAssignmentAPI = {
     location_id?: string;
     role_name?: string;
     is_active?: boolean;
+    search?: string;
+    page?: number;
+    page_size?: number;
   }) => {
     const { data } = await apiClient.get("/spoc-assignments/", { params });
-    console.log("getAll: ", data);
-    return data;
+    return data.data ?? data;
   },
 
   // Get single SPOC Assignment by ID
