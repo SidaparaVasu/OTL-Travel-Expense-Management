@@ -56,6 +56,18 @@ def is_booking_actionable(booking: Booking) -> bool:
     return True
 
 
+def should_skip_nested_booking_update(booking: Booking) -> bool:
+    """
+    Nested TR save must not apply payload fields to this line.
+    Closed/cancelled/completed lines stay as-is; approval-locked lines use close API.
+    """
+    if booking.status in TERMINAL_STATUSES:
+        return True
+    if booking.is_approved:
+        return True
+    return False
+
+
 def can_applicant_close_booking(booking: Booking) -> bool:
     """Replace delete with close once the line is approval-locked."""
     if not booking.is_approved:
