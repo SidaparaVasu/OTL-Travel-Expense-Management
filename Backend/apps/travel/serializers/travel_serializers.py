@@ -615,7 +615,10 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
         
         # Update trip details if provided
         if trip_details_data is not None:
-            from apps.travel.services.booking_lock import is_booking_actionable
+            from apps.travel.services.booking_lock import (
+                is_booking_actionable,
+                should_skip_nested_booking_update,
+            )
 
             # Load existing trips to allow fuzzy matching
             existing_trips = {t.id: t for t in instance.trip_details.all()}
@@ -667,22 +670,22 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                     if booking_id and booking_id in existing_bookings:
                         booking = existing_bookings[booking_id]
                     elif booking_type_id:
-                        # Fuzzy match by type
+                        # Fuzzy match by type (only editable lines; never bind new rows to closed/locked)
                         booking = next(
-                            (b for b in existing_bookings.values() 
-                             if b.booking_type_id == booking_type_id and b.id not in matched_booking_ids), 
-                            None
+                            (
+                                b
+                                for b in existing_bookings.values()
+                                if b.booking_type_id == booking_type_id
+                                and b.id not in matched_booking_ids
+                                and is_booking_actionable(b)
+                            ),
+                            None,
                         )
 
                     if booking:
                         matched_booking_ids.append(booking.id)
 
-                        if booking.is_approved:
-                            # Approval-locked lines are not updated from the nested TR payload.
-                            # The form rebuilds booking_details on every save, so strict diff checks
-                            # falsely reject minor TR edits and post-close submits. Use the
-                            # applicant close API to close a line; omit lines to hard-delete only
-                            # before approval (blocked above for is_approved).
+                        if should_skip_nested_booking_update(booking):
                             continue
 
                         if not is_booking_actionable(booking):
