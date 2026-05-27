@@ -5,9 +5,11 @@ import {
   MessageSquarePlus,
   CheckCircle,
   CircleX,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/src/store/authStore";
 import {
   Table,
   TableBody,
@@ -39,6 +41,7 @@ interface BookingsTableProps {
   onAccept?: (booking: Booking) => void;
   onReject?: (booking: Booking) => void;
   onAddNote: (booking: Booking) => void;
+  onDownloadPDF?: (booking: Booking) => void;
   showTravelRequestId: boolean;
   showEmployeeName: boolean;
 }
@@ -61,9 +64,13 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
   onAccept,
   onReject,
   onAddNote,
+  onDownloadPDF,
   showTravelRequestId,
   showEmployeeName,
 }) => {
+  const { user } = useAuthStore();
+  const isPermitted = user?.profile?.profile_type === "flight_train_agent";
+
   console.log(bookings);
   /** ------------------------------
    *  SMART ROUTE BUILDER (All types)
@@ -262,6 +269,23 @@ export const BookingsTable: React.FC<BookingsTableProps> = ({
                           </TooltipTrigger>
                           <TooltipContent>View Details</TooltipContent>
                         </Tooltip>
+
+                        {/* Download PDF Button */}
+                        {isPermitted && booking.application_id && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 bg-rose-100 hover:bg-rose-200 text-rose-600 hover:text-rose-700"
+                                onClick={() => onDownloadPDF?.(booking)}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Download Travel Report PDF</TooltipContent>
+                          </Tooltip>
+                        )}
 
                         {isClosed ? (
                           <span className="text-xs text-muted-foreground px-1">
