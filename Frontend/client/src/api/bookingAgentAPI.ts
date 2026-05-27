@@ -57,6 +57,7 @@ export interface Booking {
   assigned_agent_name: string | null;
   special_instruction?: string;
   travel_request_id?: string;
+  application_id?: number;
   closure_reason?: string | null;
   purpose?: string;
   internal_order?: string;

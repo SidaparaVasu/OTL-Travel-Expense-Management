@@ -2,7 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.http import HttpResponse
-# from apps.travel.models import TravelApplication
+from apps.authentication.mixins import BranchFilterMixin
+from apps.travel.models import TravelApplication, BookingAssignment
 # from apps.authentication.decorators import require_role
 # from apps.travel.tasks import generate_report_task
 from django_ratelimit.decorators import ratelimit
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Travel Application Details Report (PDF)
 # ============================================================
 
-class TravelApplicationReportView(APIView):
+class TravelApplicationReportView(BranchFilterMixin, APIView):
     """
     API View to download Travel Application Details Report (PDF).
 
@@ -39,6 +40,48 @@ class TravelApplicationReportView(APIView):
 
     @method_decorator(ratelimit(key='user', rate='5/m', method='GET', block=True))
     def get(self, request, pk):
+        # 1. Fetch travel application
+        from django.shortcuts import get_object_or_404
+        from rest_framework.exceptions import PermissionDenied
+
+        application = get_object_or_404(TravelApplication, pk=pk)
+
+        # 2. Verify permissions
+        user = request.user
+        has_staff_role = (
+            user.has_role('Admin') or 
+            user.has_role('admin') or
+            user.has_role('Travel Desk') or
+            user.has_role('Finance')
+        )
+
+        has_permission = (
+            # Employee who created the application
+            application.employee == user or
+            
+            # Approvers in the workflow
+            application.approval_flows.filter(approver=user).exists() or
+            
+            # Travel desk user assigned to this application
+            application.travel_desk_user == user or
+
+            # Branch-based access for staff roles
+            (has_staff_role and self.check_branch_access(user, application.employee)) or
+
+            # Booking Agent assigned to any booking in this application
+            # As per client requirement EasternTravel whose profile type is flight_train_booking agent is allowed to view travel report from 27-05-2026.
+            # In case other booking agent will allow to access report modify profile type or add more profile types in query.
+            BookingAssignment.objects.filter(
+                assigned_to=user,
+                booking__trip_details__travel_application=application,
+                assigned_to__booking_agent_profile__services__profile_type__code='flight_train_agent',
+                assigned_to__booking_agent_profile__services__is_active=True
+            ).exists()
+        )
+
+        if not has_permission:
+            raise PermissionDenied("You don't have permission to download this report")
+
         try:
             # --------------------------------------------------------
             # PREVIOUS VERSION (Celery-based implementation)

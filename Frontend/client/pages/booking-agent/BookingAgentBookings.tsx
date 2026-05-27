@@ -17,6 +17,7 @@ import {
 } from "@/src/api/bookingAgentAPI";
 import { useDebouncedCallback } from "./hooks/useDebouncedCallback";
 import { useToast } from "@/hooks/use-toast";
+import { travelAPI } from "@/src/api/travel-api";
 
 const BookingAgentBookings: React.FC = () => {
   const { toast } = useToast();
@@ -137,6 +138,50 @@ const BookingAgentBookings: React.FC = () => {
     }
   };
 
+  const handleDownloadPDF = async (booking: Booking) => {
+    if (!booking.application_id) {
+      toast({
+        title: "Download failed",
+        description: "No travel application ID available for this booking.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Please wait while the travel report PDF is being generated...",
+      });
+
+      const blob = await travelAPI.downloadTravelApplicationReport(
+        booking.application_id
+      );
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Travel_Request_${booking.travel_request_id || booking.application_id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+
+      toast({
+        title: "Download complete",
+        description: "Travel report PDF downloaded successfully.",
+      });
+    } catch (error: any) {
+      console.error("Failed to download PDF report:", error);
+      const msg = error.response?.data?.detail || error.message || "Failed to download report";
+      toast({
+        title: "Download failed",
+        description: msg,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSuccess = () => {
     refetch();
   };
@@ -243,6 +288,7 @@ const BookingAgentBookings: React.FC = () => {
               onAccept={handleAccept}
               onReject={handleReject}
               onAddNote={handleAddNote}
+              onDownloadPDF={handleDownloadPDF}
               showTravelRequestId={true}
               showEmployeeName={true}
             />

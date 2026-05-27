@@ -102,7 +102,17 @@ class TravelApplicationDetailsView(BranchFilterMixin, generics.RetrieveAPIView):
             obj.travel_desk_user == user or
 
             # Branch-based access for staff roles
-            (has_staff_role and self.check_branch_access(user, obj.employee))
+            (has_staff_role and self.check_branch_access(user, obj.employee)) or
+
+            # Booking Agent assigned to any booking in this application
+            # As per client requirement EasternTravel whose profile type is flight_train_booking agent is allowed to view travel report from 27-05-2026.
+            # In case other booking agent will allow to access report modify profile type or add more profile types in query.
+            BookingAssignment.objects.filter(
+                assigned_to=user,
+                booking__trip_details__travel_application=obj,
+                assigned_to__booking_agent_profile__services__profile_type__code='flight_train_agent',
+                assigned_to__booking_agent_profile__services__is_active=True
+            ).exists()
         )
         
         if not has_permission:

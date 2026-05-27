@@ -29,6 +29,8 @@ import {
 import type { Booking } from "@/src/api/bookingAgentAPI";
 import { docViewer } from "@/src/api/document_viewer";
 import { BulkFilePreviewDrawer } from "@/pages/common/travel/components/BulkFilePreviewDrawer";
+import { ROUTES } from "@/routes/routes";
+import { useAuthStore } from "@/src/store/authStore";
 
 interface ViewBookingModalProps {
   isOpen: boolean;
@@ -75,6 +77,8 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
   onAccept,
   onReject,
 }) => {
+  const { user } = useAuthStore();
+  const isPermitted = user?.profile?.profile_type === "flight_train_agent";
   const [bulkPreviewOpen, setBulkPreviewOpen] = useState(false);
 
   if (!isOpen || !booking) return null;
@@ -266,7 +270,21 @@ export const ViewBookingModal: React.FC<ViewBookingModalProps> = ({
               Tag,
               <>
                 {renderRow("Booking ID", `BK-${String(booking.id).padStart(5, "0")}`)}
-                {renderRow("Travel Request", booking.travel_request_id)}
+                {renderRow(
+                  "Travel Request",
+                  isPermitted && booking.application_id ? (
+                    <a
+                      href={ROUTES.travelApplicationDetails(booking.application_id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-semibold"
+                    >
+                      {booking.travel_request_id}
+                    </a>
+                  ) : (
+                    booking.travel_request_id
+                  )
+                )}
                 {renderRow("Meal Preference", details.meal_preference)}
                 {renderRow("Internal Order (IO)", booking.internal_order)}
                 {renderRow("GL Code", booking.gl_code)}
