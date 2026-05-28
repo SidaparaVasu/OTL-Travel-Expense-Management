@@ -263,6 +263,55 @@ except Exception as e:
     print(f"  ⚠ SKIP: Serializer test error: {e}")
 
 # ─────────────────────────────────────────────
+# 7. Serializer submission validation for Flight/Car at Disposal (mock)
+# ─────────────────────────────────────────────
+print("\n=== 7. Serializer submission validation for Flight/Car at Disposal ===")
+
+try:
+    from apps.travel.serializers.travel_serializers import TravelApplicationSubmissionSerializer
+    from unittest.mock import MagicMock
+
+    # Setup mock objects
+    mock_app = MagicMock()
+    mock_app.selected_approver = MockUser("B-3")  # Not B-2A or B-2B
+
+    # Setup mock bookings
+    mock_booking = MagicMock()
+    mock_booking.booking_type.name = "Flight"
+    mock_booking.estimated_cost = 5000
+    mock_booking.sub_option.name = "Economy Class"
+    
+    mock_trip = MagicMock()
+    mock_trip.bookings.all.return_value = [mock_booking]
+    mock_app.trip_details.all.return_value = [mock_trip]
+    mock_app.travel_for = 'self'
+    mock_app.display_travelers.exists.return_value = True
+    mock_app.bulk_upload_file = None
+
+    # Validate using serializer
+    serializer = TravelApplicationSubmissionSerializer(instance=mock_app)
+    try:
+        serializer.validate({})
+        check("Selected B-3 approver for Flight raises ValidationError", False, True)
+    except Exception as e:
+        error_msg = str(e)
+        has_correct_error = "Flight/Car at disposal travel mode requires approval from B-2A or B-2B grade" in error_msg
+        check("Selected B-3 approver for Flight raises ValidationError", has_correct_error, True)
+
+    # Change to B-2A (eligible grade)
+    mock_app.selected_approver = MockUser("B-2A")
+    try:
+        serializer.validate({})
+        check("Selected B-2A approver for Flight passes validation", True, True)
+    except Exception as e:
+        error_msg = str(e)
+        has_correct_error = "Flight/Car at disposal travel mode requires approval from B-2A or B-2B grade" in error_msg
+        check("Selected B-2A approver for Flight passes validation", has_correct_error, False)
+
+except Exception as e:
+    print(f"  ⚠ SKIP: Serializer Flight/Car test error: {e}")
+
+# ─────────────────────────────────────────────
 # Summary
 # ─────────────────────────────────────────────
 print()
