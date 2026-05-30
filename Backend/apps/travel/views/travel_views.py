@@ -839,16 +839,29 @@ class TravelApplicationSubmitView(APIView):
         engine = ApprovalEngineV2(travel_app, request.user)
         approver_entries = engine.build()
 
-        # If no approvers → treat as self approval
-        if len(approver_entries) == 0 and travel_app.self_approved:
-            travel_app.status = "pending_travel_desk"
-            # travel_app.save(update_fields=["status", "self_approved"])
-            travel_app.save(update_fields=["status"])
+        # STEP 6.5: Determine if this is a legitimate self-approval.
+        #
+        # The engine sets travel_app.self_approved = True ONLY when it makes a
+        # deliberate policy-based self-approval decision (STEP 1 of build()).
+        # An empty approver list WITHOUT that flag means the engine exhausted all
+        # lookup paths without finding an approver — that is a misconfiguration, not
+        # a valid self-approval. Block submission with a clear error. (Bug 3 fix)
+        engine_self_approved = getattr(travel_app, "self_approved", False)
+        self_approved = bool(engine_self_approved) and not approver_entries
 
-        # STEP 6.5: CHECK FOR SELF-APPROVAL (NEW)
-        self_approved = False
-        if not approver_entries:
-            self_approved = True
+        if not approver_entries and not engine_self_approved:
+            # No approver chain built and engine did not grant self-approval.
+            # This happens when: no selected_approver was set, no reporting_manager
+            # is configured in org profile, and no role-based fallback exists.
+            return error_response(
+                message=(
+                    "No valid approver found for this application. "
+                    "Please select an approver from the approver search field, "
+                    "or contact HR to configure your reporting manager."
+                ),
+                errors={"approver": "No eligible approver resolved by the approval engine."},
+                status_code=400
+            )
 
         from apps.travel.services.approval_cycle import (
             resolve_cycle_on_submit,
@@ -864,8 +877,9 @@ class TravelApplicationSubmitView(APIView):
 
         # -----------------------------------------
         # SELF-APPROVAL SCENARIO (NO APPROVERS)
+        # Only reached when engine explicitly granted self-approval.
         # -----------------------------------------
-        if self_approved or not approver_entries:            
+        if self_approved:            
             flow = upsert_approval_flow(
                 travel_application=travel_app,
                 cycle=cycle,
