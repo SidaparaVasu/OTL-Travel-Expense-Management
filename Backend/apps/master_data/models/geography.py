@@ -76,7 +76,7 @@ class CityMaster(models.Model):
 
 class LocationMaster(models.Model):
     """
-    TSF office/branch locations
+    Office/Branch locations (Unit Location Master)
     """
     location_id = models.AutoField(primary_key=True)
     location_name = models.CharField(max_length=255)
