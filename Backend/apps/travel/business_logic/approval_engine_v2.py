@@ -626,35 +626,85 @@ class ApprovalEngineV2:
         # ============================================================
         can_skip_manager = False
 
+        # Helper: check if the user's grade requires mandatory B-2A/B-2B approval
+        # for any booking in the application (Flight or Company-arranged Car at Disposal).
+        # This must be evaluated across ALL bookings, not just the highest-cost one.
+        def _any_booking_requires_mandatory_grade_approval():
+            try:
+                grade_obj = getattr(self.request_user, 'grade', None)
+                grade_name = grade_obj.name.upper() if grade_obj else ''
+                # B-2A and B-2B can self-approve all modes (escalation rules aside)
+                if grade_name in ('B-2A', 'B-2B'):
+                    return False
+                # CEO/CHRO also exempt (role-based self-approval)
+                if self.user_has_role(self.request_user, 'CEO') or self.user_has_role(self.request_user, 'CHRO'):
+                    return False
+                for b in bookings:
+                    try:
+                        mode = getattr(b.booking_type, 'name', '') or ''
+                        mode_lower = mode.strip().lower()
+                        # Flight — all subtypes require B-2A/B-2B for non-privileged grades
+                        if mode_lower == 'flight':
+                            return True
+                        # Car at Disposal — only Company-arranged subtype is restricted
+                        if 'car at disposal' in mode_lower or ('car' in mode_lower and 'disposal' in mode_lower):
+                            sub_opt = ''
+                            if b.sub_option:
+                                sub_opt = (b.sub_option.name or '').lower()
+                            else:
+                                details = getattr(b, 'booking_details', {}) or {}
+                                sub_opt = str(details.get('vehicle_sub_option_label', '')).lower()
+                            if 'company' in sub_opt:
+                                return True
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            return False
+
         if bookings:
             primary_booking = max(bookings, key=lambda b: getattr(b, "estimated_cost", 0) or 0)
             primary_mode = primary_booking.booking_type.name if primary_booking else None
 
             if primary_mode and self.can_self_approve(self.request_user, primary_mode):
-                # special rule checks that *override* pure grade-based self-approval
-                flight_over = self._any_flight_above_threshold(bookings, self.config.get("flight_amount_threshold"))
-                car_dist_over = self._any_own_car_over_distance(bookings, self.config.get("own_car_distance_km"))
-                car_disposal_over = self._any_car_disposal_over_duration(bookings, 5)
-                
-                # Check if advance amount is requested (if rule is enabled)
-                advance_requested = False
-                if self.config.get("enable_ceo_approval_for_advance", True):
-                    advance_requested = self._any_booking_has_advance(bookings)
-
-                # If none of the special rules trigger -> true self-approval (final)
-                if not (flight_over or car_dist_over or car_disposal_over or advance_requested):
+                # Before committing to self-approval, verify that NO other booking in
+                # the application requires mandatory B-2A/B-2B approval (Bug 1 fix).
+                # Example: B-3 user books Train (high cost, primary) + Car at Disposal
+                # Company-arranged (low cost, ignored under old logic) — must NOT self-approve.
+                if _any_booking_requires_mandatory_grade_approval():
                     logger.info(
-                        f"[SELF APPROVAL] User {getattr(self.request_user, 'id', None)} "
+                        f"[SELF APPROVAL BLOCKED] User {getattr(self.request_user, 'id', None)} "
                         f"grade={getattr(getattr(self.request_user, 'grade', None), 'name', None)} "
-                        f"mode={primary_mode} → AUTO-APPROVE"
+                        f"primary_mode={primary_mode} qualifies for self-approval BUT another booking "
+                        f"requires mandatory B-2A/B-2B approval. Falling through to selected_approver."
                     )
-                    # mark self_approved on TA (do not save here; submit view will persist)
-                    setattr(self.travel_application, "self_approved", True)
-                    return []
+                    # Fall through — do NOT set self_approved, do NOT return []
+                    # STEP 5 will pick up the selected_approver correctly.
+                else:
+                    # special rule checks that *override* pure grade-based self-approval
+                    flight_over = self._any_flight_above_threshold(bookings, self.config.get("flight_amount_threshold"))
+                    car_dist_over = self._any_own_car_over_distance(bookings, self.config.get("own_car_distance_km"))
+                    car_disposal_over = self._any_car_disposal_over_duration(bookings, 5)
 
-                # Self-approval candidate but special rules require higher approvers.
-                # We set can_skip_manager=True which means manager can be skipped in favor of CEO/CHRO
-                can_skip_manager = True
+                    # Check if advance amount is requested (if rule is enabled)
+                    advance_requested = False
+                    if self.config.get("enable_ceo_approval_for_advance", True):
+                        advance_requested = self._any_booking_has_advance(bookings)
+
+                    # If none of the special rules trigger -> true self-approval (final)
+                    if not (flight_over or car_dist_over or car_disposal_over or advance_requested):
+                        logger.info(
+                            f"[SELF APPROVAL] User {getattr(self.request_user, 'id', None)} "
+                            f"grade={getattr(getattr(self.request_user, 'grade', None), 'name', None)} "
+                            f"mode={primary_mode} → AUTO-APPROVE"
+                        )
+                        # mark self_approved on TA (do not save here; submit view will persist)
+                        setattr(self.travel_application, "self_approved", True)
+                        return []
+
+                    # Self-approval candidate but special rules require higher approvers.
+                    # We set can_skip_manager=True which means manager can be skipped in favor of CEO/CHRO
+                    can_skip_manager = True
 
         # ============================================================
         # STEP 2 — Determine CEO requirement
@@ -803,47 +853,39 @@ class ApprovalEngineV2:
                 logger.warning("CEO required but no CEO user found for travel_app=%s", getattr(self.travel_application, "id", None))
 
         # ============================================================
-        # STEP 5 — Add Manager ONLY IF needed
-        # If can_skip_manager is True it means manager can be skipped
-        # because user qualifies for self-approval but special rules require
-        # only CEO/CHRO (not manager).
+        # STEP 5 — Add manager-level approver (selected_approver or reporting_manager)
+        #
+        # can_skip_manager=True means the user qualifies for self-approval but an
+        # escalation rule (CEO/CHRO) overrides it. In the OLD reporting-manager model
+        # this meant the manager step was simply dropped. In the NEW selected-approver
+        # model, an explicitly chosen approver must ALWAYS appear first in the chain,
+        # even when escalation is present. The flag now only suppresses the auto-resolved
+        # reporting_manager fallback, not a user-chosen approver (Bug 2 fix).
         # ============================================================
-        # Use resolve_manager_approver so that a user-selected approver takes
-        # precedence over the reporting_manager (backward compatible: returns
-        # reporting_manager when selected_approver is null).
         from apps.travel.services.approver_helpers import resolve_manager_approver
         reporting_manager = resolve_manager_approver(self.travel_application, self.request_user)
 
+        # Determine if the user explicitly selected an approver on the form.
+        is_explicitly_selected = (
+            self.travel_application is not None and
+            getattr(self.travel_application, 'selected_approver', None) is not None
+        )
+
         if not can_skip_manager:
-            # If CHRO is required because of OWN CAR distance/disposal, the reporting_manager
-            # is skipped (CHRO supersedes manager for car-related approvals per policy).
-            # HOWEVER: if the user explicitly selected an approver, that person must ALWAYS
-            # be the first approver regardless of CHRO/CEO requirements — per client requirement
-            # "first approver should always be selected approver".
+            # Normal path: user does not qualify for self-approval.
+            # Always add the manager-level approver (selected_approver takes precedence
+            # over reporting_manager via resolve_manager_approver).
             add_manager = True
-            has_selected_approver = (
-                self.travel_application is not None and
-                getattr(self.travel_application, 'selected_approver', None) is not None and
-                reporting_manager is not None and
-                reporting_manager == getattr(self.travel_application, 'selected_approver', None)
-            )
-            # Determine if this is a selected_approver (not just the default reporting_manager)
-            is_explicitly_selected = (
-                self.travel_application is not None and
-                getattr(self.travel_application, 'selected_approver', None) is not None
-            )
 
             if require_chro and not is_explicitly_selected:
-                # Only skip manager when CHRO is required due to car/distance trigger
-                # AND no explicit approver was selected by the user.
+                # When CHRO is required due to a car/distance trigger AND no explicit
+                # approver was selected, CHRO supersedes the auto-resolved manager.
                 car_related_trigger = False
                 for b in bookings:
                     try:
                         name = getattr(b.booking_type, "name", "") or ""
                         n = name.lower()
                         if any(k in n for k in ("car", "own car", "pickup", "drop", "disposal")):
-                            # if distance or disposal triggers exist, treat as car-related
-                            # check booking details for distance or disposal flags quickly
                             details = getattr(b, "booking_details", {}) or {}
                             distance = details.get("distance_km") or details.get("distance") or None
                             is_disposal = details.get("is_disposal") or details.get("disposal") or (details.get("transport_type") == "disposal")
@@ -864,14 +906,35 @@ class ApprovalEngineV2:
                     add_manager = False
 
             if add_manager:
-                manager_user = reporting_manager if reporting_manager else self.find_user_for_role("Manager")
+                # In the new model, reporting_manager here is actually the selected_approver
+                # (returned first by resolve_manager_approver when set). We do NOT fall back
+                # to find_user_for_role("Manager") — that is a legacy concept. If both are
+                # None, no manager entry is added and the view will surface a proper error.
+                manager_user = reporting_manager  # None when neither selected nor org-manager configured
                 if manager_user:
-                    # Insert manager (or selected_approver) at start — always first in chain
+                    # Insert selected_approver/manager at position 0 — always first in chain
                     approvers.insert(0, ApproverEntry(
                         user=manager_user,
                         level="manager",
                         sequence=1
                     ))
+
+        elif can_skip_manager and is_explicitly_selected:
+            # Bug 2 fix: escalation fired (can_skip_manager=True) but the user EXPLICITLY
+            # selected an approver. Per policy, the selected approver must always be the
+            # first approver in the chain, even when CEO/CHRO is also required.
+            # Insert selected_approver at position 0 before any CEO/CHRO entries.
+            if reporting_manager:
+                approvers.insert(0, ApproverEntry(
+                    user=reporting_manager,
+                    level="manager",
+                    sequence=1
+                ))
+                logger.info(
+                    f"[STEP 5] Escalation active but selected_approver is set. "
+                    f"Inserting selected_approver={getattr(reporting_manager, 'id', None)} "
+                    f"as first approver before CEO/CHRO."
+                )
 
         # ============================================================
         # STEP 6 — Self-reporting edge case (reporting_manager == request_user)
@@ -897,20 +960,25 @@ class ApprovalEngineV2:
         final = self._dedupe_and_order(approvers)
 
         # ============================================================
-        # STEP 8 — Final fallback (if still empty)
+        # STEP 8 — No legacy fallback
         # ============================================================
-        # if not final:
-        #     for role in ["Manager", "CHRO", "CEO"]:
-        #         user = self.find_user_for_role(role)
-        #         if user:
-        #             final = [ApproverEntry(user=user, level=role.lower(), sequence=1)]
-        #             break
-
+        # The old code inserted whoever had the "Manager" role as a last-resort
+        # approver. That was valid in the reporting-manager era but is wrong in the
+        # new selected-approver model:
+        #   - There is no global "Manager" role acting as a universal fallback.
+        #   - The found user would have no grade check (could be B-4A).
+        #   - Silently inserting them masks the real problem: no approver was configured.
+        #
+        # Correct behaviour: if final is empty here and self_approved was NOT set by
+        # the engine, it means no valid approver exists. The view (travel_views.py)
+        # will detect this (empty list + self_approved=False) and return a 400 error
+        # asking the user to select a valid approver or contact HR.
         if not final and not getattr(self.travel_application, "self_approved", False):
-            # preserve test expectation: Manager is always fallback
-            mgr = self.find_user_for_role("Manager")
-            if mgr:
-                final = [ApproverEntry(mgr, "manager", 1)]
+            logger.warning(
+                "[STEP 8] ApprovalEngineV2: no approvers resolved and self_approved not set "
+                "for travel_app=%s. No fallback inserted. View will surface error to user.",
+                getattr(self.travel_application, "id", None),
+            )
 
         # Ensure sequence numbers are contiguous and start at 1
         for i, e in enumerate(final, start=1):
