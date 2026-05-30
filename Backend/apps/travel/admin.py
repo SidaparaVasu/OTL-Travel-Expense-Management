@@ -51,7 +51,7 @@ class TripDetailsInline(admin.TabularInline):
 class BookingInline(admin.TabularInline):
     model = Booking
     extra = 1
-    fields = ('booking_type', 'sub_option', 'status', 'estimated_cost', 'actual_cost', 'allow_claim', 'booking_reference')
+    exclude = ('booking_reference', 'vendor_reference', 'created_at', 'updated_at')
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('booking_type', 'sub_option')
