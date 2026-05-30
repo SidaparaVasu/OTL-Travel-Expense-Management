@@ -13,6 +13,7 @@ class DepartmentMasterAdmin(admin.ModelAdmin):
     list_filter = ('company',)
     search_fields = ('dept_name', 'dept_code')
 
+# Unit Location Master
 @admin.register(geography.LocationMaster)
 class LocationMasterAdmin(admin.ModelAdmin):
     list_display = ('location_name', 'location_code', 'city', 'company', 'is_active')
@@ -24,7 +25,6 @@ admin.site.register(company.DesignationMaster)
 admin.site.register(company.EmployeeTypeMaster)
 
 admin.site.register(geography.CityCategoriesMaster)
-admin.site.register(geography.CityCategoryAssignment)
 
 @admin.register(geography.CountryMaster)
 class CountryMasterAdmin(admin.ModelAdmin):
@@ -76,9 +76,6 @@ class GradeEntitlementMasterAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related("grade","sub_option","sub_option__mode","city_category",)
 
-admin.site.register(workflow.ApprovalWorkflowMaster)
-admin.site.register(workflow.PermissionTypeMaster)
-
 
 @admin.register(accommodation.GuestHouseMaster)
 class GuestHouseAdmin(admin.ModelAdmin):
@@ -92,24 +89,6 @@ class ARCHotelAdmin(admin.ModelAdmin):
     list_filter = ('star_rating', 'is_active', 'city')
     search_fields = ('name',)
     date_hierarchy = 'contract_start_date'
-
-# @admin.register(accommodation.LocationSPOC)
-# class LocationSPOCAdmin(admin.ModelAdmin):
-#     list_display = ('location', 'spoc_user', 'spoc_type', 'phone_number', 'is_active')
-#     list_filter = ('spoc_type', 'is_active')
-#     search_fields = ('location__location_name', 'spoc_user__username')
-
-@admin.register(accommodation.LocationSPOC)
-class LocationSPOCAdmin(admin.ModelAdmin):
-    list_display = ('location', 'spoc_user', 'spoc_type', 'phone_number', 'is_active')
-    list_filter = ('spoc_type', 'is_active')
-    search_fields = ('location__location_name', 'spoc_user__username')
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name in ['spoc_user', 'backup_spoc'] and 'location' in request.GET:
-            location_id = request.GET.get('location')
-            kwargs["queryset"] = User.objects.filter(location_id=location_id)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 @admin.register(approval.ApprovalMatrix)
 class ApprovalMatrixAdmin(admin.ModelAdmin):
