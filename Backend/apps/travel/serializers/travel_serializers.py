@@ -481,7 +481,12 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             if travel_for not in ['guest'] and departure and return_date:
                 try:
                     exclude_id = self.instance.id if self.instance else None
-                    validate_duplicate_travel_request(user, departure, return_date, exclude_id=exclude_id)
+                    start_time = trip_data.get('start_time')
+                    end_time = trip_data.get('end_time')
+                    from apps.travel.business_logic.validators import validate_duplicate_travel_request_with_time
+                    validate_duplicate_travel_request_with_time(
+                        user, departure, start_time, return_date, end_time, exclude_id=exclude_id
+                    )
                 except Exception as e:
                     trip_errors['duplicate'] = str(e)
             
