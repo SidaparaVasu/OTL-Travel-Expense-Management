@@ -1620,11 +1620,13 @@ class TravelApplicationValidationView(APIView):
             # Only check duplicate travel for self/self_guest applications, not guest-only
             if travel_app.travel_for != 'guest':
                 try:
-                    from apps.travel.business_logic.validators import validate_duplicate_travel_request
-                    validate_duplicate_travel_request(
+                    from apps.travel.business_logic.validators import validate_duplicate_travel_request_with_time
+                    validate_duplicate_travel_request_with_time(
                         travel_app.employee,
                         trip.departure_date,
+                        trip.start_time,
                         trip.return_date,
+                        trip.end_time,
                         exclude_id=travel_app.id
                     )
                 except Exception as e:
