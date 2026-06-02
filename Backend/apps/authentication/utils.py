@@ -229,6 +229,8 @@ class PermissionManager:
                 }
             )
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 def setup_initial_data():
     """
     Set up initial roles and permissions
