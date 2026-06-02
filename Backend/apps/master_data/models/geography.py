@@ -17,6 +17,8 @@ class CityCategoriesMaster(models.Model):
     def __str__(self):
         return f"{self.name} - {self.description}"
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class CityCategoryAssignment(models.Model):
     country_name = models.CharField(max_length=100)
     country_code = models.CharField(max_length=10, blank=True, null=True)

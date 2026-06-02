@@ -1885,6 +1885,8 @@ class CheckBookingEntitlementView(APIView):
             )
         
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class RequestAccommodationBookingView(APIView):
     """
     Request accommodation booking for approved travel application
@@ -1916,6 +1918,8 @@ class RequestAccommodationBookingView(APIView):
         return Response({'bookings': results})
     
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class RequestVehicleBookingView(APIView):
     permission_classes = [IsAuthenticated]
     

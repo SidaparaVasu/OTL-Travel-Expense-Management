@@ -2,6 +2,8 @@ from rest_framework import serializers
 from ..models import AccommodationBooking, VehicleBooking, TravelDocument
 from ..business_logic.booking_engine import AccommodationBookingEngine, VehicleBookingEngine
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationBookingSerializer(serializers.ModelSerializer):
     guest_house_name = serializers.CharField(source='guest_house.name', read_only=True)
     arc_hotel_name = serializers.CharField(source='arc_hotel.name', read_only=True)
@@ -19,6 +21,8 @@ class AccommodationBookingSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['total_cost', 'confirmed_at']
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBookingSerializer(serializers.ModelSerializer):
     spoc_name = serializers.CharField(source='assigned_spoc.spoc_user.get_full_name', read_only=True)
     spoc_contact = serializers.CharField(source='assigned_spoc.phone_number', read_only=True)
@@ -59,12 +63,16 @@ class TravelDocumentSerializer(serializers.ModelSerializer):
             return obj.trip_details.to_location.city_name
         return None 
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationRequestSerializer(serializers.Serializer):
     trip_id = serializers.IntegerField()
     guest_count = serializers.IntegerField(default=1, min_value=1)
     special_requests = serializers.CharField(required=False, allow_blank=True)
     room_type = serializers.CharField(required=False, allow_blank=True)
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleRequestSerializer(serializers.Serializer):
     trip_id = serializers.IntegerField()
     vehicle_type = serializers.ChoiceField(choices=VehicleBooking.VEHICLE_TYPES)

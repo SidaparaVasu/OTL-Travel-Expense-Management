@@ -21,6 +21,8 @@ from ..serializers.booking import (
 from ..business_logic.booking_engine import AccommodationBookingEngine, VehicleBookingEngine
 from ...authentication.permissions import IsEmployee, HasCustomPermission
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationBookingRequestView(APIView):
     """
     Request accommodation booking with priority logic
@@ -57,6 +59,8 @@ class AccommodationBookingRequestView(APIView):
         
         return Response(result)
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBookingRequestView(APIView):
     """
     Request vehicle booking with SPOC coordination
@@ -83,6 +87,8 @@ class VehicleBookingRequestView(APIView):
         
         return Response(result)
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationBookingListView(ListCreateAPIView):
     """
     List accommodation bookings (Travel Desk)
@@ -97,6 +103,8 @@ class AccommodationBookingListView(ListCreateAPIView):
             'guest_house', 'arc_hotel'
         ).order_by('-created_at')
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationBookingDetailView(RetrieveUpdateDestroyAPIView):
     """
     Manage accommodation booking (Travel Desk)
@@ -110,6 +118,8 @@ class AccommodationBookingDetailView(RetrieveUpdateDestroyAPIView):
             'guest_house', 'arc_hotel'
         )
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBookingListView(ListCreateAPIView):
     """
     List vehicle bookings (SPOC/Travel Desk)
@@ -135,6 +145,8 @@ class VehicleBookingListView(ListCreateAPIView):
         
         return VehicleBooking.objects.none()
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBookingDetailView(RetrieveUpdateDestroyAPIView):
     """
     Manage vehicle booking (SPOC/Travel Desk)
@@ -152,6 +164,8 @@ class VehicleBookingDetailView(RetrieveUpdateDestroyAPIView):
         
         return VehicleBooking.objects.none()
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBookingConfirmView(APIView):
     """
     Confirm vehicle booking with driver and vehicle details (SPOC)

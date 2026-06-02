@@ -50,6 +50,9 @@ urlpatterns = [
     path('applications/<int:pk>/upload-bulk-file/', TravelApplicationBulkUploadView.as_view(), name='travel-application-upload-bulk-file'),
     path('applications/<int:pk>/report/', TravelApplicationReportView.as_view(), name='travel-application-report'),
     path('applications/<int:pk>/advance-report/', AdvanceRequestReportView.as_view(), name='advance-request-report'),
+    
+    # DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+    # Status: Deprecated since June 2, 2026 — no active usage recorded.
     path('applications/<int:application_id>/request-accommodation/', RequestAccommodationBookingView.as_view()),
 
     # Bulk booking per-line-item file upload (new approach)
@@ -134,8 +137,12 @@ urlpatterns = [
 
     # Booking Management
     path('bookings/check-entitlement/', CheckBookingEntitlementView.as_view(), name='check-entitlement'),
+    
+    # DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+    # Status: Deprecated since June 2, 2026 — no active usage recorded.
     path('bookings/accommodation/request/', AccommodationBookingRequestView.as_view(), name='accommodation-request'),
     path('bookings/vehicle/request/', VehicleBookingRequestView.as_view(), name='vehicle-request'),
+    
     path('bookings/accommodation/', AccommodationBookingListView.as_view(), name='accommodation-list'),
     path('bookings/accommodation/<int:pk>/', AccommodationBookingDetailView.as_view(), name='accommodation-detail'),
     path('bookings/vehicle/', VehicleBookingListView.as_view(), name='vehicle-list'),
