@@ -392,11 +392,13 @@ class AllowedTravelModesView(APIView):
                     "sub_options": {} if is_accommodation else []
                 }
 
+            sub_name = f"{sub.name} - {sub.description}" if sub.description else sub.name
+
             if is_accommodation:
                 if sub.id not in response[mode.id]["sub_options"]:
                     response[mode.id]["sub_options"][sub.id] = {
                         "id": sub.id,
-                        "name": sub.name,
+                        "name": sub_name,
                         "limits": []
                     }
 
@@ -407,7 +409,7 @@ class AllowedTravelModesView(APIView):
             else:
                 response[mode.id]["sub_options"].append({
                     "id": sub.id,
-                    "name": sub.name,
+                    "name": sub_name,
                     "max_amount": ent.max_amount
                 })
 
