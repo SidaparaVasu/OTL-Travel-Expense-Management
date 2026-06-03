@@ -33,6 +33,9 @@ class EmployeeTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 # Geography serializers
+
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class CityCategoryAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = CityCategoryAssignment
@@ -283,6 +286,8 @@ class ARCHotelDropdownSerializer(serializers.ModelSerializer):
         model = ARCHotelMaster
         fields = ['id', 'name', 'city', 'city_name', 'state', 'state_name', 'country', 'country_name', 'city_category']
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class LocationSPOCSerializer(serializers.ModelSerializer):
     location_name = serializers.CharField(source='location.location_name', read_only=True)
     spoc_name = serializers.CharField(source='spoc_user.get_full_name', read_only=True)

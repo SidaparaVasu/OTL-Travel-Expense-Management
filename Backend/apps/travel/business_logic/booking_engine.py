@@ -2,6 +2,8 @@ from django.db import transaction
 from apps.master_data.models import GuestHouseMaster, ARCHotelMaster, LocationSPOC
 from ..models import AccommodationBooking, VehicleBooking
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationBookingEngine:
     """
     TSF accommodation booking priority logic:
@@ -219,6 +221,8 @@ class AccommodationBookingEngine:
         # Create travel desk task (implement in workflow)
         pass
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBookingEngine:
     """
     Vehicle booking coordination with SPOC system

@@ -523,6 +523,8 @@ class UserRoleAssignmentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class InitializeSystemView(APIView):
     """
     Initialize system with default roles and permissions (Admin only)

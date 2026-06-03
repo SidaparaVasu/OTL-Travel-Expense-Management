@@ -76,6 +76,8 @@ class EmployeeTypeDetailView(RetrieveUpdateDestroyAPIView):
 
 
 # Geography Views
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class CityCategoryAssignmentViewSet(viewsets.ModelViewSet):
     queryset = CityCategoryAssignment.objects.all()
     serializer_class = CityCategoryAssignmentSerializer
@@ -600,7 +602,8 @@ class ARCHotelDropdownView(ListAPIView):
                 
         return queryset
 
-# Location-wise Single Point of Contact for vehicle bookings
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class LocationSPOCListCreateView(ListCreateAPIView):
     queryset = LocationSPOC.objects.select_related('location', 'spoc_user').all()
     serializer_class = LocationSPOCSerializer
@@ -608,6 +611,8 @@ class LocationSPOCListCreateView(ListCreateAPIView):
     filter_backends = [DjangoFilterBackend]     
     filterset_fields = ['location', 'spoc_type']
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class LocationSPOCDetailView(RetrieveUpdateDestroyAPIView):
     queryset = LocationSPOC.objects.select_related('location', 'spoc_user').all()
     serializer_class = LocationSPOCSerializer

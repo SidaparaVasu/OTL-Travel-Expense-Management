@@ -35,6 +35,9 @@ urlpatterns = [
     path('permissions/<int:pk>/', PermissionDetailView.as_view(), name='permission_detail'),
     
     # System Initialization
+    # DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+    # Status: Deprecated since June 2, 2026 — no active usage recorded.
+    # STRICT: Never use in production environment
     path('system/initialize/', InitializeSystemView.as_view(), name='initialize_system'),
 
     # Notification Preferences

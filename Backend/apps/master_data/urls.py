@@ -4,7 +4,11 @@ from .views_locations import CountryListView, StateListView, CityListView
 
 from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 router.register(r"city-categories", CityCategoryAssignmentViewSet, basename="city-categories")
+
+# In use
 router.register(r'guest-houses', GuestHouseMasterViewSet, basename='guesthouse')
 router.register(r'meal-preferences', MealPreferenceMasterViewSet, basename='meal-preferences')
 
@@ -58,6 +62,9 @@ urlpatterns = [
     path('arc-hotels/', ARCHotelListCreateView.as_view(), name='arc-hotel-list-create'),
     path('arc-hotels/<int:pk>/', ARCHotelDetailView.as_view(), name='arc-hotel-detail'),
     path('arc-hotels/dropdown/', ARCHotelDropdownView.as_view(), name='arc-hotel-dropdown'),
+    
+    # DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+    # Status: Deprecated since June 2, 2026 — no active usage recorded.
     path('location-spoc/', LocationSPOCListCreateView.as_view(), name='locationspoc-list'),
     path('location-spoc/<int:pk>/', LocationSPOCDetailView.as_view(), name='locationspoc-detail'),
     

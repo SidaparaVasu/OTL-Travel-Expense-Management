@@ -190,6 +190,8 @@ class ARCHotelMaster(models.Model):
         return self.rate_per_night + tax_amount
 
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class LocationSPOC(models.Model):
     """
     Location-wise Single Point of Contact for vehicle bookings

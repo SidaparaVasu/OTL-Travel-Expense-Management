@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from apps.travel.models.application import TravelApplication
 from apps.expenses.models import *
+from apps.expenses import constants
 from apps.master_data.models.travel import GradeEntitlementMaster
 from apps.master_data.models.geography import CityCategoriesMaster
 from apps.master_data.models.approval import DAIncidentalMaster, ConveyanceRateMaster, ApprovalMatrix
@@ -139,6 +140,13 @@ def calculate_da_breakdown(
     Calculate DA/Incidental for each day of travel.
     Respects actual travel dates/times if provided.
     """
+    # 1. Check one-way distance exceeds 50 km (or bypass it if configured)
+    if constants.BYPASS_DISTANCE_VALIDATION:
+        has_valid_distance = True
+    else:
+        has_valid_distance = tr.trip_details.filter(
+            estimated_distance_km__gt=constants.MIN_DISTANCE_FOR_DA_KM
+        ).exists()
 
     # ---------- Extract travel dates ----------
     # Use actual dates if provided, else fallback to TR dates
@@ -162,26 +170,22 @@ def calculate_da_breakdown(
         return []  # cannot calculate
 
     # ---------- Grade ----------
-    grade_code = getattr(getattr(tr, "employee", None), "grade", None) or "B-3"
+    grade_code = getattr(getattr(tr, "employee", None), "grade", None) or constants.DEFAULT_EMPLOYEE_GRADE
     da_master = _get_da_rates_for_grade(grade_code)
 
-    # ---------- Build breakdown ----------
-    results = []
+    # ---------- First Pass: Calculate daily durations and categories ----------
+    daily_details = []
+    total_duration_hours = Decimal("0")
     
     curr = start
     while curr <= end:
-        # Determine City Category for this specific date
         cat = _get_city_category_for_date(trips, curr)
 
         if cat not in da_master:
-            # Fallback
             keys = list(da_master.keys())
-            cat = keys[0] if keys else "B"
+            cat = keys[0] if keys else constants.DEFAULT_CITY_CATEGORY
             
-        daily_rates = da_master.get(cat, da_master.get("B", {}))
-        
-        # Calculate Duration
-        # Default: 24 hours (full day)
+        daily_rates = da_master.get(cat, da_master.get(constants.DEFAULT_CITY_CATEGORY, {}))
         duration_hours = Decimal(24)
         
         # --- Logic for Start Time ---
@@ -206,9 +210,7 @@ def calculate_da_breakdown(
             if end_trip:
                 et = end_trip.end_time
         
-        # --- Compute Duration based on st/et ---
-        
-        # Case 1: Single Day (Start & End on same day)
+        # --- Compute Duration ---
         if curr == start and curr == end:
              if st and et:
                  # Calculate diff
@@ -219,17 +221,17 @@ def calculate_da_breakdown(
              else:
                  # Fallback
                  duration_hours = Decimal(12) 
-                 
+                  
         # Case 2: Start Day (but not End Day)
         elif curr == start:
              if st:
-                 duration = 24 - (st.hour + st.minute/60.0)
+                 duration = 24 - (st.hour + st.minute/60.0 + st.second/3600.0)
                  duration_hours = Decimal(duration)
-                 
+                  
         # Case 3: End Day (but not Start Day)
         elif curr == end:
              if et:
-                 duration = et.hour + et.minute/60.0
+                 duration = et.hour + et.minute/60.0 + et.second/3600.0
                  duration_hours = Decimal(duration)
         
         # Case 4: Middle Day -> 24 hours (already set)
@@ -238,26 +240,48 @@ def calculate_da_breakdown(
         if duration_hours < 0: duration_hours = Decimal(0)
         if duration_hours > 24: duration_hours = Decimal(24)
 
-        if duration_hours > 12:
-            da = daily_rates.get("full", Decimal(0))
-            inc = daily_rates.get("inc_full", Decimal(0))
-        elif duration_hours >= 8:
-            da = daily_rates.get("half", Decimal(0))
-            inc = daily_rates.get("inc_half", Decimal(0))
-        else:
-            da = Decimal("0")
-            inc = Decimal("0")
+        total_duration_hours += duration_hours
+
+        daily_details.append({
+            "date": curr,
+            "duration_hours": duration_hours,
+            "city_category": cat,
+            "daily_rates": daily_rates,
+        })
+        curr += timedelta(days=1)
+
+    # ---------- Second Pass: Apply rules and classify DA/Incidental ----------
+    results = []
+    is_eligible_for_da = (
+        has_valid_distance and 
+        total_duration_hours > constants.MIN_TOTAL_DURATION_FOR_DA_HOURS
+    )
+
+    for item in daily_details:
+        duration_hours = item["duration_hours"]
+        daily_rates = item["daily_rates"]
+        cat = item["city_category"]
+        curr_date = item["date"]
+
+        da = Decimal("0")
+        inc = Decimal("0")
+
+        if is_eligible_for_da and duration_hours > 0:
+            if duration_hours > constants.FULL_DAY_DURATION_THRESHOLD_HOURS:
+                da = daily_rates.get("full", Decimal(0))
+                inc = daily_rates.get("inc_full", Decimal(0))
+            else:
+                da = daily_rates.get("half", Decimal(0))
+                inc = daily_rates.get("inc_half", Decimal(0))
 
         results.append({
-            "date": curr,
+            "date": curr_date,
             "duration_hours": float(round(duration_hours, 2)),
             "city_category": cat,
             "eligible": da > 0,
             "da": da,
             "incidental": inc
         })
-
-        curr += timedelta(days=1)
 
     return results
 

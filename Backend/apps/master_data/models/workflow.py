@@ -1,5 +1,7 @@
 from django.db import models
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class ApprovalWorkflowMaster(models.Model):
     """
     Master approval workflow configurations
@@ -12,6 +14,8 @@ class ApprovalWorkflowMaster(models.Model):
     def __str__(self):
         return self.name
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class PermissionTypeMaster(models.Model):
     """
     Permission type categorization

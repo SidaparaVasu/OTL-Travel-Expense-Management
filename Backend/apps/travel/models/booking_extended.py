@@ -3,6 +3,8 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.core.validators import FileExtensionValidator
 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class AccommodationBooking(models.Model):
     """
     Accommodation booking with TSF priority logic
@@ -116,12 +118,14 @@ class AccommodationBooking(models.Model):
                         f"No rooms available at {self.guest_house.name} "
                         f"for the selected dates. All {total_rooms} rooms are booked."
                     )
-
+ 
     def save(self, *args, **kwargs):
         """Override save to call clean()"""
         self.clean()
         super().save(*args, **kwargs)
-
+ 
+# DEPRECATED: This model/component is not in use anymore and is marked for deletion.
+# Status: Deprecated since June 2, 2026 — no active usage recorded.
 class VehicleBooking(models.Model):
     """
     Vehicle booking with SPOC coordination
