@@ -166,20 +166,24 @@
   <div class="section-title">Trip Overview</div>
   <table>
     <tr>
-      <td class="label-cell">Purpose</td>
-      <td class="value-cell">{{ trip.purpose }}</td>
-      <td class="label-cell">Travel Type</td>
-      <td class="value-cell">{{ trip.travel_type }}</td>
+      <td>Purpose</td>
+      <td colspan="3">{{ trip.purpose }}</td>
     </tr>
     <tr>
-      <td class="label-cell">Internal Order</td>
+      <td>Travel Type</td>
+      <td>{{ trip.travel_type }}</td>
+      <td>Internal Order</td>
       <td class="value-cell">{{ trip.internal_order }}</td>
+    </tr>
+    <tr>
       <td class="label-cell">Cost Center / GL</td>
       <td class="value-cell">{{ trip.cost_center_gl }}</td>
-    </tr>
-    <tr>
       <td class="label-cell">Sanction No.</td>
       <td class="value-cell">{{ trip.sanction_number }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Locations</td>
+      <td class="value-cell">{{ trip.origin }} to {{ trip.destination }}</td>
       <td class="label-cell">Dates</td>
       <td class="value-cell">{{ trip.dates }}</td>
     </tr>

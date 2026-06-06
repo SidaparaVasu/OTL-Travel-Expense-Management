@@ -92,7 +92,9 @@ class ClaimDetailsReport(BaseReport):
             "internal_order": tr.internal_order if tr else "N/A",
             "cost_center_gl": tr.general_ledger.gl_code if tr and tr.general_ledger else "N/A",
             "sanction_number": tr.sanction_number if tr else "N/A",
-            "dates": dates_str
+            "dates": dates_str,
+            "origin": tr.trip_details.first().from_location if tr else "N/A",
+            "destination": tr.trip_details.first().to_location if tr else "N/A",
         }
 
         # Expense Grouping: Booking vs Other
