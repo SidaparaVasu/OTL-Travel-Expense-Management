@@ -33,6 +33,7 @@ def _make_tr(status="completed", travel_for="self"):
     tr.trip_details.order_by.return_value = MagicMock(
         first=MagicMock(return_value=None)
     )
+    tr.settlement_due_date = None
     return tr
 
 
@@ -92,6 +93,9 @@ class ValidateClaimApprovalFlowTests(TestCase):
             return_value=MagicMock(__iter__=lambda s: iter([])),
         ), patch(
             "apps.expenses.business_logic.claims.ApprovalMatrix.objects.filter",
+            return_value=MagicMock(exists=MagicMock(return_value=False)),
+        ), patch(
+            "apps.travel.models.booking.Booking.objects.filter",
             return_value=MagicMock(exists=MagicMock(return_value=False)),
         ):
             # When tr is passed directly, the filter call is not used

@@ -38,6 +38,7 @@ class TravelModeMaster(models.Model):
     """
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
+    is_self_arranged = models.BooleanField(default=False, help_text="Default self-arranged for this travel mode")
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -50,6 +51,7 @@ class TravelSubOptionMaster(models.Model):
     mode = models.ForeignKey(TravelModeMaster, on_delete=models.CASCADE, related_name="sub_options")
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+    is_self_arranged = models.BooleanField(default=False, help_text="Default self-arranged for this sub-option")
     is_active = models.BooleanField(default=True)
 
     class Meta:

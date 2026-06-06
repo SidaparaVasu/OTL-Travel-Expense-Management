@@ -50,6 +50,11 @@ function TravelModeCard({ mode, subOptions, expanded, onToggle, onEdit, onDelete
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${mode.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                                     {mode.is_active ? 'Active' : 'Inactive'}
                                 </span>
+                                {mode.is_self_arranged && (
+                                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                        Self-Arranged
+                                    </span>
+                                )}
                                 <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                                     {modeSubOptions.length} options
                                 </span>
@@ -98,6 +103,11 @@ function TravelModeCard({ mode, subOptions, expanded, onToggle, onEdit, onDelete
                                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${subOption.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                                                     {subOption.is_active ? 'Active' : 'Inactive'}
                                                 </span>
+                                                {subOption.is_self_arranged && (
+                                                    <span className="px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 bg-amber-100 text-amber-700">
+                                                        Self-Arranged
+                                                    </span>
+                                                )}
                                             </div>
                                             {subOption.description && (
                                                 <p className="text-xs text-slate-600 line-clamp-2">{subOption.description}</p>
@@ -371,9 +381,15 @@ function TravelModeForm({ data, onSubmit, onCancel }) {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea placeholder="Enter description" value={formData.description || ""} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="flex items-center gap-2">
-                <input type="checkbox" id="is_active" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                <label htmlFor="is_active" className="text-sm font-medium text-slate-700">Active</label>
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                    <input type="checkbox" id="is_active" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <label htmlFor="is_active" className="text-sm font-medium text-slate-700">Active</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <input type="checkbox" id="is_self_arranged" checked={formData.is_self_arranged || false} onChange={(e) => setFormData({ ...formData, is_self_arranged: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <label htmlFor="is_self_arranged" className="text-sm font-medium text-slate-700">Self-Arranged Booking</label>
+                </div>
             </div>
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
                 <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 hover:bg-gray-100 rounded-md">Cancel</button>
@@ -404,9 +420,15 @@ function SubOptionForm({ data, onSubmit, onCancel }) {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                 <textarea placeholder="Enter description" value={formData.description || ""} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="flex items-center gap-2">
-                <input type="checkbox" id="sub_is_active" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
-                <label htmlFor="sub_is_active" className="text-sm font-medium text-slate-700">Active</label>
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                    <input type="checkbox" id="sub_is_active" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <label htmlFor="sub_is_active" className="text-sm font-medium text-slate-700">Active</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <input type="checkbox" id="sub_is_self_arranged" checked={formData.is_self_arranged || false} onChange={(e) => setFormData({ ...formData, is_self_arranged: e.target.checked })} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <label htmlFor="sub_is_self_arranged" className="text-sm font-medium text-slate-700">Self-Arranged Booking</label>
+                </div>
             </div>
             <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
                 <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 hover:bg-gray-100 rounded-md">Cancel</button>

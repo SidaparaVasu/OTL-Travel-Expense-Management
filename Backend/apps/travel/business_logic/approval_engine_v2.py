@@ -307,27 +307,10 @@ class ApprovalEngineV2:
 
         for b in bookings:
             try:
+                # BUG FIX: Dynamic evaluation of self-arranged transport modes for 150km rule
                 name = getattr(b.booking_type, "name", str(getattr(b, "booking_type", "") or "")).lower()
-                
-                # BUG FIX: Strictly only 'Own Car' and 'Self-Arranged Car at Disposal' trigger the 150km rule.
-                # Pick-up & Drop, Goods Carriage, and other hired/commercial modes are excluded.
-                is_evaluable = False
-                
-                if "own car" in name:
-                    is_evaluable = True
-                elif "disposal" in name:
-                    # Specific check for Car at Disposal: Only trigger if "Self-Arranged"
-                    sub_opt_obj = getattr(b, "sub_option", None)
-                    sub_opt = getattr(sub_opt_obj, "name", "") or ""
-                    
-                    # Fallback to details
-                    if not sub_opt:
-                        details = getattr(b, "booking_details", {}) or {}
-                        sub_opt = details.get("vehicle_sub_option_label", "")
-                    
-                    sub_opt = str(sub_opt).lower()
-                    if "self-arranged" in sub_opt:
-                        is_evaluable = True
+                from apps.travel.services.travel_desk_display import is_self_arranged_booking
+                is_evaluable = is_self_arranged_booking(b)
                 
                 if not is_evaluable:
                     continue

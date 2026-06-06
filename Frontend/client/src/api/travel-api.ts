@@ -41,6 +41,7 @@ export interface TravelMode {
   id: number;
   name: string;
   is_active?: boolean;
+  is_self_arranged?: boolean;
 }
 
 export interface TravelSubOption {
@@ -48,6 +49,7 @@ export interface TravelSubOption {
   name: string;
   mode: number;
   is_active?: boolean;
+  is_self_arranged?: boolean;
 }
 
 export interface GuestHouse {

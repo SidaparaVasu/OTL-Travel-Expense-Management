@@ -10,6 +10,7 @@ export interface TravelMode {
   id: number;
   name: string;
   description: string;
+  is_self_arranged?: boolean;
 }
 
 export interface TravelSubOption {
@@ -18,6 +19,7 @@ export interface TravelSubOption {
   mode_name: string;
   name: string;
   description: string;
+  is_self_arranged?: boolean;
 }
 
 export interface GLCode {

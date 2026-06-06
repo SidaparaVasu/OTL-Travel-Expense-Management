@@ -16,6 +16,7 @@ from utils.date_utils import calculate_age
 from apps.travel.services.travel_desk_display import (
     build_travel_desk_payload,
     build_agent_action_completed_at,
+    is_self_arranged_booking,
 )
 
 import logging
@@ -218,7 +219,7 @@ class TicketingBookingSerializer(serializers.Serializer):
         return obj.sub_option.name if obj.sub_option else ""
 
     def get_is_self_arranged(self, obj):
-        return obj.booking_details.get('is_self_arranged', False)
+        return is_self_arranged_booking(obj)
 
     def get_ticket_number(self, obj):
         return obj.booking_reference or obj.booking_details.get('ticket_number', '')
@@ -288,10 +289,7 @@ class AccommodationBookingSerializer(serializers.Serializer):
     bulk_booking_file = serializers.SerializerMethodField()
 
     def get_is_self_arranged(self, obj):
-        # Check sub_option name for 'Self'
-        if obj.sub_option and 'self' in obj.sub_option.name.lower():
-            return True
-        return obj.booking_details.get('is_self_arranged', False)
+        return is_self_arranged_booking(obj)
 
     def get_accommodation_type(self, obj):
         # Get from sub_option name
@@ -411,10 +409,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     bulk_booking_file = serializers.SerializerMethodField()
 
     def get_is_self_arranged(self, obj):
-        # Check sub_option name for 'Self'
-        if obj.sub_option and 'self' in obj.sub_option.name.lower():
-            return True
-        return obj.booking_details.get('is_self_arranged', False)
+        return is_self_arranged_booking(obj)
 
     def get_vehicle_type(self, obj):
         # Get from sub_option name or booking_details

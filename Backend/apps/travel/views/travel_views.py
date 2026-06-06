@@ -1693,8 +1693,7 @@ class TravelApplicationValidationView(APIView):
                     has_warnings = True
                 
                 # Own car distance validation
-                if (booking.booking_type.name.lower() == 'car' and 
-                    booking.booking_details.get('transport_type') == 'own_car'):
+                if booking.booking_type.is_self_arranged:
                     distance = booking.booking_details.get('distance_km', 0)
                     if distance > 150:
                         booking_validation['issues'].append({
