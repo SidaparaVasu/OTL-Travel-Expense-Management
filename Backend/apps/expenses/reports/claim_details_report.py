@@ -128,7 +128,7 @@ class ClaimDetailsReport(BaseReport):
             "header": {
                 "travel_request_id": tr.get_travel_request_id() if tr else "N/A",
                 "status": claim.status.label if claim.status else "N/A",
-                "submitted_on": claim.submitted_on.strftime("%d/%m/%Y %I:%M %p") if claim.submitted_on else "N/A",
+                "created_on": claim.created_on.strftime("%d/%m/%Y %I:%M %p") if claim.created_on else "N/A",
                 "generated_on": datetime.now().strftime("%d/%m/%Y %I:%M %p")
             },
             "employee": {

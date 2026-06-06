@@ -79,7 +79,10 @@ class ExpenseClaim(models.Model):
         related_name='expense_claims'
     )
 
+    ### DEPRECATED: This field has no use, instead this we maintain `created_on` field ###
     submitted_on = models.DateTimeField(null=True, blank=True)
+    ######################################################################################
+
     status = models.ForeignKey(
         ClaimStatusMaster,
         on_delete=models.PROTECT,
