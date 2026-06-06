@@ -594,8 +594,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                 booking = Booking.objects.create(trip_details=trip_detail, **booking_data)
                 
                 # Auto-confirm self-arranged accommodation (no vendor required)
-                sub_option = booking.sub_option
-                if sub_option and 'self' in sub_option.name.lower():
+                if (booking.sub_option and booking.sub_option.is_self_arranged) or (booking.booking_type and booking.booking_type.is_self_arranged):
                     booking.status = 'confirmed'
                     booking.save(update_fields=['status'])
         
@@ -711,7 +710,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                         for attr, value in booking_data.items():
                             setattr(booking, attr, value)
                         
-                        if booking.sub_option and 'self' in booking.sub_option.name.lower():
+                        if (booking.sub_option and booking.sub_option.is_self_arranged) or (booking.booking_type and booking.booking_type.is_self_arranged):
                             booking.status = 'confirmed'
                         
                         booking.save()
@@ -720,7 +719,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
                         # FIX: Add newly created ID to matched list to prevent immediate deletion
                         matched_booking_ids.append(booking.id)
 
-                        if (booking.sub_option and 'self' in booking.sub_option.name.lower()):
+                        if (booking.sub_option and booking.sub_option.is_self_arranged) or (booking.booking_type and booking.booking_type.is_self_arranged):
                             booking.status = 'confirmed'
                             booking.save(update_fields=['status'])
 

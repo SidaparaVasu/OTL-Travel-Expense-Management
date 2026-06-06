@@ -54,9 +54,11 @@ def is_primary_spoc_for_application(application, user) -> bool:
 
 
 def is_self_arranged_booking(booking: Booking) -> bool:
-    if booking.sub_option and "self" in (booking.sub_option.name or "").lower():
-        return True
-    return bool(booking.booking_details.get("is_self_arranged", False))
+    return (
+        booking.booking_details.get("is_self_arranged") is True or
+        (booking.booking_type and booking.booking_type.is_self_arranged) or
+        (booking.sub_option and booking.sub_option.is_self_arranged)
+    )
 
 
 def is_flight_or_train_booking(booking: Booking) -> bool:

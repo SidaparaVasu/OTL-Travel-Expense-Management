@@ -591,9 +591,23 @@ def validate_claim_payload(
         # B) Own Stay Allowance Check
         # Applies when expense type is 'stay' and the sub-option is a self-arranged accommodation
         # (Stay with Friends & Family or Stay at Revenue Village) — not a hotel/guest house booking.
-        if code == 'stay' and item.get("sub_option_name") in (
-            "Stay with Friends & Family", "Stay at Revenue Village"
-        ):
+        sub_opt_name = item.get("sub_option_name")
+        is_self_arranged_accommodation = False
+        if sub_opt_name:
+            from apps.master_data.models.travel import TravelSubOptionMaster
+            is_self_arranged_accommodation = TravelSubOptionMaster.objects.filter(
+                name__iexact=sub_opt_name,
+                is_self_arranged=True,
+            ).exists()
+        
+        if not is_self_arranged_accommodation and booking_id:
+            from apps.travel.models.booking import Booking
+            linked_booking = Booking.objects.filter(id=booking_id).first()
+            if linked_booking:
+                from apps.travel.services.travel_desk_display import is_self_arranged_booking
+                is_self_arranged_accommodation = is_self_arranged_booking(linked_booking)
+
+        if code == 'stay' and is_self_arranged_accommodation:
              # Determine rate based on city category
              city_cat = item.get("city_category") or "B"
              

@@ -253,7 +253,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         Returns a permissions dict that tells the frontend exactly what the
         current user can do with this booking. Backend is the single source of truth.
         """
-        from apps.travel.services.travel_desk_display import user_is_travel_desk
+        from apps.travel.services.travel_desk_display import user_is_travel_desk, is_self_arranged_booking
 
         request = self.context.get('request')
         is_primary_spoc = self.context.get('is_primary_spoc', False)
@@ -268,9 +268,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
             'is_delegated': False,
         }
 
-        is_self_arranged = bool(obj.booking_details.get('is_self_arranged', False))
-
-        if is_self_arranged:
+        if is_self_arranged_booking(obj):
             return inactive
 
         if obj.status == 'closed':

@@ -44,6 +44,8 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
             status="pending"
         )
         .exclude(booking_details__is_self_arranged=True)  # Exclude self-arranged
+        .exclude(booking_type__is_self_arranged=True)
+        .exclude(sub_option__is_self_arranged=True)
         .select_related("booking_type")
     )
 
@@ -123,22 +125,14 @@ def auto_confirm_self_arranged_bookings(application: TravelApplication, system_u
             trip_details__travel_application=application,
             status="pending"
         )
-        .select_related("sub_option")
+        .select_related("sub_option", "booking_type")
     )
 
     confirmed_count = 0
     for booking in bookings:
-        sub_option = booking.sub_option
-        mode_name = booking.booking_type.name.lower() if booking.booking_type else ""
-        
-        is_self_arranged = (
-            (sub_option and any(keyword in sub_option.name.lower() for keyword in ['self', 'friends', 'family'])) or
-            booking.booking_details.get('is_self_arranged') is True or
-            "own car" in mode_name or
-            "personal car" in mode_name
-        )
+        from apps.travel.services.travel_desk_display import is_self_arranged_booking
 
-        if is_self_arranged:
+        if is_self_arranged_booking(booking):
             booking.status = "confirmed"
             booking.save(update_fields=["status"])
             confirmed_count += 1

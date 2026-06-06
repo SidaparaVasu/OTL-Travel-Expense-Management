@@ -124,7 +124,7 @@ class TravelSubOptionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TravelSubOptionMaster
-        fields = ['id', 'mode', 'mode_name', 'name', 'description', 'is_active']
+        fields = ['id', 'mode', 'mode_name', 'name', 'description', 'is_self_arranged', 'is_active']
 
 class GradeEntitlementSerializer(serializers.ModelSerializer):
     grade_name = serializers.CharField(source='grade.name', read_only=True)

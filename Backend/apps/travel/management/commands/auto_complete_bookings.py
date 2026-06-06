@@ -31,8 +31,10 @@ class Command(BaseCommand):
         
         # 2. Auto-confirm any self-arranged bookings that are still pending
         confirmed_count = Booking.objects.filter(
-            status='pending',
-            sub_option__name__icontains='self'
+            Q(status='pending'),
+            Q(sub_option__is_self_arranged=True) |
+            Q(booking_type__is_self_arranged=True) |
+            Q(booking_details__is_self_arranged=True)
         ).update(status='confirmed')
         
         if confirmed_count > 0:
