@@ -120,6 +120,13 @@ class ExpenseClaim(models.Model):
     actual_travel_start_time = models.TimeField(null=True, blank=True)
     actual_travel_end_date = models.DateField(null=True, blank=True)
     actual_travel_end_time = models.TimeField(null=True, blank=True)
+    one_way_distance_km = models.DecimalField(
+        max_digits=8, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="One-way distance in kilometers entered by the user during claim submission"
+    )
 
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)

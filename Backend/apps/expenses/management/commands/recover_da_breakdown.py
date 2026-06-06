@@ -51,7 +51,8 @@ class Command(BaseCommand):
                     actual_start_date=claim.actual_travel_start_date,
                     actual_start_time=claim.actual_travel_start_time,
                     actual_end_date=claim.actual_travel_end_date,
-                    actual_end_time=claim.actual_travel_end_time
+                    actual_end_time=claim.actual_travel_end_time,
+                    one_way_distance_km=claim.one_way_distance_km
                 )
 
                 if not breakdown:

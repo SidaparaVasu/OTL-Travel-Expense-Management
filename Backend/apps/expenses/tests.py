@@ -542,3 +542,125 @@ class ValidateClaimApprovalFlowIntegrationTests(TestCase):
 
         result = self._validate(tr_no_flows)
         self.assertNotIn("travel_request.approval", result["errors"])
+
+
+class ClaimDistanceDurationPolicyTests(TestCase):
+    """
+    Unit tests for checking the new trip distance and duration eligibility rules.
+    """
+    def setUp(self):
+        from unittest.mock import MagicMock
+        self.tr = MagicMock()
+        self.tr.employee = MagicMock()
+        self.tr.employee.grade = "B-3"
+        
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = False
+        mock_qs.filter.return_value = mock_qs
+        mock_qs.order_by.return_value = mock_qs
+        mock_qs.first.return_value = None
+        
+        self.tr.trip_details.all.return_value = mock_qs
+        self.tr.trip_details.filter.return_value = mock_qs
+        self.tr.trip_details.order_by.return_value = mock_qs
+
+    @patch("apps.expenses.business_logic.claims._get_da_rates_for_grade")
+    def test_policy_scenarios(self, mock_get_rates):
+        from decimal import Decimal
+        from datetime import date, time
+        from apps.expenses.business_logic.claims import calculate_da_breakdown
+
+        # Setup mock DA rate mapping to return non-zero DA rates for grade B-3
+        mock_get_rates.return_value = {
+            "B": {
+                "full": Decimal("810.00"),
+                "half": Decimal("405.00"),
+                "inc_full": Decimal("243.00"),
+                "inc_half": Decimal("121.50")
+            }
+        }
+
+        # 1st case: one way distance: 45 k.m., trip duration: 6 hours (Not Eligible)
+        res1 = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(16, 0),
+            one_way_distance_km=Decimal("45.00")
+        )
+        self.assertEqual(sum(r["da"] for r in res1), Decimal("0"))
+        self.assertEqual(sum(r["incidental"] for r in res1), Decimal("0"))
+
+        # 2nd case: one way distance: 60 k.m., trip duration: 6 hours (Not Eligible)
+        res2 = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(16, 0),
+            one_way_distance_km=Decimal("60.00")
+        )
+        self.assertEqual(sum(r["da"] for r in res2), Decimal("0"))
+        self.assertEqual(sum(r["incidental"] for r in res2), Decimal("0"))
+
+        # 3rd case: one way distance: 55 k.m., trip duration: 8 hours (Not Eligible)
+        res3 = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(18, 0),
+            one_way_distance_km=Decimal("55.00")
+        )
+        self.assertEqual(sum(r["da"] for r in res3), Decimal("0"))
+        self.assertEqual(sum(r["incidental"] for r in res3), Decimal("0"))
+
+        # 4th case: one way distance: 50 k.m., trip duration: 12 hours (Not Eligible)
+        res4 = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(22, 0),
+            one_way_distance_km=Decimal("50.00")
+        )
+        self.assertEqual(sum(r["da"] for r in res4), Decimal("0"))
+        self.assertEqual(sum(r["incidental"] for r in res4), Decimal("0"))
+
+        # 5th case: one way distance: 50 k.m., trip duration: 8 hours (Not Eligible)
+        res5 = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(18, 0),
+            one_way_distance_km=Decimal("50.00")
+        )
+        self.assertEqual(sum(r["da"] for r in res5), Decimal("0"))
+        self.assertEqual(sum(r["incidental"] for r in res5), Decimal("0"))
+
+        # 6th case: one way distance: 51 k.m., trip duration: 8 hours (Not Eligible)
+        res6 = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(18, 0),
+            one_way_distance_km=Decimal("51.00")
+        )
+        self.assertEqual(sum(r["da"] for r in res6), Decimal("0"))
+        self.assertEqual(sum(r["incidental"] for r in res6), Decimal("0"))
+
+        # Good case: one way distance: > 50 k.m., trip duration: > 8 hours (Eligible)
+        res_good = calculate_da_breakdown(
+            self.tr,
+            actual_start_date=date(2026, 4, 16),
+            actual_start_time=time(10, 0),
+            actual_end_date=date(2026, 4, 16),
+            actual_end_time=time(18, 6), # 8.1 hours
+            one_way_distance_km=Decimal("51.00")
+        )
+        self.assertGreater(sum(r["da"] for r in res_good), Decimal("0"))
+        self.assertGreater(sum(r["incidental"] for r in res_good), Decimal("0"))
+

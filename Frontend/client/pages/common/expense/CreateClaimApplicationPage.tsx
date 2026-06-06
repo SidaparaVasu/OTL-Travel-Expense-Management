@@ -143,6 +143,7 @@ export default function CreateClaimApplicationPage() {
   const [actualStartTime, setActualStartTime] = useState("");
   const [actualEndDate, setActualEndDate] = useState("");
   const [actualEndTime, setActualEndTime] = useState("");
+  const [oneWayDistance, setOneWayDistance] = useState<string>("");
 
   // Load applications + expenses
   useEffect(() => {
@@ -170,6 +171,18 @@ export default function CreateClaimApplicationPage() {
       console.log("Fetched claim for editing:", claim);
 
       setExistingClaim(claim);
+
+      // Pre-fill one_way_distance_km
+      setOneWayDistance(claim.one_way_distance_km ? String(claim.one_way_distance_km) : "");
+
+      // Pre-fill actual travel dates if present
+      if (claim.actual_travel_start_date) {
+        setUseActualDates(true);
+        setActualStartDate(claim.actual_travel_start_date);
+        setActualStartTime(claim.actual_travel_start_time || "");
+        setActualEndDate(claim.actual_travel_end_date || "");
+        setActualEndTime(claim.actual_travel_end_time || "");
+      }
 
       // Extract finance remarks if available
       if (claim.finance_action_logs && claim.finance_action_logs.length > 0) {
@@ -437,6 +450,7 @@ export default function CreateClaimApplicationPage() {
     return {
       travel_application_id: selectedApp.id,
       claim_id: isEditMode && claimId ? Number(claimId) : undefined,
+      one_way_distance_km: oneWayDistance ? Number(oneWayDistance) : null,
       actual_travel_start_date: useActualDates ? actualStartDate : null,
       actual_travel_start_time: useActualDates ? actualStartTime : null,
       actual_travel_end_date: useActualDates ? actualEndDate : null,
@@ -537,9 +551,30 @@ export default function CreateClaimApplicationPage() {
       } else {
         const friendly = normalizeErrors(response?.data || response?.errors);
 
+        // Build a flat map of field-specific errors to highlight inputs
+        const fieldErrors: any = {};
+        const apiErrors = response?.data || response?.errors || {};
+        
+        Object.entries(apiErrors).forEach(([key, value]) => {
+          if (key === "items" && Array.isArray(value)) {
+            value.forEach((itemError: any, index: number) => {
+              if (itemError && typeof itemError === "object") {
+                Object.entries(itemError).forEach(([subKey, subVal]) => {
+                  const msg = Array.isArray(subVal) ? subVal[0] : String(subVal);
+                  fieldErrors[`items.${index}.${subKey}`] = msg;
+                });
+              }
+            });
+          } else {
+            const msg = Array.isArray(value) ? value[0] : String(value);
+            fieldErrors[key] = msg;
+          }
+        });
+
         setErrors({
           general: "Please fix the highlighted issues before proceeding.",
           list: friendly,
+          ...fieldErrors
         });
       }
     } catch (error: any) {
@@ -974,6 +1009,37 @@ export default function CreateClaimApplicationPage() {
                   )}
                 </div>
               )}
+
+              <div className="mt-6 pt-6 border-t border-border space-y-2">
+                <Label htmlFor="one-way-distance" className="text-sm font-semibold flex items-center gap-1.5">
+                  One-Way Trip Distance (in K.M.) <span className="text-destructive">*</span>
+                </Label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Input
+                      id="one-way-distance"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter distance"
+                      value={oneWayDistance}
+                      onChange={(e) => setOneWayDistance(e.target.value)}
+                      className={errors.one_way_distance_km ? "border-destructive pr-12" : "pr-12"}
+                      required
+                    />
+                    <span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-medium">K.M.</span>
+                  </div>
+                  <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded border border-amber-100 flex items-start gap-1.5">
+                    <Info className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                    <span>
+                      <strong>Policy Rule:</strong> One-way distance must be greater than 50 K.M. and travel duration must be greater than 8 hours to calculate Daily Allowance (DA) & Incidentals.
+                    </span>
+                  </p>
+                </div>
+                {errors.one_way_distance_km && (
+                  <p className="text-xs text-destructive mt-1 font-medium">{errors.one_way_distance_km}</p>
+                )}
+              </div>
             </Card>
 
             {closedNonClaimableBookings.length > 0 && (
@@ -1490,6 +1556,25 @@ export default function CreateClaimApplicationPage() {
                 </div>
               )}
             </Card>
+
+            {/* ERROR DISPLAY */}
+            {errors.general && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <AlertDescription className="ml-2">
+                  <p className="font-semibold">{errors.general}</p>
+                  {errors.list && errors.list.length > 0 && (
+                    <ul className="list-disc list-inside mt-2 text-sm space-y-1">
+                      {errors.list.map((err: any, idx: number) => (
+                        <li key={idx}>
+                          <strong>{err.field}:</strong> {err.message}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-4">
