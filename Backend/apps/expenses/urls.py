@@ -1,6 +1,7 @@
 from django.urls import path
 from apps.expenses.views import *
 
+
 urlpatterns = [
     # --- Claim APIs ---
     
@@ -48,5 +49,9 @@ urlpatterns = [
 
     path("claim-status/", ClaimStatusListCreateView.as_view(), name="claim-status"),
     path("claim-status/<int:pk>/", ClaimStatusDetailView.as_view(), name="claim-status-detail"),
+
+    # --- Finance Claim Report ---
+    path("finance/claim-report/", ClaimReportPreviewView.as_view(), name="finance-claim-report-preview"),
+    path("finance/claim-report/export/", ClaimReportExportView.as_view(), name="finance-claim-report-export"),
 
 ]
