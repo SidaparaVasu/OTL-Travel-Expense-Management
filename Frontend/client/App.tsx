@@ -30,6 +30,7 @@ import FinancePage from "./pages/finance/FinancePage";
 import SettlementOverduePage from "./pages/finance/SettlementOverduePage";
 import AdvanceRequisitionPage from "./pages/finance/AdvanceRequisitionPage";
 import AdvanceWorkspacePage from "./pages/finance/AdvanceWorkspacePage";
+import ClaimReportExportPage from "./pages/finance/ClaimReportExportPage";
 
 // Booking Agent
 import BookingAgentBookings from "./pages/booking-agent/BookingAgentBookings";
@@ -232,6 +233,16 @@ const App = () => (
                 <AuthOnly>
                   <UnifiedLayout>
                     <SettlementOverduePage />
+                  </UnifiedLayout>
+                </AuthOnly>
+              }
+            />
+            <Route
+              path={ROUTES.claimReportPage}
+              element={
+                <AuthOnly>
+                  <UnifiedLayout>
+                    <ClaimReportExportPage />
                   </UnifiedLayout>
                 </AuthOnly>
               }

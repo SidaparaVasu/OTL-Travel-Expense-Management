@@ -228,5 +228,31 @@ export const expenseAPI = {
       );
       return response.data as Blob;
     },
+    getClaimReport: async (params?: {
+      start_date?: string;
+      end_date?: string;
+      status?: string;
+      location_id?: number | string;
+      search?: string;
+      page?: number;
+      page_size?: number;
+    }) => {
+      const { data } = await apiClient.get("/expense/finance/claim-report/", { params });
+      return data;
+    },
+    exportClaimReport: async (params?: {
+      start_date?: string;
+      end_date?: string;
+      status?: string;
+      location_id?: number | string;
+      search?: string;
+    }): Promise<Blob> => {
+      const response = await apiClient.get("/expense/finance/claim-report/export/", {
+        params,
+        responseType: "blob",
+      });
+      return response.data as Blob;
+    },
   },
 };
+

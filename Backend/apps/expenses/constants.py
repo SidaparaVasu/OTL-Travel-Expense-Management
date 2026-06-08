@@ -13,4 +13,4 @@ DEFAULT_CONVEYANCE_RATE_PER_KM = 15.00       # Fallback conveyance rate per km
 
 # Bypass flag for distance validation
 # Set to True because the system currently does not collect estimated_distance_km from the user.
-BYPASS_DISTANCE_VALIDATION = True
+BYPASS_DISTANCE_VALIDATION = False

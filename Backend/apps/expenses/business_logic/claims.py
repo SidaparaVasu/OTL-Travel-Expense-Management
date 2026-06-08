@@ -30,6 +30,15 @@ def _to_decimal(val) -> Decimal:
         return Decimal("0")
 
 
+def _to_decimal_or_none(val) -> Optional[Decimal]:
+    if val is None or val == "":
+        return None
+    try:
+        return Decimal(str(val))
+    except:
+        return None
+
+
 def _date_from_str(v) -> Optional[date]:
     if not v:
         return None
@@ -134,14 +143,17 @@ def calculate_da_breakdown(
     actual_start_date: Optional[date] = None,
     actual_start_time: Optional[time] = None,
     actual_end_date: Optional[date] = None,
-    actual_end_time: Optional[time] = None
+    actual_end_time: Optional[time] = None,
+    one_way_distance_km: Optional[Decimal] = None
 ) -> List[Dict[str, Any]]:
     """
     Calculate DA/Incidental for each day of travel.
     Respects actual travel dates/times if provided.
     """
     # 1. Check one-way distance exceeds 50 km (or bypass it if configured)
-    if constants.BYPASS_DISTANCE_VALIDATION:
+    if one_way_distance_km is not None:
+        has_valid_distance = (one_way_distance_km > constants.MIN_DISTANCE_FOR_DA_KM)
+    elif constants.BYPASS_DISTANCE_VALIDATION:
         has_valid_distance = True
     else:
         has_valid_distance = tr.trip_details.filter(
@@ -453,7 +465,8 @@ def validate_claim_payload(
             actual_start_date=_date_from_str(payload.get("actual_travel_start_date")),
             actual_start_time=_to_time(payload.get("actual_travel_start_time")),
             actual_end_date=_date_from_str(payload.get("actual_travel_end_date")),
-            actual_end_time=_to_time(payload.get("actual_travel_end_time"))
+            actual_end_time=_to_time(payload.get("actual_travel_end_time")),
+            one_way_distance_km=_to_decimal_or_none(payload.get("one_way_distance_km"))
         )
     except ValidationError as e:
         errors.update(e.message_dict)

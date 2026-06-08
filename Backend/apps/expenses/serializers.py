@@ -248,11 +248,17 @@ class ClaimValidateSerializer(serializers.Serializer):
     acknowledged_warnings = serializers.ListField(required=False)
     exception_reasons = serializers.ListField(required=False)
 
-    # Actual Travel Dates
+    # Actual Travel Dates and Distance
     actual_travel_start_date = serializers.DateField(required=False, allow_null=True)
     actual_travel_start_time = serializers.TimeField(required=False, allow_null=True)
     actual_travel_end_date = serializers.DateField(required=False, allow_null=True)
     actual_travel_end_time = serializers.TimeField(required=False, allow_null=True)
+    one_way_distance_km = serializers.DecimalField(
+        max_digits=8, 
+        decimal_places=2, 
+        required=True,
+        help_text="One-way distance must be greater than 50 K.M. and travel duration must be greater than 8 hours to calculate DA and Incidentals as per policy."
+    )
 
     def validate(self, data):
         tr = TravelApplication.objects.filter(id=data["travel_application_id"]).first()
@@ -281,11 +287,17 @@ class ClaimSubmitSerializer(serializers.Serializer):
     acknowledged_warnings = serializers.ListField(required=False)
     exception_reasons = serializers.ListField(required=False)
 
-    # Actual Travel Dates
+    # Actual Travel Dates and Distance
     actual_travel_start_date = serializers.DateField(required=False, allow_null=True)
     actual_travel_start_time = serializers.TimeField(required=False, allow_null=True)
     actual_travel_end_date = serializers.DateField(required=False, allow_null=True)
     actual_travel_end_time = serializers.TimeField(required=False, allow_null=True)
+    one_way_distance_km = serializers.DecimalField(
+        max_digits=8, 
+        decimal_places=2, 
+        required=True,
+        help_text="One-way distance must be greater than 50 K.M. and travel duration must be greater than 8 hours to calculate DA and Incidentals as per policy."
+    )
 
     def validate(self, data):
         # basic TR validation
@@ -358,6 +370,7 @@ class ClaimSubmitSerializer(serializers.Serializer):
                 actual_travel_start_time=validated_data.get("actual_travel_start_time"),
                 actual_travel_end_date=validated_data.get("actual_travel_end_date"),
                 actual_travel_end_time=validated_data.get("actual_travel_end_time"),
+                one_way_distance_km=validated_data.get("one_way_distance_km"),
             )
 
             if CLAIM_MANAGER_APPROVAL_REQUIRED:

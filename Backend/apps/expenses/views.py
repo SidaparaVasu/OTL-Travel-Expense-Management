@@ -1229,3 +1229,236 @@ class ClaimResubmitView(APIView):
                 message="Unexpected error",
                 data={"detail": str(ex), "trace": tb}
             )
+
+
+# =============================================================================
+# Finance Claim Report — Preview & Export
+# =============================================================================
+
+import io as _io
+from datetime import date as _date
+
+import openpyxl
+from openpyxl.styles import Alignment as _Alignment, Font as _Font, PatternFill as _PatternFill
+from openpyxl.utils import get_column_letter as _gcl
+
+from apps.expenses.services.claim_report_service import (
+    CLAIM_REPORT_EXPORT_HEADERS,
+    apply_claim_report_filters,
+    claim_row_to_excel,
+    get_claim_report_base_queryset,
+    serialize_claim_report_row,
+)
+from apps.authentication.spoc_utils import get_user_assigned_location_ids
+
+_FINANCE_SPOC_ROLE = "Finance"
+
+
+def _verify_finance_role(user) -> bool:
+    """
+    Return True only if the user holds the Finance role or carries an explicit
+    finance-level permission.  is_staff / is_superuser bypass is excluded so
+    that data access is always scoped by SPOC location assignment.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    user_roles = [role.role_type for role in user.get_all_roles()]
+    if "finance" in user_roles:
+        return True
+    perms = user.get_user_permissions_list()
+    if any(p in perms for p in ["expense_claim_approve", "finance_dashboard_access"]):
+        return True
+    return False
+
+
+def _parse_claim_report_filters(request):
+    """Parse and validate query params. Returns (filters_dict, error_str | None)."""
+    params = request.query_params
+
+    start_str = params.get("start_date", "").strip()
+    end_str = params.get("end_date", "").strip()
+    start_date = end_date = None
+
+    if start_str:
+        try:
+            start_date = _date.fromisoformat(start_str)
+        except ValueError:
+            return {}, "Invalid start_date format. Use YYYY-MM-DD."
+    if end_str:
+        try:
+            end_date = _date.fromisoformat(end_str)
+        except ValueError:
+            return {}, "Invalid end_date format. Use YYYY-MM-DD."
+    if start_date and end_date and start_date > end_date:
+        return {}, "start_date must not be after end_date."
+
+    loc_str = params.get("location_id", "").strip()
+    location_id = None
+    if loc_str and loc_str != "all":
+        try:
+            location_id = int(loc_str)
+        except ValueError:
+            return {}, "Invalid location_id."
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "status_code": params.get("status", "").strip() or None,
+        "location_id": location_id,
+        "search": params.get("search", "").strip() or None,
+    }, None
+
+
+def _validate_location_access_finance(user, location_id):
+    if location_id is None:
+        return True
+    allowed = get_user_assigned_location_ids(
+        user, role_name=_FINANCE_SPOC_ROLE, include_base_location=True
+    )
+    return allowed is None or location_id in allowed
+
+
+class ClaimReportPreviewView(BranchFilterMixin, APIView):
+    """
+    Paginated JSON preview of claims for the Finance Claim Report page.
+
+    GET /expense/finance/claim-report/
+    Query params (all optional):
+      start_date, end_date, status, location_id, search, page, page_size
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            if not _verify_finance_role(request.user):
+                return error_response(message="Permission denied", status_code=403)
+
+            filters, err = _parse_claim_report_filters(request)
+            if err:
+                return error_response(message=err, status_code=400)
+
+            if not _validate_location_access_finance(request.user, filters.get("location_id")):
+                return error_response(
+                    message="You do not have access to the selected location.",
+                    status_code=403,
+                )
+
+            qs = get_claim_report_base_queryset()
+            qs = self.apply_branch_filter(
+                qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
+            )
+            qs = apply_claim_report_filters(qs, **filters)
+
+            # Status summary across full filtered set (before pagination)
+            from apps.expenses.models import ClaimStatusMaster as _CSM
+            status_summary = {}
+            for cs in _CSM.objects.order_by("sequence"):
+                cnt = qs.filter(status=cs).count()
+                if cnt:
+                    status_summary[cs.label] = cnt
+
+            total = qs.count()
+
+            # Financial totals
+            from django.db.models import Sum as _Sum
+            agg = qs.aggregate(
+                total_final_payable=_Sum("final_amount_payable"),
+            )
+
+            paginator = StandardResultsSetPagination()
+            page = paginator.paginate_queryset(qs, request)
+            results = [serialize_claim_report_row(c) for c in (page if page is not None else qs)]
+
+            return success_response(
+                data={
+                    "total": total,
+                    "total_final_payable": float(agg["total_final_payable"] or 0),
+                    "status_summary": status_summary,
+                    "start_date": str(filters["start_date"]) if filters.get("start_date") else None,
+                    "end_date": str(filters["end_date"]) if filters.get("end_date") else None,
+                    "results": results,
+                },
+                message="Claim report data retrieved successfully",
+            )
+        except Exception as ex:
+            tb = traceback.format_exc()
+            return error_response(message="Unexpected error", data={"detail": str(ex), "trace": tb})
+
+
+class ClaimReportExportView(BranchFilterMixin, APIView):
+    """
+    Download matching claims as an Excel (.xlsx) file.
+
+    GET /expense/finance/claim-report/export/
+    Same query params as ClaimReportPreviewView (no pagination).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            if not _verify_finance_role(request.user):
+                return error_response(message="Permission denied", status_code=403)
+
+            filters, err = _parse_claim_report_filters(request)
+            if err:
+                return error_response(message=err, status_code=400)
+
+            if not _validate_location_access_finance(request.user, filters.get("location_id")):
+                return error_response(
+                    message="You do not have access to the selected location.",
+                    status_code=403,
+                )
+
+            qs = get_claim_report_base_queryset()
+            qs = self.apply_branch_filter(
+                qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
+            )
+            qs = apply_claim_report_filters(qs, **filters)
+
+            rows = [claim_row_to_excel(serialize_claim_report_row(c)) for c in qs]
+
+            # ── Build workbook ────────────────────────────────────────────────
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Claim Report"
+
+            header_font = _Font(bold=True, color="FFFFFF", size=10)
+            header_fill = _PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+            header_align = _Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+            for col, header in enumerate(CLAIM_REPORT_EXPORT_HEADERS, start=1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_align
+                ws.column_dimensions[_gcl(col)].width = max(len(header) + 4, 18)
+            ws.row_dimensions[1].height = 30
+
+            for row_idx, row_data in enumerate(rows, start=2):
+                for col_idx, value in enumerate(row_data, start=1):
+                    cell = ws.cell(row=row_idx, column=col_idx, value=value)
+                    cell.alignment = _Alignment(vertical="center", wrap_text=False)
+
+            ws.freeze_panes = "A2"
+
+            buffer = _io.BytesIO()
+            wb.save(buffer)
+            buffer.seek(0)
+
+            start_label = str(filters["start_date"]) if filters.get("start_date") else "all"
+            end_label = str(filters["end_date"]) if filters.get("end_date") else "all"
+            filename = f"claim_report_{start_label}_to_{end_label}.xlsx"
+
+            response = HttpResponse(
+                buffer.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+
+        except Exception as ex:
+            tb = traceback.format_exc()
+            return error_response(message="Unexpected error", data={"detail": str(ex), "trace": tb})
+

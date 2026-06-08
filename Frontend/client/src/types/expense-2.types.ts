@@ -62,6 +62,7 @@ export interface ExpenseClaim {
   total_amount: number;
   created_at: string;
   submitted_at?: string;
+  one_way_distance_km?: number | null;
 }
 
 export interface ExpenseClaimCreate {
@@ -103,6 +104,7 @@ export interface ExpenseClaimValidateResponse {
 export interface ExpenseClaimValidateRequest {
   travel_application_id: number;
   claim_id?: number;
+  one_way_distance_km?: number | null;
   items: ExpenseItem[];
 }
 
