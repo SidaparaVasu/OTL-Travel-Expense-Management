@@ -146,6 +146,7 @@ class ClaimDetailsReport(BaseReport):
                 "branch_location": getattr(employee, 'location', 'N/A')
             },
             "trip": trip_overview,
+            "claim_remark": claim.claim_remark if claim.claim_remark else "No remarks provided",
             "items": [
                 {
                     "date": item['expense_date'],

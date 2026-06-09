@@ -127,6 +127,11 @@ class ExpenseClaim(models.Model):
         blank=True,
         help_text="One-way distance in kilometers entered by the user during claim submission"
     )
+    claim_remark = models.TextField(
+        null=True,
+        blank=True,
+        help_text="User remarks entered during claim application submission"
+    )
 
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)

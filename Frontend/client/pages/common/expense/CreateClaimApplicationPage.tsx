@@ -144,6 +144,7 @@ export default function CreateClaimApplicationPage() {
   const [actualEndDate, setActualEndDate] = useState("");
   const [actualEndTime, setActualEndTime] = useState("");
   const [oneWayDistance, setOneWayDistance] = useState<string>("");
+  const [claimRemark, setClaimRemark] = useState("");
 
   // Load applications + expenses
   useEffect(() => {
@@ -174,6 +175,7 @@ export default function CreateClaimApplicationPage() {
 
       // Pre-fill one_way_distance_km
       setOneWayDistance(claim.one_way_distance_km ? String(claim.one_way_distance_km) : "");
+      setClaimRemark(claim.claim_remark || "");
 
       // Pre-fill actual travel dates if present
       if (claim.actual_travel_start_date) {
@@ -455,6 +457,7 @@ export default function CreateClaimApplicationPage() {
       actual_travel_start_time: useActualDates ? actualStartTime : null,
       actual_travel_end_date: useActualDates ? actualEndDate : null,
       actual_travel_end_time: useActualDates ? actualEndTime : null,
+      claim_remark: claimRemark,
       items: [
         ...bookingRows.map((b) => ({
           expense_type: Number(b.expense_type),
@@ -534,6 +537,16 @@ export default function CreateClaimApplicationPage() {
     if (additionalExpensesWithoutReceipts.length > 0) {
       setErrors({
         general: "All additional expenses must have a receipt / bill uploaded.",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Claim remarks must be provided
+    if (!claimRemark.trim()) {
+      setErrors({
+        general: "Claim remarks field is mandatory.",
+        claim_remark: "Remarks field cannot be empty.",
       });
       setLoading(false);
       return;
@@ -1555,6 +1568,42 @@ export default function CreateClaimApplicationPage() {
                   </Table>
                 </div>
               )}
+            </Card>
+
+            {/* Claim Remarks Card */}
+            <Card className="p-6 mb-6 bg-white shadow-sm border border-slate-200">
+              <div className="space-y-2">
+                <Label htmlFor="claim-remark" className="text-sm font-medium text-slate-700 flex items-center gap-1">
+                  Claim Remarks <span className="text-red-500">*</span>
+                </Label>
+                <textarea
+                  id="claim-remark"
+                  rows={4}
+                  value={claimRemark}
+                  onChange={(e) => {
+                    setClaimRemark(e.target.value);
+                    if (errors.claim_remark) {
+                      setErrors((prev: any) => {
+                        const updated = { ...prev };
+                        delete updated.claim_remark;
+                        return updated;
+                      });
+                    }
+                  }}
+                  placeholder="Enter detailed remarks for this claim submission..."
+                  className={`w-full p-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                    errors.claim_remark
+                      ? "border-destructive bg-destructive/5"
+                      : "border-slate-300 bg-white"
+                  }`}
+                />
+                {errors.claim_remark && (
+                  <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {errors.claim_remark}
+                  </p>
+                )}
+              </div>
             </Card>
 
             {/* ERROR DISPLAY */}
