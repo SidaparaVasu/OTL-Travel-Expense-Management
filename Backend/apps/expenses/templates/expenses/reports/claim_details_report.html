@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Claim Application Report - {{ header.travel_request_id }}</title>
+  <title>Travel Claim - {{ header.travel_request_id }}</title>
   <style>
     @page {
       size: A4 portrait;
@@ -120,7 +120,7 @@
 
   <!-- Header -->
   <div class="header-box">
-    <h1>Claim Application Report</h1>
+    <h1>Travel Claim</h1>
   </div>
 
   <!-- Meta Info -->
@@ -182,10 +182,23 @@
       <td class="value-cell">{{ trip.sanction_number }}</td>
     </tr>
     <tr>
-      <td class="label-cell">Locations</td>
-      <td class="value-cell">{{ trip.origin }} to {{ trip.destination }}</td>
-      <td class="label-cell">Dates</td>
-      <td class="value-cell">{{ trip.dates }}</td>
+      <td class="label-cell">Trip Origin</td>
+      <td class="value-cell">{{ trip.origin }}</td>
+      <td class="label-cell">Trip Destination</td>
+      <td class="value-cell">{{ trip.destination }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Trip Start Date</td>
+      <td class="value-cell">{{ trip.start_date }}</td>
+      <td class="label-cell">Trip End Date</td>
+      <td class="value-cell">{{ trip.end_date }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Trip Distance</td>
+      <td class="value-cell">{{ trip.trip_distance }}</td>
+      <!-- Empty cells -->
+      <td class="label-cell"></td>
+      <td class="value-cell"></td>
     </tr>
   </table>
 
@@ -243,6 +256,16 @@
       </tr>
       {% endfor %}
     </tbody>
+  </table>
+
+  <!-- Claim Remarks -->
+  <div class="section-title">Claim Remarks</div>
+  <table style="table-layout: auto; margin-bottom: 15px;">
+    <tr>
+      <td style="padding: 8px; background-color: #f8fafc;">
+        {{ claim_remark }}
+      </td>
+    </tr>
   </table>
 
   <!-- Approval History -->

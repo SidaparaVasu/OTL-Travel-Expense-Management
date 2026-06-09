@@ -157,6 +157,8 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
     approval_history_count = serializers.SerializerMethodField()
     last_approver = serializers.SerializerMethodField()
     last_action_status = serializers.SerializerMethodField()
+    one_way_distance_km = serializers.SerializerMethodField()
+    claim_remark = serializers.SerializerMethodField()
 
     def get_employee_name(self, obj):
         # safe fallback if user or profile doesn't exist
@@ -184,6 +186,12 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
     def get_last_action_status(self, obj):
         last = obj.approval_flow.order_by("-acted_on").first()
         return last.status if last else None
+
+    def get_one_way_distance_km(self, obj):
+        return obj.one_way_distance_km if obj.one_way_distance_km is not None else "Not Provided"
+
+    def get_claim_remark(self, obj):
+        return obj.claim_remark if obj.claim_remark else "No remarks provided"
 
     class Meta:
         model = ExpenseClaim
@@ -220,6 +228,8 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             "actual_travel_end_time",
             "created_on",
             "updated_on",
+            "one_way_distance_km",
+            "claim_remark",
         ]
         read_only_fields = [
             "status",
@@ -259,6 +269,14 @@ class ClaimValidateSerializer(serializers.Serializer):
         required=True,
         help_text="One-way distance must be greater than 50 K.M. and travel duration must be greater than 8 hours to calculate DA and Incidentals as per policy."
     )
+    claim_remark = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "Remarks field is mandatory.",
+            "blank": "Remarks field cannot be empty."
+        }
+    )
 
     def validate(self, data):
         tr = TravelApplication.objects.filter(id=data["travel_application_id"]).first()
@@ -297,6 +315,14 @@ class ClaimSubmitSerializer(serializers.Serializer):
         decimal_places=2, 
         required=True,
         help_text="One-way distance must be greater than 50 K.M. and travel duration must be greater than 8 hours to calculate DA and Incidentals as per policy."
+    )
+    claim_remark = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "Remarks field is mandatory.",
+            "blank": "Remarks field cannot be empty."
+        }
     )
 
     def validate(self, data):
@@ -371,6 +397,7 @@ class ClaimSubmitSerializer(serializers.Serializer):
                 actual_travel_end_date=validated_data.get("actual_travel_end_date"),
                 actual_travel_end_time=validated_data.get("actual_travel_end_time"),
                 one_way_distance_km=validated_data.get("one_way_distance_km"),
+                claim_remark=validated_data.get("claim_remark"),
             )
 
             if CLAIM_MANAGER_APPROVAL_REQUIRED:

@@ -540,9 +540,26 @@ export default function ClaimDetailPage() {
             </Card>
           </div>
 
-          {/* Right Column - Approval Timeline */}
+          {/* Right Column */}
           <div className="lg:col-span-1">
-            <Card className="shadow-sm border-slate-200">
+
+            <Card className="shadow-sm border-slate-200 border-b">
+              {/* One Way Distance */}
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="text-base flex items-center">
+                  Distance travelled (One way): <span className="text-yellow-700 font-bold ml-2">{claim.one_way_distance_km} k.m.</span>
+                </CardTitle>
+              </CardHeader>
+              {/* Claim Remarks */}
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center">
+                  Claim Remarks: <span className="text-yellow-700 ml-2">{claim.claim_remark}</span>
+                </CardTitle>
+              </CardHeader>
+            </Card>
+
+            {/* Approval Timeline */}
+            <Card className="shadow-sm border-slate-200 mt-6">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600" />

@@ -1077,6 +1077,15 @@ class ClaimEditView(APIView):
                 claim.total_expenses = prepared["total_expenses"]
                 claim.final_amount_payable = prepared["final_amount"]
                 claim.exceptions = prepared["warnings"] or {}
+                
+                # Update actual travel details and remark
+                claim.actual_travel_start_date = request.data.get("actual_travel_start_date")
+                claim.actual_travel_start_time = request.data.get("actual_travel_start_time")
+                claim.actual_travel_end_date = request.data.get("actual_travel_end_date")
+                claim.actual_travel_end_time = request.data.get("actual_travel_end_time")
+                claim.one_way_distance_km = request.data.get("one_way_distance_km")
+                claim.claim_remark = request.data.get("claim_remark")
+                
                 claim.save()
                 
                 # Create new items
