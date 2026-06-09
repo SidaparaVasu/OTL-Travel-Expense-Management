@@ -13,9 +13,9 @@ from ..serializers.approval_serializers import (
 )
 from .filters import TravelApplicationFilter
 from apps.expenses.models import ExpenseClaim, ClaimApprovalFlow
-from django.db.models import Sum
+from django.db.models import Sum, F, Value
 from datetime import timedelta
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, Concat
 from ...authentication.permissions import HasCustomPermission
 from apps.authentication.mixins import BranchFilterMixin
 from apps.authentication.decorators import require_permission, require_role
@@ -61,6 +61,7 @@ class ManagerApprovalsView(ListAPIView):
                         can_approve=True,
                         status='pending',
                         edit_count=OuterRef('edit_count'),
+                        travel_application__status=Concat(Value('pending_'), F('approval_level'))
                     )
                 )
             )
@@ -122,6 +123,7 @@ class ManagerPendingApprovalsView(ListAPIView):
                     status='pending',
                     can_approve=True,
                     edit_count=OuterRef('edit_count'),
+                    travel_application__status=Concat(Value('pending_'), F('approval_level'))
                 )
             )
         ).select_related(
@@ -464,7 +466,8 @@ class ApprovalDashboardView(APIView):
         pending_approvals = TravelApprovalFlow.objects.filter(
             approver=user,
             status='pending',
-            can_approve=True
+            can_approve=True,
+            travel_application__status=Concat(Value('pending_'), F('approval_level'))
         ).count()
         
         # Total approvals done
@@ -625,7 +628,8 @@ class ApprovalStatsView(APIView):
         
         pending = TravelApprovalFlow.objects.filter(
             approver=request.user,
-            status='pending'
+            status='pending',
+            travel_application__status=Concat(Value('pending_'), F('approval_level'))
         ).count()
         
         approved_today = TravelApprovalFlow.objects.filter(
@@ -636,8 +640,9 @@ class ApprovalStatsView(APIView):
         
         total_budget = TravelApplication.objects.filter(
             approval_flows__approver=request.user,
-            approval_flows__status='pending'
-        ).aggregate(total=Sum('estimated_total_cost'))['total'] or 0
+            approval_flows__status='pending',
+            status=Concat(Value('pending_'), F('approval_flows__approval_level'))
+        ).distinct().aggregate(total=Sum('estimated_total_cost'))['total'] or 0
         
         rejected = TravelApprovalFlow.objects.filter(
             approver=request.user,

@@ -209,6 +209,24 @@ class TravelApplication(models.Model):
     def __str__(self):
         return f"{self.get_travel_request_id()} - {self.employee.username} ({self.status})"
     
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            try:
+                old_status = TravelApplication.objects.only('status').get(pk=self.pk).status
+            except TravelApplication.DoesNotExist:
+                pass
+        
+        super().save(*args, **kwargs)
+        
+        if old_status and old_status != 'cancelled' and self.status == 'cancelled':
+            self.approval_flows.filter(status='pending').update(
+                status='skipped',
+                notes='System-skipped: Application was cancelled.',
+                approved_at=timezone.now()
+            )
+    
     def get_travel_request_id(self):
         """Generate formatted travel request ID"""
         # Format: TR/TSF/YYYY/0000000 (7 digit sequence); /N suffix after first submit cycle

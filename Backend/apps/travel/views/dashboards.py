@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from django.db.models import Sum, Count, Q, Avg, F
+from django.db.models import Sum, Count, Q, Avg, F, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 from datetime import timedelta
 from apps.authentication.models.user import User
@@ -107,6 +108,7 @@ class ManagerDashboardView(APIView):
             approver=user,
             status='pending',
             edit_count=F('travel_application__edit_count'),
+            travel_application__status=Concat(Value('pending_'), F('approval_level'))
         ).count()
         
         # Team statistics (subordinates)
@@ -128,7 +130,8 @@ class ManagerDashboardView(APIView):
             approval_flows__approver=user,
             approval_flows__status='pending',
             approval_flows__edit_count=F('edit_count'),
-        ).aggregate(total=Sum('estimated_total_cost'))['total'] or 0
+            status=Concat(Value('pending_'), F('approval_flows__approval_level'))
+        ).distinct().aggregate(total=Sum('estimated_total_cost'))['total'] or 0
         
         # Average approval time
         avg_time = TravelApprovalFlow.objects.filter(
