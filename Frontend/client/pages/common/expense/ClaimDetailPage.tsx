@@ -540,9 +540,16 @@ export default function ClaimDetailPage() {
             </Card>
           </div>
 
-          {/* Right Column - Approval Timeline */}
+          {/* Right Column */}
           <div className="lg:col-span-1">
-            <Card className="shadow-sm border-slate-200">
+            
+            {/* One Way Distance */}
+            <Card className="shadow-sm border-slate-200 text-yellow-700 border-b p-3">
+              Distance travelled (One way) : {claim.one_way_distance_km} k.m.
+            </Card>
+
+            {/* Approval Timeline */}
+            <Card className="shadow-sm border-slate-200 mt-6">
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600" />

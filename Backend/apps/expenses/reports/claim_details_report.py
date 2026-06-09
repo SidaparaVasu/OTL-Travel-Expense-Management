@@ -96,6 +96,7 @@ class ClaimDetailsReport(BaseReport):
             "destination": tr.trip_details.first().to_location if tr else "N/A",
             "start_date": claim.actual_travel_start_date.strftime("%d/%m/%Y") if claim.actual_travel_start_date else "N/A",
             "end_date": claim.actual_travel_end_date.strftime("%d/%m/%Y") if claim.actual_travel_end_date else "N/A",
+            "trip_distance": f"{claim.one_way_distance_km} km" if claim.one_way_distance_km else "N/A"
         }
 
         # Expense Grouping: Booking vs Other

@@ -157,6 +157,7 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
     approval_history_count = serializers.SerializerMethodField()
     last_approver = serializers.SerializerMethodField()
     last_action_status = serializers.SerializerMethodField()
+    one_way_distance_km = serializers.SerializerMethodField()
 
     def get_employee_name(self, obj):
         # safe fallback if user or profile doesn't exist
@@ -184,6 +185,9 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
     def get_last_action_status(self, obj):
         last = obj.approval_flow.order_by("-acted_on").first()
         return last.status if last else None
+
+    def get_one_way_distance_km(self, obj):
+        return obj.one_way_distance_km if obj.one_way_distance_km else None
 
     class Meta:
         model = ExpenseClaim
@@ -220,6 +224,7 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             "actual_travel_end_time",
             "created_on",
             "updated_on",
+            "one_way_distance_km",
         ]
         read_only_fields = [
             "status",
