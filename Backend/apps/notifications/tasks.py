@@ -119,8 +119,8 @@ def mark_travel_as_completed(travel_id):
         travel = TravelApplication.objects.get(id=travel_id)
         logger.info(f"Task started for TravelApplication {travel_id}. Current status: {travel.status}")
 
-        if travel.status in ["completed", "cancelled"]:
-            logger.info(f"TravelApplication {travel_id} is already {travel.status}. Skipping.")
+        if travel.status in ["completed", "cancelled"] or travel.status.startswith("rejected_"):
+            logger.info(f"TravelApplication {travel_id} is already in state {travel.status}. Skipping completion.")
             return
 
         end_datetime = travel.get_travel_end_datetime()

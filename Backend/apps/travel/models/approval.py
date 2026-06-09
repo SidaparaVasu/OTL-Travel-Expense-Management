@@ -162,6 +162,16 @@ class TravelApprovalFlow(models.Model):
         self.travel_application.status = f'rejected_{self.approval_level}'
         self.travel_application.save()
 
+        # Mark all other pending flows as skipped
+        TravelApprovalFlow.objects.filter(
+            travel_application=self.travel_application,
+            status='pending'
+        ).exclude(id=self.id).update(
+            status='skipped',
+            notes=f"System-skipped: Application was rejected by {self.get_approval_level_display()} ({self.approver.get_full_name()}).",
+            approved_at=timezone.now()
+        )
+
         assigned_agent = get_assigned_booking_agent(self.travel_application)
         travel_desk_users = get_assigned_booking_agent(self.travel_application)
 
