@@ -182,10 +182,16 @@
       <td class="value-cell">{{ trip.sanction_number }}</td>
     </tr>
     <tr>
-      <td class="label-cell">Locations</td>
-      <td class="value-cell">{{ trip.origin }} to {{ trip.destination }}</td>
-      <td class="label-cell">Dates</td>
-      <td class="value-cell">{{ trip.dates }}</td>
+      <td class="label-cell">Trip Origin</td>
+      <td class="value-cell">{{ trip.origin }}</td>
+      <td class="label-cell">Trip Destination</td>
+      <td class="value-cell">{{ trip.destination }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Trip Start Date</td>
+      <td class="value-cell">{{ trip.start_date }}</td>
+      <td class="label-cell">Trip End Date</td>
+      <td class="value-cell">{{ trip.end_date }}</td>
     </tr>
   </table>
 
