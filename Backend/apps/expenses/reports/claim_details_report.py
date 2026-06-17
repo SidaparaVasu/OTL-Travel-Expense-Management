@@ -63,6 +63,7 @@ class ClaimDetailsReport(BaseReport):
         grade = get_attr(profile, 'grade', 'name') or ""
         department = get_attr(profile, 'department', 'dept_name') or ""
         designation = get_attr(profile, 'designation', 'designation_name') or ""
+        base_location = get_attr(profile, 'base_location', 'location_name') or ""
 
         # Trip overview from Travel Application
         tr = claim.travel_application
@@ -139,11 +140,11 @@ class ClaimDetailsReport(BaseReport):
                 "name": employee.get_full_name(),
                 "employee_id": employee_id,
                 "email": employee.email,
-                "mobile": getattr(employee, 'mobile_number', 'N/A'),
+                "mobile": employee.mobile_no,
                 "department": department,
                 "designation": designation,
                 "grade": grade,
-                "branch_location": getattr(employee, 'location', 'N/A')
+                "branch_location": base_location
             },
             "trip": trip_overview,
             "claim_remark": claim.claim_remark if claim.claim_remark else "No remarks provided",
