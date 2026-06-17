@@ -23,8 +23,11 @@ class ApprovalActionSerializer(serializers.Serializer):
     
     def validate_notes(self, value):
         action = self.initial_data.get('action')
-        if action == 'reject' and not value:
-            raise serializers.ValidationError("Notes are required when rejecting an application")
+        if not value:
+            if action == 'reject':
+                raise serializers.ValidationError("Notes are required when rejecting an application")
+            elif action == 'approve':
+                raise serializers.ValidationError("Remarks are required when approving an application")
         return value
 
 class ManagerApprovalListSerializer(serializers.ModelSerializer):

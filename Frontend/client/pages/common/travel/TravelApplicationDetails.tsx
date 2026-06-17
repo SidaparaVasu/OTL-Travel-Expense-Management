@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StatusBadge } from "@/components/StatusBadge";
 import { API_BASE_URL } from "@/config/api.config";
@@ -159,7 +159,12 @@ export const TravelApplicationDetails: React.FC = () => {
     try {
       setUpdatingId(applicationId);
       if (action === "approve") {
-        await approvalAPI.approve(parseInt(applicationId));
+        const notes = prompt("Enter remarks for approval") || "";
+        if (!notes) {
+          toast.error("Approval remarks are required");
+          return;
+        }
+        await approvalAPI.approve(parseInt(applicationId), notes);
         toast.success("Application approved successfully");
         navigate(-1);
       } else {

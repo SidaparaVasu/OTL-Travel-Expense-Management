@@ -274,7 +274,12 @@ export default function TravelRequestApprovals() {
     try {
       setUpdatingId(id); // disable buttons for this request
       if (action === "approve") {
-        await approvalAPI.approve(id);
+        const notes = prompt("Enter remarks for approval") || "";
+        if (!notes) {
+          alert("Approval remarks are required");
+          return;
+        }
+        await approvalAPI.approve(id, notes);
       } else {
         // Prompt user for rejection reason
         const notes = prompt("Enter reason for rejection") || "";
