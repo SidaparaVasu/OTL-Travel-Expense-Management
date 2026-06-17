@@ -68,24 +68,41 @@ class ClaimDetailsReport(BaseReport):
         # Trip overview from Travel Application
         tr = claim.travel_application
         
-        # Determine Trip Dates (Actual vs Original)
-        from datetime import time as dtime
-        if claim.actual_travel_start_date and claim.actual_travel_end_date:
-            start_dt = datetime.combine(claim.actual_travel_start_date, claim.actual_travel_start_time or dtime(0,0))
-            end_dt = datetime.combine(claim.actual_travel_end_date, claim.actual_travel_end_time or dtime(0,0))
-            dates_str = f"{start_dt.strftime('%d/%m/%Y %I:%M %p')} to {end_dt.strftime('%d/%m/%Y %I:%M %p')} (Actual)"
+        # Determine Trip Dates and Times (Actual vs Original/Request)
+        start_date = "N/A"
+        start_time = "N/A"
+        end_date = "N/A"
+        end_time = "N/A"
+
+        if claim.actual_travel_start_date:
+            start_date = claim.actual_travel_start_date.strftime("%d/%m/%Y")
+            if claim.actual_travel_start_time:
+                start_time = claim.actual_travel_start_time.strftime("%I:%M %p")
         elif tr:
-            # Try to get times from trip details
             first_trip = tr.trip_details.order_by('departure_date', 'start_time').first()
-            last_trip = tr.trip_details.order_by('-return_date', '-end_time').first()
-            if first_trip and last_trip:
-                s_dt = datetime.combine(first_trip.departure_date, first_trip.start_time or dtime(0,0))
-                e_dt = datetime.combine(last_trip.return_date, last_trip.end_time or dtime(0,0))
-                dates_str = f"{s_dt.strftime('%d/%m/%Y %I:%M %p')} to {e_dt.strftime('%d/%m/%Y %I:%M %p')}"
+            if first_trip and first_trip.departure_date:
+                start_date = first_trip.departure_date.strftime("%d/%m/%Y")
+                if first_trip.start_time:
+                    start_time = first_trip.start_time.strftime("%I:%M %p")
             else:
-                dates_str = f"{tr.get_travel_start_date()} to {tr.get_travel_end_date()}"
-        else:
-            dates_str = "N/A"
+                travel_start = tr.get_travel_start_date()
+                if travel_start:
+                    start_date = travel_start.strftime("%d/%m/%Y") if hasattr(travel_start, 'strftime') else str(travel_start)
+
+        if claim.actual_travel_end_date:
+            end_date = claim.actual_travel_end_date.strftime("%d/%m/%Y")
+            if claim.actual_travel_end_time:
+                end_time = claim.actual_travel_end_time.strftime("%I:%M %p")
+        elif tr:
+            last_trip = tr.trip_details.order_by('-return_date', '-end_time').first()
+            if last_trip and last_trip.return_date:
+                end_date = last_trip.return_date.strftime("%d/%m/%Y")
+                if last_trip.end_time:
+                    end_time = last_trip.end_time.strftime("%I:%M %p")
+            else:
+                travel_end = tr.get_travel_end_date()
+                if travel_end:
+                    end_date = travel_end.strftime("%d/%m/%Y") if hasattr(travel_end, 'strftime') else str(travel_end)
 
         trip_overview = {
             "purpose": tr.purpose if tr else "N/A",
@@ -95,8 +112,10 @@ class ClaimDetailsReport(BaseReport):
             "sanction_number": tr.sanction_number if tr else "N/A",
             "origin": tr.trip_details.first().from_location if tr else "N/A",
             "destination": tr.trip_details.first().to_location if tr else "N/A",
-            "start_date": claim.actual_travel_start_date.strftime("%d/%m/%Y") if claim.actual_travel_start_date else "N/A",
-            "end_date": claim.actual_travel_end_date.strftime("%d/%m/%Y") if claim.actual_travel_end_date else "N/A",
+            "start_date": start_date,
+            "start_time": start_time,
+            "end_date": end_date,
+            "end_time": end_time,
             "trip_distance": f"{claim.one_way_distance_km} km" if claim.one_way_distance_km else "N/A"
         }
 
