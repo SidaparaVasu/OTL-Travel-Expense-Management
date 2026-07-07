@@ -41,6 +41,8 @@ CLAIM_REPORT_EXPORT_HEADERS = [
     "Claim Created On",
     "Claim Processed Date",
     "Processed By",
+    "Settlement Due Date",
+    "Days Overdue",
 ]
 
 
@@ -278,6 +280,8 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         "da_breakdown": da_breakdown,
         "processed_date": processed_date_str,
         "processed_by": processed_by_name,
+        "settlement_due_date": _format_date(tr.settlement_due_date) if tr else "",
+        "days_overdue": "",
     }
 
 
@@ -310,6 +314,8 @@ def claim_row_to_excel(row: dict) -> list:
         row.get("created_on") or "",
         row.get("processed_date") or "",
         row.get("processed_by") or "",
+        row.get("settlement_due_date") or "",
+        row.get("days_overdue") if row.get("days_overdue") is not None else "",
     ]
 
 
@@ -376,7 +382,7 @@ def apply_pending_to_be_raised_filters(
     return queryset
 
 
-def serialize_pending_claim_row(app: TravelApplication) -> dict:
+def serialize_pending_claim_row(app: TravelApplication, status_code: str = "pending_to_be_raised") -> dict:
     """Return a flat dict matching the ClaimReportRow shape for pending claims."""
     employee = app.employee
     profile = getattr(employee, "organizational_profile", None)
@@ -418,6 +424,15 @@ def serialize_pending_claim_row(app: TravelApplication) -> dict:
         else None
     )
 
+    today = timezone.now().date()
+    days_overdue = (
+        (today - app.settlement_due_date).days
+        if app.settlement_due_date and today > app.settlement_due_date
+        else None
+    )
+
+    status_label = "Pending to be Raised" if status_code == "pending_to_be_raised" else "Settlement Overdue"
+
     return {
         "claim_id": None,
         "travel_request_id": app.get_travel_request_id(),
@@ -438,10 +453,37 @@ def serialize_pending_claim_row(app: TravelApplication) -> dict:
         "total_expenses": 0.0,
         "advance_received": float(app.advance_amount or 0),
         "final_amount_payable": 0.0,
-        "status_code": "pending_to_be_raised",
-        "status_label": "Pending to be Raised",
+        "status_code": status_code,
+        "status_label": status_label,
         "created_on": _format_datetime(app.created_at),
         "da_breakdown": [],
         "processed_date": "",
         "processed_by": "",
+        "settlement_due_date": _format_date(app.settlement_due_date),
+        "days_overdue": days_overdue if days_overdue is not None else "",
     }
+
+
+def get_settlement_overdue_queryset():
+    """Completed travel applications that have no claim and settlement has expired."""
+    today = timezone.now().date()
+    return (
+        TravelApplication.objects.filter(
+            status="completed",
+            expense_claim__isnull=True,
+            settlement_due_date__lt=today,
+        )
+        .exclude(travel_for="guest")
+        .select_related(
+            "employee",
+            "employee__organizational_profile",
+            "employee__organizational_profile__base_location",
+            "employee__organizational_profile__department",
+        )
+        .prefetch_related(
+            "trip_details",
+            "trip_details__from_location",
+            "trip_details__to_location",
+        )
+        .order_by("settlement_due_date", "-id")
+    )

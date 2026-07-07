@@ -137,11 +137,6 @@ export const getAdminSidebar = (primaryDashboard: string): SidebarSection[] => [
               Icon: ClipboardList,
             },
             {
-              label: "Settlement Overdue",
-              path: ROUTES.settlementOverduePage,
-              Icon: AlertTriangle,
-            },
-            {
               label: "Claim Report",
               path: ROUTES.claimReportPage,
               Icon: FileSpreadsheet,
@@ -249,11 +244,6 @@ export const getEmployeeSidebar = (
               label: "Claims Workspace",
               path: ROUTES.financeActionPage,
               Icon: ClipboardList,
-            },
-            {
-              label: "Settlement Overdue",
-              path: ROUTES.settlementOverduePage,
-              Icon: AlertTriangle,
             },
             {
               label: "Claim Report",
