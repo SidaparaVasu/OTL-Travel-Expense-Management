@@ -94,6 +94,7 @@ const CLAIM_STATUSES = [
   { code: "rejected", label: "Rejected" },
   { code: "paid", label: "Processed" },
   { code: "closed", label: "Closed" },
+  { code: "pending_to_be_raised", label: "Claim Pending to be Raised" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -105,6 +106,7 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-700",
   paid: "bg-emerald-100 text-emerald-700",
   closed: "bg-slate-100 text-slate-700",
+  pending_to_be_raised: "bg-blue-100 text-blue-800 border-blue-200",
 };
 
 const LABEL_STATUS_COLORS: Record<string, string> = {
@@ -117,6 +119,7 @@ const LABEL_STATUS_COLORS: Record<string, string> = {
   Processed: "bg-emerald-100 text-emerald-700",
   Paid: "bg-emerald-100 text-emerald-700",
   Closed: "bg-slate-100 text-slate-700",
+  "Pending to be Raised": "bg-blue-100 text-blue-800 border-blue-200",
 };
 
 // ---------------------------------------------------------------------------

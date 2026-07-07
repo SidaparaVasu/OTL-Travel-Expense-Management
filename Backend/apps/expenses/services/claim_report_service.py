@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.expenses.models import ExpenseClaim
+from apps.travel.models import TravelApplication
 
 # ---------------------------------------------------------------------------
 # Excel export column headers (order matters — must match claim_row_to_excel)
@@ -310,3 +311,137 @@ def claim_row_to_excel(row: dict) -> list:
         row.get("processed_date") or "",
         row.get("processed_by") or "",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Pending to be raised logic
+# ---------------------------------------------------------------------------
+
+def get_pending_to_be_raised_queryset():
+    """Completed travel applications that have no claim and settlement not expired."""
+    today = timezone.now().date()
+    return (
+        TravelApplication.objects.filter(
+            status="completed",
+            expense_claim__isnull=True,
+            settlement_due_date__gte=today,
+        )
+        .exclude(travel_for="guest")
+        .select_related(
+            "employee",
+            "employee__organizational_profile",
+            "employee__organizational_profile__base_location",
+            "employee__organizational_profile__department",
+        )
+        .prefetch_related(
+            "trip_details",
+            "trip_details__from_location",
+            "trip_details__to_location",
+        )
+        .order_by("-created_at")
+    )
+
+
+def apply_pending_to_be_raised_filters(
+    queryset,
+    *,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    location_id: Optional[int] = None,
+    search: Optional[str] = None,
+):
+    if start_date:
+        queryset = queryset.filter(created_at__date__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(created_at__date__lte=end_date)
+    if location_id:
+        queryset = queryset.filter(
+            employee__organizational_profile__base_location__location_id=location_id
+        )
+    if search:
+        search = str(search).strip()
+        if search:
+            q = (
+                Q(employee__first_name__icontains=search)
+                | Q(employee__last_name__icontains=search)
+                | Q(employee__username__icontains=search)
+                | Q(employee__email__icontains=search)
+                | Q(purpose__icontains=search)
+            )
+            if search.isdigit():
+                q |= Q(id=int(search))
+            else:
+                q |= Q(travel_request_number__icontains=search)
+            queryset = queryset.filter(q)
+    return queryset
+
+
+def serialize_pending_claim_row(app: TravelApplication) -> dict:
+    """Return a flat dict matching the ClaimReportRow shape for pending claims."""
+    employee = app.employee
+    profile = getattr(employee, "organizational_profile", None)
+    base_loc = profile.base_location if profile else None
+    dept = profile.department if profile and profile.department_id else None
+
+    employee_id = (
+        getattr(profile, "employee_id", None)
+        or getattr(profile, "employee_code", None)
+        or employee.username
+    )
+    unit_location = base_loc.location_name if base_loc else None
+    department_name = dept.dept_name if dept else None
+
+    first_trip = app.trip_details.order_by("departure_date").first()
+    last_trip = app.trip_details.order_by("-return_date").first()
+
+    trip_start_str = (
+        _combine_datetime_str(first_trip.departure_date, getattr(first_trip, "start_time", None))
+        if first_trip
+        else ""
+    )
+    trip_end_str = (
+        _combine_datetime_str(last_trip.return_date, getattr(last_trip, "end_time", None))
+        if last_trip
+        else ""
+    )
+
+    origin = (
+        getattr(first_trip.from_location, "city_name", None)
+        or str(first_trip.from_location)
+        if first_trip and first_trip.from_location
+        else None
+    )
+    destination = (
+        getattr(last_trip.to_location, "city_name", None)
+        or str(last_trip.to_location)
+        if last_trip and last_trip.to_location
+        else None
+    )
+
+    return {
+        "claim_id": None,
+        "travel_request_id": app.get_travel_request_id(),
+        "travel_purpose": app.purpose,
+        "employee_name": employee.get_full_name() or employee.username,
+        "employee_id": employee_id,
+        "employee_email": employee.email,
+        "unit_location": unit_location,
+        "department": department_name,
+        "trip_start": trip_start_str,
+        "origin": origin,
+        "trip_end": trip_end_str,
+        "destination": destination,
+        "total_da": 0.0,
+        "total_incidental": 0.0,
+        "total_booking_expenses": 0.0,
+        "total_additional_expenses": 0.0,
+        "total_expenses": 0.0,
+        "advance_received": float(app.advance_amount or 0),
+        "final_amount_payable": 0.0,
+        "status_code": "pending_to_be_raised",
+        "status_label": "Pending to be Raised",
+        "created_on": _format_datetime(app.created_at),
+        "da_breakdown": [],
+        "processed_date": "",
+        "processed_by": "",
+    }

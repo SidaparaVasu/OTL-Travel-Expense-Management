@@ -1257,6 +1257,9 @@ from apps.expenses.services.claim_report_service import (
     claim_row_to_excel,
     get_claim_report_base_queryset,
     serialize_claim_report_row,
+    get_pending_to_be_raised_queryset,
+    apply_pending_to_be_raised_filters,
+    serialize_pending_claim_row,
 )
 from apps.authentication.spoc_utils import get_user_assigned_location_ids
 
@@ -1353,6 +1356,37 @@ class ClaimReportPreviewView(BranchFilterMixin, APIView):
                     status_code=403,
                 )
 
+            if filters.get("status_code") == "pending_to_be_raised":
+                qs = get_pending_to_be_raised_queryset()
+                qs = self.apply_branch_filter(
+                    qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
+                )
+                qs = apply_pending_to_be_raised_filters(
+                    qs,
+                    start_date=filters.get("start_date"),
+                    end_date=filters.get("end_date"),
+                    location_id=filters.get("location_id"),
+                    search=filters.get("search"),
+                )
+                total = qs.count()
+                status_summary = {"Pending to be Raised": total}
+                
+                paginator = StandardResultsSetPagination()
+                page = paginator.paginate_queryset(qs, request)
+                results = [serialize_pending_claim_row(app) for app in (page if page is not None else qs)]
+
+                return success_response(
+                    data={
+                        "total": total,
+                        "total_final_payable": 0.0,
+                        "status_summary": status_summary,
+                        "start_date": str(filters["start_date"]) if filters.get("start_date") else None,
+                        "end_date": str(filters["end_date"]) if filters.get("end_date") else None,
+                        "results": results,
+                    },
+                    message="Pending to be raised data retrieved successfully",
+                )
+
             qs = get_claim_report_base_queryset()
             qs = self.apply_branch_filter(
                 qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
@@ -1421,13 +1455,26 @@ class ClaimReportExportView(BranchFilterMixin, APIView):
                     status_code=403,
                 )
 
-            qs = get_claim_report_base_queryset()
-            qs = self.apply_branch_filter(
-                qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
-            )
-            qs = apply_claim_report_filters(qs, **filters)
-
-            rows = [claim_row_to_excel(serialize_claim_report_row(c)) for c in qs]
+            if filters.get("status_code") == "pending_to_be_raised":
+                qs = get_pending_to_be_raised_queryset()
+                qs = self.apply_branch_filter(
+                    qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
+                )
+                qs = apply_pending_to_be_raised_filters(
+                    qs,
+                    start_date=filters.get("start_date"),
+                    end_date=filters.get("end_date"),
+                    location_id=filters.get("location_id"),
+                    search=filters.get("search"),
+                )
+                rows = [claim_row_to_excel(serialize_pending_claim_row(app)) for app in qs]
+            else:
+                qs = get_claim_report_base_queryset()
+                qs = self.apply_branch_filter(
+                    qs, request.user, employee_field="employee", spoc_role_name=_FINANCE_SPOC_ROLE
+                )
+                qs = apply_claim_report_filters(qs, **filters)
+                rows = [claim_row_to_excel(serialize_claim_report_row(c)) for c in qs]
 
             # ── Build workbook ────────────────────────────────────────────────
             wb = openpyxl.Workbook()
