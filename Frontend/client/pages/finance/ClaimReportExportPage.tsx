@@ -37,11 +37,14 @@ interface DABreakdownEntry {
 }
 
 interface ClaimReportRow {
-  claim_id: number;
+  claim_id: number | null;
   travel_request_id: string | null;
+  travel_purpose: string;
   employee_name: string;
   employee_id: string;
+  employee_email: string;
   unit_location: string | null;
+  department: string | null;
   trip_start: string;
   origin: string | null;
   trip_end: string;
@@ -57,6 +60,10 @@ interface ClaimReportRow {
   status_label: string | null;
   created_on: string;
   da_breakdown: DABreakdownEntry[];
+  processed_date: string;
+  processed_by: string;
+  settlement_due_date?: string;
+  days_overdue?: number | string;
 }
 
 interface ClaimReportResponse {
@@ -87,8 +94,10 @@ const CLAIM_STATUSES = [
   { code: "finance_pending", label: "Finance Pending" },
   { code: "approved", label: "Approved" },
   { code: "rejected", label: "Rejected" },
-  { code: "paid", label: "Paid" },
+  { code: "paid", label: "Processed" },
   { code: "closed", label: "Closed" },
+  { code: "pending_to_be_raised", label: "Claim Pending to be Raised" },
+  { code: "settlement_overdue", label: "Settlement Overdue" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -100,6 +109,8 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-700",
   paid: "bg-emerald-100 text-emerald-700",
   closed: "bg-slate-100 text-slate-700",
+  pending_to_be_raised: "bg-blue-100 text-blue-800 border-blue-200",
+  settlement_overdue: "bg-rose-100 text-rose-800 border-rose-200",
 };
 
 const LABEL_STATUS_COLORS: Record<string, string> = {
@@ -109,8 +120,11 @@ const LABEL_STATUS_COLORS: Record<string, string> = {
   "Finance Pending": "bg-orange-100 text-orange-700",
   Approved: "bg-green-100 text-green-700",
   Rejected: "bg-red-100 text-red-700",
+  Processed: "bg-emerald-100 text-emerald-700",
   Paid: "bg-emerald-100 text-emerald-700",
   Closed: "bg-slate-100 text-slate-700",
+  "Pending to be Raised": "bg-blue-100 text-blue-800 border-blue-200",
+  "Settlement Overdue": "bg-rose-100 text-rose-800 border-rose-200",
 };
 
 // ---------------------------------------------------------------------------
@@ -371,58 +385,139 @@ const ClaimRow: React.FC<{ row: ClaimReportRow; idx: number }> = ({
       {expanded && (
         <tr className="bg-slate-50 border-b border-slate-200">
           <td colSpan={9} className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Financials */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                  Financial Summary
-                </p>
-                <div className="space-y-1.5">
-                  {[
-                    ["Total DA", row.total_da],
-                    ["Total Incidentals", row.total_incidental],
-                    ["Booking Expenses", row.total_booking_expenses],
-                    ["Additional Expenses", row.total_additional_expenses],
-                    ["Advance Received", row.advance_received],
-                  ].map(([label, val]) => (
-                    <div
-                      key={label as string}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-slate-500">{label as string}</span>
-                      <span className="font-medium text-slate-700">
-                        {fmtCurrency(val as number)}
-                      </span>
+            {row.status_code === "pending_to_be_raised" || row.status_code === "settlement_overdue" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Travel & Employee Details */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Travel & Employee Details
+                  </p>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Email ID</span>
+                      <span className="font-medium text-slate-700">{row.employee_email || "—"}</span>
                     </div>
-                  ))}
-                  <div className="flex justify-between text-sm border-t pt-1.5 mt-1">
-                    <span className="font-semibold text-slate-700">
-                      Final Payable
-                    </span>
-                    <span
-                      className={`font-bold ${
-                        row.final_amount_payable >= 0
-                          ? "text-emerald-700"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {fmtCurrency(row.final_amount_payable)}
-                    </span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Department</span>
+                      <span className="font-medium text-slate-700">{row.department || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Travel Purpose</span>
+                      <span className="font-medium text-slate-700 break-words max-w-[300px] text-right">{row.travel_purpose || "—"}</span>
+                    </div>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-3">
-                  Submitted: {row.created_on || "—"}
-                </p>
-              </div>
 
-              {/* DA Breakdown */}
-              <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                  Daily Allowance Breakdown
-                </p>
-                <DABreakdownTable entries={row.da_breakdown} />
+                {/* Settlement Information */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Settlement Status
+                  </p>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Advance Received</span>
+                      <span className="font-medium text-emerald-700">{fmtCurrency(row.advance_received)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Settlement Due Date</span>
+                      <span className="font-medium text-slate-700">{row.settlement_due_date || "—"}</span>
+                    </div>
+                    {row.status_code === "settlement_overdue" && (
+                      <div className="flex justify-between border-t pt-1.5 mt-1">
+                        <span className="text-rose-600 font-semibold">Days Overdue</span>
+                        <span className="font-bold text-rose-700">{row.days_overdue} days</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Financials */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Financial Summary
+                  </p>
+                  <div className="space-y-1.5">
+                    {[
+                      ["Total DA", row.total_da],
+                      ["Total Incidentals", row.total_incidental],
+                      ["Booking Expenses", row.total_booking_expenses],
+                      ["Additional Expenses", row.total_additional_expenses],
+                      ["Advance Received", row.advance_received],
+                    ].map(([label, val]) => (
+                      <div
+                        key={label as string}
+                        className="flex justify-between text-sm"
+                      >
+                        <span className="text-slate-500">{label as string}</span>
+                        <span className="font-medium text-slate-700">
+                          {fmtCurrency(val as number)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between text-sm border-t pt-1.5 mt-1">
+                      <span className="font-semibold text-slate-700">
+                        Final Payable
+                      </span>
+                      <span
+                        className={`font-bold ${
+                          row.final_amount_payable >= 0
+                            ? "text-emerald-700"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {fmtCurrency(row.final_amount_payable)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3">
+                    Submitted: {row.created_on || "—"}
+                  </p>
+                </div>
+
+                {/* Travel & Employee Details */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Travel & Employee Details
+                  </p>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Email ID</span>
+                      <span className="font-medium text-slate-700">{row.employee_email || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Department</span>
+                      <span className="font-medium text-slate-700">{row.department || "—"}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Travel Purpose</span>
+                      <span className="font-medium text-slate-700 break-words max-w-[200px] text-right">{row.travel_purpose || "—"}</span>
+                    </div>
+                    {row.status_code === "paid" && (
+                      <>
+                        <div className="flex justify-between border-t pt-1.5 mt-1">
+                          <span className="text-slate-500 font-semibold">Processed Date</span>
+                          <span className="font-medium text-slate-700">{row.processed_date || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-semibold">Processed By</span>
+                          <span className="font-medium text-slate-700">{row.processed_by || "—"}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* DA Breakdown */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Daily Allowance Breakdown
+                  </p>
+                  <DABreakdownTable entries={row.da_breakdown} />
+                </div>
+              </div>
+            )}
           </td>
         </tr>
       )}

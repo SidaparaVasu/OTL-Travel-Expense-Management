@@ -13,16 +13,20 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.expenses.models import ExpenseClaim
+from apps.travel.models import TravelApplication
 
 # ---------------------------------------------------------------------------
 # Excel export column headers (order matters — must match claim_row_to_excel)
 # ---------------------------------------------------------------------------
 CLAIM_REPORT_EXPORT_HEADERS = [
     "Travel Request ID",
+    "Travel Purpose",
     "Claim ID",
     "Employee Name",
     "Employee ID",
+    "Employee Email ID",
     "Unit Location",
+    "Department",
     "Trip Start Date & Time",
     "Origin Location",
     "Trip End Date & Time",
@@ -35,6 +39,10 @@ CLAIM_REPORT_EXPORT_HEADERS = [
     "Final Amount Payable (₹)",
     "Claim Status",
     "Claim Created On",
+    "Claim Processed Date",
+    "Processed By",
+    "Settlement Due Date",
+    "Days Overdue",
 ]
 
 
@@ -49,6 +57,7 @@ def get_claim_report_base_queryset():
             "employee",
             "employee__organizational_profile",
             "employee__organizational_profile__base_location",
+            "employee__organizational_profile__department",
             "status",
             "travel_application",
         )
@@ -57,6 +66,8 @@ def get_claim_report_base_queryset():
             "travel_application__trip_details__to_location",
             "da_breakdown",
             "items",
+            "finance_action_logs",
+            "finance_action_logs__action_by",
         )
         .order_by("-created_on")
     )
@@ -153,6 +164,7 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
     employee = claim.employee
     profile = getattr(employee, "organizational_profile", None)
     base_loc = profile.base_location if profile else None
+    dept = profile.department if profile and profile.department_id else None
 
     employee_id = (
         getattr(profile, "employee_id", None)
@@ -160,6 +172,7 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         or employee.username
     )
     unit_location = base_loc.location_name if base_loc else None
+    department_name = dept.dept_name if dept else None
 
     tr = claim.travel_application
 
@@ -227,12 +240,29 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         for entry in claim.da_breakdown.order_by("date")
     ]
 
+    # ---- Processed details ----
+    processed_date_str = ""
+    processed_by_name = ""
+    if claim.status and claim.status.code == "paid":
+        processed_date_str = _format_datetime(claim.paid_on)
+        # Scan prefetched action logs to avoid database hit
+        paid_log = None
+        for log in claim.finance_action_logs.all():
+            if log.new_status_code == "paid":
+                paid_log = log
+                break
+        if paid_log:
+            processed_by_name = paid_log.action_by.get_full_name() or paid_log.action_by.username
+
     return {
         "claim_id": claim.id,
         "travel_request_id": tr.get_travel_request_id() if tr else None,
+        "travel_purpose": tr.purpose if tr else "",
         "employee_name": employee.get_full_name() or employee.username,
         "employee_id": employee_id,
+        "employee_email": employee.email,
         "unit_location": unit_location,
+        "department": department_name,
         "trip_start": trip_start_str,
         "origin": origin,
         "trip_end": trip_end_str,
@@ -245,9 +275,13 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         "advance_received": float(claim.advance_received or 0),
         "final_amount_payable": float(claim.final_amount_payable or 0),
         "status_code": claim.status.code if claim.status else None,
-        "status_label": claim.status.label if claim.status else None,
+        "status_label": "Processed" if claim.status and claim.status.code == "paid" else (claim.status.label if claim.status else None),
         "created_on": _format_datetime(claim.created_on),
         "da_breakdown": da_breakdown,
+        "processed_date": processed_date_str,
+        "processed_by": processed_by_name,
+        "settlement_due_date": _format_date(tr.settlement_due_date) if tr else "",
+        "days_overdue": "",
     }
 
 
@@ -259,10 +293,13 @@ def claim_row_to_excel(row: dict) -> list:
     """Return an ordered list of values matching CLAIM_REPORT_EXPORT_HEADERS."""
     return [
         row.get("travel_request_id") or "",
+        row.get("travel_purpose") or "",
         row.get("claim_id") or "",
         row.get("employee_name") or "",
         row.get("employee_id") or "",
+        row.get("employee_email") or "",
         row.get("unit_location") or "",
+        row.get("department") or "",
         row.get("trip_start") or "",
         row.get("origin") or "",
         row.get("trip_end") or "",
@@ -275,4 +312,178 @@ def claim_row_to_excel(row: dict) -> list:
         row.get("final_amount_payable", 0),
         row.get("status_label") or "",
         row.get("created_on") or "",
+        row.get("processed_date") or "",
+        row.get("processed_by") or "",
+        row.get("settlement_due_date") or "",
+        row.get("days_overdue") if row.get("days_overdue") is not None else "",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Pending to be raised logic
+# ---------------------------------------------------------------------------
+
+def get_pending_to_be_raised_queryset():
+    """Completed travel applications that have no claim and settlement not expired."""
+    today = timezone.now().date()
+    return (
+        TravelApplication.objects.filter(
+            status="completed",
+            expense_claim__isnull=True,
+            settlement_due_date__gte=today,
+        )
+        .exclude(travel_for="guest")
+        .select_related(
+            "employee",
+            "employee__organizational_profile",
+            "employee__organizational_profile__base_location",
+            "employee__organizational_profile__department",
+        )
+        .prefetch_related(
+            "trip_details",
+            "trip_details__from_location",
+            "trip_details__to_location",
+        )
+        .order_by("-created_at")
+    )
+
+
+def apply_pending_to_be_raised_filters(
+    queryset,
+    *,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    location_id: Optional[int] = None,
+    search: Optional[str] = None,
+):
+    if start_date:
+        queryset = queryset.filter(created_at__date__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(created_at__date__lte=end_date)
+    if location_id:
+        queryset = queryset.filter(
+            employee__organizational_profile__base_location__location_id=location_id
+        )
+    if search:
+        search = str(search).strip()
+        if search:
+            q = (
+                Q(employee__first_name__icontains=search)
+                | Q(employee__last_name__icontains=search)
+                | Q(employee__username__icontains=search)
+                | Q(employee__email__icontains=search)
+                | Q(purpose__icontains=search)
+            )
+            if search.isdigit():
+                q |= Q(id=int(search))
+            else:
+                q |= Q(travel_request_number__icontains=search)
+            queryset = queryset.filter(q)
+    return queryset
+
+
+def serialize_pending_claim_row(app: TravelApplication, status_code: str = "pending_to_be_raised") -> dict:
+    """Return a flat dict matching the ClaimReportRow shape for pending claims."""
+    employee = app.employee
+    profile = getattr(employee, "organizational_profile", None)
+    base_loc = profile.base_location if profile else None
+    dept = profile.department if profile and profile.department_id else None
+
+    employee_id = (
+        getattr(profile, "employee_id", None)
+        or getattr(profile, "employee_code", None)
+        or employee.username
+    )
+    unit_location = base_loc.location_name if base_loc else None
+    department_name = dept.dept_name if dept else None
+
+    first_trip = app.trip_details.order_by("departure_date").first()
+    last_trip = app.trip_details.order_by("-return_date").first()
+
+    trip_start_str = (
+        _combine_datetime_str(first_trip.departure_date, getattr(first_trip, "start_time", None))
+        if first_trip
+        else ""
+    )
+    trip_end_str = (
+        _combine_datetime_str(last_trip.return_date, getattr(last_trip, "end_time", None))
+        if last_trip
+        else ""
+    )
+
+    origin = (
+        getattr(first_trip.from_location, "city_name", None)
+        or str(first_trip.from_location)
+        if first_trip and first_trip.from_location
+        else None
+    )
+    destination = (
+        getattr(last_trip.to_location, "city_name", None)
+        or str(last_trip.to_location)
+        if last_trip and last_trip.to_location
+        else None
+    )
+
+    today = timezone.now().date()
+    days_overdue = (
+        (today - app.settlement_due_date).days
+        if app.settlement_due_date and today > app.settlement_due_date
+        else None
+    )
+
+    status_label = "Pending to be Raised" if status_code == "pending_to_be_raised" else "Settlement Overdue"
+
+    return {
+        "claim_id": None,
+        "travel_request_id": app.get_travel_request_id(),
+        "travel_purpose": app.purpose,
+        "employee_name": employee.get_full_name() or employee.username,
+        "employee_id": employee_id,
+        "employee_email": employee.email,
+        "unit_location": unit_location,
+        "department": department_name,
+        "trip_start": trip_start_str,
+        "origin": origin,
+        "trip_end": trip_end_str,
+        "destination": destination,
+        "total_da": 0.0,
+        "total_incidental": 0.0,
+        "total_booking_expenses": 0.0,
+        "total_additional_expenses": 0.0,
+        "total_expenses": 0.0,
+        "advance_received": float(app.advance_amount or 0),
+        "final_amount_payable": 0.0,
+        "status_code": status_code,
+        "status_label": status_label,
+        "created_on": _format_datetime(app.created_at),
+        "da_breakdown": [],
+        "processed_date": "",
+        "processed_by": "",
+        "settlement_due_date": _format_date(app.settlement_due_date),
+        "days_overdue": days_overdue if days_overdue is not None else "",
+    }
+
+
+def get_settlement_overdue_queryset():
+    """Completed travel applications that have no claim and settlement has expired."""
+    today = timezone.now().date()
+    return (
+        TravelApplication.objects.filter(
+            status="completed",
+            expense_claim__isnull=True,
+            settlement_due_date__lt=today,
+        )
+        .exclude(travel_for="guest")
+        .select_related(
+            "employee",
+            "employee__organizational_profile",
+            "employee__organizational_profile__base_location",
+            "employee__organizational_profile__department",
+        )
+        .prefetch_related(
+            "trip_details",
+            "trip_details__from_location",
+            "trip_details__to_location",
+        )
+        .order_by("settlement_due_date", "-id")
+    )

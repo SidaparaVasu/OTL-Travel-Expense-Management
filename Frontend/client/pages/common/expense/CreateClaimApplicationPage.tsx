@@ -137,8 +137,11 @@ export default function CreateClaimApplicationPage() {
   const [existingClaim, setExistingClaim] = useState<any>(null);
   const [financeRemarks, setFinanceRemarks] = useState<string>("");
 
+  // Flag to toggle whether both calculation options (Approved vs Actual schedule) are allowed
+  const ALLOW_APPROVED_SCHEDULE = false;
+
   // Actual Travel Dates State
-  const [useActualDates, setUseActualDates] = useState(false);
+  const [useActualDates, setUseActualDates] = useState(!ALLOW_APPROVED_SCHEDULE);
   const [actualStartDate, setActualStartDate] = useState("");
   const [actualStartTime, setActualStartTime] = useState("");
   const [actualEndDate, setActualEndDate] = useState("");
@@ -893,12 +896,14 @@ export default function CreateClaimApplicationPage() {
                 }}
                 className="flex flex-col space-y-4"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="approved" id="r-approved" />
-                  <Label htmlFor="r-approved">
-                    Use Approved Trip Schedule (Recommended)
-                  </Label>
-                </div>
+                {ALLOW_APPROVED_SCHEDULE && (
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="approved" id="r-approved" />
+                    <Label htmlFor="r-approved">
+                      Use Approved Trip Schedule (Recommended)
+                    </Label>
+                  </div>
+                )}
 
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="actual" id="r-actual" />
