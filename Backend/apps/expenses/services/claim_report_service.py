@@ -19,10 +19,13 @@ from apps.expenses.models import ExpenseClaim
 # ---------------------------------------------------------------------------
 CLAIM_REPORT_EXPORT_HEADERS = [
     "Travel Request ID",
+    "Travel Purpose",
     "Claim ID",
     "Employee Name",
     "Employee ID",
+    "Employee Email ID",
     "Unit Location",
+    "Department",
     "Trip Start Date & Time",
     "Origin Location",
     "Trip End Date & Time",
@@ -35,6 +38,8 @@ CLAIM_REPORT_EXPORT_HEADERS = [
     "Final Amount Payable (₹)",
     "Claim Status",
     "Claim Created On",
+    "Claim Processed Date",
+    "Processed By",
 ]
 
 
@@ -49,6 +54,7 @@ def get_claim_report_base_queryset():
             "employee",
             "employee__organizational_profile",
             "employee__organizational_profile__base_location",
+            "employee__organizational_profile__department",
             "status",
             "travel_application",
         )
@@ -57,6 +63,8 @@ def get_claim_report_base_queryset():
             "travel_application__trip_details__to_location",
             "da_breakdown",
             "items",
+            "finance_action_logs",
+            "finance_action_logs__action_by",
         )
         .order_by("-created_on")
     )
@@ -153,6 +161,7 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
     employee = claim.employee
     profile = getattr(employee, "organizational_profile", None)
     base_loc = profile.base_location if profile else None
+    dept = profile.department if profile and profile.department_id else None
 
     employee_id = (
         getattr(profile, "employee_id", None)
@@ -160,6 +169,7 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         or employee.username
     )
     unit_location = base_loc.location_name if base_loc else None
+    department_name = dept.dept_name if dept else None
 
     tr = claim.travel_application
 
@@ -227,12 +237,29 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         for entry in claim.da_breakdown.order_by("date")
     ]
 
+    # ---- Processed details ----
+    processed_date_str = ""
+    processed_by_name = ""
+    if claim.status and claim.status.code == "paid":
+        processed_date_str = _format_datetime(claim.paid_on)
+        # Scan prefetched action logs to avoid database hit
+        paid_log = None
+        for log in claim.finance_action_logs.all():
+            if log.new_status_code == "paid":
+                paid_log = log
+                break
+        if paid_log:
+            processed_by_name = paid_log.action_by.get_full_name() or paid_log.action_by.username
+
     return {
         "claim_id": claim.id,
         "travel_request_id": tr.get_travel_request_id() if tr else None,
+        "travel_purpose": tr.purpose if tr else "",
         "employee_name": employee.get_full_name() or employee.username,
         "employee_id": employee_id,
+        "employee_email": employee.email,
         "unit_location": unit_location,
+        "department": department_name,
         "trip_start": trip_start_str,
         "origin": origin,
         "trip_end": trip_end_str,
@@ -248,6 +275,8 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         "status_label": "Processed" if claim.status and claim.status.code == "paid" else (claim.status.label if claim.status else None),
         "created_on": _format_datetime(claim.created_on),
         "da_breakdown": da_breakdown,
+        "processed_date": processed_date_str,
+        "processed_by": processed_by_name,
     }
 
 
@@ -259,10 +288,13 @@ def claim_row_to_excel(row: dict) -> list:
     """Return an ordered list of values matching CLAIM_REPORT_EXPORT_HEADERS."""
     return [
         row.get("travel_request_id") or "",
+        row.get("travel_purpose") or "",
         row.get("claim_id") or "",
         row.get("employee_name") or "",
         row.get("employee_id") or "",
+        row.get("employee_email") or "",
         row.get("unit_location") or "",
+        row.get("department") or "",
         row.get("trip_start") or "",
         row.get("origin") or "",
         row.get("trip_end") or "",
@@ -275,4 +307,6 @@ def claim_row_to_excel(row: dict) -> list:
         row.get("final_amount_payable", 0),
         row.get("status_label") or "",
         row.get("created_on") or "",
+        row.get("processed_date") or "",
+        row.get("processed_by") or "",
     ]

@@ -39,9 +39,12 @@ interface DABreakdownEntry {
 interface ClaimReportRow {
   claim_id: number;
   travel_request_id: string | null;
+  travel_purpose: string;
   employee_name: string;
   employee_id: string;
+  employee_email: string;
   unit_location: string | null;
+  department: string | null;
   trip_start: string;
   origin: string | null;
   trip_end: string;
@@ -57,6 +60,8 @@ interface ClaimReportRow {
   status_label: string | null;
   created_on: string;
   da_breakdown: DABreakdownEntry[];
+  processed_date: string;
+  processed_by: string;
 }
 
 interface ClaimReportResponse {
@@ -372,7 +377,7 @@ const ClaimRow: React.FC<{ row: ClaimReportRow; idx: number }> = ({
       {expanded && (
         <tr className="bg-slate-50 border-b border-slate-200">
           <td colSpan={9} className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Financials */}
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
@@ -414,6 +419,39 @@ const ClaimRow: React.FC<{ row: ClaimReportRow; idx: number }> = ({
                 <p className="text-xs text-slate-400 mt-3">
                   Submitted: {row.created_on || "—"}
                 </p>
+              </div>
+
+              {/* Travel & Employee Details */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Travel & Employee Details
+                </p>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Email ID</span>
+                    <span className="font-medium text-slate-700">{row.employee_email || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Department</span>
+                    <span className="font-medium text-slate-700">{row.department || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Travel Purpose</span>
+                    <span className="font-medium text-slate-700 break-words max-w-[200px] text-right">{row.travel_purpose || "—"}</span>
+                  </div>
+                  {row.status_code === "paid" && (
+                    <>
+                      <div className="flex justify-between border-t pt-1.5 mt-1">
+                        <span className="text-slate-500 font-semibold">Processed Date</span>
+                        <span className="font-medium text-slate-700">{row.processed_date || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-semibold">Processed By</span>
+                        <span className="font-medium text-slate-700">{row.processed_by || "—"}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* DA Breakdown */}
