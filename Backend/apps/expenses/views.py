@@ -1365,7 +1365,8 @@ class ClaimReportPreviewView(BranchFilterMixin, APIView):
             for cs in _CSM.objects.order_by("sequence"):
                 cnt = qs.filter(status=cs).count()
                 if cnt:
-                    status_summary[cs.label] = cnt
+                    label = "Processed" if cs.code == "paid" else cs.label
+                    status_summary[label] = cnt
 
             total = qs.count()
 

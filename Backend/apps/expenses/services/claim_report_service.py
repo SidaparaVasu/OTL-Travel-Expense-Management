@@ -245,7 +245,7 @@ def serialize_claim_report_row(claim: ExpenseClaim) -> dict:
         "advance_received": float(claim.advance_received or 0),
         "final_amount_payable": float(claim.final_amount_payable or 0),
         "status_code": claim.status.code if claim.status else None,
-        "status_label": claim.status.label if claim.status else None,
+        "status_label": "Processed" if claim.status and claim.status.code == "paid" else (claim.status.label if claim.status else None),
         "created_on": _format_datetime(claim.created_on),
         "da_breakdown": da_breakdown,
     }

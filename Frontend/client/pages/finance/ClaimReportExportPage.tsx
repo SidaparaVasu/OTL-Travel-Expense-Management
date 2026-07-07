@@ -87,7 +87,7 @@ const CLAIM_STATUSES = [
   { code: "finance_pending", label: "Finance Pending" },
   { code: "approved", label: "Approved" },
   { code: "rejected", label: "Rejected" },
-  { code: "paid", label: "Paid" },
+  { code: "paid", label: "Processed" },
   { code: "closed", label: "Closed" },
 ];
 
@@ -109,6 +109,7 @@ const LABEL_STATUS_COLORS: Record<string, string> = {
   "Finance Pending": "bg-orange-100 text-orange-700",
   Approved: "bg-green-100 text-green-700",
   Rejected: "bg-red-100 text-red-700",
+  Processed: "bg-emerald-100 text-emerald-700",
   Paid: "bg-emerald-100 text-emerald-700",
   Closed: "bg-slate-100 text-slate-700",
 };
