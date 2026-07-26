@@ -315,6 +315,7 @@ class ApprovalActionView(APIView):
             payload.update({
                 "approver_id": approver.id,
                 "recipients": [employee.id, approver.id], # Notify both
+                "cc_emails": [employee.email] if employee and employee.email else [],
                 "approver_name": approver.get_full_name(),
                 "status": status_label,  # Fixed: template uses {{ status }} in subject
                 "notes": approval_flow.notes or "No remarks provided", # Fixed: template uses {{ notes }} for remarks

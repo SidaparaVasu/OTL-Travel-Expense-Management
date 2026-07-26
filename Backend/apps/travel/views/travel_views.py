@@ -1034,6 +1034,7 @@ class TravelApplicationSubmitView(APIView):
                 reference={"type": "TravelRequest", "id": travel_app.id},
                 payload={
                     "employee_id": request.user.id,
+                    "employee_email": request.user.email if request.user.email else "",
                     "approver_id": travel_app.current_approver.id,
                     "request_id": travel_app.get_travel_request_id(),
                     "employee_name": request.user.get_full_name(),
@@ -1049,8 +1050,9 @@ class TravelApplicationSubmitView(APIView):
                     "sanc_number": travel_app.sanction_number or "N/A",
                     "escalation_reason": escalation_reason,
                     "portal_url": "https://hrms.orangetechnolab.com/tscsr/",
-                    # For default_resolver logic
-                    "recipients": [travel_app.current_approver.id, request.user.id]
+                    # For default_resolver logic & CC requester
+                    "recipients": [travel_app.current_approver.id, request.user.id],
+                    "cc_emails": [request.user.email] if request.user.email else [],
                 }
             )
 

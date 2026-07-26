@@ -93,6 +93,30 @@ class NotificationCenter:
                     logger.debug("No contact for channel %s on recipient %s", channel, r)
                     continue
 
+                # Prepare task payload with requester CC resolution
+                task_payload = dict(payload)
+                if channel == 'email':
+                    existing_cc = task_payload.get('cc_emails') or task_payload.get('cc') or []
+                    if isinstance(existing_cc, str):
+                        existing_cc = [existing_cc]
+                    else:
+                        existing_cc = list(existing_cc)
+
+                    # Auto-CC requester (employee) if primary recipient is someone else
+                    emp_email = task_payload.get('employee_email')
+                    emp_id = task_payload.get('employee_id')
+                    if not emp_email and emp_id:
+                        emp_user = User.objects.filter(id=emp_id).first()
+                        if emp_user and emp_user.email:
+                            emp_email = emp_user.email
+
+                    if emp_email:
+                        recipient_id = getattr(r, 'id', None) if isinstance(r, User) else None
+                        if recipient_id != emp_id and emp_email not in existing_cc and recipient_contact != emp_email:
+                            existing_cc.append(emp_email)
+
+                    task_payload['cc_emails'] = existing_cc
+
                 # Respect user preferences if r is User
                 if isinstance(r, User):
                     prefs = getattr(r, 'notification_preferences', None)
@@ -105,7 +129,7 @@ class NotificationCenter:
                             recipient=recipient_contact,
                             subject=subject,
                             body=body_text or body_html,
-                            payload=payload,
+                            payload=task_payload,
                             status='skipped',
                         )
                         continue
@@ -117,7 +141,7 @@ class NotificationCenter:
                     recipient=recipient_contact,
                     subject=subject,
                     body=body_text or body_html,
-                    payload=payload,
+                    payload=task_payload,
                     status='queued',
                 )
 
@@ -125,7 +149,7 @@ class NotificationCenter:
                 # to avoid race conditions where the worker starts before the log is visible.
                 from . import tasks
                 transaction.on_commit(
-                    lambda l_id=log.id, c=channel, s=subject, bt=body_text, bh=body_html, p=payload: 
+                    lambda l_id=log.id, c=channel, s=subject, bt=body_text, bh=body_html, p=task_payload: 
                     tasks.send_notification_task.apply_async(
                         args=[l_id, c, s, bt or '', bh or '', p],
                         queue='notifications'
