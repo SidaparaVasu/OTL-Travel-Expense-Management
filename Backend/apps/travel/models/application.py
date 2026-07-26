@@ -795,6 +795,7 @@ class TravelApplication(models.Model):
         return {
             "request_id": self.get_travel_request_id(),
             "employee_name": self.employee.get_full_name(),
+            "employee_email": self.employee.email if self.employee else "",
             "purpose": self.purpose,
             "employee_id": self.employee.id,
             "io_number": self.internal_order or "N/A",

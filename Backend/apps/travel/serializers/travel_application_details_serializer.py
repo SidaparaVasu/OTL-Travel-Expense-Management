@@ -538,11 +538,14 @@ class ApprovalWorkflowSerializer(serializers.ModelSerializer):
     approver = serializers.SerializerMethodField()
     approved_at = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
+    escalation_reason_display = serializers.CharField(source='get_escalation_reason_display', read_only=True)
+
     class Meta:
         model = TravelApprovalFlow
         fields = [
             'cycle', 'level', 'sequence', 'approver', 'status',
-            'approved_at', 'notes', 'created_at',
+            'approved_at', 'notes', 'created_at', 'triggered_by_rule',
+            'escalation_reason_display',
         ]
 
     def get_approver(self, obj):
@@ -777,7 +780,8 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
                 'approval_level': current_flow.approval_level,
                 'sequence': current_flow.sequence,
                 'can_approve': current_flow.can_approve,
-                'triggered_by_rule': current_flow.triggered_by_rule
+                'triggered_by_rule': current_flow.triggered_by_rule,
+                'escalation_reason_display': current_flow.get_escalation_reason_display(),
             }
         return None
 

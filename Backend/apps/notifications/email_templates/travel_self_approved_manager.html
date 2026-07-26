@@ -14,16 +14,16 @@
               <td style="padding:20px 25px; border-bottom:1px solid #e3e8f1;">
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
-                    
+
                     <!-- LEFT -->
                     <td valign="middle">
                       <table cellpadding="0" cellspacing="0" border="0">
                         <tr>
-                          <td valign="middle" style="font-size:26px;">✈️</td>
+                          <td valign="middle" style="font-size:26px;">✅</td>
                           <td width="10"></td>
                           <td valign="middle">
                             <div style="font-size:16px; font-weight:bold; color:#1a1a1a;">
-                              Travel Request Pending Approval
+                              Travel Request Auto-Approved (FYI)
                             </div>
                             <div style="font-size:13px; color:#6d7480;">
                               Orange Travel Management System
@@ -48,18 +48,27 @@
               <td style="padding:30px;">
 
                 <div style="font-size:18px; font-weight:bold; color:#1a1a1a; margin-bottom:8px;">
-                  Travel Request Awaiting Your Review
+                  Self-Approved Travel Request — For Your Information
                 </div>
 
                 <div style="font-size:14px; color:#5e6470; margin-bottom:25px;">
-                  Dear {{ approver_name }},
+                  Dear {{ manager_name }},
                   <br><br>
-                  Travel request <strong>{{ request_id }}</strong> has been raised by 
-                  <strong>{{ employee_name }}</strong> and is awaiting your approval.
+                  This is to inform you that travel request <strong>{{ request_id }}</strong> submitted by
+                  <strong>{{ employee_name }}</strong> has been <strong>automatically self-approved</strong>
+                  as per applicable travel policy rules.
+                  <br><br>
+                  No action is required from your end. This email is for your awareness only.
+                </div>
+
+                <!-- INFO BANNER -->
+                <div style="background:#e8f4e8; border-left:4px solid #28a745; padding:10px 14px; border-radius:4px; font-size:13px; color:#155724; margin-bottom:25px;">
+                  <strong>ℹ️ Policy Note:</strong> This travel request met the criteria for automatic self-approval
+                  (no restricted bookings — Flight / Car at Disposal — and no advance amount requested).
                 </div>
 
                 <!-- REQUEST DETAILS BOX -->
-                <table width="100%" cellpadding="0" cellspacing="0" border="0" 
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"
                        style="background:#f7faff; border:1px solid #e2e8f5; padding:20px;">
 
                   <tr>
@@ -67,16 +76,6 @@
                       Request Details
                     </td>
                   </tr>
-
-                  {% if escalation_reason %}
-                  <tr>
-                    <td colspan="2" style="padding-bottom:12px;">
-                      <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:10px 14px; border-radius:4px; font-size:13px; color:#856404;">
-                        <strong>📌 Escalation Reason:</strong> {{ escalation_reason }}
-                      </div>
-                    </td>
-                  </tr>
-                  {% endif %}
 
                   <tr>
                     <td style="font-size:14px; color:#6c7380; padding-bottom:8px;">
@@ -170,11 +169,11 @@
 
                 </table>
 
-                <!-- ACTION SECTION -->
+                <!-- PORTAL LINK -->
                 <div style="font-size:14px; margin-top:25px; line-height:1.6;">
-                  To approve or reject this travel request, please log in using the link below:
+                  You can view the full details of this travel request by logging into the portal:
                   <a href="{{ portal_url }}">
-                     Review Travel Request
+                    View Travel Request
                   </a>
                 </div>
 
@@ -190,7 +189,7 @@
             <!-- FOOTER -->
             <tr>
               <td align="center" style="padding:20px; font-size:12px; color:#7d8290; border-top:1px solid #e3e8f1;">
-                This is an automated email. Please do not reply.<br>
+                This is an automated intimation email. Please do not reply.<br>
                 © 2025 Travel Expenses Pro. All rights reserved.
               </td>
             </tr>

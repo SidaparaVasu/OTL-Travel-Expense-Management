@@ -326,6 +326,19 @@ export const TravelApplicationDetails: React.FC = () => {
             )}
           </div>
 
+          {/* CEO Escalation Reason Banner */}
+          {(data?.current_approval?.escalation_reason_display || data?.application?.escalation_reason_display) && (
+            <div className="bg-amber-50 border-l-4 border-amber-500 p-4 m-4 rounded-r-md flex items-start gap-3 shadow-xs">
+              <Info className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="text-xs uppercase tracking-wider font-bold text-amber-900">CEO Escalation Reason</h4>
+                <p className="text-sm text-amber-800 font-semibold mt-0.5">
+                  {data?.current_approval?.escalation_reason_display || data?.application?.escalation_reason_display}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Travel Request ID & Purpose */}
           <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-200">
             <div className="p-4 border-b md:border-b-0 md:border-r border-slate-200">

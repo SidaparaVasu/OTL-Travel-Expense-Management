@@ -91,7 +91,24 @@ def send_notification_task(self, log_id, channel, subject, body_text, body_html,
                 except Exception as e:
                     logger.error(f"Error attaching booking file for log {log_id}: {str(e)}")
 
-            provider.send(subject=subject, body_text=body_text, body_html=body_html, to_emails=to_emails, attachments=attachments)
+            cc_emails = payload.get('cc_emails') or payload.get('cc') or []
+            if isinstance(cc_emails, str):
+                cc_emails = [cc_emails]
+            else:
+                cc_emails = list(cc_emails)
+
+            # Deduplicate CC emails and remove any that match recipient in to_emails
+            to_set = set(to_emails) if isinstance(to_emails, list) else {to_emails}
+            cc_emails = [e for e in cc_emails if e and e not in to_set]
+
+            provider.send(
+                subject=subject,
+                body_text=body_text,
+                body_html=body_html,
+                to_emails=to_emails,
+                cc=cc_emails,
+                attachments=attachments
+            )
         elif channel == 'in_app':
             # create an in-app notification record or push through websocket
             # from .in_app import create_in_app_notification
