@@ -5,6 +5,7 @@ class TravelApprovalFlowSerializer(serializers.ModelSerializer):
     approver_name = serializers.CharField(source='approver.get_full_name', read_only=True)
     travel_request_id = serializers.CharField(source='travel_application.get_travel_request_id', read_only=True)
     employee_name = serializers.CharField(source='travel_application.employee.get_full_name', read_only=True)
+    escalation_reason_display = serializers.CharField(source='get_escalation_reason_display', read_only=True)
     
     class Meta:
         model = TravelApprovalFlow
@@ -13,7 +14,7 @@ class TravelApprovalFlowSerializer(serializers.ModelSerializer):
             'approver', 'approver_name', 'approval_level', 'sequence',
             'edit_count',
             'can_view', 'can_approve', 'status', 'approved_at', 'notes',
-            'is_required', 'triggered_by_rule', 'created_at',
+            'is_required', 'triggered_by_rule', 'escalation_reason_display', 'created_at',
         ]
         read_only_fields = ['approver', 'approval_level', 'sequence', 'created_at']
 
@@ -64,7 +65,8 @@ class ManagerApprovalListSerializer(serializers.ModelSerializer):
                 'approval_level': current_flow.approval_level,
                 'sequence': current_flow.sequence,
                 'can_approve': current_flow.can_approve,
-                'triggered_by_rule': current_flow.triggered_by_rule
+                'triggered_by_rule': current_flow.triggered_by_rule,
+                'escalation_reason_display': current_flow.get_escalation_reason_display(),
             }
         return None
 

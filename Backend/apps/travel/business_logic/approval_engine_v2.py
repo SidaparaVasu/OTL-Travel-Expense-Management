@@ -25,13 +25,14 @@ logger = logging.getLogger(__name__)
 
 # Small helper class for final entries
 class ApproverEntry:
-    def __init__(self, user, level, sequence=0, is_required=True, can_view=True, can_approve=True):
+    def __init__(self, user, level, sequence=0, is_required=True, can_view=True, can_approve=True, triggered_by_rule=""):
         self.user = user
         self.level = level
         self.sequence = sequence
         self.is_required = is_required
         self.can_view = can_view
         self.can_approve = can_approve
+        self.triggered_by_rule = triggered_by_rule
 
     def to_dict(self):
         return {
@@ -40,7 +41,8 @@ class ApproverEntry:
             "sequence": self.sequence,
             "is_required": self.is_required,
             "can_view": self.can_view,
-            "can_approve": self.can_approve
+            "can_approve": self.can_approve,
+            "triggered_by_rule": self.triggered_by_rule,
         }
 
 class ApprovalEngineV2:
@@ -415,6 +417,63 @@ class ApprovalEngineV2:
             logger.debug(f"Error checking trip duration: {e}")
         return False
 
+    def _any_booking_has_advance(self, bookings):
+        """
+        Return True if:
+        1. TravelApplication.advance_amount > 0
+        2. Any booking has advance requested in booking_details or advance_taken/advance_req
+        3. Any TripDetails has travel_advance with amount > 0
+        """
+        try:
+            # 1. Check TravelApplication root advance_amount
+            app_advance = getattr(self.travel_application, "advance_amount", None)
+            if app_advance is not None:
+                try:
+                    if Decimal(str(app_advance)) > 0:
+                        logger.info("ApprovalEngineV2: advance_amount %s > 0 on travel application id=%s", app_advance, getattr(self.travel_application, "id", None))
+                        return True
+                except Exception:
+                    pass
+
+            # 2. Check bookings
+            for b in bookings:
+                try:
+                    details = getattr(b, "booking_details", {}) or {}
+                    adv = (
+                        details.get("advance_amount") or
+                        details.get("advance_requested") or
+                        details.get("travel_advance") or
+                        getattr(b, "advance_taken", None) or
+                        getattr(b, "advance_req", None) or
+                        0
+                    )
+                    try:
+                        if Decimal(str(adv)) > 0:
+                            logger.info("ApprovalEngineV2: advance %s requested on booking id=%s", adv, getattr(b, "id", None))
+                            return True
+                    except Exception:
+                        pass
+                except Exception:
+                    continue
+
+            # 3. Check TripDetails travel_advance relation
+            trips = getattr(self.travel_application, "trip_details", None)
+            if trips:
+                for trip in trips.all():
+                    adv_obj = getattr(trip, "travel_advance", None)
+                    if adv_obj:
+                        amt = getattr(adv_obj, "advance_amount", None) or getattr(adv_obj, "amount", None) or 0
+                        try:
+                            if Decimal(str(amt)) > 0:
+                                logger.info("ApprovalEngineV2: travel_advance %s on trip id=%s", amt, getattr(trip, "id", None))
+                                return True
+                        except Exception:
+                            pass
+
+        except Exception as e:
+            logger.debug("Error checking advance in ApprovalEngineV2: %s", e)
+        return False
+
     # ---------------------------
     # Matrix-based checks (if available)
     # ---------------------------
@@ -693,67 +752,69 @@ class ApprovalEngineV2:
         # STEP 2 — Determine CEO requirement
         # ============================================================
         require_ceo = False
+        ceo_rules = []
         try:
             # 1) ApprovalMatrix check (highest precedence)
             if self.matrix_requires_ceo_for_amount(bookings):
                 require_ceo = True
-            else:
-                # 2) TravelPolicyMaster amount_limit policies (dynamic company policies)
-                #    If any active policy says amount_limit (or threshold) for flights => require CEO accordingly
-                policies = self.get_effective_policies(policy_type="amount_limit")
-                for p in policies:
-                    try:
-                        params = getattr(p, "rule_parameters", {}) or {}
-                        # support several keys used in different policy docs
-                        threshold = params.get("max_amount") or params.get("threshold") or params.get("amount_limit") or None
-                        # if policy explicitly requires CEO for amounts, honor that key too
-                        requires_ceo_flag = params.get("requires_ceo") or params.get("requires_ceo_above") or None
-                        thr_val = None
-                        if threshold is not None:
-                            try:
-                                thr_val = float(threshold)
-                            except Exception:
-                                thr_val = None
-                        # two modes: explicit requires_ceo flag OR numeric threshold that triggers CEO for flights above it
-                        if requires_ceo_flag:
-                            # if policy includes a numeric threshold inside the flag, try to interpret it
-                            try:
-                                # if requires_ceo is boolean/str just trigger; if numeric text, parse
-                                if isinstance(requires_ceo_flag, (int, float)):
-                                    thr_val = float(requires_ceo_flag)
-                                elif str(requires_ceo_flag).strip().isdigit():
-                                    thr_val = float(requires_ceo_flag)
-                            except Exception:
-                                pass
-                        if thr_val is not None:
-                            if self._any_flight_above_threshold(bookings, thr_val):
-                                logger.info("TravelPolicyMaster amount_limit triggered: %s", thr_val)
-                                require_ceo = True
-                                break
+                ceo_rules.append("matrix_policy_limit")
 
-                    except Exception:
-                        continue
+            # 2) TravelPolicyMaster amount_limit policies (dynamic company policies)
+            policies = self.get_effective_policies(policy_type="amount_limit")
+            for p in policies:
+                try:
+                    params = getattr(p, "rule_parameters", {}) or {}
+                    threshold = params.get("max_amount") or params.get("threshold") or params.get("amount_limit") or None
+                    requires_ceo_flag = params.get("requires_ceo") or params.get("requires_ceo_above") or None
+                    thr_val = None
+                    if threshold is not None:
+                        try:
+                            thr_val = float(threshold)
+                        except Exception:
+                            thr_val = None
+                    if requires_ceo_flag:
+                        try:
+                            if isinstance(requires_ceo_flag, (int, float)):
+                                thr_val = float(requires_ceo_flag)
+                            elif str(requires_ceo_flag).strip().isdigit():
+                                thr_val = float(requires_ceo_flag)
+                        except Exception:
+                            pass
+                    if thr_val is not None:
+                        if self._any_flight_above_threshold(bookings, thr_val):
+                            logger.info("TravelPolicyMaster amount_limit triggered: %s", thr_val)
+                            require_ceo = True
+                            if "policy_amount_exceeded" not in ceo_rules:
+                                ceo_rules.append("policy_amount_exceeded")
+                            break
 
-                # 3) Fallback TSF threshold if still not required
-                if not require_ceo:
-                    if self._any_flight_above_threshold(bookings, self.config.get("flight_amount_threshold")):
-                        require_ceo = True
-            
+                except Exception:
+                    continue
+
+            # 3) Fallback TSF threshold (Flight > 10k)
+            if self._any_flight_above_threshold(bookings, self.config.get("flight_amount_threshold")):
+                require_ceo = True
+                if "flight_above_10k" not in ceo_rules and "policy_amount_exceeded" not in ceo_rules:
+                    ceo_rules.append("flight_above_10k")
+
             # 4) Long Duration Travel Rule (> 7 days default)
-            # This is "unlinkable" via the enable_ceo_approval_long_duration config.
-            if not require_ceo and self.config.get("enable_ceo_approval_long_duration", False):
+            if self.config.get("enable_ceo_approval_long_duration", False):
                 days_limit = self.config.get("ceo_approval_long_duration_days", 7)
                 if self._any_trip_duration_exceeds(days_limit):
                     logger.info("Long Duration Rule triggered (> %s days). CEO Required.", days_limit)
                     require_ceo = True
+                    if "long_duration_exceeded" not in ceo_rules:
+                        ceo_rules.append("long_duration_exceeded")
 
             # 5) Advance Amount Rule
-            # If any booking (ticketing/accommodation/conveyance) has advance amount requested,
-            # require CEO approval. This is "unlinkable" via the enable_ceo_approval_for_advance config.
-            if not require_ceo and self.config.get("enable_ceo_approval_for_advance", True):
+            if self.config.get("enable_ceo_approval_for_advance", True):
                 if self._any_booking_has_advance(bookings):
                     logger.info("Advance Amount Rule triggered. CEO approval required for advance amount request.")
                     require_ceo = True
+                    if "advance_requested" not in ceo_rules:
+                        ceo_rules.append("advance_requested")
+
+            ceo_triggered_rule = ",".join(ceo_rules)
 
         except Exception as e:
             logger.debug("Error evaluating CEO requirement: %s", e)
@@ -831,7 +892,7 @@ class ApprovalEngineV2:
         if require_ceo:
             ceo_user = self.find_user_for_role("CEO")
             if ceo_user:
-                approvers.append(ApproverEntry(user=ceo_user, level="ceo", sequence=len(approvers) + 1))
+                approvers.append(ApproverEntry(user=ceo_user, level="ceo", sequence=len(approvers) + 1, triggered_by_rule=ceo_triggered_rule))
             else:
                 logger.warning("CEO required but no CEO user found for travel_app=%s", getattr(self.travel_application, "id", None))
 

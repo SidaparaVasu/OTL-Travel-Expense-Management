@@ -111,6 +111,7 @@ def sync_approval_chain(application, approver_entries, *, is_resubmission: bool)
             can_view=entry.can_view,
             can_approve=entry.can_approve,
             is_required=entry.is_required,
+            triggered_by_rule=getattr(entry, "triggered_by_rule", ""),
         )
         flows.append(flow)
 

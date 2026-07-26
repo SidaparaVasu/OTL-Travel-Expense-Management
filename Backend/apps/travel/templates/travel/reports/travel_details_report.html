@@ -133,7 +133,8 @@
         <th style="width:20%;">Approver</th>
         <th style="width:10%;">Status</th>
         <th style="width:15%;">Action Date</th>
-        <th style="width:40%;">Remarks</th>
+        <th style="width:20%;">Escalation Reason</th>
+        <th style="width:20%;">Remarks</th>
       </tr>
     </thead>
     <tbody>
@@ -144,6 +145,7 @@
         <td>{{ app.approver }}</td>
         <td>{{ app.status }}</td>
         <td>{{ app.approved_at }}</td>
+        <td>{{ app.escalation_reason|default:"—" }}</td>
         <td>{{ app.notes }}</td>
       </tr>
       {% endfor %}

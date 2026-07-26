@@ -110,7 +110,9 @@ class TravelReportMixin:
                 "approver": app.get('approver', ''),
                 "status": app.get('status', '').title(),
                 "approved_at": app.get('approved_at', ''),
-                "notes": app.get('notes', '')
+                "notes": app.get('notes', ''),
+                "triggered_by_rule": app.get('triggered_by_rule', ''),
+                "escalation_reason": app.get('escalation_reason_display', ''),
             })
         return formatted
 

@@ -69,6 +69,28 @@ class TravelApprovalFlow(models.Model):
             models.Index(fields=['approver', 'status']),
         ]
     
+    ESCALATION_REASON_MAP = {
+        "advance_requested": "Travel Advance Requested",
+        "flight_above_10k": "Flight Ticket Cost Exceeds ₹10,000",
+        "policy_amount_exceeded": "Amount Exceeds Designated Policy Limit",
+        "matrix_policy_limit": "Approval Matrix Escalation Threshold Reached",
+        "long_duration_exceeded": "Travel Duration Exceeds Policy Limit",
+        "actual_cost_crossed_policy_limit": "Actual Booking Cost Exceeded Policy Limit",
+        "actual_cost_exceeded_allowed_delta": "Actual Booking Cost Exceeded Allowed Variance",
+    }
+
+    def get_escalation_reason_display(self):
+        """Return human-readable text for triggered escalation rule(s)"""
+        if not self.triggered_by_rule:
+            return ""
+        rules = [r.strip() for r in self.triggered_by_rule.split(",") if r.strip()]
+        displays = []
+        for r in rules:
+            text = self.ESCALATION_REASON_MAP.get(r, r.replace("_", " ").title())
+            if text not in displays:
+                displays.append(text)
+        return " | ".join(displays)
+
     def __str__(self):
         return f"{self.travel_application.get_travel_request_id()} - {self.approval_level} ({self.status})"
     

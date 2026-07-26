@@ -68,6 +68,16 @@
                     </td>
                   </tr>
 
+                  {% if escalation_reason %}
+                  <tr>
+                    <td colspan="2" style="padding-bottom:12px;">
+                      <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:10px 14px; border-radius:4px; font-size:13px; color:#856404;">
+                        <strong>📌 Escalation Reason:</strong> {{ escalation_reason }}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endif %}
+
                   <tr>
                     <td style="font-size:14px; color:#6c7380; padding-bottom:8px;">
                       <strong>Applicant/Traveller:</strong>

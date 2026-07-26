@@ -1026,6 +1026,9 @@ class TravelApplicationSubmitView(APIView):
             start_date_str = format_dt(first_trip.departure_date, first_trip.start_time) if first_trip else "N/A"
             end_date_str = format_dt(first_trip.return_date, first_trip.end_time) if first_trip else "N/A"
 
+            ceo_flow = travel_app.approval_flows.filter(approval_level="ceo").first()
+            escalation_reason = ceo_flow.get_escalation_reason_display() if ceo_flow else ""
+
             NotificationCenter.notify(
                 event_name="travel.submitted",
                 reference={"type": "TravelRequest", "id": travel_app.id},
@@ -1044,6 +1047,7 @@ class TravelApplicationSubmitView(APIView):
                     "gl_code": travel_app.general_ledger.gl_code if travel_app.general_ledger else "N/A",
                     "gl_description": travel_app.general_ledger.vertical_name if travel_app.general_ledger else "N/A",
                     "sanc_number": travel_app.sanction_number or "N/A",
+                    "escalation_reason": escalation_reason,
                     "portal_url": "https://hrms.orangetechnolab.com/tscsr/",
                     # For default_resolver logic
                     "recipients": [travel_app.current_approver.id, request.user.id]
