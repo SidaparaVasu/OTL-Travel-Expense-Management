@@ -914,6 +914,48 @@ class TravelApplicationSubmitView(APIView):
             # Schedule auto-completion
             travel_app.schedule_completion_task()
 
+            # -------------------------------------------------------
+            # Notify Reporting Manager (FYI intimation on self-approval)
+            # -------------------------------------------------------
+            try:
+                from apps.travel.services.approver_helpers import resolve_manager_approver
+                from apps.notifications.center import NotificationCenter as NC
+
+                reporting_manager = resolve_manager_approver(travel_app, request.user)
+                if reporting_manager and reporting_manager != request.user:
+                    first_trip = travel_app.trip_details.first()
+                    def fmt_dt(d, t=None):
+                        if not d: return "N/A"
+                        s = d.strftime("%d-%b-%y")
+                        if t: s += f" {t.strftime('%H:%M')}"
+                        return s
+                    NC.notify(
+                        event_name="travel.self_approved.manager_intimation",
+                        reference={"type": "TravelRequest", "id": travel_app.id},
+                        payload={
+                            "manager_id": reporting_manager.id,
+                            "manager_name": reporting_manager.get_full_name(),
+                            "employee_id": request.user.id,
+                            "employee_email": request.user.email or "",
+                            "request_id": travel_app.get_travel_request_id(),
+                            "employee_name": request.user.get_full_name(),
+                            "purpose": travel_app.purpose,
+                            "from_city": first_trip.from_location.city_name if first_trip and first_trip.from_location else "N/A",
+                            "to_city": first_trip.to_location.city_name if first_trip and first_trip.to_location else "N/A",
+                            "from_date": fmt_dt(first_trip.departure_date, first_trip.start_time) if first_trip else "N/A",
+                            "to_date": fmt_dt(first_trip.return_date, first_trip.end_time) if first_trip else "N/A",
+                            "io_number": travel_app.internal_order or "N/A",
+                            "gl_code": travel_app.general_ledger.gl_code if travel_app.general_ledger else "N/A",
+                            "gl_description": travel_app.general_ledger.vertical_name if travel_app.general_ledger else "N/A",
+                            "sanc_number": travel_app.sanction_number or "N/A",
+                            "portal_url": "https://hrms.orangetechnolab.com/tscsr/",
+                            # CC employee so they know manager was informed
+                            "cc_emails": [request.user.email] if request.user.email else [],
+                        }
+                    )
+            except Exception as mgr_notify_err:
+                logger.warning("[SubmitView] Manager intimation email failed: %s", mgr_notify_err)
+
             return success_response(
                 data={
                     "travel_request_id": travel_app.get_travel_request_id(),

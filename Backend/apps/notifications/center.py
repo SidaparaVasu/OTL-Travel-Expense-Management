@@ -187,6 +187,7 @@ class NotificationCenter:
             - 'approver_and_stakeholders' -> approver + travel desk + booking agents (for cancellation requests)
             - 'booking_agents' -> all assigned booking agents (list)
             - 'travel_desk' -> travel desk user or all users with Travel Desk role
+            - 'reporting_manager' -> payload['manager_id'] (manager intimation notifications)
             - 'default_resolver' -> payload['recipients'] (list of ids or contacts)
         """        
         users = []
@@ -248,6 +249,9 @@ class NotificationCenter:
                     if travel_desk_role:
                         users = list(User.objects.filter(userrole__role=travel_desk_role, userrole__is_active=True))
             
+            elif resolver_key == 'reporting_manager' and payload.get('manager_id'):
+                users = list(User.objects.filter(id=payload.get('manager_id')))
+
             elif resolver_key == 'default_resolver':
                 # payload['recipients'] can be list of user ids, or list of contact dicts
                 recs = payload.get('recipients', [])
