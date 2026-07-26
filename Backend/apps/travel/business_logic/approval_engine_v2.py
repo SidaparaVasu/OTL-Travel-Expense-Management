@@ -54,8 +54,8 @@ class ApprovalEngineV2:
     DEFAULTS = {
         "flight_amount_threshold": Decimal("10000"),  # TSF fallback if TravelPolicyMaster not present
         "own_car_distance_km": 150,                   # TSF fallback
-        "ceo_approval_long_duration_days": 7,         # CEO required if trip > 7 days
-        "enable_ceo_approval_long_duration": True,    # Feature flag
+        "ceo_approval_long_duration_days": 7,         # CEO required if trip > 7 days (if feature flag enabled)
+        "enable_ceo_approval_long_duration": False,   # Feature flag (Disabled per CHM-23-07-2026-finalized requirement)
     }
 
     def __init__(self, travel_app, request_user, config=None):
@@ -741,7 +741,7 @@ class ApprovalEngineV2:
             
             # 4) Long Duration Travel Rule (> 7 days default)
             # This is "unlinkable" via the enable_ceo_approval_long_duration config.
-            if not require_ceo and self.config.get("enable_ceo_approval_long_duration", True):
+            if not require_ceo and self.config.get("enable_ceo_approval_long_duration", False):
                 days_limit = self.config.get("ceo_approval_long_duration_days", 7)
                 if self._any_trip_duration_exceeds(days_limit):
                     logger.info("Long Duration Rule triggered (> %s days). CEO Required.", days_limit)
