@@ -58,7 +58,13 @@ class GradeMasterAdmin(admin.ModelAdmin):
     list_display = ('name', 'sorting_no', 'glcode', 'is_active')
     search_fields = ('name', 'glcode__gl_code')
 
-admin.site.register(travel.TravelModeMaster)
+@admin.register(travel.TravelModeMaster)
+class TravelModeMasterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'booking_category', 'is_self_arranged', 'is_active')
+    list_filter = ('booking_category', 'is_self_arranged', 'is_active')
+    search_fields = ('name',)
+    list_editable = ('booking_category', 'is_self_arranged', 'is_active')
+
 admin.site.register(travel.TravelSubOptionMaster)
 admin.site.register(travel.MealPreferenceMaster)
 

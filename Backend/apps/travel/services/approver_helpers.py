@@ -5,8 +5,13 @@ Single source of truth for resolving the manager-level approver for a
 TravelApplication. Handles:
   - User-selected approver (new feature)
   - Fallback to reporting_manager (backward compatible)
-  - Eligibility checks (grade B-2A/B-2B/B-3 or TemporaryApproverAuthorization)
+  - Eligibility checks (grade B-2A/B-2B/B-3/FTC-B3 or TemporaryApproverAuthorization)
   - Listing eligible approvers for the frontend dropdown
+
+Grade-based approval policy:
+  B-2A, B-2B  — eligible approver for ALL booking types (including Flight, Car at Disposal)
+  B-3, FTC-B3 — eligible approver for Train / Pick-up and Drop / conveyance only;
+                 cannot approve Flight or Company-arranged Car at Disposal
 """
 
 import logging
@@ -14,8 +19,9 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-# Grades that are permanently eligible to approve travel requests per TSF policy
-ELIGIBLE_APPROVER_GRADES = ('B-2A', 'B-2B', 'B-3')
+# Grades that are permanently eligible to approve travel requests per TSF policy.
+# FTC-B3 follows the same policy as B-3: eligible for non-flight/non-disposal bookings.
+ELIGIBLE_APPROVER_GRADES = ('B-2A', 'B-2B', 'B-3', 'FTC-B3')
 
 
 def is_eligible_approver(user) -> bool:

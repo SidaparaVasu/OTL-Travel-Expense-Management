@@ -34,10 +34,32 @@ class GLCodeMaster(models.Model):
 
 class TravelModeMaster(models.Model):
     """
-    High-level travel categories: Flight, Train, Car, Accommodation
+    High-level travel categories: Flight, Train, Car, Accommodation.
+
+    booking_category groups modes into one of four logical buckets used
+    throughout the system to route bookings, generate duty slips, fire the
+    correct notification, and populate UI tabs — without hardcoding mode names.
     """
+
+    BOOKING_CATEGORY_CHOICES = [
+        ('ticketing',     'Ticketing'),      # Flight, Train, and future rail/air modes
+        ('accommodation', 'Accommodation'),  # All accommodation variants
+        ('conveyance',    'Conveyance'),     # All vehicle/transport modes
+        ('bulk',          'Bulk Booking'),   # Legacy bulk-upload mode (hidden in new TRs)
+    ]
+
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
+    booking_category = models.CharField(
+        max_length=20,
+        choices=BOOKING_CATEGORY_CHOICES,
+        default='conveyance',
+        help_text=(
+            "Logical category this travel mode belongs to. "
+            "ticketing = Flight/Train; accommodation = all stay types; "
+            "conveyance = all vehicle/transport modes; bulk = legacy bulk-upload."
+        ),
+    )
     is_self_arranged = models.BooleanField(default=False, help_text="Default self-arranged for this travel mode")
     is_active = models.BooleanField(default=True)
 

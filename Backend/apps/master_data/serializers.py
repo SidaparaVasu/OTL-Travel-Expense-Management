@@ -112,7 +112,11 @@ class GradeSerializer(serializers.ModelSerializer):
 class TravelModeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TravelModeMaster
-        fields = '__all__'
+        fields = [
+            'id', 'name', 'description',
+            'booking_category',
+            'is_self_arranged', 'is_active',
+        ]
 
 class MealPreferenceMasterSerializer(serializers.ModelSerializer):
     class Meta:

@@ -372,7 +372,7 @@ class TravelApplicationSerializer(serializers.ModelSerializer):
             user_can_self_select = (
                 request.user.has_role('CEO') or
                 request.user.has_role('CHRO') or
-                user_grade in ('B-2A', 'B-2B')
+                user_grade in ('B-2A', 'B-2B', 'B-3', 'FTC-B3')
             )
             if not user_can_self_select:
                 raise serializers.ValidationError(
@@ -757,8 +757,34 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
     def validate(self, data):
         travel_app = self.instance
 
-        # Check custom selected approver grade requirements for Flight and Car at Disposal modes
+        # ------------------------------------------------------------------
+        # Check 1: If the application contains Flight or Company-arranged Car
+        # at Disposal, a B-2A or B-2B approver is mandatory.
+        # This applies when:
+        #   a) A non-B-2A/B-2B approver is explicitly selected, OR
+        #   b) No approver is selected and the applicant's own grade is
+        #      B-3 / FTC-B3 (they cannot self-approve those modes).
+        # ------------------------------------------------------------------
+        def _has_restricted_booking():
+            """Return True if any booking requires B-2A/B-2B level approval."""
+            for trip in travel_app.trip_details.all():
+                for booking in trip.bookings.all():
+                    mode_name = getattr(booking.booking_type, "name", "").lower()
+                    if "flight" in mode_name:
+                        return True
+                    elif "car at disposal" in mode_name or ("car" in mode_name and "disposal" in mode_name):
+                        sub_opt = ""
+                        if booking.sub_option:
+                            sub_opt = booking.sub_option.name.lower()
+                        else:
+                            details = booking.booking_details or {}
+                            sub_opt = str(details.get("vehicle_sub_option_label", "")).lower()
+                        if "company" in sub_opt:
+                            return True
+            return False
+
         if travel_app.selected_approver:
+            # Path A: Approver explicitly set — validate their grade.
             approver = travel_app.selected_approver
             approver_grade = None
             try:
@@ -770,34 +796,35 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
             except Exception:
                 pass
 
-            if approver_grade not in ('B-2A', 'B-2B'):
-                # Check if application contains Flight (any subtype) or Car at Disposal (Company-arranged Car)
-                has_restricted_booking = False
-                for trip in travel_app.trip_details.all():
-                    for booking in trip.bookings.all():
-                        mode_name = getattr(booking.booking_type, "name", "").lower()
-                        if "flight" in mode_name:
-                            has_restricted_booking = True
-                            break
-                        elif "car at disposal" in mode_name or ("car" in mode_name and "disposal" in mode_name):
-                            # Ensure it's Company-arranged Car
-                            sub_opt = ""
-                            if booking.sub_option:
-                                sub_opt = booking.sub_option.name.lower()
-                            else:
-                                details = booking.booking_details or {}
-                                sub_opt = str(details.get("vehicle_sub_option_label", "")).lower()
-                            
-                            if "company" in sub_opt:
-                                has_restricted_booking = True
-                                break
-                    if has_restricted_booking:
-                        break
+            if approver_grade not in ('B-2A', 'B-2B') and _has_restricted_booking():
+                raise serializers.ValidationError({
+                    'validation_error': (
+                        'Flight or Company-arranged Car at Disposal bookings require approval '
+                        'from a B-2A or B-2B grade approver. Please change the selected approver.'
+                    )
+                })
+        else:
+            # Path B: No approver selected — check if applicant's grade requires one.
+            applicant_grade = None
+            try:
+                profile = getattr(travel_app.employee, 'organizational_profile', None)
+                if profile and profile.grade:
+                    applicant_grade = profile.grade.name.upper()
+                elif getattr(travel_app.employee, 'grade', None):
+                    applicant_grade = travel_app.employee.grade.name.upper()
+            except Exception:
+                pass
 
-                if has_restricted_booking:
-                    raise serializers.ValidationError({
-                        'validation_error': 'Flight/Car at disposal travel mode requires approval from B-2A or B-2B grade. please change the approver.'
-                    })
+            # B-3 and FTC-B3 cannot self-approve Flight or Company-arranged Car at Disposal.
+            # Block submission and prompt the user to select a B-2A/B-2B approver.
+            if applicant_grade in ('B-3', 'FTC-B3') and _has_restricted_booking():
+                raise serializers.ValidationError({
+                    'validation_error': (
+                        'Your travel request contains a Flight or Company-arranged Car at Disposal booking, '
+                        'which requires approval from a B-2A or B-2B grade approver. '
+                        'Please select an eligible approver before submitting.'
+                    )
+                })
         
         # Validate Guest/Bulk Requirement
         # At submission time, guest travel must have either travelers or a

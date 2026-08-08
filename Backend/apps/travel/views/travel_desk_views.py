@@ -1061,42 +1061,14 @@ class GenerateDutySlipAPIView(APIView):
                 "booking_type", "sub_option", "trip_details__travel_application__employee"
             ).get(id=booking_id)
 
-            # Strict Validation
-            VALID_DUTY_SLIP_MODES = {
-                "Pick-up & Drop": ["Passenger Vehicle", "Goods Vehicle"],
-                "Pick-up and Drop": ["Passenger Vehicle", "Goods Vehicle"],
-                "Car at Disposal": ["Company Arranged Car", "Company-Arranged car"], # Handle both just in case
-                "Goods Carriage": ["Heavy/Small"],
-                "BUS/Tempo Traveller": ["Bus/Traveller"],
-            }
-            b_type = (booking.booking_type.name or "").strip()
-            # Normalize '&' vs 'and' for type
-            b_type_norm = b_type.replace(" and ", " & ")
-            
-            b_sub = (booking.sub_option.name or "").strip()
-            
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"DEBUG_DUTY_SLIP: BookingID={booking_id} Type='{b_type}' Sub='{b_sub}' NormType='{b_type_norm}'")
-            
-            is_valid = False
-            
-            # Check against normalized keys or direct keys
-            if b_type in VALID_DUTY_SLIP_MODES:
-                if b_sub in VALID_DUTY_SLIP_MODES[b_type]:
-                    is_valid = True
-            elif b_type_norm in VALID_DUTY_SLIP_MODES:
-                 if b_sub in VALID_DUTY_SLIP_MODES[b_type_norm]:
-                    is_valid = True
-            
-            # Fallback for "Passanger" typo just in case DB has it
-            if not is_valid and (b_type == "Pick-up & Drop" or b_type == "Pick-up and Drop"):
-                 if b_sub in ["Passanger Goods", "Passenger Goods", "Goods Vehicle"]:
-                    is_valid = True
-
-            if not is_valid:
+            # Gate: duty slips are only applicable for conveyance bookings.
+            # This is driven by the booking_category field on TravelModeMaster —
+            # no hardcoded mode name list needed.
+            if getattr(booking.booking_type, 'booking_category', None) != 'conveyance':
+                b_type = (booking.booking_type.name or "").strip()
+                b_sub = (booking.sub_option.name or "").strip() if booking.sub_option else ""
                 return error_response(
-                    message=f"Duty slip not applicable for {b_type} - {b_sub}", 
+                    message=f"Duty slip not applicable for {b_type}" + (f" - {b_sub}" if b_sub else ""),
                     status_code=400
                 )
 
@@ -1104,7 +1076,7 @@ class GenerateDutySlipAPIView(APIView):
             from apps.travel.utils.pdf_generator import generate_duty_slip_pdf
             from django.http import FileResponse
             pdf_buffer = generate_duty_slip_pdf(booking)
-            
+
             filename = f"DutySlip_{booking.id}.pdf"
             response = FileResponse(pdf_buffer, as_attachment=True, filename=filename)
             return response
