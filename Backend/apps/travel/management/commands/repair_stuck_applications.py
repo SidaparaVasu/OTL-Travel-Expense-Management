@@ -35,6 +35,15 @@ class Command(BaseCommand):
             # Reload to see if status changed
             app.refresh_from_db()
             
+            # Fallback for applications with no bookings that are stuck in 'pending_travel_desk' or similar
+            # If the travel period has already ended, forcefully transition them to 'completed'
+            if app.status in ['pending_travel_desk', 'booked', 'booking_in_progress']:
+                from django.utils import timezone
+                end_dt = app.get_travel_end_datetime()
+                if end_dt and timezone.now() >= end_dt:
+                    app.status = 'completed'
+                    app.save(update_fields=['status'])
+
             if app.status != old_status:
                 repaired_count += 1
                 self.stdout.write(

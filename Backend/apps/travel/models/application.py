@@ -288,6 +288,11 @@ class TravelApplication(models.Model):
         """
         Update application status after an approval step is completed
         """
+        # Guard: if application is already marked as completed, 
+        # do not revert its status just because of a late approval.
+        if self.status == 'completed':
+            return
+            
         # Get next pending approval
         next_approval = self.active_approval_flows().filter(
             sequence__gt=approved_flow.sequence,
