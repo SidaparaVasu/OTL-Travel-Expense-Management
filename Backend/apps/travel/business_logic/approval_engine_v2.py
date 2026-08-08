@@ -190,16 +190,17 @@ class ApprovalEngineV2:
                 return True
 
             # ------------------------------------------------------------------
-            # B-3: self-approve Train and Pick-up and Drop only.
+            # B-3 and FTC-B3: self-approve Train and Pick-up and Drop only.
             #      Flight and Car at Disposal require B-2B/B-2A approval.
+            # FTC-B3 follows the same policy as B-3 per TSF policy.
             # ------------------------------------------------------------------
-            if grade_name == 'B-3':
+            if grade_name in ('B-3', 'FTC-B3'):
                 if mode == "train":
                     return True
                 if mode == "pick-up and drop":
                     return True
-                # Flight → NOT self-approve for B-3 (needs B-2B/B-2A)
-                # Car at Disposal → NOT self-approve for B-3 (needs B-2B/B-2A)
+                # Flight → NOT self-approve for B-3/FTC-B3 (needs B-2B/B-2A)
+                # Car at Disposal → NOT self-approve for B-3/FTC-B3 (needs B-2B/B-2A)
 
             # B-4A / B-4B → no self-approval for any mode (handled above for Radio Taxi)
             return False

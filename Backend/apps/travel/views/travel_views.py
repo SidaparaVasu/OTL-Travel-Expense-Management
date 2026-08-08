@@ -2096,12 +2096,13 @@ class EligibleApproversView(APIView):
     Returns a list of users eligible to be selected as the manager-level approver
     when creating or editing a Travel Request.
 
-    Eligible users are those with grade B-2A, B-2B, or B-3, plus any users
-    with an active TemporaryApproverAuthorization for today.
+    Eligible users are those with grade B-2A, B-2B, B-3, or FTC-B3, plus any
+    users with an active TemporaryApproverAuthorization for today.
 
     The requesting user is excluded from the list UNLESS they are CEO, CHRO,
-    B-2A, or B-2B grade — those users may select themselves since they
-    self-approve for all booking types.
+    B-2A, B-2B, B-3, or FTC-B3 grade — those users may select themselves
+    (B-3 / FTC-B3 self-approve for Train and Pick-up and Drop only;
+    B-2A / B-2B self-approve for all booking types per TSF policy).
     """
     permission_classes = [IsAuthenticated]
 
@@ -2123,12 +2124,13 @@ class EligibleApproversView(APIView):
         except Exception:
             pass
 
-        # CEO, CHRO, B-2A, and B-2B may select themselves as approver.
+        # CEO, CHRO, B-2A, B-2B, B-3, and FTC-B3 may select themselves as approver.
         # B-2A/B-2B self-approve for all booking types per TSF policy.
+        # B-3/FTC-B3 self-approve for Train and Pick-up and Drop only.
         user_can_self_select = (
             request.user.has_role('CEO') or
             request.user.has_role('CHRO') or
-            user_grade in ('B-2A', 'B-2B')
+            user_grade in ('B-2A', 'B-2B', 'B-3', 'FTC-B3')
         )
 
         # Get temp-authorized user IDs for badge display
