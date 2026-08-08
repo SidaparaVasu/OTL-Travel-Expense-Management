@@ -15,12 +15,12 @@ def notify_booking_agent_of_assignment(booking, agent_user, event_name=None, req
         logger.warning(f"Skipping assignment notification for agent {agent_user.id}: No email found.")
         return
 
-    # 1. Determine if duty slip should be attached (for vehicle/taxi)
+    # 1. Determine if duty slip should be attached (for vehicle/taxi).
+    # Conveyance bookings (booking_category == 'conveyance') get a duty slip;
+    # ticketing, accommodation, and bulk bookings do not.
     attach_duty_slip = False
     if not booking.booking_details.get("is_self_arranged"):
-        excluded_types = ["Flight", "Train", "Accommodation", "Bulk Booking"]
-        b_type = (booking.booking_type.name or "").strip()
-        if b_type not in excluded_types:
+        if getattr(booking.booking_type, 'booking_category', None) == 'conveyance':
             attach_duty_slip = True
 
     # 2. Dynamic Event Selection (if not provided)
