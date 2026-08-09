@@ -25,11 +25,10 @@ def notify_booking_agent_of_assignment(booking, agent_user, event_name=None, req
 
     # 2. Dynamic Event Selection (if not provided)
     if not event_name:
-        b_type_name = (booking.booking_type.name or "").strip().lower()
-        
-        if "accommodation" in b_type_name:
+        category = getattr(booking.booking_type, 'booking_category', None)
+        if category == 'accommodation':
             event_name = "travel.hotel.requested"
-        elif any(word in b_type_name for word in ["flight", "train"]):
+        elif category == 'ticketing':
             event_name = "travel.ticket.requested"
         else:
             event_name = "travel.vehicle.requested"

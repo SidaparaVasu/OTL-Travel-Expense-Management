@@ -195,6 +195,7 @@ class TicketingBookingSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     status = serializers.CharField()
     booking_type = serializers.SerializerMethodField()
+    booking_category = serializers.SerializerMethodField()
     class_field = serializers.SerializerMethodField()
     is_self_arranged = serializers.SerializerMethodField()
     ticket_number = serializers.SerializerMethodField()
@@ -213,6 +214,9 @@ class TicketingBookingSerializer(serializers.Serializer):
 
     def get_booking_type(self, obj):
         return obj.booking_type.name if obj.booking_type else ""
+
+    def get_booking_category(self, obj):
+        return getattr(obj.booking_type, 'booking_category', 'ticketing') if obj.booking_type else 'ticketing'
 
     def get_class_field(self, obj):
         # sub_option is a ForeignKey field on the model, not in booking_details
@@ -272,6 +276,7 @@ class AccommodationBookingSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     status = serializers.CharField()
     accommodation_type = serializers.SerializerMethodField()
+    booking_category = serializers.SerializerMethodField()
     arc_hotel_preferences = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     allocated_hotel = serializers.SerializerMethodField()
@@ -290,6 +295,9 @@ class AccommodationBookingSerializer(serializers.Serializer):
 
     def get_is_self_arranged(self, obj):
         return is_self_arranged_booking(obj)
+
+    def get_booking_category(self, obj):
+        return getattr(obj.booking_type, 'booking_category', 'accommodation') if obj.booking_type else 'accommodation'
 
     def get_accommodation_type(self, obj):
         # Get from sub_option name
@@ -386,6 +394,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     status = serializers.CharField()
     vehicle_type = serializers.SerializerMethodField()
+    booking_category = serializers.SerializerMethodField()
     vehicle_subtype = serializers.SerializerMethodField()
     requested_vehicle_model = serializers.SerializerMethodField()
     from_location = serializers.SerializerMethodField()
@@ -410,6 +419,9 @@ class ConveyanceBookingSerializer(serializers.Serializer):
 
     def get_is_self_arranged(self, obj):
         return is_self_arranged_booking(obj)
+
+    def get_booking_category(self, obj):
+        return getattr(obj.booking_type, 'booking_category', 'conveyance') if obj.booking_type else 'conveyance'
 
     def get_vehicle_type(self, obj):
         # Get from sub_option name or booking_details
@@ -441,7 +453,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.booking_details.get('drop_location', '')
     
     def get_passengers(self, obj):
-        return obj.booking_details.get('no_of_person', 1)
+        return obj.booking_details.get('passenger_count') or obj.booking_details.get('no_of_person', 1)
 
     def get_start_datetime(self, obj):
         return f"{obj.booking_details.get('start_date')} {obj.booking_details.get('start_time')}"
@@ -689,11 +701,11 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         return ""
 
     def get_ticketing_bookings(self, obj):
-        # Get all flight/train bookings
+        # Get all ticketing bookings (Flight, Train, and any future ticketing modes)
         ticketing_bookings = []
         for trip in obj.trip_details.all():
             bookings = trip.bookings.filter(
-                booking_type__name__in=['Flight', 'Train']
+                booking_type__booking_category='ticketing'
             ).select_related(
                 'booking_type',
                 'sub_option',
@@ -712,11 +724,10 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         return TicketingBookingSerializer(ticketing_bookings, many=True).data
 
     def get_accommodation_bookings(self, obj):
-        # Accommodation bookings are stored in the generic Booking table
-        # Filter by booking_type name containing 'Accommodation'
+        # Accommodation bookings — any mode with booking_category == 'accommodation'
         accommodation_bookings = Booking.objects.filter(
             trip_details__travel_application=obj,
-            booking_type__name='Accommodation'
+            booking_type__booking_category='accommodation'
         ).select_related(
             'booking_type',
             'sub_option',
@@ -733,12 +744,11 @@ class TravelApplicationDetailsSerializer(serializers.ModelSerializer):
         return AccommodationBookingSerializer(accommodation_bookings, many=True).data
 
     def get_conveyance_bookings(self, obj):
-        # Conveyance bookings = all bookings that are NOT Flight, Train, or Accommodation
-        # This makes it future-proof for new conveyance modes
+        # Conveyance bookings — any mode with booking_category == 'conveyance'
+        # (covers all vehicle/transport modes, now and in the future)
         vehicle_bookings = Booking.objects.filter(
-            trip_details__travel_application=obj
-        ).exclude(
-            booking_type__name__in=['Flight', 'Train', 'Accommodation']
+            trip_details__travel_application=obj,
+            booking_type__booking_category='conveyance'
         ).select_related(
             'booking_type',
             'sub_option',

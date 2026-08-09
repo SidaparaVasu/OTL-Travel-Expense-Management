@@ -110,24 +110,15 @@ export const validateTravelApplication = (
         });
       }
 
-      // Check advance booking (7 days for flight, 3 days for train)
+      // Check advance booking (7 days for ticketing, 3 days is a legacy stub — server enforces actual rules)
       const daysUntilDeparture = Math.ceil((departure.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       
       trip.bookings.forEach((booking, bookingIndex) => {
-        if (booking.booking_type === 1) { // Flight (assuming ID 1)
+        if (booking.booking_category === 'ticketing') {
           if (daysUntilDeparture < 7) {
             errors.push({
               field: 'departure_date',
-              message: 'Flight bookings require 7 days advance notice',
-              tripIndex,
-              bookingIndex,
-            });
-          }
-        } else if (booking.booking_type === 2) { // Train (assuming ID 2)
-          if (daysUntilDeparture < 3) {
-            errors.push({
-              field: 'departure_date',
-              message: 'Train bookings require 3 days (72 hours) advance notice',
+              message: 'Ticketing bookings (Flight/Train) require 7 days advance notice',
               tripIndex,
               bookingIndex,
             });
@@ -165,10 +156,10 @@ export const validateTravelApplication = (
       // }
 
       // Flight cost validation (>10,000 requires CEO approval warning)
-      if (booking.booking_type === 1 && parseFloat(booking.estimated_cost) > 10000) {
+      if (booking.booking_category === 'ticketing' && parseFloat(booking.estimated_cost) > 10000) {
         errors.push({
           field: 'estimated_cost',
-          message: 'Flight cost exceeds ₹10,000 - CEO approval will be required',
+          message: 'Ticketing cost exceeds ₹10,000 - CEO approval may be required',
           tripIndex,
           bookingIndex,
         });

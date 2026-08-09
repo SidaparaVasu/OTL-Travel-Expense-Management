@@ -50,9 +50,7 @@ def auto_forward_flight_train_bookings(application: TravelApplication, system_us
     )
 
     for booking in bookings:
-        mode_name = booking.booking_type.name.lower()
-
-        if "flight" not in mode_name and "train" not in mode_name:
+        if getattr(booking.booking_type, 'booking_category', None) != 'ticketing':
             continue
 
         if booking.handling_travel_desk_user_id:

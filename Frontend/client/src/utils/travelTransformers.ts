@@ -26,13 +26,13 @@ export function transformFromBackend(tripDetails: any[]): TripWithCategories[] {
       bookings: trip.bookings || [] 
     },
     ticketing: trip.bookings
-      .filter((b: any) => b.booking_details?.category === 'ticketing')
+      .filter((b: any) => b.booking_category === 'ticketing')
       .map(bookingToTicketing),
     accommodation: trip.bookings
-      .filter((b: any) => b.booking_details?.category === 'accommodation')
+      .filter((b: any) => b.booking_category === 'accommodation')
       .map(bookingToAccommodation),
     conveyance: trip.bookings
-      .filter((b: any) => b.booking_details?.category === 'conveyance')
+      .filter((b: any) => b.booking_category === 'conveyance')
       .map(bookingToConveyance),
     travelAdvance: trip.travel_advance || getEmptyAdvance()
   }));

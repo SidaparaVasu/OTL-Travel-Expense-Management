@@ -55,8 +55,7 @@ def get_recommended_booking_agents(application: TravelApplication):
     # --------------------------------------------------
     flight_train_bookings = [
         b for b in bookings
-        if "flight" in b.booking_type.name.lower()
-        or "train" in b.booking_type.name.lower()
+        if getattr(b.booking_type, 'booking_category', None) == 'ticketing'
     ]
 
     if flight_train_bookings and central_agent:
@@ -75,9 +74,7 @@ def get_recommended_booking_agents(application: TravelApplication):
     city_booking_map = defaultdict(list)
 
     for booking in bookings:
-        booking_type = booking.booking_type.name.lower()
-
-        if "accommodation" in booking_type or "guest" in booking_type:
+        if getattr(booking.booking_type, 'booking_category', None) == 'accommodation':
             city_booking_map[booking.trip_details.to_location].append(booking)
 
     for city, city_bookings in city_booking_map.items():
