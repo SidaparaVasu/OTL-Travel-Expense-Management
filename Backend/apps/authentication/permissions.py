@@ -70,6 +70,16 @@ class IsOwnerOrApprover(BasePermission):
             # Same branch check
             if same_branch:
                 return True
+
+            # Travel Desk: allow if a booking on this application was explicitly
+            # forwarded/delegated to this user (handling_travel_desk_user).
+            if user.has_role('Travel Desk') or user.has_role('Global Travel Desk'):
+                from apps.travel.models import Booking
+                if Booking.objects.filter(
+                    trip_details__travel_application=obj,
+                    handling_travel_desk_user=user,
+                ).exists():
+                    return True
                 
             # Cross-branch SPOC assignment check
             from apps.authentication.mixins import ENABLE_SPOC_BASED_FILTERING
