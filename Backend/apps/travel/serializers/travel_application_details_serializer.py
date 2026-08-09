@@ -453,7 +453,7 @@ class ConveyanceBookingSerializer(serializers.Serializer):
         return obj.booking_details.get('drop_location', '')
     
     def get_passengers(self, obj):
-        return obj.booking_details.get('no_of_person', 1)
+        return obj.booking_details.get('passenger_count') or obj.booking_details.get('no_of_person', 1)
 
     def get_start_datetime(self, obj):
         return f"{obj.booking_details.get('start_date')} {obj.booking_details.get('start_time')}"
