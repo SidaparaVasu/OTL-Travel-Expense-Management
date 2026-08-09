@@ -383,12 +383,13 @@ class AllowedTravelModesView(APIView):
         for ent in entitlements:
             mode = ent.sub_option.mode
             sub = ent.sub_option
-            is_accommodation = (mode.name == "Accommodation")
+            is_accommodation = (mode.booking_category == "accommodation")
 
             if mode.id not in response:
                 response[mode.id] = {
                     "id": mode.id,
                     "name": mode.name,
+                    "booking_category": mode.booking_category,
                     "sub_options": {} if is_accommodation else []
                 }
 
