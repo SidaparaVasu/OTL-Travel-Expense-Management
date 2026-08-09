@@ -598,16 +598,16 @@ export const TravelApplicationForm: React.FC = () => {
               const conveyanceData: any[] = [];
 
               trip.bookings.forEach((booking: any) => {
-                // Use booking_type_name directly from API response for reliable categorization
-                const modeName = booking.booking_type_name || 
-                  travelModes.find((m) => m.id === booking.booking_type)?.name || "";
+                // Categorise by booking_category from the travel mode (reliable, DB-driven)
+                const mode = travelModes.find((m) => m.id === booking.booking_type);
+                const bookingCategory = mode?.booking_category;
 
                 // Skip system-generated bulk bookings — not editable
-                if (modeName === "Bulk Booking" || booking.booking_details?.is_system_generated) {
+                if (bookingCategory === "bulk" || booking.booking_details?.is_system_generated) {
                   return;
                 }
 
-                if (modeName === "Flight" || modeName === "Train") {
+                if (bookingCategory === "ticketing") {
                   // Ticketing
                   ticketingData.push({
                     id: booking.id,
@@ -638,7 +638,7 @@ export const TravelApplicationForm: React.FC = () => {
                     bulk_booking_file: null,
                     remove_bulk_booking_file: false,
                   });
-                } else if (modeName === "Accommodation") {
+                } else if (bookingCategory === "accommodation") {
                   // Accommodation
                   accommodationData.push({
                     id: booking.id,
@@ -667,8 +667,8 @@ export const TravelApplicationForm: React.FC = () => {
                     remove_bulk_booking_file: false,
                   });
                 } else {
-                  // Conveyance — only push if modeName is known (not empty/unmatched)
-                  if (!modeName) return;
+                  // Conveyance — skip if no mode found
+                  if (!mode) return;
 
                   const reportAt = booking.booking_details?.report_at || "";
                   const dropLocation =
@@ -873,24 +873,23 @@ export const TravelApplicationForm: React.FC = () => {
 
   // --- Build Section-wise Travel Modes ---
   const prepareSectionWiseTravelData = (modes, subOptions) => {
-    const ticketing = {}; // Flight + Train
-    const accommodation = {}; // Accommodation
-    const conveyance = {}; // All other conveyance modes
+    const ticketing = {}; // Flight + Train + any ticketing modes
+    const accommodation = {}; // All accommodation modes
+    const conveyance = {}; // All conveyance modes
 
     Object.entries(subOptions).forEach(([modeId, options]) => {
       const mode = modes.find((m) => String(m.id) === modeId);
       if (!mode) return;
 
       // Hide legacy "Bulk Booking" travel mode from new applications
-      if (mode.name === "Bulk Booking") return;
+      if (mode.booking_category === "bulk") return;
 
-      switch (mode.name) {
-        case "Flight":
-        case "Train":
+      switch (mode.booking_category) {
+        case "ticketing":
           ticketing[modeId] = options;
           break;
 
-        case "Accommodation":
+        case "accommodation":
           accommodation[modeId] = options;
           break;
 
@@ -1893,7 +1892,7 @@ export const TravelApplicationForm: React.FC = () => {
                 tripEndDate={purposeData.return_date}
                 cities={cities}
                 travelModes={travelModes.filter(
-                  (m) => m.name === "Flight" || m.name === "Train",
+                  (m) => m.booking_category === "ticketing",
                 )}
                 travelSubOptions={travelSubOptions.ticketing}
                 bookingErrors={ticketingErrors}
@@ -1911,7 +1910,7 @@ export const TravelApplicationForm: React.FC = () => {
                 tripStartDate={purposeData.departure_date}
                 tripEndDate={purposeData.return_date}
                 travelModes={travelModes.filter(
-                  (m) => m.name === "Accommodation",
+                  (m) => m.booking_category === "accommodation",
                 )}
                 travelSubOptions={travelSubOptions.accommodation}
                 guestHouses={guestHouses}
@@ -1940,7 +1939,7 @@ export const TravelApplicationForm: React.FC = () => {
                 tripStartDate={purposeData.departure_date}
                 tripEndDate={purposeData.return_date}
                 travelModes={travelModes.filter(
-                  (m) => !["Flight", "Train", "Accommodation", "Bulk Booking"].includes(m.name),
+                  (m) => m.booking_category === "conveyance",
                 )}
                 travelSubOptions={travelSubOptions.conveyance}
                 bookingErrors={conveyanceErrors}

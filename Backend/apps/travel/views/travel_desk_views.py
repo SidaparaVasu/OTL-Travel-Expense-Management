@@ -919,11 +919,12 @@ class TravelDeskCancelBookingView(APIView):
                 from apps.notifications.center import NotificationCenter
                 application = booking.trip_details.travel_application
                 
-                # Map internal mode name to human readable for email
+                # Map booking_category to human-readable label for email
+                category = getattr(booking.booking_type, 'booking_category', None)
                 mode_name = booking.booking_type.name
-                if mode_name in ["Flight", "Train"]:
+                if category == 'ticketing':
                     display_type = mode_name
-                elif mode_name == "Accommodation":
+                elif category == 'accommodation':
                     display_type = "Accommodation"
                 else:
                     display_type = "Vehicle"

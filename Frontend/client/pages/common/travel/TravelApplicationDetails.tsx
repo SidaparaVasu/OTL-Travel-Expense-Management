@@ -62,10 +62,7 @@ const isBlank = (v: unknown) =>
 const show = (v: unknown, fallback = "—") => (isBlank(v) ? fallback : String(v));
 
 const isFlightOrTrainBooking = (booking: any) => {
-  const mode = String(
-    booking?.booking_type || booking?.accommodation_type || "",
-  ).toLowerCase();
-  return mode.includes("flight") || mode.includes("train");
+  return booking?.booking_category === "ticketing";
 };
 
 const travelDeskUserLabel = (booking: any) => {

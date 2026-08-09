@@ -62,11 +62,10 @@ def is_self_arranged_booking(booking: Booking) -> bool:
 
 
 def is_flight_or_train_booking(booking: Booking) -> bool:
-    """Ticketing modes auto-forwarded to the central booking agent by the system."""
+    """Ticketing modes are auto-forwarded to the central booking agent by the system."""
     if not booking.booking_type_id:
         return False
-    mode = (booking.booking_type.name or "").lower()
-    return "flight" in mode or "train" in mode
+    return getattr(booking.booking_type, 'booking_category', None) == 'ticketing'
 
 
 def resolve_primary_travel_desk_for_application(application):
