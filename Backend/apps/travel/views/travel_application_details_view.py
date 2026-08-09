@@ -104,6 +104,16 @@ class TravelApplicationDetailsView(BranchFilterMixin, generics.RetrieveAPIView):
             # Branch-based access for staff roles
             (has_staff_role and self.check_branch_access(user, obj.employee)) or
 
+            # Travel Desk: delegated/forwarded booking — this user is
+            # handling_travel_desk_user on at least one booking in the application.
+            (
+                (user.has_role('Travel Desk') or user.has_role('Global Travel Desk')) and
+                Booking.objects.filter(
+                    trip_details__travel_application=obj,
+                    handling_travel_desk_user=user,
+                ).exists()
+            ) or
+
             # Booking Agent assigned to any booking in this application
             # As per client requirement EasternTravel whose profile type is flight_train_booking agent is allowed to view travel report from 27-05-2026.
             # In case other booking agent will allow to access report modify profile type or add more profile types in query.
