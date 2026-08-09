@@ -105,14 +105,40 @@ class BranchFilterMixin:
                     filter_kwargs = {
                         f'{employee_field}__organizational_profile__base_location__location_id__in': list(spoc_location_ids)
                     }
-                    return queryset.filter(**filter_kwargs)
+                    branch_q = Q(**filter_kwargs)
+
+                    # Travel Desk: also include applications where this user is the
+                    # handling_travel_desk_user on any booking (delegation/forward scenario).
+                    # Only applicable for TravelApplication querysets.
+                    if (
+                        (user.has_role('Travel Desk') or user.has_role('Global Travel Desk'))
+                        and queryset.model.__name__ == 'TravelApplication'
+                    ):
+                        delegated_q = Q(
+                            trip_details__bookings__handling_travel_desk_user=user
+                        )
+                        return queryset.filter(branch_q | delegated_q).distinct()
+
+                    return queryset.filter(branch_q)
 
             
             # Default / Fallback: Build filter to match employee's base_location with user's base_location
             filter_kwargs = {
                 f'{employee_field}__organizational_profile__base_location': user_location
             }
-            return queryset.filter(**filter_kwargs)
+            branch_q = Q(**filter_kwargs)
+
+            # Travel Desk: also include delegated/forwarded applications
+            if (
+                (user.has_role('Travel Desk') or user.has_role('Global Travel Desk'))
+                and queryset.model.__name__ == 'TravelApplication'
+            ):
+                delegated_q = Q(
+                    trip_details__bookings__handling_travel_desk_user=user
+                )
+                return queryset.filter(branch_q | delegated_q).distinct()
+
+            return queryset.filter(branch_q)
         
         # Default: Regular employees see only their own data
         return queryset.filter(**{employee_field: user})
