@@ -114,10 +114,14 @@ class BranchFilterMixin:
                         (user.has_role('Travel Desk') or user.has_role('Global Travel Desk'))
                         and queryset.model.__name__ == 'TravelApplication'
                     ):
-                        delegated_q = Q(
-                            trip_details__bookings__handling_travel_desk_user=user
+                        # Use pk__in subquery to avoid "unique + non-unique query" error
+                        # that occurs when combining distinct() with select_related querysets.
+                        delegated_ids = (
+                            queryset.model.objects
+                            .filter(trip_details__bookings__handling_travel_desk_user=user)
+                            .values_list('pk', flat=True)
                         )
-                        return queryset.filter(branch_q | delegated_q).distinct()
+                        return queryset.filter(branch_q | Q(pk__in=delegated_ids))
 
                     return queryset.filter(branch_q)
 
@@ -133,10 +137,12 @@ class BranchFilterMixin:
                 (user.has_role('Travel Desk') or user.has_role('Global Travel Desk'))
                 and queryset.model.__name__ == 'TravelApplication'
             ):
-                delegated_q = Q(
-                    trip_details__bookings__handling_travel_desk_user=user
+                delegated_ids = (
+                    queryset.model.objects
+                    .filter(trip_details__bookings__handling_travel_desk_user=user)
+                    .values_list('pk', flat=True)
                 )
-                return queryset.filter(branch_q | delegated_q).distinct()
+                return queryset.filter(branch_q | Q(pk__in=delegated_ids))
 
             return queryset.filter(branch_q)
         
