@@ -83,9 +83,22 @@ class TravelApplicationAdmin(admin.ModelAdmin):
         'estimated_total_cost', 'current_approver', 'created_at'
     )
     list_filter = ('travel_for', 'is_settled', 'status', 'created_at')
-    search_fields = ('employee__username', 'employee__employee_id', 'purpose', 'internal_order')
+    search_fields = ('id', 'employee__employee_id')
     readonly_fields = ('get_travel_request_id', 'created_at', 'updated_at', 'submitted_at')
     inlines = [TripDetailsInline, ApplicationTravelerInline, TravelApprovalFlowInline]
+    
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        
+        if search_term:
+            import re
+            # Extract ID if the user searches for the exact travel request ID like "TR/TSF/2026/0000007"
+            match = re.search(r'TR/TSF/\d{4}/0*(\d+)', search_term.upper())
+            if match:
+                pk = int(match.group(1))
+                queryset |= self.model.objects.filter(pk=pk)
+                
+        return queryset, use_distinct
     
     fieldsets = (
         ('Basic Information', {
