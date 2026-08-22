@@ -68,6 +68,9 @@ class TravelApplicationReportView(BranchFilterMixin, APIView):
             # Branch-based access for staff roles
             (has_staff_role and self.check_branch_access(user, application.employee)) or
 
+            # Any Travel Desk user gets read-only access for bill certification
+            (user.has_role('Travel Desk') or user.has_role('Global Travel Desk')) or
+
             # Booking Agent assigned to any booking in this application
             # As per client requirement EasternTravel whose profile type is flight_train_booking agent is allowed to view travel report from 27-05-2026.
             # In case other booking agent will allow to access report modify profile type or add more profile types in query.
