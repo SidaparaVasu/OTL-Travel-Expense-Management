@@ -267,6 +267,12 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
         id: defaultCityId,
         label: defaultCityLabel,
       });
+      // Also store the default city as place so booking_details.place is never null
+      setForm((prev) => ({
+        ...prev,
+        place: String(defaultCityId),
+        place_label: defaultCityLabel,
+      }));
     }
   }, [isARCHotelSelected, defaultCityId, defaultCityLabel, arcSearchCity.id]);
 
@@ -732,8 +738,14 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                       displayValue={arcSearchCity.label}
                       onChange={(id, label) => {
                         setArcSearchCity({ id, label });
-                        // Clear previous preferences when city changes
-                        setForm((prev) => ({ ...prev, arc_hotel_preferences: [] }));
+                        // Mirror into form.place so booking_details.place is always
+                        // populated with the search city, even when no hotel is selected.
+                        setForm((prev) => ({
+                          ...prev,
+                          arc_hotel_preferences: [],
+                          place: id ? String(id) : "",
+                          place_label: label,
+                        }));
                       }}
                       placeholder="Enter city to find ARC hotels"
                     />
