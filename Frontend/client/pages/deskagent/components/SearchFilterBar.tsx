@@ -17,6 +17,8 @@ export const SearchFilterBar = ({
   onSearchChange,
   isGlobalSearch,
   onGlobalSearchChange,
+  isReadonlyGlobal,
+  onReadonlyGlobalChange,
   sortBy,
   onSortChange,
   statusFilter,
@@ -41,6 +43,7 @@ export const SearchFilterBar = ({
     onSearchChange("");
     onSortChange("urgency");
     if (onGlobalSearchChange) onGlobalSearchChange(false);
+    if (onReadonlyGlobalChange) onReadonlyGlobalChange(false);
     // if (onStatusFilterChange) onStatusFilterChange("pending_travel_desk");
     if (onBookingActionStatusChange) onBookingActionStatusChange("pending");
     if (onLocationFilterChange) onLocationFilterChange("all");
@@ -48,6 +51,7 @@ export const SearchFilterBar = ({
     onSearchChange,
     onSortChange,
     onGlobalSearchChange,
+    onReadonlyGlobalChange,
     onStatusFilterChange,
     onBookingActionStatusChange,
     onLocationFilterChange,
@@ -90,6 +94,23 @@ export const SearchFilterBar = ({
             className="text-sm font-medium text-slate-700 cursor-pointer select-none whitespace-nowrap"
           >
             Search All Statuses
+          </label>
+        </div>
+
+        {/* Readonly Global Search Toggle */}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border rounded-md h-10 border-amber-200">
+          <input
+            type="checkbox"
+            id="readonly-global-toggle"
+            checked={!!isReadonlyGlobal}
+            onChange={(e) => onReadonlyGlobalChange(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+          />
+          <label
+            htmlFor="readonly-global-toggle"
+            className="text-sm font-medium text-amber-800 cursor-pointer select-none whitespace-nowrap"
+          >
+            Search any TR (read-only)
           </label>
         </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Briefcase, Share2 } from "lucide-react";
+import { ROUTES } from "@/routes/routes";
 import {
   KPICards,
   SearchFilterBar,
@@ -41,6 +42,7 @@ const TravelDeskDashboard: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState("all");
   const [assignedLocations, setAssignedLocations] = useState<string[]>([]);
   const [isGlobalSearch, setIsGlobalSearch] = useState(false);
+  const [isReadonlyGlobal, setIsReadonlyGlobal] = useState(false);
 
   // Fetch assigned locations
   const fetchLocations = useCallback(async () => {
@@ -115,9 +117,10 @@ const TravelDeskDashboard: React.FC = () => {
           status: statusFilter,
           booking_action_status: bookingActionStatus === "all" ? undefined : bookingActionStatus,
           search: debouncedSearchQuery,
-          is_global: isGlobalSearch,
-          tab: isGlobalSearch ? undefined : activeTab,
-          location: isGlobalSearch ? undefined : locationFilter,
+          is_global: isReadonlyGlobal ? undefined : isGlobalSearch,
+          is_readonly_global: isReadonlyGlobal ? true : undefined,
+          tab: (isGlobalSearch || isReadonlyGlobal) ? undefined : activeTab,
+          location: (isGlobalSearch || isReadonlyGlobal) ? undefined : locationFilter,
           sort_by: sortBy,
         },
         { signal },
@@ -135,7 +138,7 @@ const TravelDeskDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, activeTab, locationFilter, sortBy]);
+  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, isReadonlyGlobal, activeTab, locationFilter, sortBy]);
 
   // Reset to page 1 when tab, location, or sort changes
   useEffect(() => {
@@ -169,6 +172,11 @@ const TravelDeskDashboard: React.FC = () => {
 
   // Handlers
   const handleView = (app: DashboardApplication) => {
+    if (isReadonlyGlobal) {
+      // Read-only mode: open full details page in a new tab (no action buttons)
+      window.open(ROUTES.travelApplicationDetails(app.id), "_blank");
+      return;
+    }
     setSelectedApplicationId(app.id);
     setActiveForwardedIds(app.delegated_booking_ids);
     setDrawerOpen(true);
@@ -287,14 +295,22 @@ const TravelDeskDashboard: React.FC = () => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             isGlobalSearch={isGlobalSearch}
-            onGlobalSearchChange={setIsGlobalSearch}
+            onGlobalSearchChange={(val: boolean) => {
+              setIsGlobalSearch(val);
+              if (val) setIsReadonlyGlobal(false);
+            }}
+            isReadonlyGlobal={isReadonlyGlobal}
+            onReadonlyGlobalChange={(val: boolean) => {
+              setIsReadonlyGlobal(val);
+              if (val) setIsGlobalSearch(false);
+            }}
             sortBy={sortBy}
             onSortChange={setSortBy}
             // statusFilter={statusFilter}
             // onStatusFilterChange={setStatusFilter}
             bookingActionStatus={bookingActionStatus}
             onBookingActionStatusChange={setBookingActionStatus}
-            locationFilter={locationFilter} // Ensure these are defined in state if not already
+            locationFilter={locationFilter}
             onLocationFilterChange={setLocationFilter}
             locations={assignedLocations}
           />

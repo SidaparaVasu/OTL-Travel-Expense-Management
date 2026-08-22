@@ -29,6 +29,7 @@ export const travelDeskAPI = {
         status?: string;
         booking_action_status?: string;
         is_global?: boolean;
+        is_readonly_global?: boolean;
         tab?: string;
         location?: string;
         sort_by?: string;
@@ -42,6 +43,7 @@ export const travelDeskAPI = {
       if (params?.status) queryParams.append("status", params.status);
       if (params?.booking_action_status) queryParams.append("booking_action_status", params.booking_action_status);
       if (params?.is_global) queryParams.append("is_global", "true");
+      if (params?.is_readonly_global) queryParams.append("is_readonly_global", "true");
       if (params?.tab) queryParams.append("tab", params.tab);
       if (params?.location && params.location !== "all") queryParams.append("location", params.location);
       if (params?.sort_by) queryParams.append("sort_by", params.sort_by);
