@@ -104,6 +104,10 @@ class TravelApplicationDetailsView(BranchFilterMixin, generics.RetrieveAPIView):
             # Branch-based access for staff roles
             (has_staff_role and self.check_branch_access(user, obj.employee)) or
 
+            # Travel Desk: any travel desk user gets read-only access (for bill certification).
+            # Actions (forward, assign, cancel) are gated separately in their own views.
+            (user.has_role('Travel Desk') or user.has_role('Global Travel Desk')) or
+
             # Travel Desk: delegated/forwarded booking — this user is
             # handling_travel_desk_user on at least one booking in the application.
             (

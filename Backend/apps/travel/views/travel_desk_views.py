@@ -222,7 +222,41 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         status_filter = request.query_params.get("status")
         booking_action_status = request.query_params.get("booking_action_status")
         is_global = request.query_params.get("is_global") == "true"
+        # is_readonly_global: skip branch filter entirely, require a search term,
+        # used by Travel Desk users to look up any TR across all branches (read-only).
+        is_readonly_global = request.query_params.get("is_readonly_global") == "true"
         search = request.query_params.get("search")
+
+        # Build search Q objects (needed by both readonly-global and normal paths)
+        q_objects = Q()
+        if search:
+            import re
+            match = re.search(r'(\d+)$', search)
+            q_objects = Q(purpose__icontains=search) | \
+                        Q(employee__first_name__icontains=search) | \
+                        Q(employee__last_name__icontains=search) | \
+                        Q(employee__username__icontains=search)
+            if match:
+                try:
+                    travel_id = int(match.group(1))
+                    q_objects |= Q(id=travel_id)
+                except ValueError:
+                    pass
+
+        # Readonly global lookup: bypass branch filter, require non-empty search
+        if is_readonly_global and search and len(search.strip()) >= 2:
+            ro_qs = TravelApplication.objects.select_related(
+                "employee",
+                "employee__organizational_profile__base_location",
+            ).filter(status__in=TRAVEL_DESK_VISIBLE_STATUSES)
+            ro_qs = annotate_booking_action_status(ro_qs, request.user)
+            ro_qs = ro_qs.filter(q_objects).order_by("-submitted_at")[:50]
+            serializer = TravelDeskApplicationListSerializer(ro_qs, many=True)
+            return success_response(
+                message="Read-only global search results",
+                data=serializer.data,
+                meta={"pagination": {"total": len(serializer.data), "page": 1, "page_size": 50, "total_pages": 1}},
+            )
 
         # Tab filter: my_requests (actionable by current user) or forwarded (delegated to others)
         tab = request.query_params.get("tab")  # "my_requests" | "forwarded" | None
@@ -238,22 +272,6 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         
         date_from = request.query_params.get("date_from")
         date_to = request.query_params.get("date_to")
-
-        # Build search Q objects
-        q_objects = Q()
-        if search:
-            import re
-            match = re.search(r'(\d+)$', search)
-            q_objects = Q(purpose__icontains=search) | \
-                        Q(employee__first_name__icontains=search) | \
-                        Q(employee__last_name__icontains=search) | \
-                        Q(employee__username__icontains=search)
-            if match:
-                try:
-                    travel_id = int(match.group(1))
-                    q_objects |= Q(id=travel_id)
-                except ValueError:
-                    pass
 
         def apply_common_filters(queryset):
             _qs = queryset
