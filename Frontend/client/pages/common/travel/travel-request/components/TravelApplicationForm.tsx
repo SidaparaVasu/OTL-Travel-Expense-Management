@@ -1097,7 +1097,56 @@ export const TravelApplicationForm: React.FC = () => {
       return false;
     }
 
-    // Check for booking date errors
+    // Re-run date validations synchronously at submit time to close the race
+    // condition where accommodationErrors state may be stale.
+    if (purposeData.departure_date && purposeData.return_date) {
+      const freshAccErrors = validateAccommodationDates(
+        accommodation,
+        purposeData.departure_date,
+        purposeData.start_time,
+        purposeData.return_date,
+        purposeData.end_time,
+      );
+      if (!freshAccErrors.isValid) {
+        setAccommodationErrors(freshAccErrors.errors);
+        toast.error(
+          "Some accommodation dates are outside the trip window. Please correct them before submitting.",
+        );
+        return false;
+      }
+
+      const freshTicketErrors = validateTicketingDates(
+        ticketing,
+        purposeData.departure_date,
+        purposeData.start_time,
+        purposeData.return_date,
+        purposeData.end_time,
+      );
+      if (!freshTicketErrors.isValid) {
+        setTicketingErrors(freshTicketErrors.errors);
+        toast.error(
+          "Some ticket dates are outside the trip window. Please correct them before submitting.",
+        );
+        return false;
+      }
+
+      const freshConvErrors = validateConveyanceDates(
+        conveyance,
+        purposeData.departure_date,
+        purposeData.start_time,
+        purposeData.return_date,
+        purposeData.end_time,
+      );
+      if (!freshConvErrors.isValid) {
+        setConveyanceErrors(freshConvErrors.errors);
+        toast.error(
+          "Some conveyance dates are outside the trip window. Please correct them before submitting.",
+        );
+        return false;
+      }
+    }
+
+    // Check for any remaining booking date errors
     if (hasBookingErrors) {
       toast.error(
         "Some booking dates are outside the trip window. Please correct them before submitting.",
