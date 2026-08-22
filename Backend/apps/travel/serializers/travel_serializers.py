@@ -847,6 +847,42 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
         for trip in travel_app.trip_details.all():
             for booking in trip.bookings.all():
                 try:
+                    # Validate accommodation dates are within the trip window
+                    if (
+                        booking.booking_type
+                        and booking.booking_type.booking_category == 'accommodation'
+                    ):
+                        details = booking.booking_details or {}
+                        check_in_str  = details.get('check_in_date')
+                        check_out_str = details.get('check_out_date')
+                        trip_start = trip.departure_date
+                        trip_end   = trip.return_date or trip.departure_date
+
+                        if check_in_str and check_out_str and trip_start and trip_end:
+                            from datetime import date
+                            try:
+                                check_in  = date.fromisoformat(check_in_str)
+                                check_out = date.fromisoformat(check_out_str)
+                                if check_in < trip_start:
+                                    raise serializers.ValidationError({
+                                        'validation_error': (
+                                            f"Accommodation check-in date ({check_in_str}) "
+                                            f"cannot be before the trip start date ({trip_start})."
+                                        ),
+                                        'booking_id': booking.id,
+                                    })
+                                if check_out > trip_end:
+                                    raise serializers.ValidationError({
+                                        'validation_error': (
+                                            f"Accommodation check-out date ({check_out_str}) "
+                                            f"cannot be after the trip end date ({trip_end}). "
+                                            f"Please correct the accommodation dates."
+                                        ),
+                                        'booking_id': booking.id,
+                                    })
+                            except (ValueError, TypeError):
+                                pass  # malformed date — skip, leave to form validation
+
                     # Validate advance booking requirements
                     validate_advance_booking(
                         trip.departure_date,
