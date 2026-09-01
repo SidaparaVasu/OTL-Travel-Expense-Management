@@ -85,6 +85,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
     closure_reason = serializers.SerializerMethodField()
     trip_segment = serializers.SerializerMethodField()
     booking_type_name = serializers.CharField(source="booking_type.name", read_only=True)
+    booking_category = serializers.CharField(source="booking_type.booking_category", read_only=True)
     sub_option_name = serializers.CharField(source="sub_option.name", read_only=True)
     status_display = serializers.SerializerMethodField()
     assigned_agent = serializers.SerializerMethodField()
@@ -102,7 +103,7 @@ class TravelDeskBookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             "id", "trip_id", "travel_request_id", "edit_count", "closure_reason",
-            "trip_segment", "booking_type", "booking_type_name", "sub_option", "sub_option_name", 
+            "trip_segment", "booking_type", "booking_type_name", "booking_category", "sub_option", "sub_option_name", 
             "status", "status_display", "estimated_cost", "actual_cost", "booking_reference", "vendor_reference", 
             "booking_file", "bulk_booking_file", "special_instruction", "created_at", "updated_at", "booked_at",
             "assigned_agent", "booking_details",

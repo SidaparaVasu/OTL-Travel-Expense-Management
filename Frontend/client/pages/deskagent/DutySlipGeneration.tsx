@@ -23,13 +23,6 @@ export default function DutySlipGeneration() {
   const [searched, setSearched] = useState(false);
 
   // Valid modes for frontend filtering feedback (though backend enforces it too)
-  const VALID_MODES = [
-    "Pick-up and Drop",
-    "Car at Disposal",
-    "Goods Carriage",
-    "BUS/Tempo Traveller",
-  ];
-
   const handleSearch = async () => {
     if (!trId.trim()) {
       toast.error("Please enter a Travel Request ID");
@@ -57,24 +50,11 @@ export default function DutySlipGeneration() {
             (trip: any) => trip.bookings,
           );
 
-          // Filter for "Conveyance" (Car, Bus, etc.)
-          // And specifically the valid modes for duty slip
-          const conveyanceBookings = allBookings.filter((b: any) => {
-            // Basic check if it's likely a vehicle
-            const isVehicle = ["Car", "Bus", "Taxi", "Cab"].some(
-              (k) =>
-                b.booking_type_name.includes(k) ||
-                b.booking_type_name.includes("Pick-up"),
-            );
-            // Strict check against valid list
-            const isValidMode = VALID_MODES.some(
-              (m) =>
-                b.booking_type_name.includes(m) ||
-                m.includes(b.booking_type_name),
-            );
-
-            return isVehicle || isValidMode;
-          });
+          // Filter conveyance bookings using booking_category from the API —
+          // same field the backend duty slip gate uses.
+          const conveyanceBookings = allBookings.filter(
+            (b: any) => b.booking_category === "conveyance",
+          );
 
           setBookings(conveyanceBookings);
 
