@@ -197,7 +197,7 @@ class ApprovalEngineV2:
             if grade_name in ('B-3', 'FTC-B3'):
                 if mode == "train":
                     return True
-                if mode == "pick-up and drop":
+                if "pick-up and drop" in mode:
                     return True
                 # Flight → NOT self-approve for B-3/FTC-B3 (needs B-2B/B-2A)
                 # Car at Disposal → NOT self-approve for B-3/FTC-B3 (needs B-2B/B-2A)
