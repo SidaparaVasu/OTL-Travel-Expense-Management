@@ -129,6 +129,7 @@ export default function TravelApplicationExportPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [travelFor, setTravelFor] = useState<"" | "self" | "guest">("");
+  const [isConsolidated, setIsConsolidated] = useState<boolean>(false);
   const [dateErrors, setDateErrors] = useState<{ start?: string; end?: string }>({});
 
   const [preview, setPreview] = useState<TravelExportPreviewResponse | null>(null);
@@ -180,6 +181,7 @@ export default function TravelApplicationExportPage() {
         startDate,
         endDate,
         travelFor || undefined,
+        isConsolidated,
       );
       setPreview(data);
       if (data.total === 0) {
@@ -212,7 +214,7 @@ export default function TravelApplicationExportPage() {
     setNotification(null);
 
     try {
-      await downloadTravelExport(startDate, endDate, travelFor || undefined);
+      await downloadTravelExport(startDate, endDate, travelFor || undefined, isConsolidated);
       showNotification("Excel file downloaded successfully.", "success");
     } catch (err: any) {
       const msg =
@@ -360,6 +362,19 @@ export default function TravelApplicationExportPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Consolidated Checkbox */}
+          <div className="flex items-center h-full pt-6">
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={isConsolidated}
+                onChange={(e) => setIsConsolidated(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+              />
+              Consolidated Report
+            </label>
           </div>
 
           {/* Fetch Button */}
