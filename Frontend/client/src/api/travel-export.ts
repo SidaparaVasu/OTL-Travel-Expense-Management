@@ -32,9 +32,11 @@ export const fetchTravelExportPreview = async (
   startDate: string,
   endDate: string,
   travelFor?: "self" | "guest",
+  isConsolidated?: boolean,
 ): Promise<TravelExportPreviewResponse> => {
   const params: Record<string, string> = { start_date: startDate, end_date: endDate };
   if (travelFor) params.travel_for = travelFor;
+  if (isConsolidated) params.is_consolidated = "true";
 
   const { data } = await apiClient.get("/travel/admin/export/preview/", { params });
   return data.data as TravelExportPreviewResponse;
@@ -48,9 +50,11 @@ export const downloadTravelExport = async (
   startDate: string,
   endDate: string,
   travelFor?: "self" | "guest",
+  isConsolidated?: boolean,
 ): Promise<void> => {
   const params: Record<string, string> = { start_date: startDate, end_date: endDate };
   if (travelFor) params.travel_for = travelFor;
+  if (isConsolidated) params.is_consolidated = "true";
 
   const response = await apiClient.get("/travel/admin/export/", {
     params,
