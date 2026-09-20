@@ -349,6 +349,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       newErrors.place = "Location is required";
     }
 
+    // Place required for ARC Hotel search
+    if (isARCHotelSelected && !form.place) {
+      newErrors.place = "Search Hotel Location is required";
+    }
+
     // Date & Time range validation
     if (
       form.check_in_date &&
@@ -733,9 +738,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   <div className="space-y-4">
                     <CityCombobox
                       label="Search Hotel Location"
+                      required
                       cities={cities}
                       value={arcSearchCity.id}
                       displayValue={arcSearchCity.label}
+                      error={errors.place}
                       onChange={(id, label) => {
                         setArcSearchCity({ id, label });
                         // Mirror into form.place so booking_details.place is always
