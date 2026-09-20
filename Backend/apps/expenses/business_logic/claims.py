@@ -144,11 +144,15 @@ def calculate_da_breakdown(
     actual_start_time: Optional[time] = None,
     actual_end_date: Optional[date] = None,
     actual_end_time: Optional[time] = None,
-    one_way_distance_km: Optional[Decimal] = None
+    one_way_distance_km: Optional[Decimal] = None,
+    claim_da: bool = True
 ) -> List[Dict[str, Any]]:
     """
     Calculate DA/Incidental for each day of travel.
     Respects actual travel dates/times if provided.
+
+    claim_da: If False and constants.DA_CLAIM_OPTIONAL is True, DA is set to 0
+              while Incidentals are still calculated normally.
     """
     # 1. Check one-way distance exceeds 50 km (or bypass it if configured)
     if one_way_distance_km is not None:
@@ -279,12 +283,16 @@ def calculate_da_breakdown(
         inc = Decimal("0")
 
         if is_eligible_for_da and duration_hours > 0:
+            # Only compute Incidentals if distance/duration criteria are met
             if duration_hours > constants.FULL_DAY_DURATION_THRESHOLD_HOURS:
-                da = daily_rates.get("full", Decimal(0))
                 inc = daily_rates.get("inc_full", Decimal(0))
+                # Compute DA only if employee opted to claim it
+                if claim_da or not constants.DA_CLAIM_OPTIONAL:
+                    da = daily_rates.get("full", Decimal(0))
             else:
-                da = daily_rates.get("half", Decimal(0))
                 inc = daily_rates.get("inc_half", Decimal(0))
+                if claim_da or not constants.DA_CLAIM_OPTIONAL:
+                    da = daily_rates.get("half", Decimal(0))
 
         results.append({
             "date": curr_date,
@@ -466,7 +474,8 @@ def validate_claim_payload(
             actual_start_time=_to_time(payload.get("actual_travel_start_time")),
             actual_end_date=_date_from_str(payload.get("actual_travel_end_date")),
             actual_end_time=_to_time(payload.get("actual_travel_end_time")),
-            one_way_distance_km=_to_decimal_or_none(payload.get("one_way_distance_km"))
+            one_way_distance_km=_to_decimal_or_none(payload.get("one_way_distance_km")),
+            claim_da=bool(payload.get("claim_da", True))
         )
     except ValidationError as e:
         errors.update(e.message_dict)

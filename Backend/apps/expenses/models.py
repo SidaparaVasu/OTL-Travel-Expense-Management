@@ -133,6 +133,12 @@ class ExpenseClaim(models.Model):
         help_text="User remarks entered during claim application submission"
     )
 
+    claim_da = models.BooleanField(
+        default=True,
+        help_text="Whether the employee opted to claim Daily Allowance (DA). "
+                  "If False, DA is set to 0 and only Incidentals are calculated."
+    )
+
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
 

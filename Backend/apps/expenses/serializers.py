@@ -230,6 +230,7 @@ class ExpenseClaimSerializer(serializers.ModelSerializer):
             "updated_on",
             "one_way_distance_km",
             "claim_remark",
+            "claim_da",
         ]
         read_only_fields = [
             "status",
@@ -277,6 +278,11 @@ class ClaimValidateSerializer(serializers.Serializer):
             "blank": "Remarks field cannot be empty."
         }
     )
+    claim_da = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Set to false if employee opts out of claiming Daily Allowance (DA). Incidentals will still be calculated."
+    )
 
     def validate(self, data):
         tr = TravelApplication.objects.filter(id=data["travel_application_id"]).first()
@@ -323,6 +329,11 @@ class ClaimSubmitSerializer(serializers.Serializer):
             "required": "Remarks field is mandatory.",
             "blank": "Remarks field cannot be empty."
         }
+    )
+    claim_da = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Set to false if employee opts out of claiming Daily Allowance (DA). Incidentals will still be calculated."
     )
 
     def validate(self, data):
@@ -398,6 +409,7 @@ class ClaimSubmitSerializer(serializers.Serializer):
                 actual_travel_end_time=validated_data.get("actual_travel_end_time"),
                 one_way_distance_km=validated_data.get("one_way_distance_km"),
                 claim_remark=validated_data.get("claim_remark"),
+                claim_da=validated_data.get("claim_da", True),
             )
 
             if CLAIM_MANAGER_APPROVAL_REQUIRED:
