@@ -16,6 +16,7 @@ import {
   Calendar,
   Printer,
   Loader2,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,12 @@ import {
 } from "@/components/ui/table";
 import { ROUTES } from "@/routes/routes";
 import { expenseAPI } from "@/src/api/expense";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function ClaimDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -434,7 +441,29 @@ export default function ClaimDetailPage() {
                           Hours
                         </TableHead>
                         <TableHead className="text-xs font-semibold text-right">
-                          DA
+                          <div className="flex items-center justify-end gap-1">
+                            DA
+                            {claim.claim_da === false && (
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-3.5 w-3.5 text-amber-500 cursor-help shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="top"
+                                    className="w-auto text-xs leading-relaxed"
+                                  >
+                                    <p className="font-semibold mb-1">DA Not Claimed -
+                                      The employee opted out of claiming Daily Allowance (DA)
+                                      <br/>as meals/refreshments were provided by the program or
+                                      event organizers. <br/>Only Incidental charges have been
+                                      calculated as per policy.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                         </TableHead>
                         <TableHead className="text-xs font-semibold text-right">
                           Incidental

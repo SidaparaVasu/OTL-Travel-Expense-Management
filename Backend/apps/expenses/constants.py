@@ -14,3 +14,8 @@ DEFAULT_CONVEYANCE_RATE_PER_KM = 15.00       # Fallback conveyance rate per km
 # Bypass flag for distance validation
 # Set to True because the system currently does not collect estimated_distance_km from the user.
 BYPASS_DISTANCE_VALIDATION = False
+
+# DA Claim Optionality
+# Set to True to allow employees to opt out of claiming Daily Allowance (DA) and claim only Incidentals.
+# Set to False to make DA mandatory (always calculated) whenever distance and duration criteria are met.
+DA_CLAIM_OPTIONAL = True

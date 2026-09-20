@@ -148,6 +148,7 @@ export default function CreateClaimApplicationPage() {
   const [actualEndTime, setActualEndTime] = useState("");
   const [oneWayDistance, setOneWayDistance] = useState<string>("");
   const [claimRemark, setClaimRemark] = useState("");
+  const [claimDA, setClaimDA] = useState<boolean>(true);
 
   // Load applications + expenses
   useEffect(() => {
@@ -179,6 +180,8 @@ export default function CreateClaimApplicationPage() {
       // Pre-fill one_way_distance_km
       setOneWayDistance(claim.one_way_distance_km ? String(claim.one_way_distance_km) : "");
       setClaimRemark(claim.claim_remark || "");
+      // Pre-fill claim_da (default true for old claims that don't have this field)
+      setClaimDA(claim.claim_da !== undefined ? Boolean(claim.claim_da) : true);
 
       // Pre-fill actual travel dates if present
       if (claim.actual_travel_start_date) {
@@ -461,6 +464,7 @@ export default function CreateClaimApplicationPage() {
       actual_travel_end_date: useActualDates ? actualEndDate : null,
       actual_travel_end_time: useActualDates ? actualEndTime : null,
       claim_remark: claimRemark,
+      claim_da: claimDA,
       items: [
         ...bookingRows.map((b) => ({
           expense_type: Number(b.expense_type),
@@ -1057,6 +1061,53 @@ export default function CreateClaimApplicationPage() {
                 {errors.one_way_distance_km && (
                   <p className="text-xs text-destructive mt-1 font-medium">{errors.one_way_distance_km}</p>
                 )}
+              </div>
+
+              {/* Claim DA Toggle */}
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className={`rounded-lg border p-4 transition-colors ${
+                  claimDA
+                    ? "border-green-200 bg-green-50/40"
+                    : "border-amber-300 bg-amber-50"
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="claim-da-checkbox"
+                      checked={claimDA}
+                      onCheckedChange={(checked) => setClaimDA(Boolean(checked))}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="claim-da-checkbox"
+                        className="text-sm font-semibold text-slate-800 cursor-pointer"
+                      >
+                        Claim Daily Allowance (DA)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Check this if you wish to claim Daily Allowance for your travel days.
+                        Incidental charges will be calculated regardless of this selection.
+                      </p>
+                    </div>
+                  </div>
+
+                  {!claimDA && (
+                    <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-100 px-3 py-2.5 text-xs text-amber-800">
+                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                      <div>
+                        <p className="font-semibold">Daily Allowance will NOT be claimed.</p>
+                        <p className="mt-0.5">
+                          Only uncheck this if meals or refreshments were fully provided by the
+                          program/event organizers. Your DA amount will be set to ₹0.
+                          Incidental charges will still be calculated normally.
+                        </p>
+                        <p className="mt-1 font-medium text-amber-900">
+                          ⚠ This action cannot be reversed after submission without Finance intervention.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
 

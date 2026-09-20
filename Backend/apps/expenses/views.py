@@ -1085,6 +1085,7 @@ class ClaimEditView(APIView):
                 claim.actual_travel_end_time = request.data.get("actual_travel_end_time")
                 claim.one_way_distance_km = request.data.get("one_way_distance_km")
                 claim.claim_remark = request.data.get("claim_remark")
+                claim.claim_da = request.data.get("claim_da", True)
                 
                 claim.save()
                 
