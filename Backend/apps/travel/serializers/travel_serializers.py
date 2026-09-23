@@ -846,6 +846,9 @@ class TravelApplicationSubmissionSerializer(serializers.Serializer):
         # Run business validations before submission
         for trip in travel_app.trip_details.all():
             for booking in trip.bookings.all():
+                if booking.status == 'closed':
+                    continue
+
                 try:
                     # Validate accommodation dates are within the trip window
                     if (

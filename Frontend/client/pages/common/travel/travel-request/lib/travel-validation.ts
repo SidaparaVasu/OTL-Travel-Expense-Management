@@ -208,6 +208,7 @@ export const validateTicketingDates = (
     departure_time: string;
     arrival_date: string;
     arrival_time: string;
+    status?: string;
   }>,
   tripStartDate: string,
   tripStartTime: string,
@@ -217,6 +218,8 @@ export const validateTicketingDates = (
   const errors: Record<number, string> = {};
 
   ticketing.forEach((ticket, index) => {
+    if (ticket.status?.toLowerCase() === 'closed') return;
+
     const departureValid = isDateTimeInRange(
       ticket.departure_date,
       ticket.departure_time,
@@ -258,6 +261,7 @@ export const validateAccommodationDates = (
     check_in_time: string;
     check_out_date: string;
     check_out_time: string;
+    status?: string;
   }>,
   tripStartDate: string,
   tripStartTime: string,
@@ -267,6 +271,8 @@ export const validateAccommodationDates = (
   const errors: Record<number, string> = {};
 
   accommodation.forEach((acc, index) => {
+    if (acc.status?.toLowerCase() === 'closed') return;
+
     const checkInValid = isDateTimeInRange(
       acc.check_in_date,
       acc.check_in_time,
@@ -308,6 +314,7 @@ export const validateConveyanceDates = (
     start_time: string;
     end_date: string;
     end_time: string;
+    status?: string;
   }>,
   tripStartDate: string,
   tripStartTime: string,
@@ -317,6 +324,8 @@ export const validateConveyanceDates = (
   const errors: Record<number, string> = {};
 
   conveyance.forEach((conv, index) => {
+    if (conv.status?.toLowerCase() === 'closed') return;
+
     const startValid = isDateTimeInRange(
       conv.start_date,
       conv.start_time,
