@@ -248,15 +248,8 @@ export const UpdateStatusModal: React.FC<UpdateStatusModalProps> = ({
                   {booking.ceo_approval_status === "rejected" &&
                     " (CEO Rejected)"}
                 </SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-
-            {booking.ceo_approval_status === "rejected" && (
-              <p className="text-xs text-destructive">
-                CEO has rejected this booking. Only cancellation is allowed.
-              </p>
-            )}
           </div>
 
           <div className="space-y-2">
