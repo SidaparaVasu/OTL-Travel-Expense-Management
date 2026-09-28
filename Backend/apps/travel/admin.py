@@ -7,6 +7,7 @@ from .models.audit import *
 from .models.traveler import GuestProfile, ApplicationTraveler
 from .models.advance import AdvanceProcessing
 from .models.permission import BackdatedTRAllowance
+from .models.hrms_leave import HRMSLeaveRecord
 
 # Register your models here.
 @admin.register(AdvanceProcessing)
@@ -264,3 +265,18 @@ class BackdatedTRAllowanceAdmin(admin.ModelAdmin):
         if not change:
             obj.granted_by = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(HRMSLeaveRecord)
+class HRMSLeaveRecordAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'travel_application', 'leave_approval_id', 'status',
+        'from_date', 'to_date', 'leave_period', 'created_at'
+    )
+    list_filter = ('status', 'from_date', 'to_date')
+    search_fields = (
+        'travel_application__id', 'leave_approval_id',
+        'travel_application__employee__username', 'travel_application__employee__hrms_id'
+    )
+    readonly_fields = ('created_at', 'updated_at', 'request_payload', 'response_payload')
+
