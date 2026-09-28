@@ -355,7 +355,19 @@ class TravelApplication(models.Model):
             
             # Schedule auto-completion task
             self.schedule_completion_task()
-            
+
+            # Confirm HRMS OD leave for employee self-travel
+            try:
+                from apps.travel.services.hrms_leave_service import HRMSLeaveService
+                HRMSLeaveService.approve_od_leave(
+                    travel_app=self,
+                    approver=approved_flow.approver
+                )
+            except Exception as hrms_err:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to confirm HRMS OD leave for app {self.id}: {hrms_err}", exc_info=True)
+
             return
         
         self.save()
@@ -646,6 +658,15 @@ class TravelApplication(models.Model):
         
         # Cancel all bookings
         self._cancel_all_bookings()
+
+        # Delete HRMS OD leave if confirmed earlier
+        try:
+            from apps.travel.services.hrms_leave_service import HRMSLeaveService
+            HRMSLeaveService.delete_approved_leave(travel_app=self, user=cancelled_by)
+        except Exception as hrms_err:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to delete HRMS OD leave for cancelled app {self.id}: {hrms_err}", exc_info=True)
         
         # Audit Log
         from apps.travel.models.audit import AuditLog

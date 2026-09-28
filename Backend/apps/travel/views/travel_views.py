@@ -229,6 +229,8 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
         original_status = instance.status
         original_approver = instance.current_approver
         original_settlement_due_date = instance.settlement_due_date
+        original_start_date = instance.get_travel_start_date()
+        original_end_date = instance.get_travel_end_date()
 
         # Perform the update
         serializer = self.get_serializer(instance, data=request.data, partial=kwargs.get('partial', False))
@@ -284,6 +286,23 @@ class TravelApplicationDetailView(BranchFilterMixin, RetrieveUpdateDestroyAPIVie
             except Exception as e:
                 logger.warning(
                     f"Failed to reschedule completion task for TR {instance.id} after date edit: {e}"
+                )
+
+        # If travel dates were modified and an active HRMS leave was already confirmed,
+        # delete earlier HRMS leave record so new leave can be created upon re-approval.
+        new_start_date = instance.get_travel_start_date()
+        new_end_date = instance.get_travel_end_date()
+        if original_start_date != new_start_date or original_end_date != new_end_date:
+            try:
+                from apps.travel.services.hrms_leave_service import HRMSLeaveService
+                HRMSLeaveService.delete_approved_leave(
+                    travel_app=instance,
+                    user=request.user,
+                    request=request
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to delete earlier HRMS OD leave for TR {instance.id} after date edit: {e}"
                 )
         
         if edit_reason:
@@ -913,6 +932,17 @@ class TravelApplicationSubmitView(APIView):
 
             # Schedule auto-completion
             travel_app.schedule_completion_task()
+
+            # Confirm HRMS OD leave for self-approval
+            try:
+                from apps.travel.services.hrms_leave_service import HRMSLeaveService
+                HRMSLeaveService.approve_od_leave(
+                    travel_app=travel_app,
+                    approver=request.user,
+                    request=request
+                )
+            except Exception as hrms_err:
+                logger.error(f"[SubmitView] Failed to confirm HRMS OD leave for self-approved TA {travel_app.id}: {hrms_err}", exc_info=True)
 
             # -------------------------------------------------------
             # Notify Reporting Manager (FYI intimation on self-approval)
