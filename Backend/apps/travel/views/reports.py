@@ -15,6 +15,7 @@ from apps.travel.reports.travel_details_report import TravelDetailsReport
 from apps.travel.reports.advance_request_report import AdvanceRequestReport
 
 from concurrent.futures import ThreadPoolExecutor
+from django.db import close_old_connections
 executor = ThreadPoolExecutor(max_workers=5)
 
 import logging
@@ -103,7 +104,11 @@ class TravelApplicationReportView(BranchFilterMixin, APIView):
             # --------------------------------------------------------
 
             def generate():
-                # Instantiate report class
+                # Close stale/idle DB connections inherited by this thread pool worker.
+                # Django only manages connection lifecycle for the main request thread;
+                # persistent thread pool workers must do this explicitly to avoid
+                # MySQL 'Server has gone away' (2006) errors after idle periods.
+                close_old_connections()
                 report = TravelDetailsReport(pk)
                 return report.generate()
 
@@ -167,6 +172,11 @@ class AdvanceRequestReportView(APIView):
             # --------------------------------------------------------
 
             def generate():
+                # Close stale/idle DB connections inherited by this thread pool worker.
+                # Django only manages connection lifecycle for the main request thread;
+                # persistent thread pool workers must do this explicitly to avoid
+                # MySQL 'Server has gone away' (2006) errors after idle periods.
+                close_old_connections()
                 report = AdvanceRequestReport(pk)
                 return report.generate()
 
