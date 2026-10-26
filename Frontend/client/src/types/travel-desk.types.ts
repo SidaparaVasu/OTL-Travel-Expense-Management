@@ -155,17 +155,25 @@ export interface Application {
   created_at: string;
   updated_at: string;
   submitted_at: string;
-  trips?: TripDetail[]; // Added for TravelDeskApplicationDetailSerializer consistency
+  trips?: TripDetail[];
   bulk_upload_file?: string | null;
   actionable_booking_ids?: number[];
   delegated_booking_ids?: number[];
   is_primary_spoc?: boolean;
+  is_read?: boolean;
+  status_label?: string;
+  employee_age?: number;
+  travelers?: any[];
 }
 
 export interface DashboardApplication {
   id: number;
+  travel_request_id?: string;
+  edit_count?: number;
   employee: number;
   employee_name: string;
+  employee_grade?: string;
+  employee_location?: string;
   from_location: string;
   to_location: string;
   departure_date: string;
@@ -181,6 +189,11 @@ export interface DashboardApplication {
   actionable_booking_ids?: number[];
   delegated_booking_ids?: number[];
   booking_action_status?: string;
+  travelers?: any[];
+  internal_order?: string;
+  gl_code?: string;
+  sanction_number?: string;
+  is_read?: boolean;
 }
 
 export interface DashboardStats {
