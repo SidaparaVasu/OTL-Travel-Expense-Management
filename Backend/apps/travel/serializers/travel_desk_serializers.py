@@ -514,13 +514,13 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     
     def get_from_location(self, obj):
         trip = self.get_first_trip(obj)
-        if not trip:
+        if not trip or not trip.from_location:
             return None
         return f"{trip.from_location.city_name}, {trip.from_location.state.state_name}"
 
     def get_to_location(self, obj):
         trip = self.get_first_trip(obj)
-        if not trip:
+        if not trip or not trip.to_location:
             return None
         return f"{trip.to_location.city_name}, {trip.to_location.state.state_name}"
 
