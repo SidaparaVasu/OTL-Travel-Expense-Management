@@ -1,8 +1,5 @@
 from rest_framework import serializers
-from apps.travel.models import (
-    TravelApplication, TripDetails, Booking, BookingAssignment, 
-    BookingNote, BookingClosureLog, TravelApplicationReadStatus
-)
+from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote, BookingClosureLog
 from apps.travel.models.audit import AuditLog
 from apps.travel.serializers.travel_serializers import TripDetailsSerializer, BookingSerializer
 from apps.travel.serializers.travel_application_details_serializer import ApplicationTravelerSerializer
@@ -448,10 +445,6 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     delegated_booking_ids = serializers.SerializerMethodField()
     employee_location = serializers.SerializerMethodField()
     travelers = serializers.SerializerMethodField()
-    gl_code = serializers.SerializerMethodField()
-    internal_order = serializers.CharField(read_only=True)
-    sanction_number = serializers.CharField(read_only=True)
-    is_read = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -461,23 +454,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
             "actionable_booking_ids", "delegated_booking_ids", "travelers",
-            "internal_order", "gl_code", "sanction_number", "is_read",
         ]
-
-    def get_gl_code(self, obj):
-        if getattr(obj, "general_ledger", None):
-            return obj.general_ledger.gl_code
-        return None
-
-    def get_is_read(self, obj):
-        if hasattr(obj, "is_read"):
-            return bool(obj.is_read)
-        request = self.context.get("request")
-        if not request or not request.user or not request.user.is_authenticated:
-            return False
-        return TravelApplicationReadStatus.objects.filter(
-            application=obj, user=request.user, is_read=True
-        ).exists()
 
     def get_travel_request_id(self, obj):
         return obj.get_travel_request_id()
@@ -584,7 +561,6 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     trips = TravelDeskTripSerializer(source="trip_details", many=True, read_only=True)
     travelers = serializers.SerializerMethodField()
     is_primary_spoc = serializers.SerializerMethodField()
-    is_read = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -594,18 +570,8 @@ class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
             "purpose", "internal_order", "general_ledger", "gl_code_text", "sanction_number", 
             "advance_amount", "estimated_total_cost", "status", "status_label", 
             "submitted_at", "created_at", "updated_at",
-            "bulk_upload_file", "travelers", "is_primary_spoc", "trips", "is_read",
+            "bulk_upload_file", "travelers", "is_primary_spoc", "trips",
         ]
-
-    def get_is_read(self, obj):
-        if hasattr(obj, "is_read"):
-            return bool(obj.is_read)
-        request = self.context.get("request")
-        if not request or not request.user or not request.user.is_authenticated:
-            return False
-        return TravelApplicationReadStatus.objects.filter(
-            application=obj, user=request.user, is_read=True
-        ).exists()
 
     def get_travel_request_id(self, obj):
         return obj.get_travel_request_id()

@@ -18,8 +18,6 @@ import {
   UserCheck,
   Archive,
   ShieldCheck,
-  Mail,
-  MailCheck,
 } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 import { Button } from "@/components/ui/button";
@@ -73,7 +71,6 @@ interface ApplicationDrawerProps {
   applicationId: number | null;
   onRefresh?: () => void;
   delegatedBookingIds?: number[];
-  forwardedBookingIds?: number[];
 }
 
 // Helper to get full file URL
@@ -465,19 +462,6 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
     }
   };
 
-  const handleToggleReadInDrawer = async () => {
-    if (!application) return;
-    const nextReadState = !application.is_read;
-    try {
-      await travelDeskAPI.applications.toggleReadStatus(application.id, nextReadState);
-      setApplication({ ...application, is_read: nextReadState });
-      toast.success(nextReadState ? "Marked as read" : "Marked as unread");
-      onRefresh?.();
-    } catch (err: any) {
-      toast.error("Failed to update read status");
-    }
-  };
-
   const handleClose = () => {
     setSelectedBookings([]);
     setApplication(null);
@@ -532,48 +516,14 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {application && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`h-8 text-xs gap-1.5 ${
-                      application.is_read
-                        ? "text-slate-600 border-slate-200 hover:bg-slate-50"
-                        : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                    }`}
-                    onClick={handleToggleReadInDrawer}
-                  >
-                    {application.is_read ? (
-                      <>
-                        <MailCheck className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Read</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Unread</span>
-                      </>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {application.is_read ? "Click to mark as unread" : "Click to mark as read"}
-                </TooltipContent>
-              </Tooltip>
-            )}
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hover:bg-slate-100 hover:text-black"
-              onClick={handleClose}
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:bg-slate-100 hover:text-black"
+            onClick={handleClose}
+          >
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
