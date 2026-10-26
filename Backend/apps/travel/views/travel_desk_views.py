@@ -208,6 +208,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         qs = TravelApplication.objects.select_related(
             "employee",
             "employee__organizational_profile__base_location",
+            "general_ledger",
         ).filter(
             status__in=TRAVEL_DESK_VISIBLE_STATUSES
         )
@@ -218,9 +219,27 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         # Annotate with derived booking action status
         qs = annotate_booking_action_status(qs, request.user)
 
-        # Status and Global Search filters
+        # Annotate with read status for request.user
+        from apps.travel.models.read_status import TravelApplicationReadStatus
+        from django.db.models import Subquery, BooleanField, Value, OuterRef
+        from django.db.models.functions import Coalesce
+
+        read_subquery = TravelApplicationReadStatus.objects.filter(
+            application=OuterRef('pk'),
+            user=request.user,
+        ).values('is_read')[:1]
+
+        qs = qs.annotate(
+            is_read=Coalesce(Subquery(read_subquery, output_field=BooleanField()), Value(False))
+        )
+
+        # Status and Filter parameters
         status_filter = request.query_params.get("status")
         booking_action_status = request.query_params.get("booking_action_status")
+        read_status = request.query_params.get("read_status")  # "all" | "read" | "unread"
+        io_number = request.query_params.get("io_number")
+        gl_code = request.query_params.get("gl_code")
+        sanction_number = request.query_params.get("sanction_number")
         is_global = request.query_params.get("is_global") == "true"
         # is_readonly_global: skip branch filter entirely, require a search term,
         # used by Travel Desk users to look up any TR across all branches (read-only).
@@ -232,10 +251,15 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         if search:
             import re
             match = re.search(r'(\d+)$', search)
-            q_objects = Q(purpose__icontains=search) | \
-                        Q(employee__first_name__icontains=search) | \
-                        Q(employee__last_name__icontains=search) | \
-                        Q(employee__username__icontains=search)
+            q_objects = (
+                Q(purpose__icontains=search) |
+                Q(employee__first_name__icontains=search) |
+                Q(employee__last_name__icontains=search) |
+                Q(employee__username__icontains=search) |
+                Q(internal_order__icontains=search) |
+                Q(sanction_number__icontains=search) |
+                Q(general_ledger__gl_code__icontains=search)
+            )
             if match:
                 try:
                     travel_id = int(match.group(1))
@@ -248,10 +272,14 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
             ro_qs = TravelApplication.objects.select_related(
                 "employee",
                 "employee__organizational_profile__base_location",
+                "general_ledger",
             ).filter(status__in=TRAVEL_DESK_VISIBLE_STATUSES)
             ro_qs = annotate_booking_action_status(ro_qs, request.user)
+            ro_qs = ro_qs.annotate(
+                is_read=Coalesce(Subquery(read_subquery, output_field=BooleanField()), Value(False))
+            )
             ro_qs = ro_qs.filter(q_objects).order_by("-submitted_at")[:50]
-            serializer = TravelDeskApplicationListSerializer(ro_qs, many=True)
+            serializer = TravelDeskApplicationListSerializer(ro_qs, many=True, context={'request': request})
             return success_response(
                 message="Read-only global search results",
                 data=serializer.data,
@@ -261,8 +289,9 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         # Tab filter: my_requests (actionable by current user) or forwarded (delegated to others)
         tab = request.query_params.get("tab")  # "my_requests" | "forwarded" | None
 
-        # Location filter: employee base location name
+        # Location filter: employee base location name or ID
         location = request.query_params.get("location")
+        location_id = request.query_params.get("location_id")
 
         # Sort order
         sort_by = request.query_params.get("sort_by", "submitted_desc")
@@ -301,6 +330,17 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                     _qs = _qs.filter(
                         trip_details__bookings__status='closed',
                     ).distinct()
+            if read_status and read_status != 'all' and not skip_narrow_filters:
+                if read_status == 'read':
+                    _qs = _qs.filter(is_read=True)
+                elif read_status == 'unread':
+                    _qs = _qs.filter(is_read=False)
+            if io_number and not skip_narrow_filters:
+                _qs = _qs.filter(internal_order__icontains=io_number.strip())
+            if gl_code and not skip_narrow_filters:
+                _qs = _qs.filter(general_ledger__gl_code__icontains=gl_code.strip())
+            if sanction_number and not skip_narrow_filters:
+                _qs = _qs.filter(sanction_number__icontains=sanction_number.strip())
             if search:
                 _qs = _qs.filter(q_objects)
             if date_from and not skip_narrow_filters:
@@ -322,11 +362,15 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
             forwarded_qs = TravelApplication.objects.select_related(
                 "employee",
                 "employee__organizational_profile__base_location",
+                "general_ledger",
             ).filter(
                 id__in=forwarded_app_ids,
                 status__in=TRAVEL_DESK_VISIBLE_STATUSES
             )
             forwarded_qs = annotate_booking_action_status(forwarded_qs, request.user)
+            forwarded_qs = forwarded_qs.annotate(
+                is_read=Coalesce(Subquery(read_subquery, output_field=BooleanField()), Value(False))
+            )
             forwarded_qs = apply_common_filters(forwarded_qs)
             qs = qs | forwarded_qs
             qs = qs.distinct()
@@ -356,10 +400,20 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 ).distinct()
 
         # --- Location filter (backend) ---
-        if location and location != 'all' and not skip_narrow_filters:
-            qs = qs.filter(
-                employee__organizational_profile__base_location__location_name=location
-            )
+        if not skip_narrow_filters:
+            if location_id and location_id != 'all':
+                qs = qs.filter(
+                    employee__organizational_profile__base_location_id=location_id
+                )
+            elif location and location != 'all':
+                if location.isdigit():
+                    qs = qs.filter(
+                        employee__organizational_profile__base_location_id=int(location)
+                    )
+                else:
+                    qs = qs.filter(
+                        employee__organizational_profile__base_location__location_name=location
+                    )
 
         # --- Sorting (backend) ---
         from django.db.models import Subquery, OuterRef, DateField
@@ -419,6 +473,14 @@ class TravelDeskApplicationDetailView(APIView):
         )
         if not app:
             return error_response(message="Application not found", data={"id": ["Invalid id"]})
+
+        # Auto-mark as read for the current travel desk user when opened
+        from apps.travel.models.read_status import TravelApplicationReadStatus
+        TravelApplicationReadStatus.objects.update_or_create(
+            application=app,
+            user=request.user,
+            defaults={'is_read': True, 'read_at': timezone.now()}
+        )
 
         serializer = TravelDeskApplicationDetailSerializer(app, context={'request': request})
         return success_response(data=serializer.data)
@@ -1245,21 +1307,26 @@ class TravelDeskAssignedLocationsView(APIView):
 
         # 2. Get assigned SPOC locations
         from apps.authentication.models.spoc import LocationSPOCAssignment
+        from apps.master_data.models.geography import LocationMaster
         
         assignments = LocationSPOCAssignment.objects.filter(
             user=user, 
             is_active=True
         ).prefetch_related('locations')
 
+        is_global = (
+            user.has_role('Global Travel Desk') or 
+            user.has_role('CEO') or 
+            user.has_role('CHRO') or 
+            assignments.filter(is_global=True).exists()
+        )
+
+        if is_global:
+            all_locs = LocationMaster.objects.filter(is_active=True).order_by('location_name')
+            data = [{"id": loc.pk, "name": loc.location_name} for loc in all_locs]
+            return success_response(data=data)
+
         for assignment in assignments:
-            if assignment.is_global:
-                # If global, they effectively have access to all locations.
-                # However, for the filter dropdown, listing ALL cities might be too much.
-                # For now, we just return the explicitly assigned ones + base.
-                # Or we could return a flag "is_global": True?
-                # The prompt asked to "retrieve allocated locations".
-                pass
-            
             locations.update(assignment.locations.all())
 
         data = [
@@ -1271,6 +1338,40 @@ class TravelDeskAssignedLocationsView(APIView):
         data.sort(key=lambda x: x['name'])
 
         return success_response(data=data)
+
+
+class TravelDeskToggleReadStatusView(APIView):
+    """
+    POST: Mark travel application as read or unread for the current travel desk user.
+    Body: {"is_read": true/false} (optional; if omitted, toggles the current state)
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def post(self, request, pk):
+        from django.shortcuts import get_object_or_404
+        from apps.travel.models.read_status import TravelApplicationReadStatus
+        
+        app = get_object_or_404(TravelApplication, pk=pk)
+        is_read_payload = request.data.get('is_read')
+
+        if is_read_payload is None:
+            current_status = TravelApplicationReadStatus.objects.filter(
+                application=app, user=request.user
+            ).first()
+            new_is_read = not current_status.is_read if current_status else True
+        else:
+            new_is_read = bool(is_read_payload)
+
+        read_status_obj, _ = TravelApplicationReadStatus.objects.update_or_create(
+            application=app,
+            user=request.user,
+            defaults={'is_read': new_is_read, 'read_at': timezone.now()}
+        )
+
+        return success_response(
+            message=f"Application marked as {'read' if new_is_read else 'unread'}.",
+            data={'application_id': app.id, 'is_read': new_is_read}
+        )
 
 class TravelDeskUsersListView(APIView):
     """

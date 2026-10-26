@@ -25,6 +25,14 @@ export const SearchFilterBar = ({
   onStatusFilterChange,
   bookingActionStatus,
   onBookingActionStatusChange,
+  readStatus,
+  onReadStatusChange,
+  ioNumber,
+  onIoNumberChange,
+  glCode,
+  onGlCodeChange,
+  sanctionNumber,
+  onSanctionNumberChange,
   locationFilter,
   onLocationFilterChange,
   locations,
@@ -32,8 +40,11 @@ export const SearchFilterBar = ({
   const [isFiltersVisible, setIsFiltersVisible] = useState(true);
 
   const activeFilterCount = [
-    // statusFilter && statusFilter !== "all" ? 1 : 0,
     locationFilter && locationFilter !== "all" ? 1 : 0,
+    readStatus && readStatus !== "all" ? 1 : 0,
+    ioNumber && ioNumber.trim() ? 1 : 0,
+    glCode && glCode.trim() ? 1 : 0,
+    sanctionNumber && sanctionNumber.trim() ? 1 : 0,
     sortBy !== "urgency" ? 1 : 0,
     isGlobalSearch ? 1 : 0,
     bookingActionStatus && bookingActionStatus !== "all" ? 1 : 0,
@@ -44,17 +55,23 @@ export const SearchFilterBar = ({
     onSortChange("urgency");
     if (onGlobalSearchChange) onGlobalSearchChange(false);
     if (onReadonlyGlobalChange) onReadonlyGlobalChange(false);
-    // if (onStatusFilterChange) onStatusFilterChange("pending_travel_desk");
     if (onBookingActionStatusChange) onBookingActionStatusChange("pending");
     if (onLocationFilterChange) onLocationFilterChange("all");
+    if (onReadStatusChange) onReadStatusChange("all");
+    if (onIoNumberChange) onIoNumberChange("");
+    if (onGlCodeChange) onGlCodeChange("");
+    if (onSanctionNumberChange) onSanctionNumberChange("");
   }, [
     onSearchChange,
     onSortChange,
     onGlobalSearchChange,
     onReadonlyGlobalChange,
-    onStatusFilterChange,
     onBookingActionStatusChange,
     onLocationFilterChange,
+    onReadStatusChange,
+    onIoNumberChange,
+    onGlCodeChange,
+    onSanctionNumberChange,
   ]);
 
   return (
@@ -64,7 +81,7 @@ export const SearchFilterBar = ({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by ID or employee name..."
+            placeholder="Search by ID, employee name, IO number, GL code..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10 h-10 bg-white border border-gray-300 focus-visible:border-input focus-visible:bg-card"
@@ -140,96 +157,164 @@ export const SearchFilterBar = ({
 
       {/* Filter row */}
       {isFiltersVisible && (
-        <div className="border-t px-4 py-3 bg-white flex flex-col sm:flex-row items-center gap-4">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0">
-            FILTER BY:
-          </span>
+        <div className="border-t px-4 py-3 bg-white flex flex-col gap-3">
+          {/* Main Select Filters */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0">
+              FILTER BY:
+            </span>
 
-          <div className="flex flex-wrap items-center gap-3 flex-1">
-            <Select value={sortBy} onValueChange={onSortChange}>
-              <SelectTrigger className="w-full sm:w-[160px] h-9 text-sm bg-background">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="urgency">Urgency First</SelectItem>
-                <SelectItem value="date_asc">Departure: Earliest</SelectItem>
-                <SelectItem value="date_desc">Departure: Latest</SelectItem>
-                <SelectItem value="submitted_asc">Submitted: Oldest</SelectItem>
-                <SelectItem value="submitted_desc">
-                  Submitted: Newest
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* {onStatusFilterChange && (
-              <Select
-                value={statusFilter || "pending_travel_desk"}
-                onValueChange={onStatusFilterChange}
-              >
-                <SelectTrigger className="w-full sm:w-[180px] h-9 text-sm bg-background">
-                  <SelectValue placeholder="TR Lifecycle Stage" />
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 w-full sm:w-auto">
+              {/* Sort By */}
+              <Select value={sortBy} onValueChange={onSortChange}>
+                <SelectTrigger className="w-full sm:w-[155px] h-9 text-xs bg-background">
+                  <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Any Lifecycle Stage</SelectItem>
-                  <SelectItem value="pending_travel_desk">Pending</SelectItem>
-                  <SelectItem value="booking_in_progress">
-                    In Progress
+                  <SelectItem value="urgency">Urgency First</SelectItem>
+                  <SelectItem value="date_asc">Departure: Earliest</SelectItem>
+                  <SelectItem value="date_desc">Departure: Latest</SelectItem>
+                  <SelectItem value="submitted_asc">Submitted: Oldest</SelectItem>
+                  <SelectItem value="submitted_desc">
+                    Submitted: Newest
                   </SelectItem>
-                  <SelectItem value="booked">Booked</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-            )} */}
 
-            {onBookingActionStatusChange && (
-              <Select
-                value={bookingActionStatus || "all"}
-                onValueChange={onBookingActionStatusChange}
-              >
-                <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm bg-background">
-                  <SelectValue placeholder="Booking Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="requested">Requested</SelectItem>
-                  <SelectItem value="in_progress">In-Progress</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+              {/* Booking Action Status */}
+              {onBookingActionStatusChange && (
+                <Select
+                  value={bookingActionStatus || "all"}
+                  onValueChange={onBookingActionStatusChange}
+                >
+                  <SelectTrigger className="w-full sm:w-[145px] h-9 text-xs bg-background">
+                    <SelectValue placeholder="Booking Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="requested">Requested</SelectItem>
+                    <SelectItem value="in_progress">In-Progress</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
 
-            {onLocationFilterChange && locations && (
-              <Select
-                value={locationFilter || "all"}
-                onValueChange={onLocationFilterChange}
-              >
-                <SelectTrigger className="w-full sm:w-[160px] h-9 text-sm bg-background">
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {locations.map((loc: string) => (
-                    <SelectItem key={loc} value={loc}>
-                      {loc}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+              {/* Read / Unread Status Filter (Requirement 2) */}
+              {onReadStatusChange && (
+                <Select
+                  value={readStatus || "all"}
+                  onValueChange={onReadStatusChange}
+                >
+                  <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs bg-background">
+                    <SelectValue placeholder="Read / Unread" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All (Read/Unread)</SelectItem>
+                    <SelectItem value="unread">Unread Only</SelectItem>
+                    <SelectItem value="read">Read Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Assigned Unit Location Filter (Requirement 1) */}
+              {onLocationFilterChange && locations && (
+                <Select
+                  value={locationFilter || "all"}
+                  onValueChange={onLocationFilterChange}
+                >
+                  <SelectTrigger className="w-full sm:w-[170px] h-9 text-xs bg-background">
+                    <SelectValue placeholder="Unit Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Unit Locations</SelectItem>
+                    {locations.map((loc: any) => {
+                      const val = typeof loc === "string" ? loc : loc.name;
+                      const key = typeof loc === "string" ? loc : (loc.id || loc.name);
+                      return (
+                        <SelectItem key={key} value={val}>
+                          {val}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="h-9 text-xs bg-white text-slate-700 border border-slate-200 rounded-md hover:bg-slate-50 hover:text-black gap-1 shrink-0 ml-auto"
+            >
+              <X className="h-3 w-3" />
+              Clear all
+            </Button>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearFilters}
-            className="h-9 text-xs bg-white text-black border border-slate-200 rounded-md hover:bg-slate-50 hover:text-black gap-1 shrink-0 ml-auto"
-          >
-            <X className="h-3 w-3" />
-            Clear all
-          </Button>
+          {/* Secondary Specific Filters: IO Number, GL Code, Sanction Number (Requirement 1) */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider shrink-0 sm:min-w-[70px]">
+              SPECIFIC:
+            </span>
+
+            {/* IO Number Filter */}
+            <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+              <Input
+                placeholder="Filter IO Number..."
+                value={ioNumber || ""}
+                onChange={(e) => onIoNumberChange?.(e.target.value)}
+                className="h-8 text-xs pr-6 bg-slate-50 border-slate-200 focus:bg-white"
+              />
+              {ioNumber && (
+                <button
+                  onClick={() => onIoNumberChange?.("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* GL Code Filter */}
+            <div className="relative flex-1 min-w-[140px] max-w-[200px]">
+              <Input
+                placeholder="Filter GL Code..."
+                value={glCode || ""}
+                onChange={(e) => onGlCodeChange?.(e.target.value)}
+                className="h-8 text-xs pr-6 bg-slate-50 border-slate-200 focus:bg-white"
+              />
+              {glCode && (
+                <button
+                  onClick={() => onGlCodeChange?.("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Sanction Number Filter */}
+            <div className="relative flex-1 min-w-[150px] max-w-[220px]">
+              <Input
+                placeholder="Filter Sanction No..."
+                value={sanctionNumber || ""}
+                onChange={(e) => onSanctionNumberChange?.(e.target.value)}
+                className="h-8 text-xs pr-6 bg-slate-50 border-slate-200 focus:bg-white"
+              />
+              {sanctionNumber && (
+                <button
+                  onClick={() => onSanctionNumberChange?.("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
