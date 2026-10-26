@@ -28,11 +28,6 @@ export const travelDeskAPI = {
         search?: string;
         status?: string;
         booking_action_status?: string;
-        read_status?: string;
-        io_number?: string;
-        gl_code?: string;
-        sanction_number?: string;
-        location_id?: number | string;
         is_global?: boolean;
         is_readonly_global?: boolean;
         tab?: string;
@@ -47,11 +42,6 @@ export const travelDeskAPI = {
       if (params?.search) queryParams.append("search", params.search);
       if (params?.status) queryParams.append("status", params.status);
       if (params?.booking_action_status) queryParams.append("booking_action_status", params.booking_action_status);
-      if (params?.read_status && params.read_status !== "all") queryParams.append("read_status", params.read_status);
-      if (params?.io_number) queryParams.append("io_number", params.io_number);
-      if (params?.gl_code) queryParams.append("gl_code", params.gl_code);
-      if (params?.sanction_number) queryParams.append("sanction_number", params.sanction_number);
-      if (params?.location_id && params.location_id !== "all") queryParams.append("location_id", params.location_id.toString());
       if (params?.is_global) queryParams.append("is_global", "true");
       if (params?.is_readonly_global) queryParams.append("is_readonly_global", "true");
       if (params?.tab) queryParams.append("tab", params.tab);
@@ -63,18 +53,6 @@ export const travelDeskAPI = {
         { signal: options?.signal },
       );
 
-      return data;
-    },
-
-    toggleReadStatus: async (
-      applicationId: number,
-      isRead?: boolean,
-    ): Promise<{ success: boolean; message: string; data: { application_id: number; is_read: boolean } }> => {
-      const payload = isRead !== undefined ? { is_read: isRead } : {};
-      const { data } = await apiClient.post(
-        `/travel/travel-desk/applications/${applicationId}/read-status/`,
-        payload,
-      );
       return data;
     },
 

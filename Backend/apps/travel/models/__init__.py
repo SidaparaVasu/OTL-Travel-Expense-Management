@@ -7,12 +7,11 @@ from .advance import AdvanceProcessing
 from .permission import BackdatedTRAllowance
 from .edit_history import TravelApplicationEditHistory
 from .hrms_leave import HRMSLeaveRecord
-from .read_status import TravelApplicationReadStatus
 
 __all__ = [
     'TravelApplication', 'TripDetails', 'Booking', 'TravelApprovalFlow', 
     'BookingAssignment', 'BookingNote', 'BookingClosureLog',
     'AccommodationBooking', 'VehicleBooking', 'TravelDocument', 'TravelAdvanceRequest',
     'AdvanceProcessing', 'BackdatedTRAllowance', 'TravelApplicationEditHistory',
-    'HRMSLeaveRecord', 'TravelApplicationReadStatus',
+    'HRMSLeaveRecord',
 ]
