@@ -33,6 +33,10 @@ export const travelDeskAPI = {
         tab?: string;
         location?: string;
         sort_by?: string;
+        io_number?: string;
+        gl_code?: string;
+        sanction_number?: string;
+        read_status?: string;
       },
       options?: { signal?: AbortSignal },
     ): Promise<ApplicationsListResponse> => {
@@ -47,6 +51,10 @@ export const travelDeskAPI = {
       if (params?.tab) queryParams.append("tab", params.tab);
       if (params?.location && params.location !== "all") queryParams.append("location", params.location);
       if (params?.sort_by) queryParams.append("sort_by", params.sort_by);
+      if (params?.io_number) queryParams.append("io_number", params.io_number);
+      if (params?.gl_code) queryParams.append("gl_code", params.gl_code);
+      if (params?.sanction_number) queryParams.append("sanction_number", params.sanction_number);
+      if (params?.read_status && params.read_status !== "all") queryParams.append("read_status", params.read_status);
 
       const { data } = await apiClient.get(
         `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ""}`,
@@ -94,6 +102,14 @@ export const travelDeskAPI = {
       const { data } = await apiClient.post(
         `/travel/travel-desk/applications/${applicationId}/forward/`,
         payload,
+      );
+      return data;
+    },
+
+    markReadStatus: async (applicationId: number, isRead: boolean) => {
+      const { data } = await apiClient.post(
+        `/travel/travel-desk/applications/${applicationId}/read-status/`,
+        { is_read: isRead },
       );
       return data;
     },

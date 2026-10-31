@@ -8,6 +8,7 @@ from .models.traveler import GuestProfile, ApplicationTraveler
 from .models.advance import AdvanceProcessing
 from .models.permission import BackdatedTRAllowance
 from .models.hrms_leave import HRMSLeaveRecord
+from .models.read_status import TravelApplicationReadStatus
 
 # Register your models here.
 @admin.register(AdvanceProcessing)
@@ -280,3 +281,12 @@ class HRMSLeaveRecordAdmin(admin.ModelAdmin):
     )
     readonly_fields = ('created_at', 'updated_at', 'request_payload', 'response_payload')
 
+
+@admin.register(TravelApplicationReadStatus)
+class TravelApplicationReadStatusAdmin(admin.ModelAdmin):
+    list_display = ('user', 'travel_application', 'is_read', 'read_at', 'created_at')
+    list_filter = ('is_read', 'read_at', 'user')
+    search_fields = ('user__username', 'travel_application__id')
+    readonly_fields = ('created_at', 'updated_at')
+    raw_id_fields = ('travel_application', 'user')
+    list_select_related = ('user', 'travel_application')
