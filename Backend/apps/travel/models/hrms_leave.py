@@ -38,8 +38,8 @@ class HRMSLeaveRecord(models.Model):
         db_table = 'travel_hrms_leave_records'
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['travel_application', 'status']),
-            models.Index(fields=['leave_approval_id']),
+            models.Index(fields=['travel_application', 'status'], name='travel_hrms_travel__c657be_idx'),
+            models.Index(fields=['leave_approval_id'], name='travel_hrms_leave_a_1a7b8e_idx'),
         ]
 
     def __str__(self):
