@@ -1397,3 +1397,83 @@ class TravelDeskUsersListView(APIView):
             })
             
         return success_response(data=data)
+
+
+UNAPPROVED_STATUSES = [
+    "submitted",
+    "pending_manager",
+    "approved_manager",
+    "pending_chro",
+    "approved_chro",
+    "pending_ceo",
+    "approved_ceo",
+]
+
+
+class TravelDeskUnapprovedApplicationsView(BranchFilterMixin, APIView):
+    """
+    GET: Travel applications that are still in the approval pipeline
+    (not yet reached the travel desk queue).
+
+    Global Travel Desk users see all branches. Regular Travel Desk users
+    see only their SPOC-assigned locations, matching the existing branch
+    filter logic used on the main list endpoint.
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def get(self, request):
+        qs = TravelApplication.objects.select_related(
+            "employee",
+            "employee__organizational_profile__base_location",
+            "general_ledger",
+        ).filter(status__in=UNAPPROVED_STATUSES)
+
+        if not request.user.has_role("Global Travel Desk"):
+            qs = self.apply_branch_filter(qs, request.user, employee_field="employee")
+
+        qs = annotate_booking_action_status(qs, request.user)
+        qs = annotate_read_status(qs, request.user)
+
+        search = request.query_params.get("search", "").strip()
+        if search:
+            import re
+            q = (
+                Q(purpose__icontains=search)
+                | Q(employee__first_name__icontains=search)
+                | Q(employee__last_name__icontains=search)
+                | Q(employee__username__icontains=search)
+                | Q(internal_order__icontains=search)
+                | Q(sanction_number__icontains=search)
+                | Q(general_ledger__gl_code__icontains=search)
+            )
+            match = re.search(r"(\d+)$", search)
+            if match:
+                try:
+                    q |= Q(id=int(match.group(1)))
+                except ValueError:
+                    pass
+            qs = qs.filter(q)
+
+        location = request.query_params.get("location", "").strip()
+        if location and location != "all":
+            qs = qs.filter(
+                employee__organizational_profile__base_location__location_name=location
+            )
+
+        sort_by = request.query_params.get("sort_by", "submitted_desc")
+        sort_map = {
+            "submitted_asc":  ("submitted_at", False),
+            "submitted_desc": ("submitted_at", True),
+        }
+        sort_field, descending = sort_map.get(sort_by, ("submitted_at", True))
+        order_expr = F(sort_field).desc(nulls_last=True) if descending else F(sort_field).asc(nulls_last=True)
+        qs = qs.order_by(order_expr, "-id")
+
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(qs, request)
+        serializer = TravelDeskApplicationListSerializer(page, many=True, context={"request": request})
+        return paginated_response(
+            serializer_data=serializer.data,
+            paginator=paginator,
+            message="Success",
+        )
