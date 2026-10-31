@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, Send, XCircle, ChevronDown } from "lucide-react";
+import { Eye, Send, XCircle, ChevronDown, Mail, MailOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -39,6 +39,7 @@ export const ApplicationsTable = ({
   expandedRow,
   onExpandRow,
   onView,
+  onToggleRead,
   // onForward,
   onCancel,
 }) => {
@@ -75,10 +76,18 @@ export const ApplicationsTable = ({
                   <TableRow className="hover:bg-muted/50 transition whitespace-nowrap">
                     <TableCell>
                       <div className="flex flex-col">
-                        <p className="text-sm font-semibold">
-                          {app.travel_request_id ||
-                            `TR/TSF/2025/${String(app.id).padStart(7, "0")}`}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2 w-2 rounded-full shrink-0 ${
+                              app.is_read ? "bg-gray-300" : "bg-blue-500"
+                            }`}
+                            title={app.is_read ? "Read" : "Unread"}
+                          />
+                          <p className="text-sm font-semibold">
+                            {app.travel_request_id ||
+                              `TR/TSF/2025/${String(app.id).padStart(7, "0")}`}
+                          </p>
+                        </div>
                         <p className="text-sm truncate max-w-[300px]">{app.purpose}</p>
                       </div>
                     </TableCell>
@@ -145,6 +154,28 @@ export const ApplicationsTable = ({
                           </TooltipTrigger>
                           <TooltipContent>View</TooltipContent>
                         </Tooltip>
+
+                        {onToggleRead && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="bg-blue-100 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
+                                onClick={() => onToggleRead(app)}
+                              >
+                                {app.is_read ? (
+                                  <MailOpen className="w-4 h-4 text-blue-600" />
+                                ) : (
+                                  <Mail className="w-4 h-4 text-blue-600" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {app.is_read ? "Mark as Unread" : "Mark as Read"}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

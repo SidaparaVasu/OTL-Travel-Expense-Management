@@ -5,7 +5,7 @@ from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote
+from apps.travel.models import TravelApplication, TripDetails, Booking, BookingAssignment, BookingNote, TravelApplicationReadStatus
 from apps.travel.serializers.travel_desk_serializers import *
 from apps.travel.models.audit import AuditLog
 from apps.authentication.permissions import IsTravelDesk
@@ -196,6 +196,22 @@ def annotate_booking_action_status(queryset, user):
         )
     )
 
+
+def annotate_read_status(queryset, user):
+    """Annotate each application with `is_read` (bool) for the given user."""
+    from django.db.models import Exists, OuterRef
+    from apps.travel.models.read_status import TravelApplicationReadStatus
+    return queryset.annotate(
+        is_read=Exists(
+            TravelApplicationReadStatus.objects.filter(
+                travel_application=OuterRef('pk'),
+                user=user,
+                is_read=True,
+            )
+        )
+    )
+
+
 class TravelDeskApplicationListView(BranchFilterMixin, APIView):
     """
     Travel Desk Application List with branch-based access control.
@@ -218,6 +234,8 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
 
         # Annotate with derived booking action status
         qs = annotate_booking_action_status(qs, request.user)
+        # Annotate per-user read/unread state
+        qs = annotate_read_status(qs, request.user)
 
         # Status and Global Search filters
         status_filter = request.query_params.get("status")
@@ -232,6 +250,9 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         io_number = request.query_params.get("io_number")
         gl_code = request.query_params.get("gl_code")
         sanction_number = request.query_params.get("sanction_number")
+
+        # Read/unread filter: "read" | "unread"
+        read_status = request.query_params.get("read_status")
 
         # Build search Q objects (needed by both readonly-global and normal paths)
         q_objects = Q()
@@ -262,6 +283,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 "general_ledger",
             ).filter(status__in=TRAVEL_DESK_VISIBLE_STATUSES)
             ro_qs = annotate_booking_action_status(ro_qs, request.user)
+            ro_qs = annotate_read_status(ro_qs, request.user)
             ro_qs = ro_qs.filter(q_objects)
             if io_number:
                 ro_qs = ro_qs.filter(internal_order__icontains=io_number)
@@ -269,6 +291,10 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 ro_qs = ro_qs.filter(general_ledger__gl_code__icontains=gl_code)
             if sanction_number:
                 ro_qs = ro_qs.filter(sanction_number__icontains=sanction_number)
+            if read_status == 'read':
+                ro_qs = ro_qs.filter(is_read=True)
+            elif read_status == 'unread':
+                ro_qs = ro_qs.filter(is_read=False)
             ro_qs = ro_qs.order_by("-submitted_at")[:50]
             serializer = TravelDeskApplicationListSerializer(ro_qs, many=True)
             return success_response(
@@ -328,6 +354,11 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 _qs = _qs.filter(general_ledger__gl_code__icontains=gl_code)
             if sanction_number:
                 _qs = _qs.filter(sanction_number__icontains=sanction_number)
+            # Read/unread filter
+            if read_status == 'read':
+                _qs = _qs.filter(is_read=True)
+            elif read_status == 'unread':
+                _qs = _qs.filter(is_read=False)
             if date_from and not skip_narrow_filters:
                 _qs = _qs.filter(submitted_at__date__gte=date_from)
             if date_to and not skip_narrow_filters:
@@ -353,6 +384,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 status__in=TRAVEL_DESK_VISIBLE_STATUSES
             )
             forwarded_qs = annotate_booking_action_status(forwarded_qs, request.user)
+            forwarded_qs = annotate_read_status(forwarded_qs, request.user)
             forwarded_qs = apply_common_filters(forwarded_qs)
             qs = qs | forwarded_qs
             qs = qs.distinct()
@@ -1252,6 +1284,44 @@ class TravelDeskForwardToDeskView(APIView):
                 }
             }
         )
+
+class TravelApplicationReadStatusView(APIView):
+    """
+    POST: Set the read/unread status of a travel application for the current
+    travel desk user (manual toggle).
+    Body: { "is_read": true | false }
+    """
+    permission_classes = [IsAuthenticated, IsTravelDesk]
+
+    def post(self, request, pk):
+        is_read = request.data.get("is_read")
+        if is_read is None:
+            return error_response(
+                message="is_read is required",
+                data={"is_read": ["Provide true or false"]},
+            )
+        # Accept truthy strings ("true"/"false") as well as real booleans
+        if isinstance(is_read, str):
+            is_read = is_read.strip().lower() in ("true", "1", "yes")
+        is_read = bool(is_read)
+
+        app = TravelApplication.objects.filter(pk=pk).first()
+        if not app:
+            return error_response(message="Application not found", status_code=404)
+
+        obj, _ = TravelApplicationReadStatus.objects.update_or_create(
+            travel_application=app,
+            user=request.user,
+            defaults={
+                "is_read": is_read,
+                "read_at": timezone.now() if is_read else None,
+            },
+        )
+        return success_response(
+            message="Read status updated",
+            data={"id": app.id, "is_read": obj.is_read},
+        )
+
 
 class TravelDeskAssignedLocationsView(APIView):
     """

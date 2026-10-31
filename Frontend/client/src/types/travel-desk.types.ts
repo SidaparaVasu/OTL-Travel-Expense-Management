@@ -184,6 +184,7 @@ export interface DashboardApplication {
   internal_order?: string;
   sanction_number?: string;
   gl_code_text?: string;
+  is_read?: boolean;
 }
 
 export interface DashboardStats {

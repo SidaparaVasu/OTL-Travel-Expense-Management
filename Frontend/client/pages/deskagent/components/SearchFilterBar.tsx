@@ -34,6 +34,8 @@ export const SearchFilterBar = ({
   onGlCodeChange,
   sanctionNumber,
   onSanctionNumberChange,
+  readStatusFilter,
+  onReadStatusFilterChange,
 }: any) => {
   const [isFiltersVisible, setIsFiltersVisible] = useState(true);
 
@@ -46,6 +48,7 @@ export const SearchFilterBar = ({
     ioNumber ? 1 : 0,
     glCode ? 1 : 0,
     sanctionNumber ? 1 : 0,
+    readStatusFilter && readStatusFilter !== "all" ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
   const handleClearFilters = useCallback(() => {
@@ -59,6 +62,7 @@ export const SearchFilterBar = ({
     if (onIoNumberChange) onIoNumberChange("");
     if (onGlCodeChange) onGlCodeChange("");
     if (onSanctionNumberChange) onSanctionNumberChange("");
+    if (onReadStatusFilterChange) onReadStatusFilterChange("all");
   }, [
     onSearchChange,
     onSortChange,
@@ -70,6 +74,7 @@ export const SearchFilterBar = ({
     onIoNumberChange,
     onGlCodeChange,
     onSanctionNumberChange,
+    onReadStatusFilterChange,
   ]);
 
   return (
@@ -258,6 +263,22 @@ export const SearchFilterBar = ({
                 onChange={(e) => onSanctionNumberChange(e.target.value)}
                 className="w-full sm:w-[140px] h-9 text-sm bg-white border border-gray-300"
               />
+            )}
+
+            {onReadStatusFilterChange && (
+              <Select
+                value={readStatusFilter || "all"}
+                onValueChange={onReadStatusFilterChange}
+              >
+                <SelectTrigger className="w-full sm:w-[140px] h-9 text-sm bg-background">
+                  <SelectValue placeholder="Read Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="unread">Unread</SelectItem>
+                  <SelectItem value="read">Read</SelectItem>
+                </SelectContent>
+              </Select>
             )}
           </div>
 

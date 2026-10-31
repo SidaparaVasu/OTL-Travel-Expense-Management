@@ -46,6 +46,7 @@ const TravelDeskDashboard: React.FC = () => {
   const [ioNumber, setIoNumber] = useState("");
   const [glCode, setGlCode] = useState("");
   const [sanctionNumber, setSanctionNumber] = useState("");
+  const [readStatusFilter, setReadStatusFilter] = useState("all");
 
   // Fetch assigned locations
   const fetchLocations = useCallback(async () => {
@@ -120,7 +121,7 @@ const TravelDeskDashboard: React.FC = () => {
       setDebouncedGlCode(glCode);
       setDebouncedSanctionNumber(sanctionNumber);
       setCurrentPage(1);
-    }, 10 00);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [ioNumber, glCode, sanctionNumber]);
 
@@ -143,6 +144,7 @@ const TravelDeskDashboard: React.FC = () => {
           io_number: debouncedIoNumber || undefined,
           gl_code: debouncedGlCode || undefined,
           sanction_number: debouncedSanctionNumber || undefined,
+          read_status: readStatusFilter !== "all" ? readStatusFilter : undefined,
         },
         { signal },
       );
@@ -159,7 +161,7 @@ const TravelDeskDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, isReadonlyGlobal, activeTab, locationFilter, sortBy, debouncedIoNumber, debouncedGlCode, debouncedSanctionNumber]);
+  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, isReadonlyGlobal, activeTab, locationFilter, sortBy, debouncedIoNumber, debouncedGlCode, debouncedSanctionNumber, readStatusFilter]);
 
   // Reset to page 1 when tab, location, or sort changes
   useEffect(() => {
@@ -211,6 +213,24 @@ const TravelDeskDashboard: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Mark application read/unread for the current travel desk user
+  const handleToggleRead = async (app: DashboardApplication) => {
+    const newRead = !app.is_read;
+    // Optimistic update
+    setApplications((prev) =>
+      prev.map((a) => (a.id === app.id ? { ...a, is_read: newRead } : a)),
+    );
+    try {
+      await travelDeskAPI.applications.markReadStatus(app.id, newRead);
+    } catch (err: any) {
+      // Revert on failure
+      setApplications((prev) =>
+        prev.map((a) => (a.id === app.id ? { ...a, is_read: !newRead } : a)),
+      );
+      toast.error(err.message || "Failed to update read status");
+    }
   };
 
   // const confirmForward = async (agentId: number, note: string) => {
@@ -340,6 +360,8 @@ const TravelDeskDashboard: React.FC = () => {
             onGlCodeChange={setGlCode}
             sanctionNumber={sanctionNumber}
             onSanctionNumberChange={setSanctionNumber}
+            readStatusFilter={readStatusFilter}
+            onReadStatusFilterChange={setReadStatusFilter}
           />
         </div>
 
@@ -350,6 +372,7 @@ const TravelDeskDashboard: React.FC = () => {
           expandedRow={expandedRow}
           onExpandRow={setExpandedRow}
           onView={handleView}
+          onToggleRead={handleToggleRead}
           // onForward={handleForward}
           onCancel={handleCancel}
         />
