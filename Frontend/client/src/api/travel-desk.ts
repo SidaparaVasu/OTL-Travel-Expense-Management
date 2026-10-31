@@ -33,6 +33,9 @@ export const travelDeskAPI = {
         tab?: string;
         location?: string;
         sort_by?: string;
+        io_number?: string;
+        gl_code?: string;
+        sanction_number?: string;
       },
       options?: { signal?: AbortSignal },
     ): Promise<ApplicationsListResponse> => {
@@ -47,6 +50,9 @@ export const travelDeskAPI = {
       if (params?.tab) queryParams.append("tab", params.tab);
       if (params?.location && params.location !== "all") queryParams.append("location", params.location);
       if (params?.sort_by) queryParams.append("sort_by", params.sort_by);
+      if (params?.io_number) queryParams.append("io_number", params.io_number);
+      if (params?.gl_code) queryParams.append("gl_code", params.gl_code);
+      if (params?.sanction_number) queryParams.append("sanction_number", params.sanction_number);
 
       const { data } = await apiClient.get(
         `/travel/travel-desk/applications/${queryParams.toString() ? `?${queryParams}` : ""}`,

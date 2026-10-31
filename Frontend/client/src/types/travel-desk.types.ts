@@ -181,6 +181,9 @@ export interface DashboardApplication {
   actionable_booking_ids?: number[];
   delegated_booking_ids?: number[];
   booking_action_status?: string;
+  internal_order?: string;
+  sanction_number?: string;
+  gl_code_text?: string;
 }
 
 export interface DashboardStats {

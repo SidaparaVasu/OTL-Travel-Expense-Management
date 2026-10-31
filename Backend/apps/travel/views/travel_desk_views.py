@@ -208,6 +208,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         qs = TravelApplication.objects.select_related(
             "employee",
             "employee__organizational_profile__base_location",
+            "general_ledger",
         ).filter(
             status__in=TRAVEL_DESK_VISIBLE_STATUSES
         )
@@ -227,15 +228,25 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
         is_readonly_global = request.query_params.get("is_readonly_global") == "true"
         search = request.query_params.get("search")
 
+        # financial-identifier filters (IO Number, GL Code, Sanction Number)
+        io_number = request.query_params.get("io_number")
+        gl_code = request.query_params.get("gl_code")
+        sanction_number = request.query_params.get("sanction_number")
+
         # Build search Q objects (needed by both readonly-global and normal paths)
         q_objects = Q()
         if search:
             import re
             match = re.search(r'(\d+)$', search)
-            q_objects = Q(purpose__icontains=search) | \
-                        Q(employee__first_name__icontains=search) | \
-                        Q(employee__last_name__icontains=search) | \
-                        Q(employee__username__icontains=search)
+            q_objects = (
+                Q(purpose__icontains=search)
+                | Q(employee__first_name__icontains=search)
+                | Q(employee__last_name__icontains=search)
+                | Q(employee__username__icontains=search)
+                | Q(internal_order__icontains=search)
+                | Q(sanction_number__icontains=search)
+                | Q(general_ledger__gl_code__icontains=search)
+            )
             if match:
                 try:
                     travel_id = int(match.group(1))
@@ -248,9 +259,17 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
             ro_qs = TravelApplication.objects.select_related(
                 "employee",
                 "employee__organizational_profile__base_location",
+                "general_ledger",
             ).filter(status__in=TRAVEL_DESK_VISIBLE_STATUSES)
             ro_qs = annotate_booking_action_status(ro_qs, request.user)
-            ro_qs = ro_qs.filter(q_objects).order_by("-submitted_at")[:50]
+            ro_qs = ro_qs.filter(q_objects)
+            if io_number:
+                ro_qs = ro_qs.filter(internal_order__icontains=io_number)
+            if gl_code:
+                ro_qs = ro_qs.filter(general_ledger__gl_code__icontains=gl_code)
+            if sanction_number:
+                ro_qs = ro_qs.filter(sanction_number__icontains=sanction_number)
+            ro_qs = ro_qs.order_by("-submitted_at")[:50]
             serializer = TravelDeskApplicationListSerializer(ro_qs, many=True)
             return success_response(
                 message="Read-only global search results",
@@ -303,6 +322,12 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                     ).distinct()
             if search:
                 _qs = _qs.filter(q_objects)
+            if io_number:
+                _qs = _qs.filter(internal_order__icontains=io_number)
+            if gl_code:
+                _qs = _qs.filter(general_ledger__gl_code__icontains=gl_code)
+            if sanction_number:
+                _qs = _qs.filter(sanction_number__icontains=sanction_number)
             if date_from and not skip_narrow_filters:
                 _qs = _qs.filter(submitted_at__date__gte=date_from)
             if date_to and not skip_narrow_filters:
@@ -322,6 +347,7 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
             forwarded_qs = TravelApplication.objects.select_related(
                 "employee",
                 "employee__organizational_profile__base_location",
+                "general_ledger",
             ).filter(
                 id__in=forwarded_app_ids,
                 status__in=TRAVEL_DESK_VISIBLE_STATUSES

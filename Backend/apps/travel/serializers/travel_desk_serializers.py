@@ -445,6 +445,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     delegated_booking_ids = serializers.SerializerMethodField()
     employee_location = serializers.SerializerMethodField()
     travelers = serializers.SerializerMethodField()
+    gl_code_text = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
@@ -454,6 +455,7 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
             "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
             "total_bookings", "pending_bookings", "booked_bookings",
             "actionable_booking_ids", "delegated_booking_ids", "travelers",
+            "internal_order", "sanction_number", "gl_code_text",
         ]
 
     def get_travel_request_id(self, obj):
@@ -546,6 +548,11 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
                 many=True
             ).data
         return []
+
+    def get_gl_code_text(self, obj):
+        if obj.general_ledger:
+            return f"{obj.general_ledger.gl_code} - {obj.general_ledger.vertical_name}"
+        return None
 
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.SerializerMethodField()

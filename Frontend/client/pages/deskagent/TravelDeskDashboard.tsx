@@ -43,6 +43,9 @@ const TravelDeskDashboard: React.FC = () => {
   const [assignedLocations, setAssignedLocations] = useState<string[]>([]);
   const [isGlobalSearch, setIsGlobalSearch] = useState(false);
   const [isReadonlyGlobal, setIsReadonlyGlobal] = useState(false);
+  const [ioNumber, setIoNumber] = useState("");
+  const [glCode, setGlCode] = useState("");
+  const [sanctionNumber, setSanctionNumber] = useState("");
 
   // Fetch assigned locations
   const fetchLocations = useCallback(async () => {
@@ -106,6 +109,21 @@ const TravelDeskDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Debounced financial-identifier filters
+  const [debouncedIoNumber, setDebouncedIoNumber] = useState(ioNumber);
+  const [debouncedGlCode, setDebouncedGlCode] = useState(glCode);
+  const [debouncedSanctionNumber, setDebouncedSanctionNumber] = useState(sanctionNumber);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedIoNumber(ioNumber);
+      setDebouncedGlCode(glCode);
+      setDebouncedSanctionNumber(sanctionNumber);
+      setCurrentPage(1);
+    }, 10 00);
+    return () => clearTimeout(timer);
+  }, [ioNumber, glCode, sanctionNumber]);
+
   // Fetch applications
   const fetchApplications = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -122,6 +140,9 @@ const TravelDeskDashboard: React.FC = () => {
           tab: (isGlobalSearch || isReadonlyGlobal) ? undefined : activeTab,
           location: (isGlobalSearch || isReadonlyGlobal) ? undefined : locationFilter,
           sort_by: sortBy,
+          io_number: debouncedIoNumber || undefined,
+          gl_code: debouncedGlCode || undefined,
+          sanction_number: debouncedSanctionNumber || undefined,
         },
         { signal },
       );
@@ -138,7 +159,7 @@ const TravelDeskDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, isReadonlyGlobal, activeTab, locationFilter, sortBy]);
+  }, [currentPage, statusFilter, bookingActionStatus, debouncedSearchQuery, isGlobalSearch, isReadonlyGlobal, activeTab, locationFilter, sortBy, debouncedIoNumber, debouncedGlCode, debouncedSanctionNumber]);
 
   // Reset to page 1 when tab, location, or sort changes
   useEffect(() => {
@@ -313,6 +334,12 @@ const TravelDeskDashboard: React.FC = () => {
             locationFilter={locationFilter}
             onLocationFilterChange={setLocationFilter}
             locations={assignedLocations}
+            ioNumber={ioNumber}
+            onIoNumberChange={setIoNumber}
+            glCode={glCode}
+            onGlCodeChange={setGlCode}
+            sanctionNumber={sanctionNumber}
+            onSanctionNumberChange={setSanctionNumber}
           />
         </div>
 
