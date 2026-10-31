@@ -84,8 +84,7 @@ export const ApplicationsTable = ({
                             title={app.is_read ? "Read" : "Unread"}
                           />
                           <p className="text-sm font-semibold">
-                            {app.travel_request_id ||
-                              `TR/TSF/2025/${String(app.id).padStart(7, "0")}`}
+                            {app.travel_request_id || ''}
                           </p>
                         </div>
                         <p className="text-sm truncate max-w-[300px]">{app.purpose}</p>
