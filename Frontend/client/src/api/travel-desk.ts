@@ -113,6 +113,27 @@ export const travelDeskAPI = {
       );
       return data;
     },
+
+    listUnapproved: async (
+      params?: {
+        page?: number;
+        search?: string;
+        location?: string;
+        sort_by?: string;
+      },
+      options?: { signal?: AbortSignal },
+    ): Promise<ApplicationsListResponse> => {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append("page", params.page.toString());
+      if (params?.search) queryParams.append("search", params.search);
+      if (params?.location && params.location !== "all") queryParams.append("location", params.location);
+      if (params?.sort_by) queryParams.append("sort_by", params.sort_by);
+      const { data } = await apiClient.get(
+        `/travel/travel-desk/applications/unapproved/${queryParams.toString() ? `?${queryParams}` : ""}`,
+        { signal: options?.signal },
+      );
+      return data;
+    },
   },
 
   bookings: {

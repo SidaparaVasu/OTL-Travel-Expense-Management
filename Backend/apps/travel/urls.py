@@ -76,6 +76,7 @@ urlpatterns = [
 
     # Travel Desk
     path("travel-desk/applications/", TravelDeskApplicationListView.as_view(), name="travel-desk-applications"),
+    path("travel-desk/applications/unapproved/", TravelDeskUnapprovedApplicationsView.as_view(), name="travel-desk-unapproved-applications"),
     path("travel-desk/applications/<int:pk>/", TravelDeskApplicationDetailView.as_view(), name="travel-desk-application-detail"),
     path("travel-desk/applications/<int:pk>/read-status/", TravelApplicationReadStatusView.as_view(), name="travel-desk-application-read-status"),
     path("travel-desk/applications/<int:application_id>/bookings/", TravelDeskBookingsForApplicationView.as_view(), name="travel-desk-application-bookings"),

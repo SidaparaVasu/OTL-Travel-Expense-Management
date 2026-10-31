@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Briefcase, Share2 } from "lucide-react";
+import { Briefcase, Share2, EyeOff } from "lucide-react";
 import { ROUTES } from "@/routes/routes";
 import {
   KPICards,
@@ -13,6 +13,7 @@ import {
   DashboardTabs,
 } from "./components/";
 import { travelDeskAPI } from "@/src/api/travel-desk";
+import { useAuthStore } from "@/src/store/authStore";
 import type {
   DashboardStats,
   DashboardApplication,
@@ -22,6 +23,12 @@ import type {
 } from "@/src/types/travel-desk.types";
 
 const TravelDeskDashboard: React.FC = () => {
+  const { user } = useAuthStore();
+
+  const isGlobalTravelDesk = user?.roles?.some(
+    (r) => r.name === "Global Travel Desk"
+  ) ?? false;
+
   // State
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [applications, setApplications] = useState<DashboardApplication[]>([]);
@@ -47,6 +54,11 @@ const TravelDeskDashboard: React.FC = () => {
   const [glCode, setGlCode] = useState("");
   const [sanctionNumber, setSanctionNumber] = useState("");
   const [readStatusFilter, setReadStatusFilter] = useState("all");
+
+  const [unapprovedApplications, setUnapprovedApplications] = useState<DashboardApplication[]>([]);
+  const [unapprovedPagination, setUnapprovedPagination] = useState<Pagination | null>(null);
+  const [unapprovedLoading, setUnapprovedLoading] = useState(false);
+  const [unapprovedPage, setUnapprovedPage] = useState(1);
 
   // Fetch assigned locations
   const fetchLocations = useCallback(async () => {
@@ -127,6 +139,7 @@ const TravelDeskDashboard: React.FC = () => {
 
   // Fetch applications
   const fetchApplications = useCallback(async (signal?: AbortSignal) => {
+    if (activeTab === "unapproved_trs") return;
     try {
       setLoading(true);
 
@@ -166,6 +179,7 @@ const TravelDeskDashboard: React.FC = () => {
   // Reset to page 1 when tab, location, or sort changes
   useEffect(() => {
     setCurrentPage(1);
+    if (activeTab !== "unapproved_trs") setUnapprovedPage(1);
   }, [activeTab, locationFilter, sortBy]);
 
   // Fetch agents for dropdowns
@@ -185,6 +199,37 @@ const TravelDeskDashboard: React.FC = () => {
     fetchApplications(controller.signal);
     return () => controller.abort();
   }, [fetchApplications]);
+
+  const fetchUnapprovedApplications = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setUnapprovedLoading(true);
+      const response = await travelDeskAPI.applications.listUnapproved(
+        {
+          page: unapprovedPage,
+          search: debouncedSearchQuery,
+          location: locationFilter !== "all" ? locationFilter : undefined,
+          sort_by: sortBy,
+        },
+        { signal },
+      );
+      if (response.success) {
+        setUnapprovedApplications(response.data);
+        setUnapprovedPagination(response.meta?.pagination || null);
+      }
+    } catch (err: any) {
+      if (err.name === "CanceledError" || err.name === "AbortError") return;
+      toast.error("Failed to load unapproved applications");
+    } finally {
+      setUnapprovedLoading(false);
+    }
+  }, [unapprovedPage, debouncedSearchQuery, locationFilter, sortBy]);
+
+  useEffect(() => {
+    if (activeTab !== "unapproved_trs") return;
+    const controller = new AbortController();
+    fetchUnapprovedApplications(controller.signal);
+    return () => controller.abort();
+  }, [activeTab, fetchUnapprovedApplications]);
 
   // Metadata/Initial load
   useEffect(() => {
@@ -328,6 +373,9 @@ const TravelDeskDashboard: React.FC = () => {
                 label: "Forwarded Out / Delegated",
                 icon: Share2,
               },
+              ...(isGlobalTravelDesk
+                ? [{ id: "unapproved_trs", label: "View Unapproved TRs", icon: EyeOff }]
+                : []),
             ]}
           />
 
@@ -367,8 +415,8 @@ const TravelDeskDashboard: React.FC = () => {
 
         {/* Applications Table */}
         <ApplicationsTable
-          applications={filteredApplications}
-          isLoading={loading}
+          applications={activeTab === "unapproved_trs" ? unapprovedApplications : filteredApplications}
+          isLoading={activeTab === "unapproved_trs" ? unapprovedLoading : loading}
           expandedRow={expandedRow}
           onExpandRow={setExpandedRow}
           onView={handleView}
@@ -378,11 +426,20 @@ const TravelDeskDashboard: React.FC = () => {
         />
 
         {/* Pagination */}
-        {pagination && (
-          <PaginationControls
-            pagination={pagination}
-            onPageChange={handlePageChange}
-          />
+        {activeTab === "unapproved_trs" ? (
+          unapprovedPagination && (
+            <PaginationControls
+              pagination={unapprovedPagination}
+              onPageChange={setUnapprovedPage}
+            />
+          )
+        ) : (
+          pagination && (
+            <PaginationControls
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          )
         )}
       </div>
 
