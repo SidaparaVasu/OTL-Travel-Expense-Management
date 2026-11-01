@@ -717,6 +717,8 @@ export const TravelApplicationForm: React.FC = () => {
                     distance_km: booking.booking_details?.distance_km || "",
                     passenger_count:
                       booking.booking_details?.passenger_count || "1",
+                    ticket_number:
+                      booking.booking_details?.ticket_number || "",
                     guests: (booking.booking_details?.guests || []).map(
                       (g: any) => ({
                         id: g.id || null,
@@ -1274,6 +1276,7 @@ export const TravelApplicationForm: React.FC = () => {
                 has_six_airbags: c.has_six_airbags,
                 distance_km: c.distance_km,
                 passenger_count: c.passenger_count,
+                ticket_number: c.ticket_number || "",
                 guests: (c.guests || []).map((g) => ({
                   id: g.id || null,
                   name: g.full_name,

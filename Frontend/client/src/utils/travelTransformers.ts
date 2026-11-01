@@ -91,7 +91,8 @@ function conveyanceToBooking(c: any): Booking {
       start_time: c.start_time,
       end_date: c.end_date,
       end_time: c.end_time,
-      drop_location: c.drop_location
+      drop_location: c.drop_location,
+      ticket_number: c.ticket_number || "",
     }
   };
 }
@@ -143,6 +144,7 @@ function bookingToConveyance(b: any) {
     end_date: d.end_date,
     end_time: d.end_time,
     drop_location: d.drop_location,
+    ticket_number: d.ticket_number || "",
     booking_type: b.booking_type,
     estimated_cost: b.estimated_cost,
     special_instruction: b.special_instruction

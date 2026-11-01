@@ -172,6 +172,7 @@ export const getEmptyConveyance = () => ({
   distance_km: "",
   passenger_count: "1",
   has_six_airbags: true,
+  ticket_number: "",
 });
 
 // Validation Configuration

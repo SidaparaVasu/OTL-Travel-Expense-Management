@@ -60,6 +60,7 @@ interface ConveyanceFormData extends BookingRowLockFields {
   distance_km?: string;
   passenger_count?: string;
   has_six_airbags?: boolean;
+  ticket_number?: string;
   // Bulk file fields
   bulk_booking_file?: File | null;
   existing_bulk_booking_file?: string | null;
@@ -569,6 +570,17 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                   </div>
                 </div>
               )}
+
+              <div className="md:col-span-6">
+                <FormInput
+                  label={`Fligh / Train Ticket No. (Optional)`}
+                  value={form.ticket_number || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, ticket_number: e.target.value })
+                  }
+                  placeholder="Enter ticket or reference number if applicable (for duty-slip purpose)"
+                />
+              </div>
 
               {/* Row 2: From, To */}
               <div className="md:col-span-3">
