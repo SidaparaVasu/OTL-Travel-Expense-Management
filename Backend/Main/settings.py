@@ -336,6 +336,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default='')
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default='')
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@tatasteelfoundation.org")
+TRAVEL_DESK_GENERAL_EMAIL = env("TRAVEL_DESK_GENERAL_EMAIL", default="traveldesk@tatasteelfoundation.org")
 
 # -----------------------------------
 # LOGGING CONFIGURATION (DEV + PROD)

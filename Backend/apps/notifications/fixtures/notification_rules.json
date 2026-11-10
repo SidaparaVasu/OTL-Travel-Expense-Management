@@ -443,5 +443,39 @@
       "created_at": "2026-03-06T12:00:00Z",
       "updated_at": "2026-03-06T12:00:00Z"
     }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 28,
+    "fields": {
+      "event_name": "travel.booking.closed.internal",
+      "description": "Triggered when a booking line item is closed by travel desk. Sent to travel desk user and SPOC team.",
+      "template": 28,
+      "channels": ["email"],
+      "recipient_resolver": "travel_desk",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "escalation_resolver": null,
+      "created_at": "2026-10-31T10:00:00Z",
+      "updated_at": "2026-10-31T10:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notificationrule",
+    "pk": 29,
+    "fields": {
+      "event_name": "travel.booking.closed.vendor",
+      "description": "Triggered when a booking line item is closed. Sent to the assigned business partner / vendor.",
+      "template": 29,
+      "channels": ["email"],
+      "recipient_resolver": "booking_agent",
+      "is_active": true,
+      "send_reminder": false,
+      "reminder_intervals": [],
+      "escalation_resolver": null,
+      "created_at": "2026-10-31T10:00:00Z",
+      "updated_at": "2026-10-31T10:00:00Z"
+    }
   }
 ]

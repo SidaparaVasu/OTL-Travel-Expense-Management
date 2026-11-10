@@ -400,5 +400,33 @@
       "created_at": "2026-03-06T12:00:00Z",
       "updated_at": "2026-03-06T12:00:00Z"
     }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 28,
+    "fields": {
+      "template_key": "travel.booking.closed.internal",
+      "template_name": "Booking Line Item Closed — Internal Notification",
+      "subject": "Booking Closed: {{ booking_type }} — TR #{{ request_id }}",
+      "body_html": "<p>A booking line item has been <strong>closed</strong> by the travel desk.</p><p><strong>TR:</strong> {{ request_id }}<br><strong>Employee:</strong> {{ employee_name }}<br><strong>Booking Type:</strong> {{ booking_type }}<br><strong>Closure Reason:</strong> {{ closure_reason }}<br><strong>Claim Eligible:</strong> {{ claim_eligible }}</p><p>Please take note and update records accordingly.</p><p>Thank you,<br>Travel Management System</p>",
+      "body_text": "Booking closed for TR {{ request_id }}. Employee: {{ employee_name }}. Type: {{ booking_type }}. Reason: {{ closure_reason }}. Claim eligible: {{ claim_eligible }}.",
+      "is_active": true,
+      "created_at": "2026-10-31T10:00:00Z",
+      "updated_at": "2026-10-31T10:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.emailtemplatemaster",
+    "pk": 29,
+    "fields": {
+      "template_key": "travel.booking.closed.vendor",
+      "template_name": "Booking Line Item Closed — Vendor Notification",
+      "subject": "Booking Cancellation Notice: {{ booking_type }} — TR #{{ request_id }}",
+      "body_html": "<p>Dear {{ vendor_name }},</p><p>Please be informed that the following booking has been <strong>closed</strong> and will not proceed.</p><p><strong>TR:</strong> {{ request_id }}<br><strong>Employee:</strong> {{ employee_name }}<br><strong>Booking Type:</strong> {{ booking_type }}<br><strong>Reason:</strong> {{ closure_reason }}</p><p>No further action is required from your side for this booking.</p><p>Thank you,<br>Travel Desk<br>Tata Steel Foundation</p>",
+      "body_text": "Dear {{ vendor_name }}, the booking for TR {{ request_id }} ({{ booking_type }}) has been closed. Reason: {{ closure_reason }}. No further action needed.",
+      "is_active": true,
+      "created_at": "2026-10-31T10:00:00Z",
+      "updated_at": "2026-10-31T10:00:00Z"
+    }
   }
 ]

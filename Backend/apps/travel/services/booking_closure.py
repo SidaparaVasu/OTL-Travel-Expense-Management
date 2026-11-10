@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.conf import settings
 
 from apps.travel.models import Booking, BookingNote, BookingClosureLog
 from apps.travel.models.audit import AuditLog
@@ -54,6 +55,92 @@ def _desk_can_act_on_booking(booking: Booking, user, is_primary_spoc: bool) -> b
     if handler is None and (is_primary_spoc or user_is_travel_desk(user)):
         return True
     return False
+
+
+def _notify_booking_closed(booking: Booking, closed_by, closure_reason: str, allow_claim: bool) -> None:
+    """Fire closure notifications to travel desk team and vendor (if assigned)."""
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        from apps.notifications.center import NotificationCenter
+
+        application = booking.trip_details.travel_application
+        b_type = getattr(booking.booking_type, 'name', 'Booking')
+
+        base_payload = {
+            "request_id": application.get_travel_request_id(),
+            "employee_id": application.employee.id,
+            "employee_name": application.employee.get_full_name(),
+            "booking_id": booking.id,
+            "booking_type": b_type,
+            "closure_reason": closure_reason,
+            "claim_eligible": "Yes" if allow_claim else "No",
+        }
+
+        # Build CC list: handling desk user + SPOC users + general team email
+        cc_emails = []
+        general_email = getattr(settings, 'TRAVEL_DESK_GENERAL_EMAIL', '')
+        if general_email:
+            cc_emails.append(general_email)
+
+        desk_user = booking.handling_travel_desk_user
+        if desk_user and desk_user.id != closed_by.id and desk_user.email:
+            cc_emails.append(desk_user.email)
+
+        try:
+            from apps.authentication.models.spoc import LocationSPOCAssignment
+            profile = application.employee.get_profile()
+            if profile and profile.base_location:
+                spoc_ids = (
+                    LocationSPOCAssignment.objects
+                    .filter(locations=profile.base_location, is_active=True)
+                    .values_list('user_id', flat=True)
+                )
+                if spoc_ids:
+                    from apps.authentication.models import User as AuthUser
+                    spocs = AuthUser.objects.filter(
+                        id__in=spoc_ids, is_active=True
+                    ).exclude(email='')
+                    for u in spocs:
+                        if u.email and u.email not in cc_emails:
+                            cc_emails.append(u.email)
+        except Exception:
+            logger.exception("Failed to resolve SPOC CC for closed booking %s", booking.id)
+
+        internal_payload = {
+            **base_payload,
+            "travel_desk_id": closed_by.id,
+            "cc_emails": cc_emails,
+        }
+        NotificationCenter.notify(
+            event_name="travel.booking.closed.internal",
+            reference={"type": "Booking", "id": booking.id},
+            payload=internal_payload,
+        )
+
+        # Vendor email — only if an agent was assigned
+        assignment = getattr(booking, 'assignment', None)
+        if assignment and assignment.assigned_to:
+            vendor_name = ""
+            try:
+                profile_obj = getattr(assignment.assigned_to, 'booking_agent_profile', None)
+                vendor_name = profile_obj.organization_name if profile_obj else assignment.assigned_to.get_full_name()
+            except Exception:
+                vendor_name = assignment.assigned_to.get_full_name()
+
+            vendor_payload = {
+                **base_payload,
+                "booking_agent_id": assignment.assigned_to.id,
+                "vendor_name": vendor_name,
+                "cc_emails": cc_emails,
+            }
+            NotificationCenter.notify(
+                event_name="travel.booking.closed.vendor",
+                reference={"type": "Booking", "id": booking.id},
+                payload=vendor_payload,
+            )
+    except Exception:
+        logger.exception("Failed to send closure notifications for booking %s", booking.id)
 
 
 def close_booking(
@@ -126,6 +213,7 @@ def close_booking(
             },
         )
 
+    _notify_booking_closed(booking, user, closure_reason, allow_claim)
     return booking
 
 
