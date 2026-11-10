@@ -29,6 +29,7 @@ import {
   isDateTimeInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
+  calculateBookingDays,
 } from "../lib/travel-validation";
 
 interface Guest {
@@ -123,9 +124,10 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       ? Number(selectedSubOption.max_amount)
       : null;
 
-  // effectiveMax: currently 1-day cap. Upcoming multi-day refactor will
-  // multiply by calculateBookingDays(form.start_date, form.end_date).
-  const effectiveMax: number = maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT;
+  // effectiveMax: scales with the number of days this booking covers.
+  // e.g. 3-day trip → user can request up to maxAllowed × 3.
+  const bookingDays = calculateBookingDays(form.start_date, form.end_date);
+  const effectiveMax: number = (maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT) * bookingDays;
 
   const modeName = form.vehicle_type_label?.toLowerCase() || "";
   const isOwnCar =
@@ -794,6 +796,14 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-medium">
                   Advance Amount (₹)
+                  {maxAllowed != null && (
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">
+                      (Max: ₹{effectiveMax.toLocaleString("en-IN")}
+                      {bookingDays > 1
+                        ? ` — ${bookingDays} days × ₹${maxAllowed.toLocaleString("en-IN")}`
+                        : ""})
+                    </span>
+                  )}
                 </label>
                 <CurrencyInput
                   value={form.estimated_cost}

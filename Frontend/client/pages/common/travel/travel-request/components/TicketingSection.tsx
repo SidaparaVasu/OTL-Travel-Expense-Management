@@ -29,6 +29,7 @@ import {
   validateLocationPair,
   validateEstimatedCost,
   validateSpecialInstructions,
+  calculateBookingDays,
 } from "../lib/travel-validation";
 import {
   travelAPI,
@@ -125,9 +126,10 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
       ? Number(selectedSubOption.max_amount)
       : null;
 
-  // effectiveMax: currently 1-day cap. Upcoming multi-day refactor will
-  // multiply by calculateBookingDays(form.departure_date, form.arrival_date).
-  const effectiveMax: number = maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT;
+  // effectiveMax: scales with the number of days this booking covers.
+  // e.g. 3-day trip → user can request up to maxAllowed × 3.
+  const bookingDays = calculateBookingDays(form.departure_date, form.arrival_date);
+  const effectiveMax: number = (maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT) * bookingDays;
 
   const getModeNameById = (modeId: string) => {
     return travelModes.find((m) => String(m.id) === modeId)?.name;
@@ -586,6 +588,14 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
               <div className="md:col-span-3 space-y-2">
                 <label className="text-sm font-medium">
                   Advance Amount (₹)
+                  {maxAllowed != null && (
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">
+                      (Max: ₹{effectiveMax.toLocaleString("en-IN")}
+                      {bookingDays > 1
+                        ? ` — ${bookingDays} days × ₹${maxAllowed.toLocaleString("en-IN")}`
+                        : ""})
+                    </span>
+                  )}
                 </label>
                 <CurrencyInput
                   value={form.estimated_cost}

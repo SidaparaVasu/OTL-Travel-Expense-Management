@@ -28,6 +28,7 @@ import {
   validateEstimatedCost,
   validateSpecialInstructions,
   isAmountWithinLimit,
+  calculateBookingDays,
 } from "../lib/travel-validation";
 
 interface AccommodationFormData extends BookingRowLockFields {
@@ -439,12 +440,11 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
       } else if (
         maxAllowed !== undefined &&
         maxAllowed !== null &&
-        cost > maxAllowed &&
+        cost > effectiveMax &&
         !isStayWithFriendsAndFamily
       ) {
-        // Cost exceeds per-city-category limit
-        const maxAllowedStr = maxAllowed.toLocaleString("en-IN");
-        newErrors.estimated_cost = `Maximum allowed is ₹${maxAllowedStr} for ${derivedCityCategory}`;
+        // Cost exceeds per-city-category limit scaled by number of days
+        newErrors.estimated_cost = `Maximum allowed is ₹${effectiveMax.toLocaleString("en-IN")} for ${derivedCityCategory}${bookingDays > 1 ? ` (${bookingDays} days × ₹${maxAllowed.toLocaleString("en-IN")})` : ""}`;
       } else if (cost > effectiveMax && !isStayWithFriendsAndFamily) {
         // No specific limit found — apply safety cap
         newErrors.estimated_cost = `Maximum allowed is ₹${effectiveMax.toLocaleString("en-IN")}`;
@@ -461,9 +461,10 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // effectiveMax: currently 1-day cap. Upcoming multi-day refactor will
-  // multiply by calculateBookingDays(form.check_in_date, form.check_out_date).
-  const effectiveMax: number = maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT;
+  // effectiveMax: scales with the number of nights this booking covers.
+  // e.g. 3-night stay → user can request up to maxAllowed × 3.
+  const bookingDays = calculateBookingDays(form.check_in_date, form.check_out_date);
+  const effectiveMax: number = (maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT) * bookingDays;
 
   const handleCostBlur = () => {
     // Skip auto-capping for Friends & Family
@@ -855,10 +856,12 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
               <div className="md:col-span-3 space-y-2">
                 <label className="text-sm font-medium">
                   Advance Amount (₹)
-                  {maxAllowed !== undefined && (
+                  {effectiveMax !== FALLBACK_MAX_ADVANCE_AMOUNT && (
                     <span className="text-xs text-muted-foreground ml-2 font-normal">
-                      (Max: ₹
-                      {maxAllowed ? maxAllowed.toLocaleString("en-IN") : "0"})
+                      (Max: ₹{effectiveMax.toLocaleString("en-IN")}
+                      {bookingDays > 1 && maxAllowed != null
+                        ? ` — ${bookingDays} days × ₹${maxAllowed.toLocaleString("en-IN")}`
+                        : ""})
                     </span>
                   )}
                 </label>
@@ -866,13 +869,7 @@ export const AccommodationSection: React.FC<AccommodationSectionProps> = ({
                   value={form.estimated_cost}
                   onValueChange={handleCostChange}
                   onBlur={handleCostBlur}
-                  placeholder={
-                    maxAllowed !== undefined
-                      ? `Max allowed ₹${
-                          maxAllowed ? maxAllowed.toLocaleString("en-IN") : "0"
-                        }`
-                      : "Enter Advance Amount"
-                  }
+                  placeholder={`Max allowed ₹${effectiveMax.toLocaleString("en-IN")}`}
                   className={errors.estimated_cost ? "border-destructive" : ""}
                 />
                 {errors.estimated_cost && (
