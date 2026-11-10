@@ -3,19 +3,124 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def add_columns_idempotent(apps, schema_editor):
+    """
+    Applies all schema changes via raw SQL with existence checks so the
+    migration is safe to run regardless of how far a previous attempt got.
+    """
+    db = schema_editor.connection
+    tbl = 'travel_travelapplicationreadstatus'
+
+    with db.cursor() as cur:
+        # --- helper: check if column exists ---
+        def col_exists(col):
+            cur.execute(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS "
+                "WHERE TABLE_SCHEMA = DATABASE() "
+                "AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+                [tbl, col],
+            )
+            return cur.fetchone()[0] > 0
+
+        # --- helper: check if index exists ---
+        def idx_exists(idx):
+            cur.execute(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS "
+                "WHERE TABLE_SCHEMA = DATABASE() "
+                "AND TABLE_NAME = %s AND INDEX_NAME = %s",
+                [tbl, idx],
+            )
+            return cur.fetchone()[0] > 0
+
+        # --- helper: check if unique constraint exists (MySQL stores as index) ---
+        def unique_exists():
+            cur.execute(
+                "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS "
+                "WHERE TABLE_SCHEMA = DATABASE() "
+                "AND TABLE_NAME = %s "
+                "AND CONSTRAINT_TYPE = 'UNIQUE'",
+                [tbl],
+            )
+            return cur.fetchone()[0] > 0
+
+        def get_unique_constraint_name():
+            cur.execute(
+                "SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS "
+                "WHERE TABLE_SCHEMA = DATABASE() "
+                "AND TABLE_NAME = %s "
+                "AND CONSTRAINT_TYPE = 'UNIQUE' LIMIT 1",
+                [tbl],
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
+
+        # 1. Make user nullable
+        if col_exists('user_id'):
+            cur.execute(
+                f"ALTER TABLE `{tbl}` MODIFY COLUMN `user_id` bigint(20) NULL"
+            )
+
+        # 2. Add scope
+        if not col_exists('scope'):
+            cur.execute(
+                f"ALTER TABLE `{tbl}` ADD COLUMN `scope` varchar(10) NOT NULL DEFAULT 'user'"
+            )
+
+        # 3. Add location_id
+        if not col_exists('location_id'):
+            cur.execute(
+                f"ALTER TABLE `{tbl}` ADD COLUMN `location_id` bigint(20) NULL"
+            )
+            cur.execute(
+                f"ALTER TABLE `{tbl}` ADD CONSTRAINT "
+                f"`travel_trav_location_id_fk` "
+                f"FOREIGN KEY (`location_id`) REFERENCES `master_data_locationmaster` (`id`)"
+            )
+
+        # 4. Add marked_by_id
+        if not col_exists('marked_by_id'):
+            cur.execute(
+                f"ALTER TABLE `{tbl}` ADD COLUMN `marked_by_id` bigint(20) NULL"
+            )
+            cur.execute(
+                f"ALTER TABLE `{tbl}` ADD CONSTRAINT "
+                f"`travel_trav_marked_by_id_fk` "
+                f"FOREIGN KEY (`marked_by_id`) REFERENCES `authentication_user` (`id`) ON DELETE SET NULL"
+            )
+
+        # 5. Drop old unique constraint
+        if unique_exists():
+            constraint_name = get_unique_constraint_name()
+            if constraint_name:
+                cur.execute(
+                    f"ALTER TABLE `{tbl}` DROP INDEX `{constraint_name}`"
+                )
+
+        # 6. Drop old per-user index
+        if idx_exists('travel_trav_user_id_2a6d21_idx'):
+            cur.execute(
+                f"ALTER TABLE `{tbl}` DROP INDEX `travel_trav_user_id_2a6d21_idx`"
+            )
+
+        # 7. Add new scope/is_read index
+        if not idx_exists('travel_trav_scope_is_re_idx'):
+            cur.execute(
+                f"CREATE INDEX `travel_trav_scope_is_re_idx` "
+                f"ON `{tbl}` (`scope`, `is_read`)"
+            )
+
+
+def noop(apps, schema_editor):
+    pass
+
+
 class Migration(migrations.Migration):
     """
-    Prod applied the original 0041 (per-user schema: non-nullable user FK,
-    unique_together, no scope/location/marked_by columns).  Our rewrite of 0041
-    was skipped on prod because Django already recorded it as applied.
+    Brings the prod read_status table in line with the new dual-scope model.
+    Uses raw SQL with existence checks so the migration is fully idempotent
+    regardless of how far any previous partial attempt reached.
 
-    This migration brings the existing prod table in line with the new model by:
-      1. Making user nullable (required before we can have location-scoped rows).
-      2. Adding scope, location, and marked_by columns.
-      3. Back-filling scope = 'user' for every existing row.
-      4. Removing the old unique_together constraint.
-      5. Removing the old per-user index.
-      6. Adding the new scope/is_read index.
+    State-only operations keep Django's migration state in sync with the model.
     """
 
     dependencies = [
@@ -25,92 +130,64 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # 1. Make user nullable so location-scope rows can omit it
-        migrations.AlterField(
-            model_name='travelapplicationreadstatus',
-            name='user',
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name='travel_application_read_statuses',
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
+        # Apply all DDL changes idempotently via raw SQL
+        migrations.RunPython(add_columns_idempotent, reverse_code=noop),
 
-        # 2. Add scope column (default 'user' so existing rows are valid)
-        migrations.AddField(
-            model_name='travelapplicationreadstatus',
-            name='scope',
-            field=models.CharField(
-                choices=[('user', 'User'), ('location', 'Location')],
-                default='user',
-                max_length=10,
-            ),
-            preserve_default=False,
-        ),
-
-        # 3. Add location FK
-        migrations.AddField(
-            model_name='travelapplicationreadstatus',
-            name='location',
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name='travel_application_read_statuses',
-                to='master_data.locationmaster',
-            ),
-        ),
-
-        # 4. Add marked_by FK
-        migrations.AddField(
-            model_name='travelapplicationreadstatus',
-            name='marked_by',
-            field=models.ForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name='read_status_changes',
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-
-        # 5. Remove the old unique_together (travel_application, user).
-        # Same reasoning as the index below: physically exists on prod DB but
-        # not in Django's migration state after the 0041 rewrite.
+        # Keep Django's migration state in sync with the resulting schema.
+        # These are state-only (no DDL) because the DDL was handled above.
         migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterUniqueTogether(
-                    name='travelapplicationreadstatus',
-                    unique_together=set(),
-                ),
-            ],
-            state_operations=[],
-        ),
-
-        # 6. Remove the old per-user index.
-        # The index exists physically in the prod DB (created by the original 0041
-        # before that migration was rewritten) but is absent from Django's migration
-        # state (the rewritten 0041 never recorded creating it).
-        # SeparateDatabaseAndState lets us issue the DROP INDEX DDL without touching
-        # the migration state, which avoids the "No index named ..." ValueError.
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RemoveIndex(
+            database_operations=[],
+            state_operations=[
+                migrations.AlterField(
                     model_name='travelapplicationreadstatus',
-                    name='travel_trav_user_id_2a6d21_idx',
+                    name='user',
+                    field=models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='travel_application_read_statuses',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AddField(
+                    model_name='travelapplicationreadstatus',
+                    name='scope',
+                    field=models.CharField(
+                        choices=[('user', 'User'), ('location', 'Location')],
+                        default='user',
+                        max_length=10,
+                    ),
+                    preserve_default=False,
+                ),
+                migrations.AddField(
+                    model_name='travelapplicationreadstatus',
+                    name='location',
+                    field=models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='travel_application_read_statuses',
+                        to='master_data.locationmaster',
+                    ),
+                ),
+                migrations.AddField(
+                    model_name='travelapplicationreadstatus',
+                    name='marked_by',
+                    field=models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='read_status_changes',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                migrations.AddIndex(
+                    model_name='travelapplicationreadstatus',
+                    index=models.Index(
+                        fields=['scope', 'is_read'],
+                        name='travel_trav_scope_is_re_idx',
+                    ),
                 ),
             ],
-            state_operations=[],
-        ),
-
-        # 7. Add the new scope/is_read index
-        migrations.AddIndex(
-            model_name='travelapplicationreadstatus',
-            index=models.Index(
-                fields=['scope', 'is_read'],
-                name='travel_trav_scope_is_re_idx',
-            ),
         ),
     ]
