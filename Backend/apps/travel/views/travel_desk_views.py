@@ -198,17 +198,45 @@ def annotate_booking_action_status(queryset, user):
 
 
 def annotate_read_status(queryset, user):
-    """Annotate each application with `is_read` (bool) for the given user."""
-    from django.db.models import Exists, OuterRef
+    """
+    Annotate each application with two read-state booleans:
+      is_read_by_me       - personal flag for the requesting user
+      is_read_by_location - shared flag for the application's home location
+      read_by_name        - full name of whoever last set the location flag
+    """
+    from django.db.models import Exists, OuterRef, Subquery, CharField
     from apps.travel.models.read_status import TravelApplicationReadStatus
-    return queryset.annotate(
-        is_read=Exists(
-            TravelApplicationReadStatus.objects.filter(
-                travel_application=OuterRef('pk'),
-                user=user,
-                is_read=True,
-            )
+
+    user_read = TravelApplicationReadStatus.objects.filter(
+        travel_application=OuterRef('pk'),
+        scope='user',
+        user=user,
+        is_read=True,
+    )
+
+    loc_read = TravelApplicationReadStatus.objects.filter(
+        travel_application=OuterRef('pk'),
+        scope='location',
+        location=OuterRef('employee__organizational_profile__base_location'),
+        is_read=True,
+    )
+
+    read_by_subquery = (
+        TravelApplicationReadStatus.objects
+        .filter(
+            travel_application=OuterRef('pk'),
+            scope='location',
+            location=OuterRef('employee__organizational_profile__base_location'),
         )
+        .select_related('marked_by')
+        .order_by('-updated_at')
+        .values('marked_by__first_name')[:1]
+    )
+
+    return queryset.annotate(
+        is_read_by_me=Exists(user_read),
+        is_read_by_location=Exists(loc_read),
+        read_by_first_name=Subquery(read_by_subquery, output_field=CharField()),
     )
 
 
@@ -292,9 +320,13 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
             if sanction_number:
                 ro_qs = ro_qs.filter(sanction_number__icontains=sanction_number)
             if read_status == 'read':
-                ro_qs = ro_qs.filter(is_read=True)
+                ro_qs = ro_qs.filter(is_read_by_me=True)
             elif read_status == 'unread':
-                ro_qs = ro_qs.filter(is_read=False)
+                ro_qs = ro_qs.filter(is_read_by_me=False, is_read_by_location=False)
+            elif read_status == 'read_by_me':
+                ro_qs = ro_qs.filter(is_read_by_me=True)
+            elif read_status == 'read_by_location':
+                ro_qs = ro_qs.filter(is_read_by_location=True)
             ro_qs = ro_qs.order_by("-submitted_at")[:50]
             serializer = TravelDeskApplicationListSerializer(ro_qs, many=True)
             return success_response(
@@ -356,9 +388,13 @@ class TravelDeskApplicationListView(BranchFilterMixin, APIView):
                 _qs = _qs.filter(sanction_number__icontains=sanction_number)
             # Read/unread filter
             if read_status == 'read':
-                _qs = _qs.filter(is_read=True)
+                _qs = _qs.filter(is_read_by_me=True)
             elif read_status == 'unread':
-                _qs = _qs.filter(is_read=False)
+                _qs = _qs.filter(is_read_by_me=False, is_read_by_location=False)
+            elif read_status == 'read_by_me':
+                _qs = _qs.filter(is_read_by_me=True)
+            elif read_status == 'read_by_location':
+                _qs = _qs.filter(is_read_by_location=True)
             if date_from and not skip_narrow_filters:
                 _qs = _qs.filter(submitted_at__date__gte=date_from)
             if date_to and not skip_narrow_filters:
@@ -1287,8 +1323,8 @@ class TravelDeskForwardToDeskView(APIView):
 
 class TravelApplicationReadStatusView(APIView):
     """
-    POST: Set the read/unread status of a travel application for the current
-    travel desk user (manual toggle).
+    POST: Toggle read/unread for a travel application.
+    Writes both a personal (user-scope) and a shared (location-scope) row.
     Body: { "is_read": true | false }
     """
     permission_classes = [IsAuthenticated, IsTravelDesk]
@@ -1300,26 +1336,46 @@ class TravelApplicationReadStatusView(APIView):
                 message="is_read is required",
                 data={"is_read": ["Provide true or false"]},
             )
-        # Accept truthy strings ("true"/"false") as well as real booleans
         if isinstance(is_read, str):
             is_read = is_read.strip().lower() in ("true", "1", "yes")
         is_read = bool(is_read)
 
-        app = TravelApplication.objects.filter(pk=pk).first()
+        app = TravelApplication.objects.select_related(
+            "employee__organizational_profile__base_location"
+        ).filter(pk=pk).first()
         if not app:
             return error_response(message="Application not found", status_code=404)
 
-        obj, _ = TravelApplicationReadStatus.objects.update_or_create(
+        read_at = timezone.now() if is_read else None
+
+        # Personal (user) scope
+        TravelApplicationReadStatus.objects.update_or_create(
             travel_application=app,
+            scope='user',
             user=request.user,
-            defaults={
-                "is_read": is_read,
-                "read_at": timezone.now() if is_read else None,
-            },
+            defaults={"is_read": is_read, "read_at": read_at, "marked_by": request.user},
         )
+
+        # Shared (location) scope — keyed on the application's home location
+        location = None
+        try:
+            profile = app.employee.get_profile()
+            if profile:
+                location = profile.base_location
+        except Exception:
+            pass
+
+        if location:
+            TravelApplicationReadStatus.objects.update_or_create(
+                travel_application=app,
+                scope='location',
+                location=location,
+                defaults={"is_read": is_read, "read_at": read_at, "marked_by": request.user},
+            )
+
         return success_response(
             message="Read status updated",
-            data={"id": app.id, "is_read": obj.is_read},
+            data={"id": app.id, "is_read_by_me": is_read, "is_read_by_location": is_read},
         )
 
 

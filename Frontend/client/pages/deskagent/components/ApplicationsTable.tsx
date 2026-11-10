@@ -79,13 +79,21 @@ export const ApplicationsTable = ({
                         <div className="flex items-center gap-2">
                           <span
                             className={`h-2 w-2 rounded-full shrink-0 ${
-                              app.is_read ? "bg-gray-300" : "bg-blue-500"
+                              app.is_read_by_me ? "bg-gray-300" : "bg-blue-500"
                             }`}
-                            title={app.is_read ? "Read" : "Unread"}
+                            title={app.is_read_by_me ? "Read by you" : "Unread by you"}
                           />
                           <p className="text-sm font-semibold">
                             {app.travel_request_id || ''}
                           </p>
+                          {app.is_read_by_location && (
+                            <span
+                              className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium shrink-0"
+                              title={app.read_by_name ? `Read by ${app.read_by_name}` : "Read by team"}
+                            >
+                              Team
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm truncate max-w-[300px]">{app.purpose}</p>
                       </div>
@@ -163,15 +171,15 @@ export const ApplicationsTable = ({
                                 className="bg-blue-100 hover:bg-blue-100 text-blue-600 hover:text-blue-600"
                                 onClick={() => onToggleRead(app)}
                               >
-                                {app.is_read ? (
-                                  <MailOpen className="w-4 h-4 text-blue-600" />
+                                {app.is_read_by_me ? (
+                                  <MailOpen className="w-4 h-4 text-gray-500" />
                                 ) : (
                                   <Mail className="w-4 h-4 text-blue-600" />
                                 )}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {app.is_read ? "Mark as Unread" : "Mark as Read"}
+                              {app.is_read_by_me ? "Mark as Unread" : "Mark as Read"}
                             </TooltipContent>
                           </Tooltip>
                         )}

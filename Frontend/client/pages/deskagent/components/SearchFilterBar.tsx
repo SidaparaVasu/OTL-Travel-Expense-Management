@@ -270,13 +270,14 @@ export const SearchFilterBar = ({
                 value={readStatusFilter || "all"}
                 onValueChange={onReadStatusFilterChange}
               >
-                <SelectTrigger className="w-full sm:w-[140px] h-9 text-sm bg-background">
+                <SelectTrigger className="w-full sm:w-[160px] h-9 text-sm bg-background">
                   <SelectValue placeholder="Read Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="unread">Unread</SelectItem>
-                  <SelectItem value="read">Read</SelectItem>
+                  <SelectItem value="unread">Unread (by anyone)</SelectItem>
+                  <SelectItem value="read_by_me">Read by me</SelectItem>
+                  <SelectItem value="read_by_location">Read by team</SelectItem>
                 </SelectContent>
               </Select>
             )}
