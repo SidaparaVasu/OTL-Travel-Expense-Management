@@ -193,11 +193,9 @@ class ApprovalEngine:
         try:
             for trip in self.travel_application.trip_details.all():
                 for booking in trip.bookings.all():
-                    # Flight > ₹10,000 requires CEO approval
-                    if (booking.booking_type.name.lower() == 'flight' and 
-                        booking.estimated_cost and booking.estimated_cost > 10000):
-                        special_requirements['requires_ceo_flight'] = True
-                    
+                    # CEO approval is now triggered by advance > 0 (handled in approval_engine_v2).
+                    # The old hardcoded flight > ₹10,000 rule has been removed.
+
                     # Own car > 150km requires CHRO approval
                     if (booking.booking_type.name.lower() == 'car' and
                         booking.booking_details.get('transport_type') == 'own_car' and

@@ -1285,31 +1285,8 @@ class TravelApplicationSubmitViewOld(APIView):
                     "can_approve": True,
                 })
 
-            # 2️) SPECIAL RULE: FLIGHT > 10k → CEO
-            flight_bookings = [
-                b for b in all_bookings if "flight" in b.booking_type.name.lower()
-            ]
-            exp_flight = any(b.estimated_cost and b.estimated_cost > 10000 for b in flight_bookings)
-
-            if exp_flight:
-                if is_ceo:
-                    approvers.append({
-                        "level": "ceo",
-                        "user": user,
-                        "is_required": True,
-                        "can_view": True,
-                        "can_approve": True,
-                    })
-                else:
-                    ceo_user = get_role_user("CEO")
-                    if ceo_user:
-                        approvers.append({
-                            "level": "ceo",
-                            "user": ceo_user,
-                            "is_required": True,
-                            "can_view": True,
-                            "can_approve": True,
-                        })
+            # 2️) CEO approval is triggered by advance > 0 (handled upstream).
+            # The old hardcoded flight > ₹10,000 rule has been removed.
 
             # 3️) SPECIAL RULE: CAR DISTANCE >150km → CHRO
             car_bookings = [b for b in all_bookings if "car" in b.booking_type.name.lower()]
@@ -1760,15 +1737,6 @@ class TravelApplicationValidationView(APIView):
                             'severity': 'error'
                         })
                         has_errors = True
-                
-                # Flight fare validation
-                if booking.booking_type.name.lower() == 'flight' and booking.estimated_cost > 10000:
-                    booking_validation['issues'].append({
-                        'type': 'ceo_approval_required',
-                        'message': f'Flight fare ₹{booking.estimated_cost} exceeds ₹10,000. CEO approval will be required.',
-                        'severity': 'warning'
-                    })
-                    has_warnings = True
                 
                 # Own car distance validation
                 if booking.booking_type.is_self_arranged:

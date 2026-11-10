@@ -23,12 +23,13 @@ import {
   VEHICLE_SUB_OPTIONS,
   LOCATION_TYPES,
   getEmptyConveyance,
-  MAX_ADVANCE_AMOUNT,
+  FALLBACK_MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
   isDateTimeInRange,
   validateEstimatedCost,
   validateSpecialInstructions,
+  calculateBookingDays,
 } from "../lib/travel-validation";
 
 interface Guest {
@@ -60,6 +61,7 @@ interface ConveyanceFormData extends BookingRowLockFields {
   distance_km?: string;
   passenger_count?: string;
   has_six_airbags?: boolean;
+  ticket_number?: string;
   // Bulk file fields
   bulk_booking_file?: File | null;
   existing_bulk_booking_file?: string | null;
@@ -111,6 +113,21 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   const currentSubOptions = form.vehicle_type
     ? travelSubOptions[form.vehicle_type] || []
     : [];
+
+  // Derive max allowed from the selected sub-option's entitlement (from API).
+  // null means no limit configured — fall back to safety cap only.
+  const selectedSubOption = currentSubOptions.find(
+    (s) => String(s.id) === form.vehicle_sub_option,
+  );
+  const maxAllowed: number | null =
+    selectedSubOption?.max_amount != null
+      ? Number(selectedSubOption.max_amount)
+      : null;
+
+  // effectiveMax: scales with the number of days this booking covers.
+  // e.g. 3-day trip → user can request up to maxAllowed × 3.
+  const bookingDays = calculateBookingDays(form.start_date, form.end_date);
+  const effectiveMax: number = (maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT) * bookingDays;
 
   const modeName = form.vehicle_type_label?.toLowerCase() || "";
   const isOwnCar =
@@ -262,8 +279,8 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       if (costError) newErrors.estimated_cost = costError;
 
       const cost = parseFloat(form.estimated_cost);
-      if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
-        newErrors.estimated_cost = `Advance Amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+      if (!isNaN(cost) && cost > effectiveMax) {
+        newErrors.estimated_cost = `Maximum allowed is ₹${effectiveMax.toLocaleString("en-IN")}`;
       }
     }
 
@@ -279,15 +296,13 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
   const handleCostBlur = () => {
     const cost = parseFloat(form.estimated_cost);
-    if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
+    if (!isNaN(cost) && cost > effectiveMax) {
       setForm({
         ...form,
-        estimated_cost: MAX_ADVANCE_AMOUNT.toString(),
+        estimated_cost: effectiveMax.toString(),
       });
       toast.warning(
-        `Advance Amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
-          "en-IN",
-        )}`,
+        `Amount capped to maximum allowed: ₹${effectiveMax.toLocaleString("en-IN")}`,
       );
     }
   };
@@ -570,6 +585,17 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
                 </div>
               )}
 
+              <div className="md:col-span-6">
+                <FormInput
+                  label={`Fligh / Train Ticket No. (Optional)`}
+                  value={form.ticket_number || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, ticket_number: e.target.value })
+                  }
+                  placeholder="Enter ticket or reference number if applicable (for duty-slip purpose)"
+                />
+              </div>
+
               {/* Row 2: From, To */}
               <div className="md:col-span-3">
                 <FormInput
@@ -770,6 +796,14 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm font-medium">
                   Advance Amount (₹)
+                  {maxAllowed != null && (
+                    <span className="text-xs text-muted-foreground ml-2 font-normal">
+                      (Max: ₹{effectiveMax.toLocaleString("en-IN")}
+                      {bookingDays > 1
+                        ? ` — ${bookingDays} days × ₹${maxAllowed.toLocaleString("en-IN")}`
+                        : ""})
+                    </span>
+                  )}
                 </label>
                 <CurrencyInput
                   value={form.estimated_cost}

@@ -597,7 +597,8 @@ def draw_note_section(c, left, current_y, full_width, data):
     
     # Row heights
     row1_height = 25  # Note row
-    row2_height = 40  # Special Instruction row
+    row2_height = 25  # Ticket Number row (only drawn when ticket_number is present)
+    row3_height = 40  # Special Instruction row
     
     # Column widths for Row 1
     # Note | Rate as per TSF | Requester Name | Name Value | Requester Mobile | Mobile Value
@@ -620,7 +621,9 @@ def draw_note_section(c, left, current_y, full_width, data):
     # Y coordinates
     y1 = current_y
     y2 = y1 - row1_height
-    y3 = y2 - row2_height
+    ticket_number = data.get("ticket_number", "").strip()
+    y3 = y2 - (row2_height if ticket_number else 0)
+    y4 = y3 - row3_height
     
     c.setLineWidth(0.3)
     c.setStrokeColor(black)
@@ -664,25 +667,42 @@ def draw_note_section(c, left, current_y, full_width, data):
     
     c.setFont("Helvetica-Bold", 9)
     c.drawCentredString((x6 + x7) / 2, center_y1, data.get("requester_mobile", ""))
-    
-    # ===== Row 2: Special Instruction =====
-    
+
+    # ===== Row 2: Ticket Number (only when present) =====
+    if ticket_number:
+        tkt_label_w = 100
+        tkt_x1 = x1
+        tkt_x2 = tkt_x1 + tkt_label_w
+        tkt_x3 = x7
+
+        c.rect(tkt_x1, y3, full_width, row2_height, fill=0)
+        c.line(tkt_x2, y2, tkt_x2, y3)
+
+        center_tkt = y3 + (row2_height / 2) - 3
+        c.setFont("Helvetica-Bold", 9)
+        c.setFillColorRGB(0, 0, 0)
+        c.drawCentredString((tkt_x1 + tkt_x2) / 2, center_tkt, "Flight/Train Ticket No.")
+        c.setFont("Helvetica", 9)
+        c.drawCentredString((tkt_x2 + tkt_x3) / 2, center_tkt, ticket_number)
+
+    # ===== Row 3: Special Instruction =====
+
     # Draw cell with gray background
     c.setFillColor(light_gray)
-    c.rect(x1, y3, full_width, row2_height, fill=1, stroke=0)
-    
-    # Draw border for Row 2
+    c.rect(x1, y4, full_width, row3_height, fill=1, stroke=0)
+
+    # Draw border for Row 3
     c.setStrokeColor(black)
-    c.rect(x1, y3, full_width, row2_height, fill=0)
-    
-    # Text for Row 2
-    center_y2 = y3 + (row2_height / 2) - 3
-    
+    c.rect(x1, y4, full_width, row3_height, fill=0)
+
+    # Text for Row 3
+    center_y3 = y4 + (row3_height / 2) - 3
+
     c.setFont("Helvetica-Bold", 9)
     c.setFillColorRGB(0, 0, 0)
-    c.drawCentredString((x1 + x2) - 10, center_y2, "Special Instruction")
-    
-    return y3
+    c.drawCentredString((x1 + x2) - 10, center_y3, "Special Instruction")
+
+    return y4
 
 def generate_duty_slip_pdf(booking):
     """
@@ -833,7 +853,8 @@ def generate_duty_slip_pdf(booking):
         "reporting_place": reporting_place,
         "visiting_place": visiting_place,
         "requester_name": requester_name,
-        "requester_mobile": requester_mobile
+        "requester_mobile": requester_mobile,
+        "ticket_number": str(bd.get("ticket_number") or "").strip(),
     }
 
     # -------------------------

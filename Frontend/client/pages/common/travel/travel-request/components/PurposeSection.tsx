@@ -11,7 +11,7 @@ import { DatePickerField } from "./DatePickerField";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
-  MAX_ADVANCE_AMOUNT,
+  FALLBACK_MAX_ADVANCE_AMOUNT,
   IO_NUMBER_MINMAX_LENGTH,
   SANCTION_NUMBER_MINMAX_LENGTH,
 } from "../lib/travel-constants";
@@ -156,12 +156,10 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
 
     if (field === "advance_amount") {
       const amount = parseFloat(value);
-      if (!isNaN(amount) && amount > MAX_ADVANCE_AMOUNT) {
-        // Cap the amount logic will happen in onBlur
-        // Just show error while typing
+      if (!isNaN(amount) && amount > FALLBACK_MAX_ADVANCE_AMOUNT) {
         setErrors((prev) => ({
           ...prev,
-          advance_amount: `Advance amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
+          advance_amount: `Advance amount cannot exceed ₹${FALLBACK_MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
         }));
       }
     }
@@ -169,10 +167,10 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
 
   const handleAdvanceAmountBlur = () => {
     const amount = parseFloat(formData.advance_amount);
-    if (!isNaN(amount) && amount > MAX_ADVANCE_AMOUNT) {
-      handleFieldChange("advance_amount", MAX_ADVANCE_AMOUNT.toString());
+    if (!isNaN(amount) && amount > FALLBACK_MAX_ADVANCE_AMOUNT) {
+      handleFieldChange("advance_amount", FALLBACK_MAX_ADVANCE_AMOUNT.toString());
       toast.warning(
-        `Advance amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
+        `Advance amount capped to max limit: ₹${FALLBACK_MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`,
       );
       // Clear error
       setErrors((prev) => {
@@ -399,7 +397,7 @@ export const PurposeSection: React.FC<PurposeSectionProps> = ({
             }
             onBlur={handleAdvanceAmountBlur}
             placeholder="0.00"
-            max={MAX_ADVANCE_AMOUNT}
+            max={FALLBACK_MAX_ADVANCE_AMOUNT}
             className={errors.advance_amount ? "border-destructive" : ""}
           />
           {errors.advance_amount && (

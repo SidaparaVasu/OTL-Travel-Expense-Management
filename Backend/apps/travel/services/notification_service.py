@@ -50,6 +50,45 @@ def notify_booking_agent_of_assignment(booking, agent_user, event_name=None, req
         "attach_duty_slip": attach_duty_slip,
     })
 
+    if attach_duty_slip:
+        cc_emails = []
+
+        desk_user = booking.handling_travel_desk_user
+        if desk_user and desk_user.email:
+            cc_emails.append(desk_user.email)
+
+        try:
+            from apps.authentication.models.spoc import LocationSPOCAssignment
+            from apps.authentication.models import UserRole
+
+            emp_location = None
+            profile = booking.trip_details.travel_application.employee.get_profile()
+            if profile and profile.base_location:
+                emp_location = profile.base_location
+
+            if emp_location:
+                spoc_user_ids = (
+                    LocationSPOCAssignment.objects
+                    .filter(locations=emp_location, is_active=True)
+                    .exclude(user__id=desk_user.id if desk_user else None)
+                    .values_list("user_id", flat=True)
+                )
+                if spoc_user_ids:
+                    from apps.authentication.models import User
+                    spoc_users = User.objects.filter(
+                        id__in=spoc_user_ids,
+                        is_active=True,
+                    ).exclude(email="")
+                    for u in spoc_users:
+                        if u.email and u.email not in cc_emails:
+                            cc_emails.append(u.email)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("Failed to resolve SPOC CC for booking %s", booking.id)
+
+        if cc_emails:
+            notification_payload["cc_emails"] = cc_emails
+
     # 4. Notify
     NotificationCenter.notify(
         event_name=event_name,
