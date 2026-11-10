@@ -54,6 +54,19 @@ def add_columns_idempotent(apps, schema_editor):
             row = cur.fetchone()
             return row[0] if row else None
 
+        # --- helper: get FK constraint name for a column ---
+        def get_fk_constraint_name(col):
+            cur.execute(
+                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE "
+                "WHERE TABLE_SCHEMA = DATABASE() "
+                "AND TABLE_NAME = %s "
+                "AND COLUMN_NAME = %s "
+                "AND REFERENCED_TABLE_NAME IS NOT NULL LIMIT 1",
+                [tbl, col],
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
+
         # 1. Make user nullable
         if col_exists('user_id'):
             cur.execute(
@@ -88,13 +101,22 @@ def add_columns_idempotent(apps, schema_editor):
                 f"FOREIGN KEY (`marked_by_id`) REFERENCES `authentication_user` (`id`) ON DELETE SET NULL"
             )
 
-        # 5. Drop old unique constraint
+        # 5. Drop old unique constraint.
+        # MySQL blocks DROP INDEX when a FK uses that index as its backing index.
+        # We must drop the user_id FK first, drop the unique index, then restore the FK.
         if unique_exists():
             constraint_name = get_unique_constraint_name()
             if constraint_name:
-                cur.execute(
-                    f"ALTER TABLE `{tbl}` DROP INDEX `{constraint_name}`"
-                )
+                user_fk = get_fk_constraint_name('user_id')
+                if user_fk:
+                    cur.execute(f"ALTER TABLE `{tbl}` DROP FOREIGN KEY `{user_fk}`")
+                cur.execute(f"ALTER TABLE `{tbl}` DROP INDEX `{constraint_name}`")
+                # Restore the user_id FK (MySQL auto-creates a plain index for it)
+                if user_fk:
+                    cur.execute(
+                        f"ALTER TABLE `{tbl}` ADD CONSTRAINT `{user_fk}` "
+                        f"FOREIGN KEY (`user_id`) REFERENCES `authentication_user` (`id`)"
+                    )
 
         # 6. Drop old per-user index
         if idx_exists('travel_trav_user_id_2a6d21_idx'):
