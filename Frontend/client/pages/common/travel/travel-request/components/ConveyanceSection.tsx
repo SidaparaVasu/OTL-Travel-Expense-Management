@@ -23,7 +23,7 @@ import {
   VEHICLE_SUB_OPTIONS,
   LOCATION_TYPES,
   getEmptyConveyance,
-  MAX_ADVANCE_AMOUNT,
+  FALLBACK_MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
   isDateTimeInRange,
@@ -112,6 +112,20 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
   const currentSubOptions = form.vehicle_type
     ? travelSubOptions[form.vehicle_type] || []
     : [];
+
+  // Derive max allowed from the selected sub-option's entitlement (from API).
+  // null means no limit configured — fall back to safety cap only.
+  const selectedSubOption = currentSubOptions.find(
+    (s) => String(s.id) === form.vehicle_sub_option,
+  );
+  const maxAllowed: number | null =
+    selectedSubOption?.max_amount != null
+      ? Number(selectedSubOption.max_amount)
+      : null;
+
+  // effectiveMax: currently 1-day cap. Upcoming multi-day refactor will
+  // multiply by calculateBookingDays(form.start_date, form.end_date).
+  const effectiveMax: number = maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT;
 
   const modeName = form.vehicle_type_label?.toLowerCase() || "";
   const isOwnCar =
@@ -263,8 +277,8 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
       if (costError) newErrors.estimated_cost = costError;
 
       const cost = parseFloat(form.estimated_cost);
-      if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
-        newErrors.estimated_cost = `Advance Amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
+      if (!isNaN(cost) && cost > effectiveMax) {
+        newErrors.estimated_cost = `Maximum allowed is ₹${effectiveMax.toLocaleString("en-IN")}`;
       }
     }
 
@@ -280,15 +294,13 @@ export const ConveyanceSection: React.FC<ConveyanceSectionProps> = ({
 
   const handleCostBlur = () => {
     const cost = parseFloat(form.estimated_cost);
-    if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
+    if (!isNaN(cost) && cost > effectiveMax) {
       setForm({
         ...form,
-        estimated_cost: MAX_ADVANCE_AMOUNT.toString(),
+        estimated_cost: effectiveMax.toString(),
       });
       toast.warning(
-        `Advance Amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
-          "en-IN",
-        )}`,
+        `Amount capped to maximum allowed: ₹${effectiveMax.toLocaleString("en-IN")}`,
       );
     }
   };

@@ -21,7 +21,7 @@ import {
   TRAVEL_SUB_OPTIONS,
   getEmptyTicketing,
   STRICT_ADVANCE_BOOKING,
-  MAX_ADVANCE_AMOUNT,
+  FALLBACK_MAX_ADVANCE_AMOUNT,
 } from "../lib/travel-constants";
 import {
   isDateTimeInRange,
@@ -114,6 +114,20 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
   const currentSubOptions = form.booking_type
     ? travelSubOptions[form.booking_type] || []
     : [];
+
+  // Derive max allowed from the selected sub-option's entitlement (from API).
+  // null means no limit configured — fall back to safety cap only.
+  const selectedSubOption = currentSubOptions.find(
+    (s) => String(s.id) === form.sub_option,
+  );
+  const maxAllowed: number | null =
+    selectedSubOption?.max_amount != null
+      ? Number(selectedSubOption.max_amount)
+      : null;
+
+  // effectiveMax: currently 1-day cap. Upcoming multi-day refactor will
+  // multiply by calculateBookingDays(form.departure_date, form.arrival_date).
+  const effectiveMax: number = maxAllowed ?? FALLBACK_MAX_ADVANCE_AMOUNT;
 
   const getModeNameById = (modeId: string) => {
     return travelModes.find((m) => String(m.id) === modeId)?.name;
@@ -226,16 +240,8 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
       if (costError) newErrors.estimated_cost = costError;
 
       const cost = parseFloat(form.estimated_cost);
-      if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
-        newErrors.estimated_cost = `Advance Amount cannot exceed ₹${MAX_ADVANCE_AMOUNT.toLocaleString("en-IN")}`;
-      }
-    }
-
-    // CEO approval warning for flights
-    if (form.booking_type && getModeNameById(form.booking_type) === "Flight") {
-      const cost = parseFloat(form.estimated_cost);
-      if (!isNaN(cost) && cost > 10000) {
-        toast.warning("CEO approval required for flights above ₹10,000");
+      if (!isNaN(cost) && cost > effectiveMax) {
+        newErrors.estimated_cost = `Maximum allowed is ₹${effectiveMax.toLocaleString("en-IN")}`;
       }
     }
 
@@ -251,15 +257,13 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
 
   const handleCostBlur = () => {
     const cost = parseFloat(form.estimated_cost);
-    if (!isNaN(cost) && cost > MAX_ADVANCE_AMOUNT) {
+    if (!isNaN(cost) && cost > effectiveMax) {
       setForm({
         ...form,
-        estimated_cost: MAX_ADVANCE_AMOUNT.toString(),
+        estimated_cost: effectiveMax.toString(),
       });
       toast.warning(
-        `Advance Amount capped to max limit: ₹${MAX_ADVANCE_AMOUNT.toLocaleString(
-          "en-IN",
-        )}`,
+        `Amount capped to maximum allowed: ₹${effectiveMax.toLocaleString("en-IN")}`,
       );
     }
   };
@@ -593,7 +597,7 @@ export const TicketingSection: React.FC<TicketingSectionProps> = ({
                   }
                   onBlur={handleCostBlur}
                   placeholder="0.00"
-                  max={MAX_ADVANCE_AMOUNT}
+                  max={effectiveMax}
                   className={errors.estimated_cost ? "border-destructive" : ""}
                 />
                 {errors.estimated_cost && (

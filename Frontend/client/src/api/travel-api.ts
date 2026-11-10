@@ -50,6 +50,10 @@ export interface TravelSubOption {
   mode: number;
   is_active?: boolean;
   is_self_arranged?: boolean;
+  /** Max advance amount for this sub-option from GradeEntitlementMaster. null = no limit configured. */
+  max_amount?: number | null;
+  /** Per-city-category limits (accommodation modes only). */
+  limits?: Array<{ city_category: string | null; max_amount: number | null }>;
 }
 
 export interface GuestHouse {

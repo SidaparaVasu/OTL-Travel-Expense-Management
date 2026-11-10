@@ -148,6 +148,22 @@ export const isAmountWithinLimit = (maxAllowed, estimated_cost) => {
   return Number(estimated_cost) <= maxAllowed;
 };
 
+/**
+ * Calculate the number of days covered by a booking item.
+ * Minimum is always 1. Used to compute the effective advance amount cap.
+ *
+ * For the upcoming multi-day refactor, multiply maxAllowed by this value:
+ *   effectiveMax = maxAllowed * calculateBookingDays(startDate, endDate)
+ */
+export function calculateBookingDays(startDate: string, endDate: string): number {
+  if (!startDate || !endDate) return 1;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
+  const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.max(1, days);
+}
+
 export const validateSpecialInstructions = (text: string): string | null => {
   if (text && text.length > 200) {
     return "Special instructions cannot exceed 200 characters";

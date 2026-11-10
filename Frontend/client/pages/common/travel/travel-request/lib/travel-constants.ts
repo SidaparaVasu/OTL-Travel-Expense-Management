@@ -178,6 +178,12 @@ export const getEmptyConveyance = () => ({
 // Validation Configuration
 export const STRICT_ADVANCE_BOOKING = false;
 
-export const MAX_ADVANCE_AMOUNT: number = 50000;
+/**
+ * Safety-net fallback cap — used ONLY when the API returns null for max_amount
+ * (e.g. entitlement not configured for the user's grade).
+ * This is NOT a business rule; it is a last-resort guard.
+ * The real limit always comes from GradeEntitlementMaster via /master/allowed-travel-modes/.
+ */
+export const FALLBACK_MAX_ADVANCE_AMOUNT: number = 50000;
 export const IO_NUMBER_MINMAX_LENGTH: number = 9;
 export const SANCTION_NUMBER_MINMAX_LENGTH: number = 19;
