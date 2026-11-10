@@ -65,7 +65,7 @@ class TravelApplicationReadStatus(models.Model):
         verbose_name = 'Travel Application Read Status'
         verbose_name_plural = 'Travel Application Read Statuses'
         indexes = [
-            models.Index(fields=['scope', 'is_read']),
+            models.Index(fields=['scope', 'is_read'], name='travel_trav_scope_is_re_idx'),
         ]
 
     def __str__(self):
