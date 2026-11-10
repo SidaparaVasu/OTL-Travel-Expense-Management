@@ -76,16 +76,33 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # 5. Remove the old unique_together (travel_application, user)
-        migrations.AlterUniqueTogether(
-            name='travelapplicationreadstatus',
-            unique_together=set(),
+        # 5. Remove the old unique_together (travel_application, user).
+        # Same reasoning as the index below: physically exists on prod DB but
+        # not in Django's migration state after the 0041 rewrite.
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.AlterUniqueTogether(
+                    name='travelapplicationreadstatus',
+                    unique_together=set(),
+                ),
+            ],
+            state_operations=[],
         ),
 
-        # 6. Remove the old per-user index
-        migrations.RemoveIndex(
-            model_name='travelapplicationreadstatus',
-            name='travel_trav_user_id_2a6d21_idx',
+        # 6. Remove the old per-user index.
+        # The index exists physically in the prod DB (created by the original 0041
+        # before that migration was rewritten) but is absent from Django's migration
+        # state (the rewritten 0041 never recorded creating it).
+        # SeparateDatabaseAndState lets us issue the DROP INDEX DDL without touching
+        # the migration state, which avoids the "No index named ..." ValueError.
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RemoveIndex(
+                    model_name='travelapplicationreadstatus',
+                    name='travel_trav_user_id_2a6d21_idx',
+                ),
+            ],
+            state_operations=[],
         ),
 
         # 7. Add the new scope/is_read index
