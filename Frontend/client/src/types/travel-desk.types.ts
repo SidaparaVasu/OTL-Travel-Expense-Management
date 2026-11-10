@@ -184,7 +184,9 @@ export interface DashboardApplication {
   internal_order?: string;
   sanction_number?: string;
   gl_code_text?: string;
-  is_read?: boolean;
+  is_read_by_me?: boolean;
+  is_read_by_location?: boolean;
+  read_by_name?: string | null;
 }
 
 export interface DashboardStats {

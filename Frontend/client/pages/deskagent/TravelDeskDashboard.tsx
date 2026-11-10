@@ -262,17 +262,23 @@ const TravelDeskDashboard: React.FC = () => {
 
   // Mark application read/unread for the current travel desk user
   const handleToggleRead = async (app: DashboardApplication) => {
-    const newRead = !app.is_read;
-    // Optimistic update
+    const newRead = !app.is_read_by_me;
     setApplications((prev) =>
-      prev.map((a) => (a.id === app.id ? { ...a, is_read: newRead } : a)),
+      prev.map((a) =>
+        a.id === app.id
+          ? { ...a, is_read_by_me: newRead, is_read_by_location: newRead }
+          : a,
+      ),
     );
     try {
       await travelDeskAPI.applications.markReadStatus(app.id, newRead);
     } catch (err: any) {
-      // Revert on failure
       setApplications((prev) =>
-        prev.map((a) => (a.id === app.id ? { ...a, is_read: !newRead } : a)),
+        prev.map((a) =>
+          a.id === app.id
+            ? { ...a, is_read_by_me: !newRead, is_read_by_location: !newRead }
+            : a,
+        ),
       );
       toast.error(err.message || "Failed to update read status");
     }

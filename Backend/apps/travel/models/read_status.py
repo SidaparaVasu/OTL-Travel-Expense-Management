@@ -3,26 +3,58 @@ from django.db import models
 
 class TravelApplicationReadStatus(models.Model):
     """
-    Per-(travel desk user, travel application) read/unread flag.
+    Tracks read/unread state for a travel application at two scopes:
 
-    Travel Desk users share the application queue, so read state is tracked
-    per user rather than on the application itself.
+    scope = 'user'     -> personal read state for one desk user
+                         unique on (travel_application, user)
+    scope = 'location' -> shared read state for all desk users at a location
+                         unique on (travel_application, location)
 
-    - A row with is_read=True  -> the user has marked the application read.
-    - A row with is_read=False -> the user explicitly marked it unread.
-    - No row at all            -> treated as unread (default).
+    Both rows are written together when a user toggles the status.
+    'marked_by' records who last changed a location-scoped row for audit.
     """
+
+    SCOPE_USER = 'user'
+    SCOPE_LOCATION = 'location'
+    SCOPE_CHOICES = [
+        (SCOPE_USER, 'User'),
+        (SCOPE_LOCATION, 'Location'),
+    ]
 
     travel_application = models.ForeignKey(
         'TravelApplication',
         on_delete=models.CASCADE,
         related_name='read_statuses',
     )
+    scope = models.CharField(max_length=10, choices=SCOPE_CHOICES)
+
+    # Populated when scope = 'user'
     user = models.ForeignKey(
         'authentication.User',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='travel_application_read_statuses',
     )
+
+    # Populated when scope = 'location'
+    location = models.ForeignKey(
+        'master_data.LocationMaster',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='travel_application_read_statuses',
+    )
+
+    # Audit: who last changed this row (meaningful for location scope)
+    marked_by = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='read_status_changes',
+    )
+
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
 
@@ -32,11 +64,12 @@ class TravelApplicationReadStatus(models.Model):
     class Meta:
         verbose_name = 'Travel Application Read Status'
         verbose_name_plural = 'Travel Application Read Statuses'
-        unique_together = ('travel_application', 'user')
         indexes = [
-            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['scope', 'is_read']),
         ]
 
     def __str__(self):
         state = 'Read' if self.is_read else 'Unread'
-        return f"{self.user.username} - Application {self.travel_application_id} - {state}"
+        if self.scope == self.SCOPE_USER:
+            return f"[user] {self.user_id} - App {self.travel_application_id} - {state}"
+        return f"[location] {self.location_id} - App {self.travel_application_id} - {state}"

@@ -446,17 +446,20 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
     employee_location = serializers.SerializerMethodField()
     travelers = serializers.SerializerMethodField()
     gl_code_text = serializers.SerializerMethodField()
-    is_read = serializers.BooleanField(read_only=True, default=False)
+    is_read_by_me = serializers.BooleanField(read_only=True, default=False)
+    is_read_by_location = serializers.BooleanField(read_only=True, default=False)
+    read_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = TravelApplication
         fields = [
             "id", "travel_request_id", "edit_count", "booking_action_status", "employee", "employee_name", "employee_grade", "employee_location",
-            "from_location", "to_location", "departure_date", "return_date", 
-            "purpose", "estimated_total_cost", "status", "status_label", "submitted_at", 
+            "from_location", "to_location", "departure_date", "return_date",
+            "purpose", "estimated_total_cost", "status", "status_label", "submitted_at",
             "total_bookings", "pending_bookings", "booked_bookings",
             "actionable_booking_ids", "delegated_booking_ids", "travelers",
-            "internal_order", "sanction_number", "gl_code_text", "is_read",
+            "internal_order", "sanction_number", "gl_code_text",
+            "is_read_by_me", "is_read_by_location", "read_by_name",
         ]
 
     def get_travel_request_id(self, obj):
@@ -554,6 +557,10 @@ class TravelDeskApplicationListSerializer(serializers.ModelSerializer):
         if obj.general_ledger:
             return f"{obj.general_ledger.gl_code} - {obj.general_ledger.vertical_name}"
         return None
+
+    def get_read_by_name(self, obj):
+        first_name = getattr(obj, 'read_by_first_name', None)
+        return first_name or None
 
 class TravelDeskApplicationDetailSerializer(serializers.ModelSerializer):
     travel_request_id = serializers.SerializerMethodField()
