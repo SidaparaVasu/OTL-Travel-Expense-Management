@@ -54,18 +54,17 @@ def add_columns_idempotent(apps, schema_editor):
             row = cur.fetchone()
             return row[0] if row else None
 
-        # --- helper: get FK constraint name for a column ---
-        def get_fk_constraint_name(col):
+        # --- helper: get all FK constraint names on the table ---
+        def get_all_fk_constraints():
             cur.execute(
-                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE "
+                "SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME "
+                "FROM information_schema.KEY_COLUMN_USAGE "
                 "WHERE TABLE_SCHEMA = DATABASE() "
                 "AND TABLE_NAME = %s "
-                "AND COLUMN_NAME = %s "
-                "AND REFERENCED_TABLE_NAME IS NOT NULL LIMIT 1",
-                [tbl, col],
+                "AND REFERENCED_TABLE_NAME IS NOT NULL",
+                [tbl],
             )
-            row = cur.fetchone()
-            return row[0] if row else None
+            return cur.fetchall()  # list of (constraint_name, col, ref_table, ref_col)
 
         # 1. Make user nullable
         if col_exists('user_id'):
@@ -102,20 +101,35 @@ def add_columns_idempotent(apps, schema_editor):
             )
 
         # 5. Drop old unique constraint.
-        # MySQL blocks DROP INDEX when a FK uses that index as its backing index.
-        # We must drop the user_id FK first, drop the unique index, then restore the FK.
+        # MySQL error 1553: cannot drop an index that backs a FK constraint.
+        # Strategy: snapshot all FKs, drop them all, drop the unique index,
+        # then restore every FK that still needs to exist.
         if unique_exists():
             constraint_name = get_unique_constraint_name()
             if constraint_name:
-                user_fk = get_fk_constraint_name('user_id')
-                if user_fk:
-                    cur.execute(f"ALTER TABLE `{tbl}` DROP FOREIGN KEY `{user_fk}`")
+                # Snapshot all current FKs before we touch anything
+                all_fks = get_all_fk_constraints()
+
+                # Drop every FK on the table
+                dropped_fks = set()
+                for fk_name, col, ref_table, ref_col in all_fks:
+                    if fk_name not in dropped_fks:
+                        cur.execute(f"ALTER TABLE `{tbl}` DROP FOREIGN KEY `{fk_name}`")
+                        dropped_fks.add(fk_name)
+
+                # Now drop the unique index
                 cur.execute(f"ALTER TABLE `{tbl}` DROP INDEX `{constraint_name}`")
-                # Restore the user_id FK (MySQL auto-creates a plain index for it)
-                if user_fk:
+
+                # Restore all FKs (MySQL auto-creates a plain index for each one).
+                # Skip any FKs we re-added in steps 3/4 (they may already exist
+                # if those columns were added by a previous partial attempt).
+                our_new_fks = {'travel_trav_location_id_fk', 'travel_trav_marked_by_id_fk'}
+                for fk_name, col, ref_table, ref_col in all_fks:
+                    if fk_name in our_new_fks:
+                        continue
                     cur.execute(
-                        f"ALTER TABLE `{tbl}` ADD CONSTRAINT `{user_fk}` "
-                        f"FOREIGN KEY (`user_id`) REFERENCES `authentication_user` (`id`)"
+                        f"ALTER TABLE `{tbl}` ADD CONSTRAINT `{fk_name}` "
+                        f"FOREIGN KEY (`{col}`) REFERENCES `{ref_table}` (`{ref_col}`)"
                     )
 
         # 6. Drop old per-user index
